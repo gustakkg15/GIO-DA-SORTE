@@ -215,7 +215,7 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
               <button
                 type="button"
                 onClick={() => setIsPrizeModalOpen(true)}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-blue-600/30 transition shrink-0 active:scale-95"
+                className="w-full sm:w-auto min-h-[44px] px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-blue-600/30 transition shrink-0 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
               >
                 <Edit3 className="w-3.5 h-3.5 text-sky-200" />
                 <span>Configurar Prêmio & Imagem</span>
@@ -224,14 +224,14 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
           </div>
 
           {/* Visual Arena Card (Drum or Fortune Wheel) */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-7 shadow-xl space-y-5">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-7 shadow-xl space-y-5">
             {/* Arena Mode Switcher */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex flex-wrap items-center justify-between gap-2.5 pb-3 border-b border-slate-800">
               <div className="flex items-center p-1 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold">
                 <button
                   type="button"
                   onClick={() => onUpdateSettings({ drawMode: 'drum' })}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+                  className={`min-h-[36px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${
                     settings.drawMode === 'drum'
                       ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-bold'
                       : 'text-slate-400 hover:text-white'
@@ -243,7 +243,7 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
                 <button
                   type="button"
                   onClick={() => onUpdateSettings({ drawMode: 'wheel' })}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+                  className={`min-h-[36px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${
                     settings.drawMode === 'wheel'
                       ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-bold'
                       : 'text-slate-400 hover:text-white'
@@ -258,7 +258,7 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
               <button
                 type="button"
                 onClick={onOpenBattleRoyale}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-sky-300 hover:text-white bg-blue-950/50 hover:bg-blue-900/60 border border-blue-800/60 rounded-xl transition shadow-sm"
+                className="min-h-[36px] flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-sky-300 hover:text-white bg-blue-950/50 hover:bg-blue-900/60 border border-blue-800/60 rounded-xl transition shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
               >
                 <Flame className="w-3.5 h-3.5 text-sky-400" />
                 <span className="hidden sm:inline">Modo Battle Royale</span>
@@ -436,20 +436,22 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-1 shrink-0">
                       <button
                         type="button"
                         onClick={() => onOpenVictoryCard(winner)}
-                        title="Gerar card de vitória para redes"
-                        className="p-1.5 text-sky-400 hover:text-white hover:bg-slate-800 rounded transition"
+                        title={`Gerar card de vitória para ${winner.name}`}
+                        aria-label={`Gerar card de vitória para ${winner.name}`}
+                        className="min-w-[36px] min-h-[36px] p-2 flex items-center justify-center text-sky-400 hover:text-white hover:bg-slate-800 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
                       >
                         <ImageIcon className="w-4 h-4" />
                       </button>
                       <button
                         type="button"
                         onClick={() => handleCopyWinner(winner)}
-                        title="Copiar texto"
-                        className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition"
+                        title={`Copiar resultado de ${winner.name}`}
+                        aria-label={`Copiar resultado de ${winner.name}`}
+                        className="min-w-[36px] min-h-[36px] p-2 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
                       >
                         {copiedId === winner.id ? (
                           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -460,8 +462,9 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
                       <button
                         type="button"
                         onClick={() => onRemoveWinner(winner.id)}
-                        title="Remover este sorteio"
-                        className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-slate-800 rounded transition"
+                        title={`Remover sorteio de ${winner.name}`}
+                        aria-label={`Remover sorteio de ${winner.name}`}
+                        className="min-w-[36px] min-h-[36px] p-2 flex items-center justify-center text-slate-500 hover:text-red-400 hover:bg-slate-800 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

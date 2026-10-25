@@ -50,16 +50,16 @@ export const ObsOverlayModal: React.FC<ObsOverlayModalProps> = ({
       : 'bg-slate-950/95';
 
   return (
-    <div className={`fixed inset-0 z-50 flex flex-col justify-between p-4 ${bgStyle} select-none`}>
+    <div className={`fixed inset-0 z-50 flex flex-col justify-between p-3 sm:p-4 overflow-y-auto ${bgStyle} select-none`}>
       {/* Streamer Controls Bar */}
       <div
-        className={`flex items-center justify-between max-w-4xl mx-auto w-full p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-white backdrop-blur-md transition-opacity duration-300 ${
+        className={`flex flex-wrap items-center justify-between max-w-4xl mx-auto w-full p-2.5 sm:p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-white backdrop-blur-md transition-opacity duration-300 gap-2 shrink-0 ${
           showControls ? 'opacity-100' : 'opacity-10 hover:opacity-100'
         }`}
       >
         <div className="flex items-center gap-2">
-          <Video className="w-4 h-4 text-sky-400" />
-          <span className="font-bold">GIO DA SORTE · Overlay OBS Studio</span>
+          <Video className="w-4 h-4 text-sky-400 shrink-0" />
+          <span className="font-bold truncate">Overlay OBS</span>
         </div>
 
         <div className="flex items-center gap-2">

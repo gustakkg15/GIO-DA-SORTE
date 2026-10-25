@@ -49,97 +49,99 @@ export const PresentationModal: React.FC<PresentationModalProps> = ({
   const canDraw = eligibleCount > 0 && !isDrawing;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex flex-col justify-between p-4 sm:p-8 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex flex-col justify-between p-3 sm:p-6 md:p-8 overflow-y-auto animate-in fade-in duration-200">
       {/* Presentation Top Bar */}
-      <div className="flex items-center justify-between max-w-6xl mx-auto w-full">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold flex items-center justify-center shadow-lg shadow-blue-500/30 ring-1 ring-sky-300/40">
-            <Sparkles className="w-6 h-6 fill-white" />
+      <div className="flex items-center justify-between max-w-6xl mx-auto w-full gap-2 shrink-0">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold flex items-center justify-center shadow-lg shadow-blue-500/30 ring-1 ring-sky-300/40 shrink-0">
+            <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 fill-white" />
           </div>
-          <div>
-            <h1 className="font-display font-black text-2xl sm:text-3xl text-white tracking-tight">
+          <div className="min-w-0">
+            <h1 className="font-display font-black text-xl sm:text-2xl md:text-3xl text-white tracking-tight truncate">
               GIO DA SORTE
             </h1>
-            <p className="text-xs text-sky-400 font-medium">
-              {settings.currentPrize ? `Prêmio em Disputa: ${settings.currentPrize}` : 'Modo Apresentação ao Vivo'}
+            <p className="text-[11px] sm:text-xs text-sky-400 font-medium truncate">
+              {settings.currentPrize ? `Prêmio: ${settings.currentPrize}` : 'Modo Telão ao Vivo'}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
             type="button"
             onClick={onToggleSound}
-            className="p-2.5 text-slate-300 hover:text-white bg-slate-900 border border-slate-800 rounded-xl transition"
-            title="Alternar som"
+            className="min-w-[40px] min-h-[40px] p-2 flex items-center justify-center text-slate-300 hover:text-white bg-slate-900 border border-slate-800 rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+            title={soundEnabled ? 'Desativar som' : 'Ativar som'}
+            aria-label={soundEnabled ? 'Desativar som' : 'Ativar som'}
           >
             {soundEnabled ? <Volume2 className="w-5 h-5 text-sky-400" /> : <VolumeX className="w-5 h-5 text-slate-500" />}
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-300 hover:text-white bg-slate-900 border border-slate-800 hover:bg-slate-800 rounded-xl transition"
+            className="min-h-[40px] flex items-center gap-1.5 px-3 sm:px-3.5 py-2 text-xs font-bold text-slate-300 hover:text-white bg-slate-900 border border-slate-800 hover:bg-slate-800 rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
           >
             <X className="w-4 h-4" />
-            <span>Sair do Telão</span>
+            <span className="hidden sm:inline">Sair do Telão</span>
+            <span className="sm:hidden">Sair</span>
           </button>
         </div>
       </div>
 
       {/* Center Giant Ticket */}
-      <div className="max-w-2xl w-full mx-auto my-auto py-6">
+      <div className="max-w-2xl w-full mx-auto my-auto py-4 sm:py-6">
         <div className="relative">
           {latestWinner && !isDrawing && (
             <div className="absolute -inset-4 bg-gradient-to-r from-blue-600/40 via-sky-400/50 to-indigo-600/40 rounded-3xl blur-2xl animate-pulse-subtle pointer-events-none" />
           )}
 
           <div
-            className={`relative ticket-notch-lg bg-gradient-to-br from-blue-600 via-sky-500 to-indigo-700 text-white px-8 sm:px-14 py-10 rounded-2xl shadow-2xl transition-all duration-300 ${
+            className={`relative ticket-notch-lg bg-gradient-to-br from-blue-600 via-sky-500 to-indigo-700 text-white px-5 sm:px-10 md:px-14 py-6 sm:py-10 rounded-2xl shadow-2xl transition-all duration-300 ${
               isDrawing
-                ? 'scale-[1.02] shadow-blue-500/50'
+                ? 'scale-[1.01] shadow-blue-500/50'
                 : latestWinner
                 ? 'scale-100 ring-4 ring-sky-300 shadow-blue-600/60'
                 : 'border-t-2 border-sky-300/40'
             }`}
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b-2 border-sky-200/30 pb-4">
-              <div className="flex items-center gap-2 text-xs sm:text-sm font-extrabold uppercase tracking-widest text-sky-100">
-                <Award className="w-5 h-5 text-sky-200" />
-                <span>GIO DA SORTE · BILHETE OFICIAL</span>
+            <div className="flex items-center justify-between border-b-2 border-sky-200/30 pb-3 sm:pb-4 gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs md:text-sm font-extrabold uppercase tracking-widest text-sky-100 truncate">
+                <Award className="w-4 h-4 sm:w-5 sm:h-5 text-sky-200 shrink-0" />
+                <span className="truncate">GIO DA SORTE · BILHETE OFICIAL</span>
               </div>
-              <div className="font-mono text-xs sm:text-sm font-bold text-sky-100">
-                {eligibleCount} BILHETES NO PÁREO
+              <div className="font-mono text-[11px] sm:text-xs md:text-sm font-bold text-sky-100 shrink-0">
+                {eligibleCount} NO PÁREO
               </div>
             </div>
 
             {(settings.currentPrize || settings.prizeImage) && (
-              <div className="mt-4 flex items-center justify-center gap-3 text-xs sm:text-sm font-bold text-blue-950 bg-white/95 py-1.5 px-5 rounded-full mx-auto w-fit shadow-md">
+              <div className="mt-3 sm:mt-4 flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm font-bold text-blue-950 bg-white/95 py-1 px-4 sm:px-5 rounded-full mx-auto w-fit max-w-full shadow-md">
                 {settings.prizeImage ? (
                   <img
                     src={settings.prizeImage}
                     alt={settings.currentPrize || 'Prêmio'}
-                    className="w-7 h-7 rounded-full object-cover border border-amber-400 shadow-sm shrink-0"
+                    className="w-5 h-5 sm:w-7 sm:h-7 rounded-full object-cover border border-amber-400 shadow-sm shrink-0"
                   />
                 ) : (
                   <Gift className="w-4 h-4 text-blue-600 shrink-0" />
                 )}
-                <span className="font-extrabold text-blue-950">{settings.currentPrize || 'Prêmio Oficial'}</span>
+                <span className="font-extrabold text-blue-950 truncate max-w-[200px] sm:max-w-[320px]">{settings.currentPrize || 'Prêmio Oficial'}</span>
               </div>
             )}
 
             {/* Giant Number */}
-            <div className="py-8 sm:py-12 text-center">
-              <div className="text-xs sm:text-sm font-extrabold uppercase tracking-widest text-sky-100/80 mb-2">
+            <div className="py-6 sm:py-10 md:py-12 text-center overflow-hidden">
+              <div className="text-[10px] sm:text-xs md:text-sm font-extrabold uppercase tracking-widest text-sky-100/80 mb-2">
                 {isDrawing ? 'Sorteando bilhete...' : latestWinner ? 'Número Premiado' : 'Número Sorteado'}
               </div>
               <div
-                className={`font-mono font-black tabular-nums tracking-tighter leading-none select-none transition-transform duration-75 ${
+                className={`font-mono font-black tabular-nums tracking-tighter leading-none select-none transition-transform duration-75 truncate ${
                   isDrawing
-                    ? 'text-8xl sm:text-9xl md:text-[140px] text-white scale-105 drop-shadow-xl'
+                    ? 'text-6xl sm:text-8xl md:text-9xl lg:text-[130px] text-white scale-105 drop-shadow-xl'
                     : latestWinner
-                    ? 'text-8xl sm:text-9xl md:text-[140px] text-white drop-shadow-[0_8px_24px_rgba(0,0,0,0.5)]'
-                    : 'text-8xl sm:text-9xl md:text-[140px] text-white/50'
+                    ? 'text-6xl sm:text-8xl md:text-9xl lg:text-[130px] text-white drop-shadow-[0_8px_24px_rgba(0,0,0,0.5)]'
+                    : 'text-6xl sm:text-8xl md:text-9xl lg:text-[130px] text-white/50'
                 }`}
               >
                 {currentDisplayNumber}

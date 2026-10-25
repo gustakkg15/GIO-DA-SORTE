@@ -162,28 +162,29 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
   return (
     <div className="space-y-6">
       {/* Add Participant Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <UserPlus className="w-5 h-5 text-sky-400" />
-            <h2 className="font-display font-bold text-lg text-white">Adicionar Participante</h2>
+            <h2 className="font-display font-bold text-base sm:text-lg text-white">Adicionar Participante</h2>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setIsBulkOpen(!isBulkOpen)}
-              className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition"
+              className="text-xs font-semibold min-h-[36px] px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
             >
               {isBulkOpen ? 'Fechar Lista' : 'Colar Lista'}
             </button>
             <button
               type="button"
               onClick={() => setIsImportModalOpen(true)}
-              className="text-xs font-bold px-3 py-1.5 rounded-xl bg-blue-600/30 border border-blue-500/50 text-sky-200 hover:text-white hover:bg-blue-600/50 transition flex items-center gap-1.5 shadow-sm active:scale-95"
+              className="text-xs font-bold min-h-[36px] px-3 py-1.5 rounded-xl bg-blue-600/30 border border-blue-500/50 text-sky-200 hover:text-white hover:bg-blue-600/50 transition flex items-center gap-1.5 shadow-sm active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-sky-400" />
-              <span>Importar Arquivo (.xlsx, .csv, .txt, .json)</span>
+              <span className="hidden sm:inline">Importar (.xlsx, .csv, .txt)</span>
+              <span className="sm:hidden">Importar</span>
             </button>
           </div>
         </div>
@@ -192,34 +193,36 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
         <form onSubmit={handleSingleSubmit} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
             <div className="sm:col-span-7">
-              <label className="block text-xs text-slate-400 mb-1 font-medium">Nome da pessoa</label>
+              <label htmlFor="participant-name-input" className="block text-xs text-slate-400 mb-1 font-medium">Nome da pessoa</label>
               <input
+                id="participant-name-input"
                 type="text"
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
                 placeholder="Ex.: Mariana Silva"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-400"
+                className="w-full min-h-[44px] bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-400 focus-visible:ring-2 focus-visible:ring-sky-400"
               />
             </div>
             <div className="sm:col-span-3">
-              <label className="block text-xs text-slate-400 mb-1 font-medium">Moedas acumuladas</label>
+              <label htmlFor="participant-coins-input" className="block text-xs text-slate-400 mb-1 font-medium">Moedas acumuladas</label>
               <div className="relative">
                 <input
+                  id="participant-coins-input"
                   type="number"
                   min="0"
                   step="1"
                   value={coinsInput}
                   onChange={(e) => setCoinsInput(e.target.value)}
                   placeholder="Ex.: 300"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-3.5 pr-8 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-400 tabular-nums"
+                  className="w-full min-h-[44px] bg-slate-950 border border-slate-700 rounded-xl pl-3.5 pr-8 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-400 focus-visible:ring-2 focus-visible:ring-sky-400 tabular-nums"
                 />
-                <Coins className="w-4 h-4 text-sky-400 absolute right-2.5 top-3 pointer-events-none" />
+                <Coins className="w-4 h-4 text-sky-400 absolute right-2.5 top-3.5 pointer-events-none" />
               </div>
             </div>
             <div className="sm:col-span-2 flex items-end">
               <button
                 type="submit"
-                className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl transition active:scale-95 shadow-md shadow-blue-600/30"
+                className="w-full min-h-[44px] py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl transition active:scale-95 shadow-md shadow-blue-600/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
               >
                 Adicionar
               </button>
@@ -337,24 +340,26 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="relative">
+          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-initial">
               <input
                 type="text"
                 placeholder="Filtrar nome..."
+                aria-label="Filtrar participante por nome"
                 value={filterQuery}
                 onChange={(e) => setFilterQuery(e.target.value)}
-                className="bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-400 w-36 sm:w-44"
+                className="bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-2.5 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-400 focus-visible:ring-2 focus-visible:ring-sky-400 w-full sm:w-44 min-h-[38px]"
               />
-              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5 pointer-events-none" />
+              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-3 pointer-events-none" />
             </div>
 
-            <div className="flex items-center gap-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300">
+            <div className="flex items-center gap-1 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 min-h-[38px]">
               <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
               <select
                 value={sortBy}
+                aria-label="Ordenar participantes por"
                 onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                className="bg-transparent text-xs text-slate-300 focus:outline-none cursor-pointer"
+                className="bg-transparent text-xs text-slate-300 focus:outline-none cursor-pointer py-1"
               >
                 <option value="tickets-desc">Mais bilhetes</option>
                 <option value="coins-desc">Mais moedas</option>
@@ -395,19 +400,20 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="font-bold text-sm text-white truncate">{p.name}</span>
                       {hasWon && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600/30 text-sky-300 px-2 py-0.5 rounded border border-blue-500/40">
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600/30 text-sky-300 px-2 py-0.5 rounded border border-blue-500/40 shrink-0">
                           Já Ganhou
                         </span>
                       )}
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <div className="flex items-center gap-1 bg-slate-900 border border-slate-700/80 rounded-lg px-2 py-1">
+                      <div className="flex items-center gap-1 bg-slate-900 border border-slate-700/80 rounded-lg px-2 py-1 min-h-[36px]">
                         <span className="text-xs text-slate-400 font-medium">Moedas:</span>
                         <input
                           type="number"
                           min="0"
                           step="1"
+                          aria-label={`Moedas de ${p.name}`}
                           value={p.coins}
                           onChange={(e) => {
                             const val = parseInt(e.target.value, 10);
@@ -421,7 +427,8 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                         type="button"
                         onClick={() => onRemoveParticipant(p.id)}
                         title={`Remover ${p.name}`}
-                        className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-slate-900 rounded-lg transition"
+                        aria-label={`Remover participante ${p.name}`}
+                        className="min-w-[36px] min-h-[36px] p-2 flex items-center justify-center text-slate-500 hover:text-red-400 hover:bg-slate-900 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

@@ -304,21 +304,22 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
           <span className="text-slate-400">
             É o sorteador? Compartilhe este sorteio para os participantes consultarem de graça:
           </span>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={handleCopyDirectLink}
-              className="px-2.5 py-1.5 bg-slate-950/90 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-lg font-semibold flex items-center gap-1 transition"
+              aria-label="Copiar link direto do sorteio"
+              className="min-h-[40px] px-3 py-2 bg-slate-950/90 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
             >
               {copiedLink ? (
                 <>
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-emerald-400">Link Copiado!</span>
+                  <span className="text-emerald-400">Copiado!</span>
                 </>
               ) : (
                 <>
                   <Copy className="w-3.5 h-3.5 text-sky-400" />
-                  <span>Copiar Link Direto</span>
+                  <span>Copiar Link</span>
                 </>
               )}
             </button>
@@ -326,16 +327,18 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
             <button
               type="button"
               onClick={() => setIsQrOpen(true)}
-              className="px-2.5 py-1.5 bg-slate-950/90 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-lg font-semibold flex items-center gap-1 transition"
+              aria-label="Visualizar QR code do sorteio"
+              className="min-h-[40px] px-3 py-2 bg-slate-950/90 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
             >
               <QrCode className="w-3.5 h-3.5 text-amber-400" />
-              <span>Ver QR Code</span>
+              <span>QR Code</span>
             </button>
 
             <button
               type="button"
               onClick={handleShareWhatsApp}
-              className="px-2.5 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 rounded-lg font-semibold flex items-center gap-1 transition"
+              aria-label="Compartilhar sorteio via WhatsApp"
+              className="min-h-[40px] px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
             >
               <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
               <span>WhatsApp</span>
@@ -345,14 +348,15 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
               type="button"
               onClick={handlePublishToCloud}
               disabled={isPublishing}
-              className="px-2.5 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-sky-300 rounded-lg font-semibold flex items-center gap-1 transition"
+              aria-label="Sincronizar dados do sorteio na nuvem"
+              className="min-h-[40px] px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-sky-300 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
             >
               {isPublishing ? (
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
               ) : (
                 <Sparkles className="w-3.5 h-3.5 text-sky-400" />
               )}
-              <span>Sincronizar Nuvem</span>
+              <span>Sincronizar</span>
             </button>
           </div>
         </div>

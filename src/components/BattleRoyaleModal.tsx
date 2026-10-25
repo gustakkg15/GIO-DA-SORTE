@@ -126,32 +126,35 @@ export const BattleRoyaleModal: React.FC<BattleRoyaleModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex flex-col justify-between p-4 sm:p-6 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex flex-col justify-between p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
       {/* Top Header */}
-      <div className="flex items-center justify-between max-w-5xl mx-auto w-full pb-4 border-b border-slate-800">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-red-600 text-white font-bold flex items-center justify-center shadow-lg shadow-red-600/30">
-            <Flame className="w-5 h-5" />
+      <div className="flex items-center justify-between max-w-5xl mx-auto w-full pb-3 sm:pb-4 border-b border-slate-800 gap-2 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-red-600 text-white font-bold flex items-center justify-center shadow-lg shadow-red-600/30 shrink-0">
+            <Flame className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <h2 className="font-display font-black text-xl text-white">Battle Royale dos Bilhetes</h2>
-            <p className="text-xs text-slate-400">Eliminatória por fases até restar o grande campeão</p>
+          <div className="min-w-0">
+            <h2 className="font-display font-black text-lg sm:text-xl text-white truncate">Battle Royale</h2>
+            <p className="text-[11px] sm:text-xs text-slate-400 truncate">Eliminatória por fases até o campeão</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button
             type="button"
             onClick={handleReset}
             title="Reiniciar torneio"
-            className="p-2 text-slate-400 hover:text-white bg-slate-900 border border-slate-800 rounded-lg transition"
+            aria-label="Reiniciar torneio eliminatório"
+            className="min-w-[40px] min-h-[40px] p-2 flex items-center justify-center text-slate-300 hover:text-white bg-slate-900 border border-slate-800 rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white bg-slate-900 border border-slate-800 rounded-lg transition"
+            title="Fechar torneio"
+            aria-label="Fechar torneio eliminatório"
+            className="min-w-[40px] min-h-[40px] p-2 flex items-center justify-center text-slate-300 hover:text-white bg-slate-900 border border-slate-800 rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
           >
             <X className="w-5 h-5" />
           </button>
