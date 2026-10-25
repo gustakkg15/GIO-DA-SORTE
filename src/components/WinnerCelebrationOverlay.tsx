@@ -149,18 +149,43 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
           </div>
         </div>
 
-        {/* Winner Highlight Display */}
-        <div className="space-y-3">
-          <div className="text-xs uppercase font-extrabold tracking-widest text-sky-300/90">
-            Parabéns ao ganhador oficial:
+        {/* Winner Highlight Display with Radiant Radial Gradient */}
+        <div className="relative space-y-3 py-2">
+          {/* Radiant Radial Gradient Aura behind winner */}
+          <div
+            aria-hidden="true"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] sm:w-[500px] md:w-[620px] h-[190px] sm:h-[240px] pointer-events-none -z-10 overflow-visible"
+          >
+            {/* Primary Radiant Radial Gradient Halo */}
+            <div
+              className="w-full h-full rounded-full blur-2xl opacity-90 animate-pulse transition-all duration-1000"
+              style={{
+                background: 'radial-gradient(circle, rgba(56, 189, 248, 0.45) 0%, rgba(99, 102, 241, 0.35) 35%, rgba(245, 158, 11, 0.22) 65%, transparent 75%)',
+              }}
+            />
+            {/* Secondary Golden Flare Core */}
+            <div
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-48 sm:w-72 h-24 sm:h-36 rounded-full blur-xl opacity-80"
+              style={{
+                background: 'radial-gradient(ellipse, rgba(254, 240, 138, 0.55) 0%, rgba(245, 158, 11, 0.35) 50%, transparent 75%)',
+              }}
+            />
           </div>
 
-          <div className="font-display font-black text-4xl sm:text-6xl md:text-7xl text-white tracking-tight break-words drop-shadow-[0_8px_24px_rgba(37,99,235,0.6)]">
-            {winner.name}
+          <div className="text-xs uppercase font-extrabold tracking-widest text-sky-300/90 relative z-10 flex items-center justify-center gap-2">
+            <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+            <span>Parabéns ao ganhador oficial:</span>
+            <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+          </div>
+
+          <div className="relative z-10 font-display font-black text-4xl sm:text-6xl md:text-7xl text-white tracking-tight break-words drop-shadow-[0_10px_35px_rgba(37,99,235,0.7)]">
+            <span className="text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-100 to-sky-200">
+              {winner.name}
+            </span>
           </div>
 
           {/* Ticket Number Badge */}
-          <div className="inline-flex items-center gap-2.5 bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 px-6 py-2.5 rounded-2xl border-2 border-sky-300/60 shadow-xl shadow-blue-600/40">
+          <div className="relative z-10 inline-flex items-center gap-2.5 bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 px-6 py-2.5 rounded-2xl border-2 border-sky-300/60 shadow-xl shadow-blue-600/40">
             <Award className="w-5 h-5 text-white" />
             <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-sky-100">
               Bilhete Premiado:
@@ -171,7 +196,7 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
           </div>
 
           {participant && (
-            <div className="text-xs text-slate-400">
+            <div className="relative z-10 text-xs text-slate-400">
               Concorria com <b>{participant.coins} moedas</b> no total da rodada.
             </div>
           )}
