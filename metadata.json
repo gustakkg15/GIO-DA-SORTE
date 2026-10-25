@@ -1,0 +1,8 @@
+{
+  "name": "SITE Remix GIO DA SORTE Pro",
+  "description": "Sistema de sorteio proporcional por moedas e bilhetes da sorte com animações, efeitos sonoros, busca e modo apresentação.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

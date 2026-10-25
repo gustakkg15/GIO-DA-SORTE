@@ -1,0 +1,128 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile for the raffle organizer",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Unique user ID matching Firebase Auth UID",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "description": "Organizer email",
+          "maxLength": 256
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Organizer display name",
+          "maxLength": 128
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "Organizer avatar image URL",
+          "maxLength": 1024
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Account creation timestamp"
+        }
+      },
+      "required": ["uid", "email"]
+    },
+    "RaffleDocument": {
+      "title": "RaffleDocument",
+      "description": "Raffle data document including participants, winners, and settings",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the raffle",
+          "maxLength": 128
+        },
+        "settings": {
+          "type": "object",
+          "description": "Raffle settings (rate, total, start, order, seed, exclude, currentPrize)"
+        },
+        "participants": {
+          "type": "array",
+          "description": "List of raffle participants with their coins and tickets"
+        },
+        "winners": {
+          "type": "array",
+          "description": "List of drawn winners"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["userId", "settings", "participants"]
+    },
+    "PublicRaffle": {
+      "title": "PublicRaffle",
+      "description": "Public raffle accessible by participants to consult tickets by code",
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Unique short code for the raffle",
+          "maxLength": 32
+        },
+        "userId": {
+          "type": "string",
+          "description": "Organizer UID",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the raffle",
+          "maxLength": 128
+        },
+        "organizerName": {
+          "type": "string",
+          "description": "Organizer display name or channel name",
+          "maxLength": 128
+        },
+        "settings": {
+          "type": "object",
+          "description": "Raffle settings"
+        },
+        "participants": {
+          "type": "array",
+          "description": "List of raffle participants with their coins"
+        },
+        "winners": {
+          "type": "array",
+          "description": "List of drawn winners"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["code", "userId", "settings", "participants"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile document for raffle organizer"
+    },
+    "/users/{userId}/raffles/{raffleId}": {
+      "schema": "RaffleDocument",
+      "description": "Organizer's saved raffle document containing participants and winners"
+    },
+    "/public_raffles/{raffleCode}": {
+      "schema": "PublicRaffle",
+      "description": "Public raffle document readable by any participant to find tickets"
+    }
+  }
+}

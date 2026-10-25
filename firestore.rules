@@ -1,0 +1,76 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net: Default-deny all unspecified operations
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation for UserProfile
+    function isValidUserProfile(data, userId) {
+      return data.uid == userId
+        && data.uid == request.auth.uid
+        && data.email is string
+        && data.email.size() <= 256
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128))
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1024));
+    }
+
+    // Validation for RaffleDocument
+    function isValidRaffle(data, userId) {
+      return data.userId == userId
+        && data.userId == request.auth.uid
+        && data.settings is map
+        && data.participants is list
+        && data.participants.size() <= 10000
+        && (!('winners' in data) || data.winners is list);
+    }
+
+    // User Profile Rules
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid;
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      // Subcollection: Saved Raffles for this organizer
+      match /raffles/{raffleId} {
+        allow get, list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(raffleId) && isValidRaffle(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(raffleId) && isValidRaffle(incoming(), userId)
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(raffleId);
+      }
+    }
+
+    // Public Raffles: Published by signed-in organizers for participants to search by code or host
+    match /public_raffles/{raffleCode} {
+      allow get, list: if true;
+      allow create: if isSignedIn() && isValidId(raffleCode) && incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(raffleCode) && incoming().userId == request.auth.uid && existing().userId == request.auth.uid;
+      allow delete: if isSignedIn() && isValidId(raffleCode) && existing().userId == request.auth.uid;
+    }
+  }
+}
