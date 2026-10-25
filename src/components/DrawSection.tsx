@@ -41,6 +41,7 @@ interface DrawSectionProps {
   onOpenVictoryCard: (winner: Winner) => void;
   onOpenMonteCarlo: () => void;
   onOpenPrizeQueue: () => void;
+  onOpenCelebration?: (winner: Winner) => void;
   onRestoreState?: (state: { settings: RaffleSettings; participants: Participant[]; winners: Winner[] }) => void;
   onResetToSample?: () => void;
   onResetCoinsOnly?: () => void;
@@ -62,6 +63,7 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
   onOpenVictoryCard,
   onOpenMonteCarlo,
   onOpenPrizeQueue,
+  onOpenCelebration,
   onRestoreState,
   onResetToSample,
   onResetCoinsOnly,
@@ -338,14 +340,28 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
               </div>
 
               {latestWinner && (
-                <button
-                  type="button"
-                  onClick={() => onOpenVictoryCard(latestWinner)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition shadow-md shadow-blue-600/30"
-                >
-                  <ImageIcon className="w-3.5 h-3.5" />
-                  <span>Gerar Card de Vitória</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  {onOpenCelebration && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenCelebration(latestWinner)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:brightness-105 text-slate-950 font-bold transition shadow-md shadow-amber-500/25 active:scale-95 text-xs"
+                      title="Ver animação comemorativa do prêmio e ganhador na tela toda"
+                      aria-label="Ver animação comemorativa do prêmio e ganhador na tela toda"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 fill-slate-950" />
+                      <span>Ver Celebração na Tela Toda</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => onOpenVictoryCard(latestWinner)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition shadow-md shadow-blue-600/30 text-xs active:scale-95"
+                  >
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    <span>Card de Vitória</span>
+                  </button>
+                </div>
               )}
             </div>
 
@@ -437,6 +453,17 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
                     </div>
 
                     <div className="flex items-center gap-1 shrink-0">
+                      {onOpenCelebration && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenCelebration(winner)}
+                          title={`Ver animação na tela toda de ${winner.name}`}
+                          aria-label={`Ver animação na tela toda de ${winner.name}`}
+                          className="min-w-[36px] min-h-[36px] p-2 flex items-center justify-center text-amber-400 hover:text-white hover:bg-slate-800 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => onOpenVictoryCard(winner)}

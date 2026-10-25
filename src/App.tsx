@@ -47,6 +47,7 @@ import { PrizeQueueModal } from './components/PrizeQueueModal';
 import { ObsOverlayModal } from './components/ObsOverlayModal';
 import { AccountModal } from './components/AccountModal';
 import { SupportTab } from './components/SupportTab';
+import { WinnerCelebrationOverlay } from './components/WinnerCelebrationOverlay';
 
 export default function App() {
   const [settings, setSettings] = useState<RaffleSettings>(() => {
@@ -126,6 +127,7 @@ export default function App() {
   const [isPrizeQueueOpen, setIsPrizeQueueOpen] = useState(false);
   const [isObsOverlayOpen, setIsObsOverlayOpen] = useState(false);
   const [selectedWinnerForCard, setSelectedWinnerForCard] = useState<Winner | null>(null);
+  const [celebrationWinner, setCelebrationWinner] = useState<Winner | null>(null);
   const [rosterHash, setRosterHash] = useState<string>('');
 
   // Drawing Animation State
@@ -389,11 +391,12 @@ export default function App() {
       participantId: chosenTicket.participantId,
       name: chosenTicket.name,
       number: chosenTicket.number,
-      prize: settings.currentPrize || 'Roleta da Fortuna',
+      prize: settings.prizeName || settings.currentPrize || 'Roleta da Fortuna',
       drawnAt: Date.now(),
     };
 
     setWinners((prev) => [newWinner, ...prev]);
+    setCelebrationWinner(newWinner);
   };
 
   // Traditional Ticket Draw execution
@@ -427,11 +430,12 @@ export default function App() {
           participantId: chosenTicket.participantId,
           name: chosenTicket.name,
           number: chosenTicket.number,
-          prize: settings.currentPrize || 'Prêmio Oficial',
+          prize: settings.prizeName || settings.currentPrize || 'Prêmio Oficial',
           drawnAt: Date.now(),
         };
 
         setWinners((prev) => [newWinner, ...prev]);
+        setCelebrationWinner(newWinner);
         playWinnerFanfare();
         fireWinnerConfetti();
         return;
@@ -489,6 +493,7 @@ export default function App() {
                 onOpenVictoryCard={(w) => setSelectedWinnerForCard(w)}
                 onOpenMonteCarlo={() => setIsMonteCarloOpen(true)}
                 onOpenPrizeQueue={() => setIsPrizeQueueOpen(true)}
+                onOpenCelebration={(w) => setCelebrationWinner(w)}
                 onRestoreState={(state) => {
                   setSettings(state.settings);
                   setParticipants(state.participants);
@@ -606,7 +611,10 @@ export default function App() {
         onClose={() => setIsBattleRoyaleOpen(false)}
         computed={computed}
         settings={settings}
-        onRecordWinner={(winner) => setWinners((prev) => [winner, ...prev])}
+        onRecordWinner={(winner) => {
+          setWinners((prev) => [winner, ...prev]);
+          setCelebrationWinner(winner);
+        }}
       />
 
       {/* Social Media VIP Victory Card Modal with Full Customization Editor */}
@@ -656,6 +664,15 @@ export default function App() {
         onClose={() => setIsPrintSheetOpen(false)}
         computed={computed}
         settings={settings}
+      />
+
+      {/* Fullscreen Dramatic Celebration Overlay (Prêmio e Ganhador na Tela Toda) */}
+      <WinnerCelebrationOverlay
+        winner={celebrationWinner}
+        participant={participants.find((p) => p.id === celebrationWinner?.participantId)}
+        settings={settings}
+        onClose={() => setCelebrationWinner(null)}
+        onOpenVictoryCard={(w) => setSelectedWinnerForCard(w)}
       />
 
       {/* Discreet Footer */}
