@@ -86,3 +86,40 @@ export interface MonteCarloResult {
   theoreticalPct: number;
   difference: number;
 }
+
+// TikTok Giveaway Types
+export interface TikTokVideoInfo {
+  url: string;
+  videoId?: string;
+  authorName?: string;
+  authorUrl?: string;
+  title?: string;
+  thumbnailUrl?: string;
+}
+
+export interface TikTokComment {
+  id: string;
+  username: string;
+  nickname?: string;
+  avatarUrl?: string;
+  text: string;
+  timestamp?: number;
+  likes?: number;
+  mentions: string[];
+}
+
+export interface TikTokFilterSettings {
+  filterDuplicates: boolean; // 1 chance por @usuário
+  keyword: string;           // Palavra-chave ou hashtag obrigatória
+  minMentions: number;       // Mínimo de @amigos marcados
+  excludeAuthor: boolean;    // Excluir comentários do autor do vídeo
+  minCharacters: number;     // Mínimo de caracteres
+}
+
+export interface TikTokWinner {
+  id: string;
+  rank: number;
+  comment: TikTokComment;
+  prize: string;
+  drawnAt: number;
+}

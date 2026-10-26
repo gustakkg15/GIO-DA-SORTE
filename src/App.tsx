@@ -51,6 +51,7 @@ import { AccountModal } from './components/AccountModal';
 import { SupportTab } from './components/SupportTab';
 import { WinnerCelebrationOverlay } from './components/WinnerCelebrationOverlay';
 import { DrawCountdownOverlay } from './components/DrawCountdownOverlay';
+import { TikTokRaffle } from './components/TikTokRaffle';
 
 export default function App() {
   const [settings, setSettings] = useState<RaffleSettings>(() => {
@@ -115,7 +116,7 @@ export default function App() {
   });
 
   // Navigation & Sound State
-  const [activeTab, setActiveTab] = useState<'draw' | 'search' | 'stats' | 'settings' | 'help' | 'support'>('draw');
+  const [activeTab, setActiveTab] = useState<'draw' | 'tiktok' | 'search' | 'stats' | 'settings' | 'help' | 'support'>('draw');
   const [soundActive, setSoundActive] = useState<boolean>(() => isSoundEnabled());
 
   // Firebase Auth & Cloud Sync State
@@ -602,6 +603,15 @@ export default function App() {
               />
             </div>
           </div>
+        )}
+
+        {activeTab === 'tiktok' && (
+          <TikTokRaffle
+            settings={settings}
+            soundEnabled={soundActive}
+            onToggleSound={handleToggleSound}
+            onOpenVictoryCard={(w) => setSelectedWinnerForCard(w)}
+          />
         )}
 
         {activeTab === 'search' && (

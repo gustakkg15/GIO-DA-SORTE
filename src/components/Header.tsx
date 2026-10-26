@@ -19,8 +19,8 @@ import {
 } from 'lucide-react';
 
 interface HeaderProps {
-  activeTab: 'draw' | 'search' | 'stats' | 'settings' | 'help' | 'support';
-  onSelectTab: (tab: 'draw' | 'search' | 'stats' | 'settings' | 'help' | 'support') => void;
+  activeTab: 'draw' | 'tiktok' | 'search' | 'stats' | 'settings' | 'help' | 'support';
+  onSelectTab: (tab: 'draw' | 'tiktok' | 'search' | 'stats' | 'settings' | 'help' | 'support') => void;
   soundEnabled: boolean;
   onToggleSound: () => void;
   onOpenPresentation: () => void;
@@ -44,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleTabClick = (tab: 'draw' | 'search' | 'stats' | 'settings' | 'help' | 'support') => {
+  const handleTabClick = (tab: 'draw' | 'tiktok' | 'search' | 'stats' | 'settings' | 'help' | 'support') => {
     onSelectTab(tab);
     setMobileMenuOpen(false);
   };
@@ -79,6 +79,23 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               Sorteio
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTabClick('tiktok')}
+              className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap shrink-0 flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${
+                activeTab === 'tiktok'
+                  ? 'bg-gradient-to-r from-[#00F2FE] to-[#FE2C55] text-slate-950 font-black shadow-md shadow-[#FE2C55]/20'
+                  : 'hover:text-white hover:bg-slate-900 text-slate-300'
+              }`}
+            >
+              <Video className="w-3.5 h-3.5 text-[#FE2C55]" />
+              <span>Sorteio TikTok</span>
+              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                activeTab === 'tiktok' ? 'bg-slate-950 text-white' : 'bg-[#FE2C55]/20 text-[#FE2C55] border border-[#FE2C55]/40'
+              }`}>
+                Novo
+              </span>
             </button>
             <button
               type="button"
@@ -243,6 +260,18 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
               <button
                 type="button"
+                onClick={() => handleTabClick('tiktok')}
+                className={`min-h-[44px] px-3.5 py-2.5 rounded-xl flex items-center gap-2.5 transition active:scale-98 ${
+                  activeTab === 'tiktok'
+                    ? 'bg-gradient-to-r from-[#00F2FE] to-[#FE2C55] text-slate-950 font-black shadow-md'
+                    : 'bg-slate-900 text-slate-300 hover:text-white border border-slate-800'
+                }`}
+              >
+                <Video className="w-4 h-4 text-[#FE2C55]" />
+                <span>Sorteio TikTok</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => handleTabClick('search')}
                 className={`min-h-[44px] px-3.5 py-2.5 rounded-xl flex items-center gap-2.5 transition active:scale-98 ${
                   activeTab === 'search'
@@ -345,6 +374,20 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Ticket className="w-3.5 h-3.5 text-sky-400" />
               <span>Sorteio</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'tiktok'}
+              onClick={() => handleTabClick('tiktok')}
+              className={`min-h-[38px] px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap shrink-0 transition flex items-center gap-1.5 ${
+                activeTab === 'tiktok'
+                  ? 'bg-gradient-to-r from-[#00F2FE] to-[#FE2C55] text-slate-950 font-black shadow-sm'
+                  : 'text-slate-300 bg-slate-900 border border-slate-800'
+              }`}
+            >
+              <Video className="w-3.5 h-3.5 text-[#FE2C55]" />
+              <span>TikTok</span>
             </button>
             <button
               type="button"
