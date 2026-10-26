@@ -11,6 +11,8 @@ interface FortuneWheelProps {
   onSpinStart: () => void;
   onSpinEnd: (winnerTicket: { number: number; participantId: string; name: string }) => void;
   latestWinner: Winner | null;
+  onRequestSpin?: () => void;
+  spinSignal?: number;
 }
 
 // Curated distinctive color palette for slices
@@ -35,6 +37,8 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   onSpinStart,
   onSpinEnd,
   latestWinner,
+  onRequestSpin,
+  spinSignal,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentAngle, setCurrentAngle] = useState(0);
@@ -303,6 +307,23 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     requestAnimationFrame(animate);
   };
 
+  // Trigger spin when parent fires spinSignal
+  useEffect(() => {
+    if (spinSignal && spinSignal > 0) {
+      startSpin();
+    }
+  }, [spinSignal]);
+
+  const handleUserTrigger = () => {
+    if (spinStateRef.current.spinning || isDrawing) return;
+    if (computed.eligibleTickets.length === 0) return;
+    if (onRequestSpin) {
+      onRequestSpin();
+    } else {
+      startSpin();
+    }
+  };
+
   return (
     <div className="flex flex-col items-center justify-center space-y-4">
       {/* Current Pointer Name Badge */}
@@ -329,7 +350,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
           width={440}
           height={440}
           className="w-[270px] min-[370px]:w-[310px] sm:w-[380px] md:w-[400px] max-w-full h-auto aspect-square rounded-full cursor-pointer select-none"
-          onClick={startSpin}
+          onClick={handleUserTrigger}
           aria-label="Roleta da fortuna interativa. Clique para girar."
         />
       </div>
@@ -338,7 +359,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       <button
         type="button"
         disabled={isDrawing || computed.eligibleTickets.length === 0}
-        onClick={startSpin}
+        onClick={handleUserTrigger}
         className={`w-full max-w-sm min-h-[48px] py-3.5 px-6 rounded-xl font-display font-black text-base sm:text-lg flex items-center justify-center gap-2.5 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${
           !isDrawing && computed.eligibleTickets.length > 0
             ? 'bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 text-white shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 hover:brightness-105 cursor-pointer ring-1 ring-sky-300/30'

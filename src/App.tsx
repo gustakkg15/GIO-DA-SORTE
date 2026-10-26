@@ -19,6 +19,8 @@ import {
   setSoundEnabled,
   playTick,
   playWinnerFanfare,
+  playCountdownTick,
+  playCountdownLaunch,
 } from './utils/audio';
 import { fireWinnerConfetti } from './utils/confetti';
 import { generateRosterHash } from './utils/hash';
@@ -48,6 +50,7 @@ import { ObsOverlayModal } from './components/ObsOverlayModal';
 import { AccountModal } from './components/AccountModal';
 import { SupportTab } from './components/SupportTab';
 import { WinnerCelebrationOverlay } from './components/WinnerCelebrationOverlay';
+import { DrawCountdownOverlay } from './components/DrawCountdownOverlay';
 
 export default function App() {
   const [settings, setSettings] = useState<RaffleSettings>(() => {
@@ -69,6 +72,7 @@ export default function App() {
           return {
             ...baseDefaults,
             ...parsed.settings,
+            countdownSeconds: parsed.settings.countdownSeconds !== undefined ? parsed.settings.countdownSeconds : 10,
             drawMode: parsed.settings.drawMode || 'drum',
             prizes: Array.isArray(parsed.settings.prizes) ? parsed.settings.prizes : baseDefaults.prizes,
           };
@@ -129,6 +133,11 @@ export default function App() {
   const [selectedWinnerForCard, setSelectedWinnerForCard] = useState<Winner | null>(null);
   const [celebrationWinner, setCelebrationWinner] = useState<Winner | null>(null);
   const [rosterHash, setRosterHash] = useState<string>('');
+
+  // Sorteio Countdown State (10 Segundos)
+  const [countdownRemaining, setCountdownRemaining] = useState<number | null>(null);
+  const [pendingDrawType, setPendingDrawType] = useState<'drum' | 'wheel'>('drum');
+  const [wheelSpinSignal, setWheelSpinSignal] = useState(0);
 
   // Drawing Animation State
   const [isDrawing, setIsDrawing] = useState(false);
@@ -399,9 +408,9 @@ export default function App() {
     setCelebrationWinner(newWinner);
   };
 
-  // Traditional Ticket Draw execution
+  // Traditional Ticket Draw execution (Drum Roll)
   const drawingRef = useRef(false);
-  const handleDraw = useCallback(() => {
+  const executeDrumDraw = useCallback(() => {
     if (drawingRef.current || isDrawing) return;
     const pool = computed.eligibleTickets;
     if (pool.length === 0) return;
@@ -454,7 +463,73 @@ export default function App() {
     };
 
     tick();
-  }, [isDrawing, computed.eligibleTickets, settings.spinDuration, settings.currentPrize]);
+  }, [isDrawing, computed.eligibleTickets, settings.spinDuration, settings.currentPrize, settings.prizeName]);
+
+  // Unified Draw Trigger with 10-second suspense countdown
+  const handleTriggerDraw = useCallback(
+    (mode: 'drum' | 'wheel' = 'drum') => {
+      if (drawingRef.current || isDrawing || countdownRemaining !== null) return;
+      if (computed.eligibleTickets.length === 0) return;
+
+      const countdownTime = settings.countdownSeconds !== undefined ? settings.countdownSeconds : 10;
+      if (countdownTime <= 0) {
+        if (mode === 'drum') {
+          executeDrumDraw();
+        } else {
+          setWheelSpinSignal((s) => s + 1);
+        }
+        return;
+      }
+
+      setPendingDrawType(mode);
+      setCountdownRemaining(countdownTime);
+      playCountdownTick(countdownTime);
+    },
+    [isDrawing, countdownRemaining, computed.eligibleTickets.length, settings.countdownSeconds, executeDrumDraw]
+  );
+
+  // Countdown timer decrement effect
+  useEffect(() => {
+    if (countdownRemaining === null) return;
+
+    if (countdownRemaining <= 0) {
+      playCountdownLaunch();
+      setCountdownRemaining(null);
+      if (pendingDrawType === 'drum') {
+        executeDrumDraw();
+      } else {
+        setWheelSpinSignal((s) => s + 1);
+      }
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      const next = countdownRemaining - 1;
+      setCountdownRemaining(next);
+      if (next > 0) {
+        playCountdownTick(next);
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [countdownRemaining, pendingDrawType, executeDrumDraw]);
+
+  // Skip countdown immediately
+  const handleSkipCountdown = useCallback(() => {
+    if (countdownRemaining === null) return;
+    playCountdownLaunch();
+    setCountdownRemaining(null);
+    if (pendingDrawType === 'drum') {
+      executeDrumDraw();
+    } else {
+      setWheelSpinSignal((s) => s + 1);
+    }
+  }, [countdownRemaining, pendingDrawType, executeDrumDraw]);
+
+  // Cancel countdown
+  const handleCancelCountdown = useCallback(() => {
+    setCountdownRemaining(null);
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
@@ -484,7 +559,9 @@ export default function App() {
                 participants={participants}
                 isDrawing={isDrawing}
                 currentDisplayNumber={displayNumber}
-                onDraw={handleDraw}
+                onDraw={() => handleTriggerDraw('drum')}
+                onRequestWheelSpin={() => handleTriggerDraw('wheel')}
+                wheelSpinSignal={wheelSpinSignal}
                 onWheelSpinEnd={handleWheelSpinEnd}
                 onUpdateSettings={(patch) => setSettings((s) => ({ ...s, ...patch }))}
                 onRemoveWinner={handleRemoveWinner}
@@ -600,9 +677,10 @@ export default function App() {
         latestWinner={winners.length > 0 ? winners[0] : null}
         currentDisplayNumber={displayNumber}
         isDrawing={isDrawing}
-        onDraw={handleDraw}
+        onDraw={() => handleTriggerDraw('drum')}
         soundEnabled={soundActive}
         onToggleSound={handleToggleSound}
+        onUpdateSettings={(patch) => setSettings((s) => ({ ...s, ...patch }))}
       />
 
       {/* Battle Royale Elimination Tournament Modal */}
@@ -655,7 +733,7 @@ export default function App() {
         latestWinner={winners.length > 0 ? winners[0] : null}
         currentDisplayNumber={displayNumber}
         isDrawing={isDrawing}
-        onDraw={handleDraw}
+        onDraw={() => handleTriggerDraw('drum')}
       />
 
       {/* Print Sheet Modal */}
@@ -664,6 +742,18 @@ export default function App() {
         onClose={() => setIsPrintSheetOpen(false)}
         computed={computed}
         settings={settings}
+      />
+
+      {/* Dramatic Suspense Countdown Overlay (Contagem de 10 segundos para Início do Sorteio) */}
+      <DrawCountdownOverlay
+        isOpen={countdownRemaining !== null}
+        secondsRemaining={countdownRemaining ?? 0}
+        totalSeconds={settings.countdownSeconds ?? 10}
+        settings={settings}
+        eligibleTicketsCount={computed.eligibleTickets.length}
+        participantsCount={computed.allocations.filter((a) => a.assignedTickets > 0).length}
+        onSkip={handleSkipCountdown}
+        onCancel={handleCancelCountdown}
       />
 
       {/* Fullscreen Dramatic Celebration Overlay (Prêmio e Ganhador na Tela Toda) */}

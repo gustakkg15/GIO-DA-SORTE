@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, Trophy, Sparkles, Play, Award, Gift, Volume2, VolumeX } from 'lucide-react';
+import { X, Trophy, Sparkles, Play, Award, Gift, Volume2, VolumeX, Clock } from 'lucide-react';
 import { ComputedRaffle, RaffleSettings, Winner } from '../types';
 
 interface PresentationModalProps {
@@ -13,6 +13,7 @@ interface PresentationModalProps {
   onDraw: () => void;
   soundEnabled: boolean;
   onToggleSound: () => void;
+  onUpdateSettings?: (patch: Partial<RaffleSettings>) => void;
 }
 
 export const PresentationModal: React.FC<PresentationModalProps> = ({
@@ -26,6 +27,7 @@ export const PresentationModal: React.FC<PresentationModalProps> = ({
   onDraw,
   soundEnabled,
   onToggleSound,
+  onUpdateSettings,
 }) => {
   useEffect(() => {
     if (!isOpen) return;
@@ -67,6 +69,22 @@ export const PresentationModal: React.FC<PresentationModalProps> = ({
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {onUpdateSettings && (
+            <button
+              type="button"
+              onClick={() => {
+                const current = settings.countdownSeconds ?? 10;
+                const next = current === 10 ? 5 : current === 5 ? 3 : current === 3 ? 0 : 10;
+                onUpdateSettings({ countdownSeconds: next });
+              }}
+              className="min-h-[40px] px-3 py-2 flex items-center gap-1.5 text-xs font-bold text-slate-300 hover:text-white bg-slate-900 border border-slate-800 rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+              title="Clique para alternar o tempo da contagem regressiva (10s, 5s, 3s, 0s)"
+            >
+              <Clock className="w-4 h-4 text-sky-400" />
+              <span>{(settings.countdownSeconds ?? 10) > 0 ? `${settings.countdownSeconds ?? 10}s` : 'Imediato'}</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={onToggleSound}
@@ -201,14 +219,19 @@ export const PresentationModal: React.FC<PresentationModalProps> = ({
                 <span>Girando...</span>
               </>
             ) : (
-              <>
+              <div className="flex items-center gap-3">
                 <Play className="w-7 h-7 fill-white" />
                 <span>SORTEAR AGORA</span>
-              </>
+                {(settings.countdownSeconds ?? 10) > 0 && (
+                  <span className="text-sm font-mono font-semibold bg-white/20 px-2.5 py-0.5 rounded-full text-white/95">
+                    ⏱️ {(settings.countdownSeconds ?? 10)}s
+                  </span>
+                )}
+              </div>
             )}
           </button>
           <span className="text-xs text-slate-500">
-            Dica para o apresentador: você pode pressionar a tecla <b>Espaço</b> para sortear.
+            Dica para o apresentador: pressione a tecla <b>Espaço</b> para sortear{(settings.countdownSeconds ?? 10) > 0 ? ` (inicia contagem de ${settings.countdownSeconds ?? 10}s)` : ''}.
           </span>
         </div>
       </div>

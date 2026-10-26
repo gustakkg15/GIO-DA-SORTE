@@ -127,6 +127,94 @@ export function playHeartbeat() {
 }
 
 /**
+ * Suspenseful countdown sound effect for each second leading to the draw
+ */
+export function playCountdownTick(secondsRemaining: number) {
+  if (!soundEnabled) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const isUrgent = secondsRemaining <= 3;
+
+    // Sub-bass tension pulse
+    const subOsc = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(80, now);
+    subOsc.frequency.exponentialRampToValueAtTime(35, now + 0.12);
+    subGain.gain.setValueAtTime(isUrgent ? 0.3 : 0.18, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+    subOsc.connect(subGain);
+    subGain.connect(ctx.destination);
+    subOsc.start(now);
+    subOsc.stop(now + 0.14);
+
+    // High suspense alert tone with increasing pitch
+    const beepOsc = ctx.createOscillator();
+    const beepGain = ctx.createGain();
+    beepOsc.type = isUrgent ? 'sawtooth' : 'triangle';
+
+    const pitch = isUrgent
+      ? (secondsRemaining === 1 ? 987.77 : secondsRemaining === 2 ? 880 : 783.99)
+      : 440 + Math.max(0, 10 - secondsRemaining) * 25;
+
+    beepOsc.frequency.setValueAtTime(pitch, now);
+    beepGain.gain.setValueAtTime(isUrgent ? 0.22 : 0.12, now);
+    beepGain.gain.exponentialRampToValueAtTime(0.001, now + (isUrgent ? 0.14 : 0.08));
+
+    beepOsc.connect(beepGain);
+    beepGain.connect(ctx.destination);
+    beepOsc.start(now);
+    beepOsc.stop(now + (isUrgent ? 0.14 : 0.08));
+  } catch {
+    // Ignore audio glitches
+  }
+}
+
+/**
+ * High energy launch sound effect when countdown reaches 0 ("COMEÇOU!")
+ */
+export function playCountdownLaunch() {
+  if (!soundEnabled) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+
+    // Rising energy laser sweep
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(200, now);
+    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.35);
+    gain.gain.setValueAtTime(0.28, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.38);
+
+    // Punchy sub drop
+    const sub = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    sub.type = 'sine';
+    sub.frequency.setValueAtTime(140, now);
+    sub.frequency.exponentialRampToValueAtTime(45, now + 0.32);
+    subGain.gain.setValueAtTime(0.35, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    sub.connect(subGain);
+    subGain.connect(ctx.destination);
+    sub.start(now);
+    sub.stop(now + 0.35);
+  } catch {
+    // Ignore
+  }
+}
+
+/**
  * Elimination sound when a contestant drops out
  */
 export function playEliminationDrop() {

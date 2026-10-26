@@ -42,6 +42,8 @@ interface DrawSectionProps {
   onOpenMonteCarlo: () => void;
   onOpenPrizeQueue: () => void;
   onOpenCelebration?: (winner: Winner) => void;
+  onRequestWheelSpin?: () => void;
+  wheelSpinSignal?: number;
   onRestoreState?: (state: { settings: RaffleSettings; participants: Participant[]; winners: Winner[] }) => void;
   onResetToSample?: () => void;
   onResetCoinsOnly?: () => void;
@@ -64,6 +66,8 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
   onOpenMonteCarlo,
   onOpenPrizeQueue,
   onOpenCelebration,
+  onRequestWheelSpin,
+  wheelSpinSignal,
   onRestoreState,
   onResetToSample,
   onResetCoinsOnly,
@@ -276,6 +280,8 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
                 onSpinStart={onDraw}
                 onSpinEnd={onWheelSpinEnd}
                 latestWinner={latestWinner}
+                onRequestSpin={onRequestWheelSpin || onDraw}
+                spinSignal={wheelSpinSignal}
               />
             ) : (
               <TicketDisplay
@@ -288,6 +294,38 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
                 totalCapacity={settings.total}
               />
             )}
+
+            {/* Countdown Duration Quick Selector */}
+            <div className="max-w-lg mx-auto flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs">
+              <div className="flex items-center gap-1.5 text-slate-300 font-semibold">
+                <Clock className="w-3.5 h-3.5 text-sky-400" />
+                <span>Contagem regressiva do sorteio:</span>
+              </div>
+              <div className="flex items-center gap-1 p-0.5 bg-slate-900 border border-slate-800 rounded-lg">
+                {[
+                  { label: '10s (Padrão)', val: 10 },
+                  { label: '5s', val: 5 },
+                  { label: '3s', val: 3 },
+                  { label: 'Desativada', val: 0 },
+                ].map((opt) => {
+                  const active = (settings.countdownSeconds ?? 10) === opt.val;
+                  return (
+                    <button
+                      key={opt.val}
+                      type="button"
+                      onClick={() => onUpdateSettings({ countdownSeconds: opt.val })}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-400 ${
+                        active
+                          ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
             {/* Primary Draw Button (Only for Drum mode, Wheel has its own button) */}
             {settings.drawMode === 'drum' && (
@@ -308,10 +346,15 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
                       <span>Sorteando Número...</span>
                     </>
                   ) : (
-                    <>
+                    <div className="flex items-center gap-2.5">
                       <Play className="w-6 h-6 fill-white" />
                       <span>Sortear Agora</span>
-                    </>
+                      {(settings.countdownSeconds ?? 10) > 0 && (
+                        <span className="text-xs font-mono font-semibold bg-white/20 px-2 py-0.5 rounded-full text-white/90">
+                          ⏱️ {(settings.countdownSeconds ?? 10)}s
+                        </span>
+                      )}
+                    </div>
                   )}
                 </button>
               </div>

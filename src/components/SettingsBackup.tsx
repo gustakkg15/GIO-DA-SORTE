@@ -209,6 +209,43 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
           </div>
         </div>
 
+        {/* Countdown Setting */}
+        <div className="pt-3 border-t border-slate-800 space-y-2">
+          <label className="block text-xs font-semibold text-slate-300">
+            ⏱️ Contagem Regressiva para Iniciar o Sorteio
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[
+              { val: 10, label: '10 segundos', desc: 'Padrão emocionante' },
+              { val: 5, label: '5 segundos', desc: 'Rápido e dinâmico' },
+              { val: 3, label: '3 segundos', desc: 'Contagem curta' },
+              { val: 0, label: 'Desativada', desc: 'Sorteio imediato' },
+            ].map((item) => {
+              const active = (settings.countdownSeconds ?? 10) === item.val;
+              return (
+                <button
+                  key={item.val}
+                  type="button"
+                  onClick={() => onUpdateSettings({ countdownSeconds: item.val })}
+                  className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                    active
+                      ? 'bg-blue-600/20 border-blue-500 text-white ring-1 ring-blue-500/50'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                  }`}
+                >
+                  <span className={`text-xs font-bold ${active ? 'text-sky-300' : 'text-slate-200'}`}>
+                    {item.label}
+                  </span>
+                  <span className="text-[10px] text-slate-500 mt-1">{item.desc}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-slate-500">
+            Exibe uma contagem em tela cheia com efeitos de tensão sonora e visual antes de rodar o sorteio.
+          </p>
+        </div>
+
         {settings.order === 'random' && (
           <div className="pt-2 flex justify-start">
             <button
