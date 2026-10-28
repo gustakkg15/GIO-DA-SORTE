@@ -93,8 +93,12 @@ export interface TikTokVideoInfo {
   videoId?: string;
   authorName?: string;
   authorUrl?: string;
+  authorAvatar?: string;
   title?: string;
   thumbnailUrl?: string;
+  commentCount?: number;
+  hasMoreComments?: boolean;
+  nextCursor?: number | string;
 }
 
 export interface TikTokComment {

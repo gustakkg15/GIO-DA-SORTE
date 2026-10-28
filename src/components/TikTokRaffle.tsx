@@ -21,7 +21,10 @@ import {
   Clock,
   Volume2,
   VolumeX,
-  Share2,
+  Code,
+  Plus,
+  RefreshCw,
+  HelpCircle,
 } from 'lucide-react';
 import {
   TikTokComment,
@@ -32,10 +35,13 @@ import {
 } from '../types';
 import {
   parseTikTokUrl,
-  fetchTikTokOEmbed,
+  fetchTikTokVideoDetails,
+  fetchTikTokCommentsBatch,
+  loadTikTokComments,
   filterComments,
   parseImportedComments,
   SAMPLE_TIKTOK_COMMENTS,
+  TIKTOK_BROWSER_CONSOLE_SNIPPET,
 } from '../utils/tiktok';
 import {
   playTick,
@@ -68,7 +74,10 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
   // Input & Video State
   const [videoUrl, setVideoUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingProgressMsg, setLoadingProgressMsg] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadSuccessMsg, setLoadSuccessMsg] = useState<string | null>(null);
   const [videoInfo, setVideoInfo] = useState<TikTokVideoInfo | null>(null);
 
   // Comments State
@@ -98,9 +107,11 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
   const [winners, setWinners] = useState<TikTokWinner[]>([]);
   const [copiedSuccess, setCopiedSuccess] = useState(false);
 
-  // Import Modal State
+  // Modals State
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [rawImportText, setRawImportText] = useState('');
+  const [isExtractorModalOpen, setIsExtractorModalOpen] = useState(false);
+  const [copiedSnippet, setCopiedSnippet] = useState(false);
   const [isConfirmingClear, setIsConfirmingClear] = useState(false);
 
   // Filtered comments computation
@@ -126,16 +137,20 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
     setVideoInfo({
       url: 'https://www.tiktok.com/@gio_da_sorte/video/7329482710182740231',
       videoId: '7329482710182740231',
-      authorName: 'gio_da_sorte',
+      authorName: '@gio_da_sorte',
       authorUrl: 'https://www.tiktok.com/@gio_da_sorte',
       title: '🎁 SORTEIO OFICIAL! Comente marcando seus amigos e concorra ao super prêmio! #sorteio #giodasorte',
       thumbnailUrl: '',
+      commentCount: SAMPLE_TIKTOK_COMMENTS.length,
+      hasMoreComments: false,
     });
     setComments(SAMPLE_TIKTOK_COMMENTS);
     setLoadError(null);
+    setLoadSuccessMsg('Demonstração carregada: 20 comentários de exemplo prontos para testar o sorteio!');
+    setTimeout(() => setLoadSuccessMsg(null), 4000);
   };
 
-  // Fetch comments from URL (with oEmbed metadata & fallback)
+  // Real comment fetching from URL
   const handleFetchFromUrl = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!videoUrl.trim()) {
@@ -145,33 +160,96 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
 
     const parsed = parseTikTokUrl(videoUrl);
     if (!parsed.isValid) {
-      setLoadError('Link do TikTok inválido. Certifique-se de que o link contém tiktok.com.');
+      setLoadError('Link do TikTok inválido. Certifique-se de que o link contém tiktok.com (ex: https://www.tiktok.com/@usuario/video/...).');
       return;
     }
 
     setIsLoading(true);
     setLoadError(null);
+    setLoadSuccessMsg(null);
+    setLoadingProgressMsg('Conectando ao TikTok e buscando vídeo...');
 
     try {
-      const info = await fetchTikTokOEmbed(videoUrl);
-      if (info) {
-        setVideoInfo(info);
+      const result = await loadTikTokComments(parsed.cleanUrl || videoUrl, {
+        maxPages: 3, // Initial pull: up to ~150 comments
+        onProgress: (msg, currentCount) => {
+          setLoadingProgressMsg(currentCount > 0 ? `${msg} (${currentCount} comentários até agora)` : msg);
+        },
+      });
+
+      setVideoInfo(result.videoInfo);
+
+      if (result.comments.length > 0) {
+        setComments(result.comments);
+        setLoadSuccessMsg(
+          `🎉 ${result.comments.length} comentários reais carregados com sucesso do TikTok! (${result.totalCommentsInVideo ? `${result.totalCommentsInVideo} no total do vídeo` : ''})`
+        );
+      } else {
+        // Video was found, but 0 comments returned
+        setLoadError(
+          'O vídeo foi localizado, mas não retornou comentários públicos (podem estar desativados ou bloqueados pelo criador). Você pode colar os comentários ou usar nosso Extrator de 1-Clique!'
+        );
+      }
+    } catch (err: any) {
+      console.warn('Load comments notice:', err);
+
+      // Attempt fallback to at least show video info
+      try {
+        const fallbackInfo = await fetchTikTokVideoDetails(parsed.cleanUrl || videoUrl);
+        if (fallbackInfo) {
+          setVideoInfo(fallbackInfo);
+        }
+      } catch {
+        // ignore
       }
 
-      // If user has not loaded any comments yet, provide realistic set or prompt import
-      if (comments.length === 0) {
-        // Automatically inject realistic comments set for this creator
-        const customized = SAMPLE_TIKTOK_COMMENTS.map((c, i) => ({
-          ...c,
-          id: `cmt-${parsed.videoId || 'live'}-${i + 1}`,
-        }));
-        setComments(customized);
-      }
-    } catch (err) {
-      console.error(err);
-      setLoadError('Não foi possível obter dados automaticamente. Você pode colar os comentários manualmente.');
+      setLoadError(
+        'Não foi possível extrair comentários automaticamente deste link (o TikTok pode ter limitado temporariamente o acesso direto a este vídeo). Use o botão "Colar / Importar Lista" ou o "Extrator de 1-Clique" para carregar seus comentários!'
+      );
     } finally {
       setIsLoading(false);
+      setLoadingProgressMsg(null);
+    }
+  };
+
+  // Load more comments from the next page
+  const handleLoadMoreComments = async () => {
+    if (!videoInfo || !videoInfo.nextCursor || isLoadingMore) return;
+    setIsLoadingMore(true);
+    setLoadError(null);
+
+    try {
+      const batch = await fetchTikTokCommentsBatch(videoUrl, Number(videoInfo.nextCursor), 50);
+      if (batch.comments.length > 0) {
+        const seenIds = new Set(comments.map((c) => c.id));
+        const newComments = [...comments];
+        for (const c of batch.comments) {
+          if (!seenIds.has(c.id)) {
+            seenIds.add(c.id);
+            newComments.push(c);
+          }
+        }
+
+        setComments(newComments);
+        setVideoInfo((prev) =>
+          prev
+            ? {
+                ...prev,
+                hasMoreComments: batch.hasMore,
+                nextCursor: batch.nextCursor,
+              }
+            : null
+        );
+        setLoadSuccessMsg(`+${batch.comments.length} comentários adicionados! Total carregado: ${newComments.length}`);
+        setTimeout(() => setLoadSuccessMsg(null), 3500);
+      } else {
+        setVideoInfo((prev) => (prev ? { ...prev, hasMoreComments: false } : null));
+      }
+    } catch (err: any) {
+      console.warn(err);
+      setLoadError('Não foi possível carregar mais comentários no momento.');
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -184,9 +262,19 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
       setIsImportModalOpen(false);
       setRawImportText('');
       setLoadError(null);
+      setLoadSuccessMsg(`Sucesso! ${parsed.length} comentários importados para a lista.`);
+      setTimeout(() => setLoadSuccessMsg(null), 4000);
     } else {
       setLoadError('Nenhum comentário detectado no texto informado.');
     }
+  };
+
+  // Copy Extractor Script
+  const handleCopyExtractorSnippet = () => {
+    navigator.clipboard.writeText(TIKTOK_BROWSER_CONSOLE_SNIPPET).then(() => {
+      setCopiedSnippet(true);
+      setTimeout(() => setCopiedSnippet(false), 3000);
+    });
   };
 
   // Clear all loaded data
@@ -196,6 +284,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
     setVideoUrl('');
     setWinners([]);
     setLoadError(null);
+    setLoadSuccessMsg(null);
     setIsConfirmingClear(false);
   };
 
@@ -305,7 +394,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
 
     const fullSummary = `🎁 VENCEDORES DO SORTEIO TIKTOK - GIO DA SORTE\n${
       videoInfo?.title ? `Vídeo: ${videoInfo.title}\n` : ''
-    }Data: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}\n\n${text}\n\nSorteio realizado com transparência no GIO DA SORTE!`;
+    }Data: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}\n\n${text}\n\nSorteio auditado e verificado no GIO DA SORTE!`;
 
     navigator.clipboard.writeText(fullSummary).then(() => {
       setCopiedSuccess(true);
@@ -349,13 +438,13 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
               <span className="w-2 h-2 rounded-full bg-[#FE2C55] animate-pulse" />
               <span className="text-[#00F2FE]">TikTok</span>
               <span className="text-slate-400">|</span>
-              <span>Sorteio por Comentários</span>
+              <span>Sorteador Oficial por Comentários</span>
             </div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-display font-black tracking-tight text-white">
               Sorteador de Comentários do <span className="bg-gradient-to-r from-[#00F2FE] via-sky-300 to-[#FE2C55] bg-clip-text text-transparent">TikTok</span>
             </h1>
             <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
-              Cole o link do vídeo, carregue os comentários, aplique regras de validação (1 por @usuário, @amigos marcados, hashtags) e sorteie um ou mais ganhadores aleatoriamente com animação e efeito sonoro.
+              Carregamento automático de comentários reais via link, filtros avançados anti-duplicidade (1 chance por @usuário, @amigos marcados, hashtags) e sorteio de múltiplos ganhadores com suspense e efeitos sonoros.
             </p>
           </div>
 
@@ -370,11 +459,20 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
             </button>
             <button
               type="button"
+              onClick={() => setIsExtractorModalOpen(true)}
+              className="px-4 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-xs sm:text-sm font-semibold text-[#00F2FE] border border-slate-700 hover:border-[#00F2FE]/40 transition flex items-center gap-2 shadow-sm"
+              title="Copie todos os comentários de qualquer vídeo diretamente do seu navegador"
+            >
+              <Code className="w-4 h-4 text-[#00F2FE]" />
+              <span>Extrator de 1-Clique</span>
+            </button>
+            <button
+              type="button"
               onClick={() => setIsImportModalOpen(true)}
               className="px-4 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-xs sm:text-sm font-semibold text-slate-200 border border-slate-700 hover:border-slate-500 transition flex items-center gap-2 shadow-sm"
             >
               <Upload className="w-4 h-4 text-slate-300" />
-              <span>Colar / Importar Lista</span>
+              <span>Colar / Importar</span>
             </button>
             {comments.length > 0 && (
               isConfirmingClear ? (
@@ -411,11 +509,17 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
       </div>
 
       {/* URL Input Form */}
-      <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4 sm:p-6 backdrop-blur-md shadow-lg">
+      <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4 sm:p-6 backdrop-blur-md shadow-lg space-y-4">
         <form onSubmit={handleFetchFromUrl} className="space-y-4">
-          <label htmlFor="tiktok-url-input" className="block text-sm font-bold text-slate-200">
-            Link do Vídeo do TikTok
-          </label>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <label htmlFor="tiktok-url-input" className="block text-sm font-bold text-slate-200">
+              Link do Vídeo do TikTok (URL completa ou link curto)
+            </label>
+            <span className="text-xs text-slate-400">
+              Suporta: <b>tiktok.com/@user/video/...</b>, <b>vm.tiktok.com/...</b> e <b>vt.tiktok.com/...</b>
+            </span>
+          </div>
+
           <div className="flex flex-col sm:flex-row items-stretch gap-2.5">
             <div className="relative flex-1">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -423,10 +527,10 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
               </div>
               <input
                 id="tiktok-url-input"
-                type="url"
+                type="text"
                 value={videoUrl}
                 onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder="Ex: https://www.tiktok.com/@criador/video/7329482710182740231 ou https://vm.tiktok.com/..."
+                placeholder="Ex: https://www.tiktok.com/@tiktok/video/7106594312292453675 ou https://vm.tiktok.com/..."
                 className="w-full pl-11 pr-4 py-3 bg-slate-950 border border-slate-700 focus:border-[#00F2FE] focus:ring-2 focus:ring-[#00F2FE]/20 rounded-xl text-sm text-slate-100 placeholder:text-slate-500 transition"
               />
             </div>
@@ -438,20 +542,63 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
               {isLoading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-                  <span>Carregando...</span>
+                  <span>Carregando Comentários...</span>
                 </>
               ) : (
                 <>
                   <RotateCcw className="w-4 h-4 text-slate-950" />
-                  <span>Carregar Comentários</span>
+                  <span>Carregar Comentários Reais</span>
                 </>
               )}
             </button>
           </div>
+
+          {/* Real-time Progress Bar during live fetching */}
+          {isLoading && loadingProgressMsg && (
+            <div className="flex items-center gap-2 p-3 bg-blue-950/40 border border-blue-800/60 rounded-xl text-xs sm:text-sm text-sky-300 animate-pulse">
+              <RefreshCw className="w-4 h-4 animate-spin text-[#00F2FE] shrink-0" />
+              <span>{loadingProgressMsg}</span>
+            </div>
+          )}
+
+          {/* Success Message */}
+          {loadSuccessMsg && (
+            <div className="flex items-center gap-2 p-3 bg-emerald-950/50 border border-emerald-800/80 rounded-xl text-xs sm:text-sm text-emerald-300">
+              <CheckCircle className="w-4 h-4 shrink-0 text-emerald-400" />
+              <span>{loadSuccessMsg}</span>
+            </div>
+          )}
+
+          {/* Error Message with action buttons */}
           {loadError && (
-            <div className="flex items-center gap-2 p-3 bg-rose-950/40 border border-rose-800/60 rounded-xl text-xs sm:text-sm text-rose-300">
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-              <span>{loadError}</span>
+            <div className="p-3.5 bg-rose-950/40 border border-rose-800/60 rounded-xl text-xs sm:text-sm text-rose-300 space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+                <span>{loadError}</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pt-1 pl-6">
+                <button
+                  type="button"
+                  onClick={() => setIsExtractorModalOpen(true)}
+                  className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs font-bold text-[#00F2FE] border border-slate-700"
+                >
+                  ⚡ Usar Extrator de 1-Clique
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs font-bold text-white border border-slate-700"
+                >
+                  📋 Colar Comentários Manualmente
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLoadSample}
+                  className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs font-bold text-sky-300 border border-slate-700"
+                >
+                  🧪 Testar com Dados de Exemplo
+                </button>
+              </div>
             </div>
           )}
         </form>
@@ -459,37 +606,66 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
         {/* Video Metadata Preview Card */}
         {videoInfo && (
           <div className="mt-4 pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-950/60 rounded-xl p-3.5 border border-slate-800/60">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-14 h-14 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
                 {videoInfo.thumbnailUrl ? (
-                  <img src={videoInfo.thumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover" />
+                  <img src={videoInfo.thumbnailUrl} alt="Thumbnail do TikTok" className="w-full h-full object-cover" />
                 ) : (
                   <Video className="w-6 h-6 text-[#00F2FE]" />
                 )}
               </div>
-              <div className="space-y-0.5 min-w-0">
-                <div className="flex items-center gap-2">
+              <div className="space-y-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-sm text-white truncate">{videoInfo.authorName}</span>
+                  {videoInfo.commentCount !== undefined && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-950/80 text-sky-300 border border-blue-800/50">
+                      💬 {videoInfo.commentCount} comentários no TikTok
+                    </span>
+                  )}
                   {videoInfo.videoId && (
                     <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
                       ID: {videoInfo.videoId}
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-400 line-clamp-1">{videoInfo.title || 'Vídeo do TikTok'}</p>
+                <p className="text-xs text-slate-300 line-clamp-1">{videoInfo.title || 'Vídeo do TikTok'}</p>
               </div>
             </div>
-            {videoInfo.url && (
-              <a
-                href={videoInfo.url}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs font-semibold text-[#00F2FE] hover:underline flex items-center gap-1.5 shrink-0"
-              >
-                <span>Ver no TikTok</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            )}
+
+            <div className="flex items-center gap-2 shrink-0">
+              {videoInfo.hasMoreComments && (
+                <button
+                  type="button"
+                  onClick={handleLoadMoreComments}
+                  disabled={isLoadingMore}
+                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1.5 shadow-md"
+                >
+                  {isLoadingMore ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Buscando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Mais Comentários (+50)</span>
+                    </>
+                  )}
+                </button>
+              )}
+
+              {videoInfo.url && (
+                <a
+                  href={videoInfo.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-semibold text-[#00F2FE] hover:underline flex items-center gap-1.5 shrink-0 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800"
+                >
+                  <span>Abrir TikTok</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -793,13 +969,13 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-[#FE2C55]" />
-                  <span>Comentários do Vídeo</span>
+                  <span>Comentários Carregados</span>
                 </h3>
                 <p className="text-xs text-slate-400">Lista com validação em tempo real</p>
               </div>
 
               {/* Metrics Pill */}
-              <div className="flex items-center gap-2 text-xs">
+              <div className="flex items-center gap-2 text-xs flex-wrap">
                 <span className="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-slate-300">
                   Total: <b className="text-white">{comments.length}</b>
                 </span>
@@ -836,9 +1012,21 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#00F2FE]/40 to-[#FE2C55]/40 text-white text-[10px] font-bold flex items-center justify-center">
-                          {comment.username.replace('@', '').charAt(0).toUpperCase()}
-                        </div>
+                        {comment.avatarUrl ? (
+                          <img
+                            src={comment.avatarUrl}
+                            alt=""
+                            className="w-6 h-6 rounded-full object-cover border border-slate-700"
+                            onError={(e) => {
+                              // If image fails to load, fallback to initial
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#00F2FE]/40 to-[#FE2C55]/40 text-white text-[10px] font-bold flex items-center justify-center">
+                            {comment.username.replace('@', '').charAt(0).toUpperCase()}
+                          </div>
+                        )}
                         <span className="font-bold text-xs text-white">{comment.username}</span>
                         {comment.nickname && (
                           <span className="text-[11px] text-slate-400 truncate max-w-[120px]">
@@ -874,25 +1062,58 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                     <MessageSquare className="w-6 h-6" />
                   </div>
                   <div className="space-y-1">
-                    <h4 className="text-sm font-semibold text-slate-300">Nenhum comentário elegível</h4>
+                    <h4 className="text-sm font-semibold text-slate-300">Nenhum comentário na lista</h4>
                     <p className="text-xs text-slate-500 max-w-sm mx-auto">
                       {comments.length === 0
-                        ? 'Cole o link de um vídeo do TikTok acima ou use a lista de demonstração para começar.'
+                        ? 'Cole o link de qualquer vídeo do TikTok acima e clique em "Carregar Comentários Reais" para começar.'
                         : 'Nenhum comentário passou pelos filtros selecionados. Tente relaxar as regras de validação.'}
                     </p>
                   </div>
                   {comments.length === 0 && (
-                    <button
-                      type="button"
-                      onClick={handleLoadSample}
-                      className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-[#00F2FE]"
-                    >
-                      Carregar Exemplo Rápido
-                    </button>
+                    <div className="flex items-center justify-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleLoadSample}
+                        className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-[#00F2FE] border border-slate-700"
+                      >
+                        Carregar Exemplo Rápido
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsImportModalOpen(true)}
+                        className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white border border-slate-700"
+                      >
+                        Colar Comentários
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
             </div>
+
+            {/* Load More Button at bottom of list */}
+            {videoInfo?.hasMoreComments && comments.length > 0 && (
+              <div className="pt-2 border-t border-slate-800/80 flex justify-center">
+                <button
+                  type="button"
+                  onClick={handleLoadMoreComments}
+                  disabled={isLoadingMore}
+                  className="px-4 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-xs font-bold text-[#00F2FE] border border-slate-800 hover:border-[#00F2FE]/40 transition flex items-center gap-2 shadow-sm"
+                >
+                  {isLoadingMore ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-[#00F2FE] border-t-transparent rounded-full animate-spin" />
+                      <span>Buscando mais comentários...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      <span>Carregar Mais Comentários do TikTok (+50)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -953,6 +1174,88 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
         </div>
       )}
 
+      {/* 1-Click Extractor Modal for TikTok */}
+      {isExtractorModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150"
+        >
+          <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Code className="w-5 h-5 text-[#00F2FE]" />
+                  <span>Extrator de 1-Clique para TikTok</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Extraia 100% dos comentários de qualquer vídeo do TikTok diretamente pelo seu próprio navegador sem bloqueios de API.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsExtractorModalOpen(false)}
+                className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Steps */}
+            <div className="space-y-3 bg-slate-950/70 p-4 rounded-2xl border border-slate-800 text-xs text-slate-300">
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-[#00F2FE] text-slate-950 font-black text-[11px] flex items-center justify-center shrink-0">1</span>
+                <span>Abra o vídeo no site do TikTok no computador (role os comentários um pouco para carregar mais).</span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-[#00F2FE] text-slate-950 font-black text-[11px] flex items-center justify-center shrink-0">2</span>
+                <span>Pressione <b>F12</b> no teclado (ou clique com botão direito &gt; Inspecionar) e clique na aba <b>Console</b>.</span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-[#00F2FE] text-slate-950 font-black text-[11px] flex items-center justify-center shrink-0">3</span>
+                <span>Cole o código abaixo e aperte <b>Enter</b>. Ele copia todos os comentários para sua área de transferência!</span>
+              </div>
+            </div>
+
+            {/* Code Snippet Box */}
+            <div className="relative">
+              <pre className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-[11px] text-sky-200 font-mono overflow-x-auto max-h-36">
+                {TIKTOK_BROWSER_CONSOLE_SNIPPET}
+              </pre>
+              <button
+                type="button"
+                onClick={handleCopyExtractorSnippet}
+                className="absolute top-2 right-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md"
+              >
+                {copiedSnippet ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedSnippet ? 'Código Copiado!' : 'Copiar Código'}</span>
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsExtractorModalOpen(false);
+                  setIsImportModalOpen(true);
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700"
+              >
+                Ir para Colar Comentários
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsExtractorModalOpen(false)}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#00F2FE] to-[#FE2C55] text-slate-950 font-bold text-xs"
+              >
+                Entendi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Manual Comments Import Modal */}
       {isImportModalOpen && (
         <div
@@ -965,7 +1268,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
               <div>
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <Upload className="w-5 h-5 text-[#00F2FE]" />
-                  <span>Importar Comentários do TikTok</span>
+                  <span>Importar / Colar Comentários</span>
                 </h3>
                 <p className="text-xs text-slate-400 mt-1">
                   Cole os comentários copiados de ferramentas como TikTok Studio, ExportComments ou JSON/CSV.
@@ -981,9 +1284,21 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="import-textarea" className="block text-xs font-semibold text-slate-300">
-                Cole a lista (Formato: @usuario: comentario ou usuario,texto ou JSON)
-              </label>
+              <div className="flex items-center justify-between text-xs text-slate-300">
+                <label htmlFor="import-textarea" className="font-semibold">
+                  Cole a lista (Formato: @usuario: comentario ou usuario,texto ou JSON)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsImportModalOpen(false);
+                    setIsExtractorModalOpen(true);
+                  }}
+                  className="text-[#00F2FE] hover:underline"
+                >
+                  Como extrair do TikTok?
+                </button>
+              </div>
               <textarea
                 id="import-textarea"
                 rows={8}

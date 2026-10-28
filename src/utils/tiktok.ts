@@ -14,34 +14,40 @@ export function parseTikTokUrl(rawUrl: string): {
     return { isValid: false, cleanUrl: '' };
   }
 
+  // Prepend https:// if user pasted without protocol
+  const normalized = trimmed.startsWith('http://') || trimmed.startsWith('https://')
+    ? trimmed
+    : `https://${trimmed}`;
+
   // Common TikTok URL patterns:
   // - https://www.tiktok.com/@user/video/7200000000000000000
+  // - https://www.tiktok.com/@user/photo/7200000000000000000
   // - https://vm.tiktok.com/ZMxxxxxx/
   // - https://vt.tiktok.com/ZSxxxxxx/
   // - https://m.tiktok.com/v/7200000000000000000.html
-  const isTikTok = /tiktok\.com/i.test(trimmed);
+  const isTikTok = /tiktok\.com/i.test(normalized);
   if (!isTikTok) {
-    return { isValid: false, cleanUrl: trimmed };
+    return { isValid: false, cleanUrl: normalized };
   }
 
   let username: string | undefined;
   let videoId: string | undefined;
 
   // Extract username from @handle
-  const userMatch = trimmed.match(/@([a-zA-Z0-9_.-]+)/);
+  const userMatch = normalized.match(/@([a-zA-Z0-9_.-]+)/);
   if (userMatch) {
     username = userMatch[1];
   }
 
   // Extract video ID (numeric string)
-  const idMatch = trimmed.match(/\/video\/(\d+)/i) || trimmed.match(/\/v\/(\d+)/i);
+  const idMatch = normalized.match(/\/(?:video|photo|v)\/(\d+)/i);
   if (idMatch) {
     videoId = idMatch[1];
   }
 
   return {
     isValid: true,
-    cleanUrl: trimmed.split('?')[0], // clean tracking params
+    cleanUrl: normalized.split('?')[0],
     videoId,
     username,
   };
@@ -56,20 +62,66 @@ export function extractMentions(text: string): string[] {
   return Array.from(new Set(matches.map((m) => m.toLowerCase())));
 }
 
+let lastTikWmRequestTime = 0;
+
 /**
- * Fetches public video info via TikTok's official oEmbed endpoint
+ * Rate limit guard: Ensures at least 1350ms between requests to tikwm to strictly adhere
+ * to the "1 request/second" limit and avoid Free Api Limit errors.
  */
-export async function fetchTikTokOEmbed(videoUrl: string): Promise<TikTokVideoInfo | null> {
+async function waitForTikWmRateLimit(): Promise<void> {
+  const minInterval = 1350;
+  const now = Date.now();
+  const timeSinceLast = now - lastTikWmRequestTime;
+  if (timeSinceLast < minInterval) {
+    await new Promise((resolve) => setTimeout(resolve, minInterval - timeSinceLast));
+  }
+  lastTikWmRequestTime = Date.now();
+}
+
+/**
+ * Fetches video metadata from public API or oEmbed fallback
+ */
+export async function fetchTikTokVideoDetails(videoUrl: string): Promise<TikTokVideoInfo | null> {
   const parsed = parseTikTokUrl(videoUrl);
   if (!parsed.isValid) return null;
 
+  // 1. Try Primary TikWM API (supports full links and shortened links)
+  try {
+    await waitForTikWmRateLimit();
+    const res = await fetch('https://www.tikwm.com/api/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ url: videoUrl }).toString(),
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.code === 0 && json.data) {
+        const d = json.data;
+        return {
+          url: videoUrl,
+          videoId: d.id || parsed.videoId,
+          authorName: d.author?.unique_id ? `@${d.author.unique_id}` : (parsed.username ? `@${parsed.username}` : 'Criador TikTok'),
+          authorUrl: d.author?.unique_id ? `https://www.tiktok.com/@${d.author.unique_id}` : undefined,
+          authorAvatar: d.author?.avatar || undefined,
+          title: d.title || 'Vídeo do TikTok',
+          thumbnailUrl: d.cover || undefined,
+          commentCount: typeof d.comment_count === 'number' ? d.comment_count : undefined,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('TikWM details notice:', err);
+  }
+
+  // 2. Secondary fallback via TikTok official oEmbed
   try {
     const oembedEndpoint = `https://www.tiktok.com/oembed?url=${encodeURIComponent(videoUrl)}`;
     const response = await fetch(oembedEndpoint, {
       method: 'GET',
-      headers: {
-        Accept: 'application/json',
-      },
+      headers: { Accept: 'application/json' },
     });
 
     if (response.ok) {
@@ -77,22 +129,198 @@ export async function fetchTikTokOEmbed(videoUrl: string): Promise<TikTokVideoIn
       return {
         url: videoUrl,
         videoId: parsed.videoId,
-        authorName: data.author_name || parsed.username || 'Criador do TikTok',
+        authorName: data.author_name ? (data.author_name.startsWith('@') ? data.author_name : `@${data.author_name}`) : (parsed.username ? `@${parsed.username}` : 'Criador do TikTok'),
         authorUrl: data.author_url,
         title: data.title || 'Vídeo do TikTok',
         thumbnailUrl: data.thumbnail_url,
       };
     }
   } catch (err) {
-    console.warn('oEmbed fetch direct notice:', err);
+    console.warn('oEmbed notice:', err);
   }
 
-  // Fallback metadata if oEmbed request hits CORS
+  // 3. Fallback with URL metadata
   return {
     url: videoUrl,
     videoId: parsed.videoId,
     authorName: parsed.username ? `@${parsed.username}` : 'Criador do TikTok',
     title: 'Sorteio no Vídeo do TikTok',
+  };
+}
+
+/**
+ * Fetches a single batch/page of comments with rate limiting and automatic retry
+ */
+export async function fetchTikTokCommentsBatch(
+  videoUrl: string,
+  cursor: number = 0,
+  count: number = 50,
+  retries: number = 2
+): Promise<{
+  comments: TikTokComment[];
+  hasMore: boolean;
+  nextCursor?: number;
+  total?: number;
+}> {
+  const endpoint = `https://www.tikwm.com/api/comment/list?url=${encodeURIComponent(videoUrl)}&count=${count}&cursor=${cursor}`;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    await waitForTikWmRateLimit();
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        if (attempt < retries) {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          continue;
+        }
+        throw new Error(`Falha na resposta da API do TikTok (HTTP ${response.status})`);
+      }
+
+      const json = await response.json();
+
+      // Check for rate limit: wait 1500ms and retry
+      if (json.code !== 0 || !json.data) {
+        const isRateLimit = json.msg && typeof json.msg === 'string' && json.msg.includes('Free Api Limit');
+        if (isRateLimit && attempt < retries) {
+          await new Promise((resolve) => setTimeout(resolve, 1600));
+          continue;
+        }
+        throw new Error(json.msg || 'Não foi possível carregar os comentários deste vídeo.');
+      }
+
+      const rawList = Array.isArray(json.data.comments) ? json.data.comments : [];
+      const comments: TikTokComment[] = rawList.map((c: any, index: number) => {
+        const rawUser = String(c.user?.unique_id || c.user?.nickname || `usuario_${cursor + index + 1}`);
+        const username = rawUser.startsWith('@') ? rawUser : `@${rawUser}`;
+        const commentText = String(c.text || '').trim();
+
+        return {
+          id: String(c.id || `cmt-${cursor + index + 1}-${Date.now()}`),
+          username,
+          nickname: c.user?.nickname ? String(c.user.nickname) : undefined,
+          avatarUrl: c.user?.avatar ? String(c.user.avatar) : undefined,
+          text: commentText,
+          likes: typeof c.digg_count === 'number' ? c.digg_count : 0,
+          timestamp: typeof c.create_time === 'number' ? c.create_time * 1000 : Date.now() - index * 60000,
+          mentions: extractMentions(commentText),
+        };
+      });
+
+      return {
+        comments,
+        hasMore: Boolean(json.data.hasMore && json.data.cursor),
+        nextCursor: typeof json.data.cursor === 'number' ? json.data.cursor : undefined,
+        total: typeof json.data.total === 'number' ? json.data.total : comments.length,
+      };
+    } catch (err: any) {
+      if (attempt < retries && err.message?.includes('Free Api Limit')) {
+        await new Promise((resolve) => setTimeout(resolve, 1600));
+        continue;
+      }
+      if (attempt === retries) throw err;
+    }
+  }
+
+  throw new Error('Limite de requisições excedido. Tente novamente em alguns segundos.');
+}
+
+/**
+ * High-level function that fetches video details and loads multiple pages of comments.
+ */
+export async function loadTikTokComments(
+  videoUrl: string,
+  options?: {
+    maxPages?: number;
+    onProgress?: (msg: string, currentCount: number) => void;
+  }
+): Promise<{
+  videoInfo: TikTokVideoInfo;
+  comments: TikTokComment[];
+  hasMore: boolean;
+  nextCursor?: number;
+  totalCommentsInVideo?: number;
+}> {
+  const maxPages = options?.maxPages || 3;
+  options?.onProgress?.('Buscando dados e miniatura do vídeo...', 0);
+
+  // 1. Fetch Video Details
+  const videoInfo = await fetchTikTokVideoDetails(videoUrl);
+  if (!videoInfo) {
+    throw new Error('Link do TikTok inválido ou não acessível.');
+  }
+
+  // 2. Fetch comments page by page
+  options?.onProgress?.('Carregando comentários reais do TikTok...', 0);
+  const allComments: TikTokComment[] = [];
+  const seenIds = new Set<string>();
+
+  let currentCursor = 0;
+  let hasMore = true;
+  let nextCursor: number | undefined;
+  let totalCommentsInVideo = videoInfo.commentCount;
+
+  for (let page = 0; page < maxPages && hasMore; page++) {
+    try {
+      options?.onProgress?.(
+        `Carregando comentários (página ${page + 1}${totalCommentsInVideo ? ` · total: ${totalCommentsInVideo}` : ''})...`,
+        allComments.length
+      );
+
+      const batch = await fetchTikTokCommentsBatch(videoUrl, currentCursor, 50);
+      if (batch.total && !totalCommentsInVideo) {
+        totalCommentsInVideo = batch.total;
+      }
+
+      for (const c of batch.comments) {
+        if (!seenIds.has(c.id)) {
+          seenIds.add(c.id);
+          allComments.push(c);
+        }
+      }
+
+      hasMore = batch.hasMore;
+      nextCursor = batch.nextCursor;
+
+      if (batch.hasMore && typeof batch.nextCursor === 'number') {
+        currentCursor = batch.nextCursor;
+      } else {
+        hasMore = false;
+        break;
+      }
+
+      // Gentle delay between pages
+      if (hasMore) {
+        options?.onProgress?.('Aguardando intervalo seguro do TikTok...', allComments.length);
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
+    } catch (pageErr) {
+      // If we got at least some comments on previous pages, keep what we have and let user continue
+      if (allComments.length > 0) {
+        break;
+      } else {
+        throw pageErr;
+      }
+    }
+  }
+
+  return {
+    videoInfo: {
+      ...videoInfo,
+      commentCount: totalCommentsInVideo || allComments.length,
+      hasMoreComments: hasMore,
+      nextCursor,
+    },
+    comments: allComments,
+    hasMore,
+    nextCursor,
+    totalCommentsInVideo,
   };
 }
 
@@ -188,6 +416,7 @@ export function parseImportedComments(rawInput: string): TikTokComment[] {
             id: String(item.id || `cmt-import-${idx + 1}-${Date.now()}`),
             username: username.startsWith('@') ? username : `@${username}`,
             nickname: item.nickname ? String(item.nickname) : item.name ? String(item.name) : undefined,
+            avatarUrl: item.avatar || item.avatarUrl || undefined,
             text: commentText,
             likes: Number(item.likes || item.digg_count || 0),
             mentions: extractMentions(commentText),
@@ -247,6 +476,26 @@ export function parseImportedComments(rawInput: string): TikTokComment[] {
 
   return result;
 }
+
+/**
+ * 1-click JavaScript snippet users can run in TikTok's DevTools console to copy comments directly
+ */
+export const TIKTOK_BROWSER_CONSOLE_SNIPPET = `(function() {
+  const items = [];
+  document.querySelectorAll('[data-e2e="comment-item"], [class*="DivCommentItemContainer"], [class*="CommentItem"]').forEach((el) => {
+    const userEl = el.querySelector('[data-e2e="comment-username"], a[href*="/@"], [class*="SpanUserNameText"]');
+    const textEl = el.querySelector('[data-e2e="comment-level-1"], [class*="PCommentText"], [class*="SpanCommentText"]');
+    if (userEl && textEl) {
+      items.push({
+        username: userEl.innerText.trim(),
+        text: textEl.innerText.trim()
+      });
+    }
+  });
+  const json = JSON.stringify(items, null, 2);
+  copy(json);
+  alert("Pronto! " + items.length + " comentários copiados para sua área de transferência. Basta colar no GIO DA SORTE!");
+})();`;
 
 /**
  * Sample realistic Brazilian TikTok comments for testing and demonstration
@@ -425,7 +674,7 @@ export const SAMPLE_TIKTOK_COMMENTS: TikTokComment[] = [
   },
   {
     id: 'tk-20',
-    username: '@larissa_moraes', // duplicate user to test deduplication
+    username: '@larissa_moraes',
     nickname: 'Lari Moraes 🌸',
     text: 'Comentando de novo pra garantir haha! @daniela_silva #sorteio',
     likes: 8,
