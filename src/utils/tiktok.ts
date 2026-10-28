@@ -62,45 +62,239 @@ export function extractMentions(text: string): string[] {
   return Array.from(new Set(matches.map((m) => m.toLowerCase())));
 }
 
+/**
+ * Cache entry structure with timestamp and time-to-live
+ */
+export interface TikTokCacheEntry<T> {
+  data: T;
+  timestamp: number;
+  expiresAt: number;
+}
+
+export interface ExponentialBackoffConfig {
+  maxRetries?: number;
+  baseDelayMs?: number;
+  maxDelayMs?: number;
+  backoffFactor?: number;
+  jitterMs?: number;
+  onRetry?: (attempt: number, delayMs: number, reason: string) => void;
+}
+
+export interface FetchTikTokOptions {
+  forceRefresh?: boolean;
+  retries?: number;
+  onRetry?: (attempt: number, delayMs: number, reason: string) => void;
+}
+
+export interface LoadTikTokCommentsOptions {
+  maxPages?: number;
+  forceRefresh?: boolean;
+  onProgress?: (msg: string, currentCount: number) => void;
+}
+
+/**
+ * In-memory temporary cache for TikTok requests (TTL: 5 minutes by default)
+ */
+const tikTokMemoryCache = new Map<string, TikTokCacheEntry<unknown>>();
+export const DEFAULT_TIKTOK_CACHE_TTL_MS = 5 * 60 * 1000;
+
+/**
+ * Retrieves a value from the temporary cache if not expired
+ */
+export function getCachedTikTokData<T>(key: string): T | null {
+  const entry = tikTokMemoryCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    tikTokMemoryCache.delete(key);
+    return null;
+  }
+  return entry.data as T;
+}
+
+/**
+ * Sets a value in the temporary cache with a time-to-live (TTL)
+ */
+export function setCachedTikTokData<T>(key: string, data: T, ttlMs: number = DEFAULT_TIKTOK_CACHE_TTL_MS): void {
+  // Prune expired entries if the map gets large
+  if (tikTokMemoryCache.size > 150) {
+    const now = Date.now();
+    for (const [k, v] of tikTokMemoryCache.entries()) {
+      if (v.expiresAt <= now) {
+        tikTokMemoryCache.delete(k);
+      }
+    }
+  }
+  tikTokMemoryCache.set(key, {
+    data,
+    timestamp: Date.now(),
+    expiresAt: Date.now() + ttlMs,
+  });
+}
+
+/**
+ * Clears the TikTok in-memory cache
+ */
+export function clearTikTokCache(): void {
+  tikTokMemoryCache.clear();
+}
+
+/**
+ * Returns cache statistics (active entries count and keys)
+ */
+export function getTikTokCacheStats(): { size: number; keys: string[] } {
+  const now = Date.now();
+  for (const [k, v] of tikTokMemoryCache.entries()) {
+    if (v.expiresAt <= now) {
+      tikTokMemoryCache.delete(k);
+    }
+  }
+  return {
+    size: tikTokMemoryCache.size,
+    keys: Array.from(tikTokMemoryCache.keys()),
+  };
+}
+
 let lastTikWmRequestTime = 0;
 
 /**
  * Rate limit guard: Ensures at least 1350ms between requests to tikwm to strictly adhere
  * to the "1 request/second" limit and avoid Free Api Limit errors.
  */
-async function waitForTikWmRateLimit(): Promise<void> {
-  const minInterval = 1350;
+export async function waitForTikWmRateLimit(minIntervalMs: number = 1350): Promise<void> {
   const now = Date.now();
   const timeSinceLast = now - lastTikWmRequestTime;
-  if (timeSinceLast < minInterval) {
-    await new Promise((resolve) => setTimeout(resolve, minInterval - timeSinceLast));
+  if (timeSinceLast < minIntervalMs) {
+    await new Promise((resolve) => setTimeout(resolve, minIntervalMs - timeSinceLast));
   }
   lastTikWmRequestTime = Date.now();
 }
 
 /**
- * Fetches video metadata from public API or oEmbed fallback
+ * Identifies whether an error or API message represents a rate limit or 1 req/sec restriction
  */
-export async function fetchTikTokVideoDetails(videoUrl: string): Promise<TikTokVideoInfo | null> {
+export function isTikTokRateLimitError(err: unknown): boolean {
+  if (!err) return false;
+  const msg = typeof err === 'string'
+    ? err
+    : (err instanceof Error ? err.message : (typeof (err as any)?.msg === 'string' ? (err as any).msg : ''));
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes('free api limit') ||
+    lower.includes('1 request/second') ||
+    lower.includes('request/sec') ||
+    lower.includes('rate limit') ||
+    lower.includes('too many requests') ||
+    lower.includes('429') ||
+    lower.includes('quota')
+  );
+}
+
+/**
+ * Executes an operation with Exponential Backoff and jitter:
+ * delay = min(maxDelayMs, baseDelayMs * (backoffFactor ^ attempt)) + jitter
+ */
+export async function executeWithExponentialBackoff<T>(
+  action: (attempt: number) => Promise<T>,
+  config: ExponentialBackoffConfig = {}
+): Promise<T> {
+  const {
+    maxRetries = 4,
+    baseDelayMs = 1500,
+    maxDelayMs = 12000,
+    backoffFactor = 2,
+    jitterMs = 400,
+    onRetry,
+  } = config;
+
+  let lastError: unknown = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      await waitForTikWmRateLimit();
+      return await action(attempt);
+    } catch (err: unknown) {
+      lastError = err;
+      const isThrottled = isTikTokRateLimitError(err);
+
+      if (attempt < maxRetries && isThrottled) {
+        // Exponential backoff: baseDelay * 2^attempt + random jitter
+        const exponentialWait = baseDelayMs * Math.pow(backoffFactor, attempt);
+        const jitter = Math.floor(Math.random() * jitterMs);
+        const totalDelay = Math.min(maxDelayMs, exponentialWait) + jitter;
+
+        const reason = err instanceof Error ? err.message : 'Free Api Limit: 1 request/second.';
+        if (onRetry) {
+          onRetry(attempt + 1, totalDelay, reason);
+        } else {
+          console.warn(`[TikTok Backoff] Limite de requisições detectado. Tentativa ${attempt + 1}/${maxRetries}. Aguardando ${totalDelay}ms...`);
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, totalDelay));
+        continue;
+      }
+
+      // If not a throttled error or we reached max retries, propagate error
+      throw err;
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('Limite de tentativas excedido na API do TikTok.');
+}
+
+/**
+ * Fetches video metadata from public API or oEmbed fallback with caching and backoff
+ */
+export async function fetchTikTokVideoDetails(
+  videoUrl: string,
+  options?: FetchTikTokOptions
+): Promise<TikTokVideoInfo | null> {
   const parsed = parseTikTokUrl(videoUrl);
   if (!parsed.isValid) return null;
 
-  // 1. Try Primary TikWM API (supports full links and shortened links)
-  try {
-    await waitForTikWmRateLimit();
-    const res = await fetch('https://www.tikwm.com/api/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({ url: videoUrl }).toString(),
-    });
+  const cleanUrl = parsed.cleanUrl || videoUrl.trim();
+  const cacheKey = `video:${cleanUrl}`;
 
-    if (res.ok) {
-      const json = await res.json();
-      if (json && json.code === 0 && json.data) {
+  // Check temporary cache unless forceRefresh is specified
+  if (!options?.forceRefresh) {
+    const cached = getCachedTikTokData<TikTokVideoInfo>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+  }
+
+  // 1. Try Primary TikWM API with exponential backoff
+  try {
+    const details = await executeWithExponentialBackoff(
+      async () => {
+        const res = await fetch('https://www.tikwm.com/api/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({ url: videoUrl }).toString(),
+        });
+
+        if (res.status === 429) {
+          throw new Error('Free Api Limit: HTTP 429 (Too Many Requests)');
+        }
+
+        if (!res.ok) {
+          throw new Error(`Falha HTTP ${res.status}`);
+        }
+
+        const json = await res.json();
+        if (json.code !== 0 || !json.data) {
+          const msg = json?.msg || '';
+          if (isTikTokRateLimitError(msg)) {
+            throw new Error(msg);
+          }
+          return null;
+        }
+
         const d = json.data;
-        return {
+        const info: TikTokVideoInfo = {
           url: videoUrl,
           videoId: d.id || parsed.videoId,
           authorName: d.author?.unique_id ? `@${d.author.unique_id}` : (parsed.username ? `@${parsed.username}` : 'Criador TikTok'),
@@ -110,7 +304,19 @@ export async function fetchTikTokVideoDetails(videoUrl: string): Promise<TikTokV
           thumbnailUrl: d.cover || undefined,
           commentCount: typeof d.comment_count === 'number' ? d.comment_count : undefined,
         };
+
+        return info;
+      },
+      {
+        maxRetries: options?.retries ?? 3,
+        baseDelayMs: 1500,
+        onRetry: options?.onRetry,
       }
+    );
+
+    if (details) {
+      setCachedTikTokData(cacheKey, details);
+      return details;
     }
   } catch (err) {
     console.warn('TikWM details notice:', err);
@@ -126,7 +332,7 @@ export async function fetchTikTokVideoDetails(videoUrl: string): Promise<TikTokV
 
     if (response.ok) {
       const data = await response.json();
-      return {
+      const oembedInfo: TikTokVideoInfo = {
         url: videoUrl,
         videoId: parsed.videoId,
         authorName: data.author_name ? (data.author_name.startsWith('@') ? data.author_name : `@${data.author_name}`) : (parsed.username ? `@${parsed.username}` : 'Criador do TikTok'),
@@ -134,40 +340,67 @@ export async function fetchTikTokVideoDetails(videoUrl: string): Promise<TikTokV
         title: data.title || 'Vídeo do TikTok',
         thumbnailUrl: data.thumbnail_url,
       };
+      setCachedTikTokData(cacheKey, oembedInfo);
+      return oembedInfo;
     }
   } catch (err) {
     console.warn('oEmbed notice:', err);
   }
 
   // 3. Fallback with URL metadata
-  return {
+  const fallbackInfo: TikTokVideoInfo = {
     url: videoUrl,
     videoId: parsed.videoId,
     authorName: parsed.username ? `@${parsed.username}` : 'Criador do TikTok',
     title: 'Sorteio no Vídeo do TikTok',
   };
+  return fallbackInfo;
 }
 
 /**
- * Fetches a single batch/page of comments with rate limiting and automatic retry
+ * Fetches a single batch/page of comments with exponential backoff and temporary caching
  */
 export async function fetchTikTokCommentsBatch(
   videoUrl: string,
   cursor: number = 0,
   count: number = 50,
-  retries: number = 2
+  optionsOrRetries?: number | FetchTikTokOptions
 ): Promise<{
   comments: TikTokComment[];
   hasMore: boolean;
   nextCursor?: number;
   total?: number;
+  fromCache?: boolean;
 }> {
+  const options: FetchTikTokOptions = typeof optionsOrRetries === 'number'
+    ? { retries: optionsOrRetries }
+    : (optionsOrRetries || {});
+
+  const parsed = parseTikTokUrl(videoUrl);
+  const cleanUrl = parsed.cleanUrl || videoUrl.trim();
+  const cacheKey = `batch:${cleanUrl}:${cursor}:${count}`;
+
+  // Check temporary cache
+  if (!options.forceRefresh) {
+    const cached = getCachedTikTokData<{
+      comments: TikTokComment[];
+      hasMore: boolean;
+      nextCursor?: number;
+      total?: number;
+    }>(cacheKey);
+
+    if (cached) {
+      return {
+        ...cached,
+        fromCache: true,
+      };
+    }
+  }
+
   const endpoint = `https://www.tikwm.com/api/comment/list?url=${encodeURIComponent(videoUrl)}&count=${count}&cursor=${cursor}`;
 
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    await waitForTikWmRateLimit();
-
-    try {
+  const result = await executeWithExponentialBackoff(
+    async () => {
       const response = await fetch(endpoint, {
         method: 'GET',
         headers: {
@@ -175,24 +408,23 @@ export async function fetchTikTokCommentsBatch(
         },
       });
 
+      if (response.status === 429) {
+        throw new Error('Free Api Limit: HTTP 429 (Too Many Requests)');
+      }
+
       if (!response.ok) {
-        if (attempt < retries) {
-          await new Promise((resolve) => setTimeout(resolve, 1500));
-          continue;
-        }
         throw new Error(`Falha na resposta da API do TikTok (HTTP ${response.status})`);
       }
 
       const json = await response.json();
 
-      // Check for rate limit: wait 1500ms and retry
+      // Check for rate limit or API failure
       if (json.code !== 0 || !json.data) {
-        const isRateLimit = json.msg && typeof json.msg === 'string' && json.msg.includes('Free Api Limit');
-        if (isRateLimit && attempt < retries) {
-          await new Promise((resolve) => setTimeout(resolve, 1600));
-          continue;
+        const errorMsg = json.msg || 'Não foi possível carregar os comentários deste vídeo.';
+        if (isTikTokRateLimitError(errorMsg)) {
+          throw new Error(errorMsg);
         }
-        throw new Error(json.msg || 'Não foi possível carregar os comentários deste vídeo.');
+        throw new Error(errorMsg);
       }
 
       const rawList = Array.isArray(json.data.comments) ? json.data.comments : [];
@@ -219,39 +451,74 @@ export async function fetchTikTokCommentsBatch(
         nextCursor: typeof json.data.cursor === 'number' ? json.data.cursor : undefined,
         total: typeof json.data.total === 'number' ? json.data.total : comments.length,
       };
-    } catch (err: any) {
-      if (attempt < retries && err.message?.includes('Free Api Limit')) {
-        await new Promise((resolve) => setTimeout(resolve, 1600));
-        continue;
-      }
-      if (attempt === retries) throw err;
+    },
+    {
+      maxRetries: options.retries ?? 4,
+      baseDelayMs: 1500,
+      backoffFactor: 2,
+      jitterMs: 400,
+      onRetry: options.onRetry,
     }
-  }
+  );
 
-  throw new Error('Limite de requisições excedido. Tente novamente em alguns segundos.');
+  // Store batch in cache
+  setCachedTikTokData(cacheKey, result, DEFAULT_TIKTOK_CACHE_TTL_MS);
+
+  return result;
 }
 
 /**
- * High-level function that fetches video details and loads multiple pages of comments.
+ * High-level function that fetches video details and loads multiple pages of comments
+ * using exponential backoff retry on rate limits and temporary caching.
  */
 export async function loadTikTokComments(
   videoUrl: string,
-  options?: {
-    maxPages?: number;
-    onProgress?: (msg: string, currentCount: number) => void;
-  }
+  options?: LoadTikTokCommentsOptions
 ): Promise<{
   videoInfo: TikTokVideoInfo;
   comments: TikTokComment[];
   hasMore: boolean;
   nextCursor?: number;
   totalCommentsInVideo?: number;
+  fromCache?: boolean;
 }> {
   const maxPages = options?.maxPages || 3;
+  const parsed = parseTikTokUrl(videoUrl);
+  const cleanUrl = parsed.cleanUrl || videoUrl.trim();
+  const fullCacheKey = `full_run:${cleanUrl}:${maxPages}`;
+
+  // Check if we already have the full run in cache
+  if (!options?.forceRefresh) {
+    const cachedRun = getCachedTikTokData<{
+      videoInfo: TikTokVideoInfo;
+      comments: TikTokComment[];
+      hasMore: boolean;
+      nextCursor?: number;
+      totalCommentsInVideo?: number;
+    }>(fullCacheKey);
+
+    if (cachedRun && cachedRun.comments.length > 0) {
+      options?.onProgress?.(`Comentários carregados do cache temporário (${cachedRun.comments.length} itens)`, cachedRun.comments.length);
+      return {
+        ...cachedRun,
+        fromCache: true,
+      };
+    }
+  }
+
   options?.onProgress?.('Buscando dados e miniatura do vídeo...', 0);
 
-  // 1. Fetch Video Details
-  const videoInfo = await fetchTikTokVideoDetails(videoUrl);
+  // 1. Fetch Video Details with retry notice
+  const videoInfo = await fetchTikTokVideoDetails(videoUrl, {
+    forceRefresh: options?.forceRefresh,
+    onRetry: (attempt, delayMs) => {
+      options?.onProgress?.(
+        `Limite da API do TikTok (1 req/seg). Aguardando ${Math.ceil(delayMs / 1000)}s antes de tentar novamente (tentativa ${attempt})...`,
+        0
+      );
+    },
+  });
+
   if (!videoInfo) {
     throw new Error('Link do TikTok inválido ou não acessível.');
   }
@@ -273,7 +540,16 @@ export async function loadTikTokComments(
         allComments.length
       );
 
-      const batch = await fetchTikTokCommentsBatch(videoUrl, currentCursor, 50);
+      const batch = await fetchTikTokCommentsBatch(videoUrl, currentCursor, 50, {
+        forceRefresh: options?.forceRefresh,
+        onRetry: (attempt, delayMs) => {
+          options?.onProgress?.(
+            `Limite da API TikTok atingido (1 req/seg). Aplicando backoff de ${Math.ceil(delayMs / 1000)}s (tentativa ${attempt})...`,
+            allComments.length
+          );
+        },
+      });
+
       if (batch.total && !totalCommentsInVideo) {
         totalCommentsInVideo = batch.total;
       }
@@ -295,12 +571,13 @@ export async function loadTikTokComments(
         break;
       }
 
-      // Gentle delay between pages
-      if (hasMore) {
-        options?.onProgress?.('Aguardando intervalo seguro do TikTok...', allComments.length);
-        await new Promise((resolve) => setTimeout(resolve, 800));
+      // Safe pause between pages (1300ms) with user feedback if more pages remain
+      if (hasMore && page < maxPages - 1) {
+        options?.onProgress?.('Aguardando intervalo seguro do TikTok (1 req/seg)...', allComments.length);
+        await new Promise((resolve) => setTimeout(resolve, 1300));
       }
     } catch (pageErr) {
+      console.warn(`Aviso na página de comentários ${page + 1}:`, pageErr);
       // If we got at least some comments on previous pages, keep what we have and let user continue
       if (allComments.length > 0) {
         break;
@@ -310,7 +587,7 @@ export async function loadTikTokComments(
     }
   }
 
-  return {
+  const result = {
     videoInfo: {
       ...videoInfo,
       commentCount: totalCommentsInVideo || allComments.length,
@@ -322,6 +599,13 @@ export async function loadTikTokComments(
     nextCursor,
     totalCommentsInVideo,
   };
+
+  // Cache full run if comments were retrieved
+  if (allComments.length > 0) {
+    setCachedTikTokData(fullCacheKey, result, DEFAULT_TIKTOK_CACHE_TTL_MS);
+  }
+
+  return result;
 }
 
 /**

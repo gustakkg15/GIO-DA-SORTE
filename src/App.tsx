@@ -52,6 +52,7 @@ import { SupportTab } from './components/SupportTab';
 import { WinnerCelebrationOverlay } from './components/WinnerCelebrationOverlay';
 import { DrawCountdownOverlay } from './components/DrawCountdownOverlay';
 import { TikTokRaffle } from './components/TikTokRaffle';
+import { AuditReportModal } from './components/AuditReportModal';
 
 export default function App() {
   const [settings, setSettings] = useState<RaffleSettings>(() => {
@@ -133,6 +134,7 @@ export default function App() {
   const [isObsOverlayOpen, setIsObsOverlayOpen] = useState(false);
   const [selectedWinnerForCard, setSelectedWinnerForCard] = useState<Winner | null>(null);
   const [celebrationWinner, setCelebrationWinner] = useState<Winner | null>(null);
+  const [isAuditReportOpen, setIsAuditReportOpen] = useState(false);
   const [rosterHash, setRosterHash] = useState<string>('');
 
   // Sorteio Countdown State (10 Segundos)
@@ -572,6 +574,8 @@ export default function App() {
                 onOpenMonteCarlo={() => setIsMonteCarloOpen(true)}
                 onOpenPrizeQueue={() => setIsPrizeQueueOpen(true)}
                 onOpenCelebration={(w) => setCelebrationWinner(w)}
+                onOpenAuditReport={() => setIsAuditReportOpen(true)}
+                rosterHash={rosterHash}
                 onRestoreState={(state) => {
                   setSettings(state.settings);
                   setParticipants(state.participants);
@@ -752,6 +756,17 @@ export default function App() {
         onClose={() => setIsPrintSheetOpen(false)}
         computed={computed}
         settings={settings}
+      />
+
+      {/* Official Audited PDF Report Modal */}
+      <AuditReportModal
+        isOpen={isAuditReportOpen}
+        onClose={() => setIsAuditReportOpen(false)}
+        winners={winners}
+        rosterHash={rosterHash}
+        settings={settings}
+        computed={computed}
+        participantsCount={participants.length}
       />
 
       {/* Dramatic Suspense Countdown Overlay (Contagem de 10 segundos para Início do Sorteio) */}

@@ -17,6 +17,7 @@ import {
   Gift,
   Upload,
   Edit3,
+  FileText,
 } from 'lucide-react';
 import { TicketDisplay } from './TicketDisplay';
 import { FortuneWheel } from './FortuneWheel';
@@ -42,6 +43,8 @@ interface DrawSectionProps {
   onOpenMonteCarlo: () => void;
   onOpenPrizeQueue: () => void;
   onOpenCelebration?: (winner: Winner) => void;
+  onOpenAuditReport?: () => void;
+  rosterHash?: string;
   onRequestWheelSpin?: () => void;
   wheelSpinSignal?: number;
   onRestoreState?: (state: { settings: RaffleSettings; participants: Participant[]; winners: Winner[] }) => void;
@@ -66,6 +69,8 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
   onOpenMonteCarlo,
   onOpenPrizeQueue,
   onOpenCelebration,
+  onOpenAuditReport,
+  rosterHash,
   onRequestWheelSpin,
   wheelSpinSignal,
   onRestoreState,
@@ -145,6 +150,8 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
             winners={winners}
             computed={computed}
             onUpdateSettings={onUpdateSettings}
+            onOpenAuditReport={onOpenAuditReport}
+            rosterHash={rosterHash}
             onRestoreState={
               onRestoreState ||
               (() => {
@@ -404,6 +411,17 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
                     <ImageIcon className="w-3.5 h-3.5" />
                     <span>Card de Vitória</span>
                   </button>
+                  {onOpenAuditReport && (
+                    <button
+                      type="button"
+                      onClick={onOpenAuditReport}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-300 font-bold transition border border-slate-700 text-xs active:scale-95"
+                      title="Exportar Laudo Oficial em PDF com Hash de Integridade"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-sky-400" />
+                      <span>Laudo PDF</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -459,14 +477,27 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
                   </span>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={onClearWinners}
-                  className="text-xs text-slate-400 hover:text-red-400 flex items-center gap-1 transition"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Limpar histórico</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  {onOpenAuditReport && (
+                    <button
+                      type="button"
+                      onClick={onOpenAuditReport}
+                      className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition flex items-center gap-1.5 active:scale-95"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Exportar Laudo PDF</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={onClearWinners}
+                    className="text-xs text-slate-400 hover:text-red-400 flex items-center gap-1 transition px-2 py-1.5 rounded-lg hover:bg-slate-800"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Limpar histórico</span>
+                  </button>
+                </div>
               </div>
 
               <div className="divide-y divide-slate-800/70 max-h-72 overflow-y-auto pr-1">

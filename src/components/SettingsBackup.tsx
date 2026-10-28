@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { RaffleSettings, Participant, Winner, ComputedRaffle, TicketOrder } from '../types';
 import { exportToCsv, generateRaffleCode } from '../utils/raffle';
+import { generateRafflePdfReport } from '../utils/pdfReport';
+import { generateRosterHash } from '../utils/hash';
 
 interface SettingsBackupProps {
   settings: RaffleSettings;
@@ -24,6 +26,8 @@ interface SettingsBackupProps {
   onRestoreState: (state: { settings: RaffleSettings; participants: Participant[]; winners: Winner[] }) => void;
   onResetToSample: () => void;
   onResetCoinsOnly: () => void;
+  onOpenAuditReport?: () => void;
+  rosterHash?: string;
 }
 
 export const SettingsBackup: React.FC<SettingsBackupProps> = ({
@@ -35,6 +39,8 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
   onRestoreState,
   onResetToSample,
   onResetCoinsOnly,
+  onOpenAuditReport,
+  rosterHash,
 }) => {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [backupJsonText, setBackupJsonText] = useState('');
@@ -80,6 +86,32 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     notify('Planilha CSV gerada e baixada com sucesso!');
+  };
+
+  const handleDownloadPdf = async () => {
+    if (onOpenAuditReport) {
+      onOpenAuditReport();
+      return;
+    }
+    try {
+      const hash = rosterHash || (await generateRosterHash(participants, settings));
+      const doc = await generateRafflePdfReport({
+        title: settings.raffleTitle || settings.prizeName || settings.currentPrize,
+        organizerName: settings.organizerName,
+        prizeName: settings.prizeName || settings.currentPrize,
+        rosterHash: hash,
+        winners,
+        settings,
+        computed,
+        participantsCount: participants.length,
+        totalTicketsCount: computed.usedCount,
+      });
+      doc.save(`laudo_sorteio_gio_da_sorte_${new Date().toISOString().slice(0, 10)}.pdf`);
+      notify('Laudo PDF oficial gerado e baixado com sucesso!');
+    } catch (err) {
+      console.error(err);
+      notify('Erro ao gerar relatório PDF.');
+    }
   };
 
   const handleRestoreJson = (text: string) => {
@@ -346,11 +378,20 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
           sorteio para não correr risco de perder informações se trocar de navegador ou computador.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+          <button
+            type="button"
+            onClick={handleDownloadPdf}
+            className="flex items-center justify-center gap-2 p-3.5 rounded-xl bg-gradient-to-r from-blue-900/40 to-sky-900/30 hover:from-blue-900/60 hover:to-sky-900/50 border border-blue-500/50 text-white font-bold text-xs transition shadow-md shadow-blue-900/20 active:scale-95"
+          >
+            <FileText className="w-4 h-4 text-sky-400" />
+            <span>Exportar Laudo PDF (Hash & Ganhadores)</span>
+          </button>
+
           <button
             type="button"
             onClick={handleDownloadBackup}
-            className="flex items-center justify-center gap-2 p-3.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-white font-bold text-xs transition"
+            className="flex items-center justify-center gap-2 p-3.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-white font-bold text-xs transition active:scale-95"
           >
             <Download className="w-4 h-4 text-sky-400" />
             <span>Baixar Backup Completo (.json)</span>
@@ -359,10 +400,10 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
           <button
             type="button"
             onClick={handleDownloadCsv}
-            className="flex items-center justify-center gap-2 p-3.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-white font-bold text-xs transition"
+            className="flex items-center justify-center gap-2 p-3.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-white font-bold text-xs transition active:scale-95"
           >
             <FileText className="w-4 h-4 text-sky-400" />
-            <span>Exportar Planilha de Bilhetes (.csv)</span>
+            <span>Exportar Planilha (.csv)</span>
           </button>
         </div>
 

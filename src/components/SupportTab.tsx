@@ -29,7 +29,7 @@ export const SupportTab: React.FC<SupportTabProps> = () => {
   const [selectedMethod, setSelectedMethod] = useState<'pix' | 'paypal'>('pix');
 
   // Official verified contribution accounts - locked to developer
-  const OFFICIAL_SUPPORT_EMAIL = 'gustakkg15@gmail.com';
+  const OFFICIAL_SUPPORT_EMAIL = 'giodasorte@gmail.com';
   const pixKey = OFFICIAL_SUPPORT_EMAIL;
   const paypalAccount = OFFICIAL_SUPPORT_EMAIL;
 

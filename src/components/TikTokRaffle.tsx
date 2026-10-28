@@ -25,6 +25,7 @@ import {
   Plus,
   RefreshCw,
   HelpCircle,
+  FileText,
 } from 'lucide-react';
 import {
   TikTokComment,
@@ -42,7 +43,9 @@ import {
   parseImportedComments,
   SAMPLE_TIKTOK_COMMENTS,
   TIKTOK_BROWSER_CONSOLE_SNIPPET,
+  clearTikTokCache,
 } from '../utils/tiktok';
+import { generateTikTokPdfReport } from '../utils/pdfReport';
 import {
   playTick,
   playWinnerFanfare,
@@ -151,7 +154,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
   };
 
   // Real comment fetching from URL
-  const handleFetchFromUrl = async (e?: React.FormEvent) => {
+  const handleFetchFromUrl = async (e?: React.FormEvent, forceRefresh = false) => {
     if (e) e.preventDefault();
     if (!videoUrl.trim()) {
       setLoadError('Por favor, cole um link de vídeo do TikTok.');
@@ -167,11 +170,12 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
     setIsLoading(true);
     setLoadError(null);
     setLoadSuccessMsg(null);
-    setLoadingProgressMsg('Conectando ao TikTok e buscando vídeo...');
+    setLoadingProgressMsg(forceRefresh ? 'Atualizando dados diretamente do TikTok (ignorando cache)...' : 'Conectando ao TikTok e buscando vídeo...');
 
     try {
       const result = await loadTikTokComments(parsed.cleanUrl || videoUrl, {
         maxPages: 3, // Initial pull: up to ~150 comments
+        forceRefresh,
         onProgress: (msg, currentCount) => {
           setLoadingProgressMsg(currentCount > 0 ? `${msg} (${currentCount} comentários até agora)` : msg);
         },
@@ -182,7 +186,9 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
       if (result.comments.length > 0) {
         setComments(result.comments);
         setLoadSuccessMsg(
-          `🎉 ${result.comments.length} comentários reais carregados com sucesso do TikTok! (${result.totalCommentsInVideo ? `${result.totalCommentsInVideo} no total do vídeo` : ''})`
+          result.fromCache
+            ? `⚡ ${result.comments.length} comentários recuperados do cache temporário! (${result.totalCommentsInVideo ? `${result.totalCommentsInVideo} no total do vídeo` : ''})`
+            : `🎉 ${result.comments.length} comentários reais carregados com sucesso do TikTok! (${result.totalCommentsInVideo ? `${result.totalCommentsInVideo} no total do vídeo` : ''})`
         );
       } else {
         // Video was found, but 0 comments returned
@@ -195,7 +201,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
 
       // Attempt fallback to at least show video info
       try {
-        const fallbackInfo = await fetchTikTokVideoDetails(parsed.cleanUrl || videoUrl);
+        const fallbackInfo = await fetchTikTokVideoDetails(parsed.cleanUrl || videoUrl, { forceRefresh });
         if (fallbackInfo) {
           setVideoInfo(fallbackInfo);
         }
@@ -279,6 +285,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
 
   // Clear all loaded data
   const handleClearAll = () => {
+    clearTikTokCache();
     setComments([]);
     setVideoInfo(null);
     setVideoUrl('');
@@ -423,6 +430,36 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // Export PDF with SHA-256 hash
+  const handleExportPDF = async () => {
+    if (winners.length === 0) return;
+    try {
+      const canonical = {
+        videoUrl,
+        commentCount: comments.length,
+        winners: winners.map((w) => ({ u: w.comment.username, r: w.rank, d: w.drawnAt })),
+      };
+      const encoder = new TextEncoder();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(JSON.stringify(canonical)));
+      const integrityHash = Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, '0')).join('');
+
+      const doc = await generateTikTokPdfReport({
+        videoTitle: videoInfo?.title || 'Sorteio TikTok',
+        videoUrl: videoUrl,
+        authorName: videoInfo?.authorName || '@criador',
+        prizeName,
+        integrityHash,
+        winners,
+        totalComments: comments.length,
+        eligibleComments: eligible.length,
+      });
+
+      doc.save(`laudo_sorteio_tiktok_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (e) {
+      console.error('Erro ao exportar PDF do TikTok:', e);
+    }
   };
 
   return (
@@ -878,6 +915,14 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                   >
                     {copiedSuccess ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                     <span>{copiedSuccess ? 'Copiado!' : 'Copiar'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExportPDF}
+                    className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-xs font-bold text-white shadow-md shadow-blue-600/30 transition flex items-center gap-1.5 active:scale-95"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>PDF</span>
                   </button>
                   <button
                     type="button"
