@@ -174,7 +174,6 @@ export function normalizeSearch(str: string): string {
 }
 
 /**
-/**
  * Parses raw text or file content into names and coin counts
  * Supports formats: "Nome 200", "Nome, 200", "Nome;200", "Nome - 200", "Nome: 200", tabs,
  * JSON arrays, and plain list of names (assigning defaultCoins)

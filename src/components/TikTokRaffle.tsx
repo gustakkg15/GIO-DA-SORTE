@@ -101,6 +101,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
   // Import Modal State
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [rawImportText, setRawImportText] = useState('');
+  const [isConfirmingClear, setIsConfirmingClear] = useState(false);
 
   // Filtered comments computation
   const { eligible, totalEligibleUsers } = useMemo(() => {
@@ -190,13 +191,12 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
 
   // Clear all loaded data
   const handleClearAll = () => {
-    if (window.confirm('Tem certeza que deseja limpar os comentários e dados deste sorteio?')) {
-      setComments([]);
-      setVideoInfo(null);
-      setVideoUrl('');
-      setWinners([]);
-      setLoadError(null);
-    }
+    setComments([]);
+    setVideoInfo(null);
+    setVideoUrl('');
+    setWinners([]);
+    setLoadError(null);
+    setIsConfirmingClear(false);
   };
 
   // Execute drawing logic
@@ -377,14 +377,34 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
               <span>Colar / Importar Lista</span>
             </button>
             {comments.length > 0 && (
-              <button
-                type="button"
-                onClick={handleClearAll}
-                title="Limpar dados carregados"
-                className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 border border-slate-700 hover:border-rose-800/60 transition"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              isConfirmingClear ? (
+                <div className="flex items-center gap-1.5 p-1 bg-rose-950/80 border border-rose-800 rounded-xl text-xs">
+                  <span className="text-rose-200 px-2 font-semibold">Limpar tudo?</span>
+                  <button
+                    type="button"
+                    onClick={handleClearAll}
+                    className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg transition"
+                  >
+                    Sim
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsConfirmingClear(false)}
+                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
+                  >
+                    Não
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsConfirmingClear(true)}
+                  title="Limpar dados carregados"
+                  className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 border border-slate-700 hover:border-rose-800/60 transition"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )
             )}
           </div>
         </div>

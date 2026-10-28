@@ -148,7 +148,13 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
     const text = encodeURIComponent(
       `🎉 Participe e consulte seus bilhetes no GIO DA SORTE!\n\n👑 Sorteador: ${organizerName}\n🏆 Sorteio: ${raffleTitle}\n🔑 Código do Sorteio: ${raffleCode}\n\n👉 Acesse o link para ver seus números da sorte:\n${directLink}`
     );
-    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+    const a = document.createElement('a');
+    a.href = `https://api.whatsapp.com/send?text=${text}`;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   // Publish / Sync to Cloud

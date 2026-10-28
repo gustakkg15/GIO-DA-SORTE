@@ -6,6 +6,23 @@
 let audioCtx: AudioContext | null = null;
 let soundEnabled = true;
 
+// Pre-emptively unlock AudioContext on first user interaction (critical for iOS Safari and mobile Chrome)
+if (typeof window !== 'undefined') {
+  const unlockAudio = () => {
+    if (!audioCtx) {
+      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (AudioContextClass) {
+        audioCtx = new AudioContextClass();
+      }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+  };
+  window.addEventListener('touchstart', unlockAudio, { passive: true, once: true });
+  window.addEventListener('click', unlockAudio, { passive: true, once: true });
+}
+
 function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
   if (!audioCtx) {
