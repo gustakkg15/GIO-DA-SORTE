@@ -344,7 +344,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       </div>
 
       {/* Canvas Wheel */}
-      <div className="relative p-2 rounded-full bg-slate-900 border-2 border-slate-800 shadow-2xl flex items-center justify-center">
+      <div className="relative p-2 rounded-full bg-slate-900 border-2 border-slate-800 shadow-2xl flex items-center justify-center neon-wheel-glow">
         <canvas
           ref={canvasRef}
           width={440}
@@ -362,7 +362,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
         onClick={handleUserTrigger}
         className={`w-full max-w-sm min-h-[48px] py-3.5 px-6 rounded-xl font-display font-black text-base sm:text-lg flex items-center justify-center gap-2.5 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${
           !isDrawing && computed.eligibleTickets.length > 0
-            ? 'bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 text-white shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 hover:brightness-105 cursor-pointer ring-1 ring-sky-300/30'
+            ? 'neon-btn-primary bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 text-white shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 hover:brightness-105 cursor-pointer ring-1 ring-sky-300/30'
             : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
         }`}
       >

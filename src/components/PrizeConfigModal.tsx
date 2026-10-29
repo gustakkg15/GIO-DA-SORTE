@@ -113,8 +113,8 @@ export const PrizeConfigModal: React.FC<PrizeConfigModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="bg-slate-900 border-2 border-blue-500/50 rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl space-y-6 relative">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
+      <div className="bg-slate-900 border-2 border-blue-500/50 rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl space-y-6 relative animate-slide-up">
         {/* Modal Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
           <div className="flex items-center gap-2.5">

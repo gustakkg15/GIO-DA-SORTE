@@ -67,7 +67,7 @@ export const DrawCountdownOverlay: React.FC<DrawCountdownOverlayProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="Contagem regressiva para início do sorteio"
-      className="fixed inset-0 z-[65] bg-slate-950/95 backdrop-blur-2xl flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 z-[65] bg-slate-950/95 backdrop-blur-2xl flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fade-in"
     >
       {/* Dynamic Background Tension Glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -100,7 +100,7 @@ export const DrawCountdownOverlay: React.FC<DrawCountdownOverlayProps> = ({
       </div>
 
       {/* Center Countdown Showcase Stage */}
-      <div className="relative z-10 max-w-lg w-full text-center space-y-6 sm:space-y-7 py-8 px-2">
+      <div className="relative z-10 max-w-lg w-full text-center space-y-6 sm:space-y-7 py-8 px-2 animate-slide-up">
         {/* Kicker Announcement */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/90 border border-slate-700/80 text-xs sm:text-sm font-black uppercase tracking-widest shadow-xl">
           {isUrgent ? (

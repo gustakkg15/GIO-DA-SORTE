@@ -222,7 +222,7 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
       />
 
       {/* TOP BAR: Current Connected Sorteador & Raffle */}
-      <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 border-2 border-blue-600/50 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4">
+      <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 border-2 border-blue-600/50 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 animate-card-enter neon-card">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-display font-black text-xl text-white shadow-lg shadow-blue-600/40 ring-2 ring-sky-300/40">
@@ -377,7 +377,7 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
 
       {/* PARTICIPANT VIP CARD ("Lembrar Meu Nome") */}
       {savedName ? (
-        <div className="bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-950 border-2 border-sky-400/50 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
+        <div className="bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-950 border-2 border-sky-400/50 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 animate-card-enter neon-card">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400">
@@ -551,7 +551,7 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
       )}
 
       {/* SEARCH SECTION */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5 animate-card-enter neon-card">
         <div className="text-center space-y-1">
           <h3 className="font-display font-black text-2xl text-white">Consultar Bilhetes da Sorte</h3>
           <p className="text-xs sm:text-sm text-slate-400">

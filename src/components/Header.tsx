@@ -16,6 +16,7 @@ import {
   BarChart3,
   Menu,
   X,
+  Palette,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -29,6 +30,8 @@ interface HeaderProps {
   currentUser: FirebaseUser | null;
   onOpenAccount: () => void;
   totalParticipants: number;
+  themeMode?: 'default' | 'neon';
+  onToggleTheme?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -41,6 +44,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenObsOverlay,
   currentUser,
   onOpenAccount,
+  themeMode = 'default',
+  onToggleTheme,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -157,6 +162,23 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Quick Actions (Sound, Print, OBS, Telão, Account, Hamburger) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Theme Toggle: Cyber Dark vs Neon Night */}
+            {onToggleTheme && (
+              <button
+                type="button"
+                onClick={onToggleTheme}
+                title={themeMode === 'neon' ? 'Tema: Neon Night ativo (clique para Padrão)' : 'Tema: Padrão ativo (clique para Neon Night)'}
+                aria-label={themeMode === 'neon' ? 'Desativar tema Neon Night' : 'Ativar tema Neon Night'}
+                className={`min-w-[40px] min-h-[40px] p-2 flex items-center justify-center rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
+                  themeMode === 'neon'
+                    ? 'bg-fuchsia-950/60 border border-cyan-400/60 text-cyan-300 shadow-md shadow-cyan-500/20'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-900 border border-transparent'
+                }`}
+              >
+                <Palette className={`w-5 h-5 ${themeMode === 'neon' ? 'text-cyan-400' : 'text-slate-400'}`} />
+              </button>
+            )}
+
             {/* Sound Toggle */}
             <button
               type="button"
@@ -357,6 +379,30 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>OBS Overlay</span>
               </button>
             </div>
+
+            {/* Mobile Theme Toggle */}
+            {onToggleTheme && (
+              <button
+                type="button"
+                onClick={() => {
+                  onToggleTheme();
+                  setMobileMenuOpen(false);
+                }}
+                className={`w-full min-h-[40px] px-3 py-2 border rounded-xl flex items-center justify-between text-xs font-semibold transition ${
+                  themeMode === 'neon'
+                    ? 'bg-fuchsia-950/60 border-cyan-400/60 text-cyan-300 shadow-md shadow-cyan-500/10'
+                    : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-white'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <Palette className={`w-4 h-4 ${themeMode === 'neon' ? 'text-cyan-400' : 'text-slate-400'}`} />
+                  <span>Tema Visual: {themeMode === 'neon' ? 'Neon Night ✨' : 'Cyber Dark (Padrão)'}</span>
+                </span>
+                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-slate-950 border border-slate-700 text-slate-400">
+                  Alternar
+                </span>
+              </button>
+            )}
           </div>
         )}
 

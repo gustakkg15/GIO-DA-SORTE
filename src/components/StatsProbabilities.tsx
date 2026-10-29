@@ -30,7 +30,7 @@ export const StatsProbabilities: React.FC<StatsProbabilitiesProps> = ({
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Top Level Metric Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg space-y-1">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg space-y-1 animate-card-enter neon-card">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-xs font-semibold">Participantes</span>
             <Users className="w-4 h-4 text-sky-400" />
@@ -43,7 +43,7 @@ export const StatsProbabilities: React.FC<StatsProbabilitiesProps> = ({
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg space-y-1">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg space-y-1 animate-card-enter neon-card">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-xs font-semibold">Total de Moedas</span>
             <Coins className="w-4 h-4 text-sky-400" />
@@ -54,7 +54,7 @@ export const StatsProbabilities: React.FC<StatsProbabilitiesProps> = ({
           <div className="text-[11px] text-slate-500">Média de {averageCoins} por pessoa</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg space-y-1">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg space-y-1 animate-card-enter neon-card">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-xs font-semibold">Bilhetes Entregues</span>
             <Ticket className="w-4 h-4 text-emerald-400" />
@@ -65,7 +65,7 @@ export const StatsProbabilities: React.FC<StatsProbabilitiesProps> = ({
           <div className="text-[11px] text-slate-500">{remainingInPool} bilhetes disponíveis</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg space-y-1">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg space-y-1 animate-card-enter neon-card">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-xs font-semibold">Moedas em Sobra</span>
             <Percent className="w-4 h-4 text-blue-400" />
@@ -78,7 +78,7 @@ export const StatsProbabilities: React.FC<StatsProbabilitiesProps> = ({
       </div>
 
       {/* Pool Capacity Progress Bar */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-3">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-3 animate-card-enter neon-card">
         <div className="flex items-center justify-between">
           <span className="font-display font-bold text-sm text-white flex items-center gap-2">
             <PieChart className="w-4 h-4 text-sky-400" />
@@ -106,7 +106,7 @@ export const StatsProbabilities: React.FC<StatsProbabilitiesProps> = ({
       </div>
 
       {/* Probability Leaderboard */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4 animate-card-enter neon-card">
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-sky-400" />

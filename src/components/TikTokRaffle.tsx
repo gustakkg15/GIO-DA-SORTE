@@ -1168,9 +1168,9 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[70] bg-slate-950/95 backdrop-blur-2xl flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200"
+          className="fixed inset-0 z-[70] bg-slate-950/95 backdrop-blur-2xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
         >
-          <div className="relative w-full max-w-md bg-slate-900 border-2 border-[#00F2FE] rounded-3xl p-8 text-center space-y-6 shadow-2xl shadow-[#FE2C55]/30">
+          <div className="relative w-full max-w-md bg-slate-900 border-2 border-[#00F2FE] rounded-3xl p-8 text-center space-y-6 shadow-2xl shadow-[#FE2C55]/30 animate-slide-up">
             <div className="space-y-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-slate-950 border border-slate-800 text-[#00F2FE]">
                 <Clock className="w-3.5 h-3.5 animate-spin" />
@@ -1224,9 +1224,9 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
         >
-          <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl">
+          <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl animate-slide-up">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -1306,9 +1306,9 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
         >
-          <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl">
+          <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl animate-slide-up">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">

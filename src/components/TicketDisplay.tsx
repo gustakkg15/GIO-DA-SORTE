@@ -30,7 +30,7 @@ export const TicketDisplay: React.FC<TicketDisplayProps> = ({
 
       {/* Main Royal Sapphire Ticket Surface */}
       <div
-        className={`relative ticket-notch bg-gradient-to-br from-blue-600 via-sky-500 to-indigo-700 text-white px-4 sm:px-8 md:px-10 py-5 sm:py-7 rounded-xl shadow-2xl transition-all duration-300 ${
+        className={`relative ticket-notch bg-gradient-to-br from-blue-600 via-sky-500 to-indigo-700 text-white px-4 sm:px-8 md:px-10 py-5 sm:py-7 rounded-xl shadow-2xl transition-all duration-300 neon-draw-glow ${
           isDrawing
             ? 'scale-[1.01] shadow-sky-500/40 border-t-2 border-sky-300'
             : latestWinner
@@ -78,7 +78,7 @@ export const TicketDisplay: React.FC<TicketDisplayProps> = ({
           </div>
 
           <div
-            className={`font-mono font-black tabular-nums select-none tracking-tight leading-none transition-transform duration-100 truncate ${
+            className={`font-mono font-black tabular-nums select-none tracking-tight leading-none transition-transform duration-100 truncate neon-number-text ${
               isDrawing
                 ? 'text-5xl sm:text-7xl md:text-8xl text-white blur-[0.4px] scale-105 drop-shadow-lg'
                 : latestWinner

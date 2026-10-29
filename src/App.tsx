@@ -535,7 +535,11 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div
+      className={`min-h-screen ${
+        settings.themeMode === 'neon' ? 'theme-neon theme-neon-canvas' : 'bg-slate-950'
+      } text-slate-100 flex flex-col font-sans transition-colors duration-300`}
+    >
       {/* Header adhering to Top Bar Contract */}
       <Header
         activeTab={activeTab}
@@ -548,6 +552,13 @@ export default function App() {
         currentUser={currentUser}
         onOpenAccount={() => setIsAccountOpen(true)}
         totalParticipants={participants.length}
+        themeMode={settings.themeMode || 'default'}
+        onToggleTheme={() =>
+          setSettings((s) => ({
+            ...s,
+            themeMode: s.themeMode === 'neon' ? 'default' : 'neon',
+          }))
+        }
       />
 
       {/* Main Content Area */}
@@ -656,6 +667,8 @@ export default function App() {
             onResetCoinsOnly={() => {
               setParticipants((prev) => prev.map((p) => ({ ...p, coins: 0 })));
             }}
+            onOpenAuditReport={() => setIsAuditReportOpen(true)}
+            rosterHash={rosterHash}
           />
         )}
 
@@ -709,7 +722,7 @@ export default function App() {
         }}
       />
 
-      {/* Social Media VIP Victory Card Modal with Full Customization Editor */}
+      {/* Social Media VIP Victory Card Modal with Full Customization Editor & Winners History */}
       <VictoryCardModal
         isOpen={Boolean(selectedWinnerForCard)}
         onClose={() => setSelectedWinnerForCard(null)}
@@ -717,6 +730,8 @@ export default function App() {
         participant={participants.find((p) => p.id === selectedWinnerForCard?.participantId)}
         settings={settings}
         rosterHash={rosterHash}
+        allWinners={winners}
+        onSelectWinner={(w) => setSelectedWinnerForCard(w)}
       />
 
       {/* Monte Carlo & Fairness Audit Modal */}

@@ -13,6 +13,7 @@ export const DEFAULT_SETTINGS: RaffleSettings = {
   currentPrize: '1º Prêmio',
   spinDuration: 3000,
   countdownSeconds: 10,
+  themeMode: 'default',
   drawMode: 'drum',
   raffleCode: 'GIO-7492',
   organizerName: 'Sorteador Oficial',

@@ -51,9 +51,10 @@ export const PresentationModal: React.FC<PresentationModalProps> = ({
   const canDraw = eligibleCount > 0 && !isDrawing;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex flex-col justify-between p-3 sm:p-6 md:p-8 overflow-y-auto animate-in fade-in duration-200">
-      {/* Presentation Top Bar */}
-      <div className="flex items-center justify-between max-w-6xl mx-auto w-full gap-2 shrink-0">
+    <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex flex-col justify-between p-3 sm:p-6 md:p-8 overflow-y-auto animate-fade-in">
+      <div className="animate-slide-up max-w-6xl mx-auto w-full flex flex-col flex-1 justify-between space-y-6">
+        {/* Presentation Top Bar */}
+        <div className="flex items-center justify-between w-full gap-2 shrink-0">
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold flex items-center justify-center shadow-lg shadow-blue-500/30 ring-1 ring-sky-300/40 shrink-0">
             <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 fill-white" />
@@ -236,9 +237,10 @@ export const PresentationModal: React.FC<PresentationModalProps> = ({
         </div>
       </div>
 
-      {/* Footer info */}
-      <div className="max-w-6xl mx-auto w-full text-center text-xs text-slate-500">
-        GIO DA SORTE · Sorteio proporcional com algoritmo criptográfico · Taxa de {settings.rate} moedas por bilhete
+        {/* Footer info */}
+        <div className="max-w-6xl mx-auto w-full text-center text-xs text-slate-500">
+          GIO DA SORTE · Sorteio proporcional com algoritmo criptográfico · Taxa de {settings.rate} moedas por bilhete
+        </div>
       </div>
     </div>
   );

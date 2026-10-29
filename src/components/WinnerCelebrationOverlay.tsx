@@ -90,7 +90,7 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-0 z-[70] bg-slate-950/95 backdrop-blur-2xl flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-in fade-in zoom-in-95 duration-300"
+      className="fixed inset-0 z-[70] bg-slate-950/95 backdrop-blur-2xl flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fade-in"
     >
       {/* Background Ambient Glow Lights */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -109,7 +109,7 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
       </button>
 
       {/* Main Fullscreen Showcase Card */}
-      <div className="relative z-10 max-w-2xl w-full my-auto text-center space-y-6 sm:space-y-7 py-6">
+      <div className="relative z-10 max-w-2xl w-full my-auto text-center space-y-6 sm:space-y-7 py-6 animate-slide-up">
         {/* Kicker Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500/30 via-yellow-400/20 to-amber-500/30 border border-amber-400/60 text-amber-300 text-xs sm:text-sm font-extrabold uppercase tracking-widest shadow-lg shadow-amber-500/20 animate-bounce">
           <Trophy className="w-4 h-4 text-amber-300 fill-amber-300" />

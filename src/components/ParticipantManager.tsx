@@ -10,6 +10,9 @@ import {
   ChevronUp,
   AlertTriangle,
   Upload,
+  Ticket,
+  X,
+  Hash,
 } from 'lucide-react';
 import { Participant, RaffleSettings, ComputedRaffle, Winner } from '../types';
 import {
@@ -58,6 +61,8 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [filterQuery, setFilterQuery] = useState('');
+  const [ticketSearchQuery, setTicketSearchQuery] = useState('');
+  const [filterOnlyTicketMatch, setFilterOnlyTicketMatch] = useState(true);
   const [sortBy, setSortBy] = useState<'coins-desc' | 'name-asc' | 'tickets-desc' | 'recent'>('tickets-desc');
 
   const [isConfirmingClear, setIsConfirmingClear] = useState(false);
@@ -146,11 +151,34 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
     }
   };
 
-  const filteredAllocations = computed.allocations.filter((a) =>
-    a.participant.name.toLowerCase().includes(filterQuery.toLowerCase())
-  );
+  // Ticket Number Search processing
+  const cleanTicketInput = ticketSearchQuery.trim().replace(/^#+/, '');
+  const parsedTicketNum = cleanTicketInput !== '' ? parseInt(cleanTicketInput, 10) : null;
+  const isValidTicketSearch = parsedTicketNum !== null && !isNaN(parsedTicketNum);
+
+  const ticketHolder = isValidTicketSearch
+    ? computed.allocations.find((a) => a.tickets.includes(parsedTicketNum))
+    : null;
+
+  const filteredAllocations = computed.allocations.filter((a) => {
+    const matchesName = a.participant.name.toLowerCase().includes(filterQuery.toLowerCase());
+    if (!matchesName) return false;
+
+    if (isValidTicketSearch && filterOnlyTicketMatch) {
+      return a.tickets.includes(parsedTicketNum);
+    }
+    return true;
+  });
 
   filteredAllocations.sort((a, b) => {
+    // If ticket is searched in highlight mode (not strictly filtered), place matching ticket holder at top for fast audit
+    if (isValidTicketSearch && !filterOnlyTicketMatch) {
+      const aMatches = a.tickets.includes(parsedTicketNum);
+      const bMatches = b.tickets.includes(parsedTicketNum);
+      if (aMatches && !bMatches) return -1;
+      if (!aMatches && bMatches) return 1;
+    }
+
     if (sortBy === 'coins-desc') return b.participant.coins - a.participant.coins;
     if (sortBy === 'tickets-desc') return b.assignedTickets - a.assignedTickets;
     if (sortBy === 'name-asc') return a.participant.name.localeCompare(b.participant.name);
@@ -162,7 +190,7 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
   return (
     <div className="space-y-6">
       {/* Add Participant Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4 animate-card-enter neon-card">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <UserPlus className="w-5 h-5 text-sky-400" />
@@ -326,7 +354,7 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
       )}
 
       {/* Participants Table & List View */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4 animate-card-enter neon-card">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
           <div>
             <div className="flex items-center gap-2">
@@ -341,18 +369,62 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
-            <div className="relative flex-1 sm:flex-initial">
+            {/* Filter by Name */}
+            <div className="relative flex-1 sm:w-40">
               <input
                 type="text"
                 placeholder="Filtrar nome..."
                 aria-label="Filtrar participante por nome"
                 value={filterQuery}
                 onChange={(e) => setFilterQuery(e.target.value)}
-                className="bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-2.5 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-400 focus-visible:ring-2 focus-visible:ring-sky-400 w-full sm:w-44 min-h-[38px]"
+                className="bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-7 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-400 focus-visible:ring-2 focus-visible:ring-sky-400 w-full min-h-[38px]"
               />
               <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-3 pointer-events-none" />
+              {filterQuery && (
+                <button
+                  type="button"
+                  onClick={() => setFilterQuery('')}
+                  className="absolute right-2 top-2.5 text-slate-500 hover:text-white"
+                  title="Limpar filtro de nome"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
+            {/* Filter / Search by Ticket Number */}
+            <div className="relative flex-1 sm:w-36">
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="Nº Bilhete..."
+                aria-label="Buscar por número de bilhete"
+                value={ticketSearchQuery}
+                onChange={(e) => setTicketSearchQuery(e.target.value)}
+                className={`bg-slate-950 border rounded-lg pl-8 pr-7 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus-visible:ring-2 w-full min-h-[38px] tabular-nums font-mono ${
+                  isValidTicketSearch
+                    ? 'border-amber-500 text-amber-300 ring-1 ring-amber-500/40 bg-amber-950/20'
+                    : 'border-slate-700 focus:border-blue-400 focus-visible:ring-sky-400'
+                }`}
+              />
+              <Ticket
+                className={`w-3.5 h-3.5 absolute left-2.5 top-3 pointer-events-none ${
+                  isValidTicketSearch ? 'text-amber-400' : 'text-slate-500'
+                }`}
+              />
+              {ticketSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setTicketSearchQuery('')}
+                  className="absolute right-2 top-2.5 text-slate-500 hover:text-white"
+                  title="Limpar busca de bilhete"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Sort Dropdown */}
             <div className="flex items-center gap-1 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 min-h-[38px]">
               <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
               <select
@@ -370,6 +442,73 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
           </div>
         </div>
 
+        {/* Ticket Search Active Status Bar */}
+        {isValidTicketSearch && (
+          <div
+            className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs transition animate-fade-in ${
+              ticketHolder
+                ? 'bg-amber-950/40 border-amber-500/50 text-amber-200'
+                : 'bg-slate-950 border-slate-800 text-slate-400'
+            }`}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <Ticket className={`w-4 h-4 shrink-0 ${ticketHolder ? 'text-amber-400' : 'text-slate-500'}`} />
+              {ticketHolder ? (
+                <div className="truncate">
+                  <span>Bilhete </span>
+                  <span className="font-mono font-black text-amber-300 bg-amber-900/60 border border-amber-500/40 px-1.5 py-0.5 rounded mr-1">
+                    #{parsedTicketNum}
+                  </span>
+                  <span>encontrado! Pertence a: </span>
+                  <b className="text-white font-bold">{ticketHolder.participant.name}</b>
+                  <span className="text-amber-300/80 ml-1">
+                    ({ticketHolder.assignedTickets} {ticketHolder.assignedTickets === 1 ? 'bilhete' : 'bilhetes'})
+                  </span>
+                </div>
+              ) : (
+                <div>
+                  <span>Bilhete </span>
+                  <span className="font-mono font-bold text-slate-300 bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded mr-1">
+                    #{parsedTicketNum}
+                  </span>
+                  <span>não pertence a nenhum participante cadastrado</span>
+                  {parsedTicketNum < settings.start || parsedTicketNum >= settings.start + settings.total ? (
+                    <span className="text-rose-400 ml-1 font-semibold">
+                      (fora da série #{settings.start} a #{settings.start + settings.total - 1})
+                    </span>
+                  ) : (
+                    <span className="text-slate-500 ml-1">(ainda não distribuído na série)</span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setFilterOnlyTicketMatch(!filterOnlyTicketMatch)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border ${
+                  filterOnlyTicketMatch
+                    ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-sm'
+                    : 'bg-slate-900 text-slate-300 border-slate-700 hover:text-white'
+                }`}
+                title="Alternar entre filtrar apenas o portador ou manter todos e destacar"
+              >
+                <span>{filterOnlyTicketMatch ? 'Modo: Filtrando Portador' : 'Modo: Destacando na Lista'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTicketSearchQuery('')}
+                className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition"
+                title="Limpar busca de bilhete"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Participant List */}
         {participants.length === 0 ? (
           <div className="py-12 text-center space-y-2 border border-dashed border-slate-800 rounded-xl">
@@ -377,8 +516,21 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
             <p className="text-xs text-slate-500">Adicione pessoas individualmente ou importe uma planilha acima.</p>
           </div>
         ) : filteredAllocations.length === 0 ? (
-          <div className="py-8 text-center text-xs text-slate-500">
-            Nenhum participante encontrado com o termo "{filterQuery}".
+          <div className="py-8 text-center text-xs text-slate-500 space-y-2">
+            <p>
+              {isValidTicketSearch
+                ? `Nenhum participante possui o bilhete #${parsedTicketNum}.`
+                : `Nenhum participante encontrado com o termo "${filterQuery}".`}
+            </p>
+            {isValidTicketSearch && (
+              <button
+                type="button"
+                onClick={() => setTicketSearchQuery('')}
+                className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-lg text-xs font-semibold"
+              >
+                Limpar busca de bilhete
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-2.5 max-h-[520px] overflow-y-auto pr-1">
@@ -386,19 +538,34 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
               const p = alloc.participant;
               const hasWon = wonIds.has(p.id);
               const neededNext = settings.rate - alloc.remainderCoins;
+              const isHoldingSearchedTicket = isValidTicketSearch && alloc.tickets.includes(parsedTicketNum);
+
+              // Prepare tickets to display: ensure the searched ticket is always visible in the badge list
+              let ticketsToDisplay = alloc.tickets.slice(0, 10);
+              if (isHoldingSearchedTicket && !ticketsToDisplay.includes(parsedTicketNum)) {
+                ticketsToDisplay = [parsedTicketNum, ...ticketsToDisplay.slice(0, 9)];
+              }
 
               return (
                 <div
                   key={p.id}
-                  className={`p-3.5 rounded-xl border transition-colors ${
-                    hasWon
+                  className={`p-3.5 rounded-xl border transition-all duration-200 ${
+                    isHoldingSearchedTicket
+                      ? 'bg-gradient-to-r from-amber-950/40 via-slate-900 to-amber-950/20 border-amber-400 ring-2 ring-amber-400/50 shadow-lg shadow-amber-500/10'
+                      : hasWon
                       ? 'bg-blue-950/20 border-blue-700/50'
                       : 'bg-slate-950/70 border-slate-800 hover:border-slate-700'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0 flex-wrap">
                       <span className="font-bold text-sm text-white truncate">{p.name}</span>
+                      {isHoldingSearchedTicket && (
+                        <span className="text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 px-2 py-0.5 rounded flex items-center gap-1 shadow-sm shrink-0">
+                          <Ticket className="w-3 h-3 fill-slate-950" />
+                          <span>Portador do Bilhete #{parsedTicketNum}</span>
+                        </span>
+                      )}
                       {hasWon && (
                         <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600/30 text-sky-300 px-2 py-0.5 rounded border border-blue-500/40 shrink-0">
                           Já Ganhou
@@ -451,17 +618,24 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
 
                       {alloc.tickets.length > 0 && (
                         <div className="flex flex-wrap items-center gap-1">
-                          {alloc.tickets.slice(0, 10).map((num) => (
-                            <span
-                              key={num}
-                              className="bg-blue-600 text-white font-mono font-bold px-1.5 py-0.2 rounded text-[11px] tabular-nums"
-                            >
-                              #{num}
-                            </span>
-                          ))}
-                          {alloc.tickets.length > 10 && (
+                          {ticketsToDisplay.map((num) => {
+                            const isTargetTicket = isValidTicketSearch && num === parsedTicketNum;
+                            return (
+                              <span
+                                key={num}
+                                className={`font-mono font-bold px-1.5 py-0.5 rounded text-[11px] tabular-nums transition ${
+                                  isTargetTicket
+                                    ? 'bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 font-black shadow-md ring-2 ring-amber-300 scale-105'
+                                    : 'bg-blue-600 text-white'
+                                }`}
+                              >
+                                #{num} {isTargetTicket && '★'}
+                              </span>
+                            );
+                          })}
+                          {alloc.tickets.length > ticketsToDisplay.length && (
                             <span className="text-slate-400 text-[11px] font-medium">
-                              +{alloc.tickets.length - 10} mais
+                              +{alloc.tickets.length - ticketsToDisplay.length} mais
                             </span>
                           )}
                         </div>

@@ -271,6 +271,20 @@ export async function renderVictoryCardCanvas(
 }
 
 /**
+ * Renders the victory card and returns its image as Data URL
+ */
+export async function createVictoryCardDataUrl(
+  winner: Winner,
+  participant: Participant | undefined,
+  settings: RaffleSettings,
+  rosterHash?: string,
+  customization?: VictoryCardCustomization
+): Promise<string> {
+  const canvas = await renderVictoryCardCanvas(winner, participant, settings, rosterHash, customization);
+  return canvas.toDataURL('image/png');
+}
+
+/**
  * Downloads the victory card as PNG with custom options
  */
 export async function downloadVictoryCardPng(

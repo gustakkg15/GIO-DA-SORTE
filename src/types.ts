@@ -17,6 +17,8 @@ export interface PrizeTier {
   ticketNumber?: number;
 }
 
+export type ThemeMode = 'default' | 'neon';
+
 export interface RaffleSettings {
   rate: number;         // Moedas por número (default: 100)
   total: number;        // Total de números disponíveis (default: 100)
@@ -27,6 +29,7 @@ export interface RaffleSettings {
   currentPrize: string; // Nome do prêmio atual
   spinDuration: number; // Duração da rotação em ms (1500, 3000, 5000)
   countdownSeconds?: number; // Contagem regressiva antes do sorteio em segundos (ex: 10, 5, 3, 0 = desativado)
+  themeMode?: ThemeMode; // 'default' (Clássico / Dark Elegante) | 'neon' (Neon Night com gradientes e luzes vibrantes)
   prizes: PrizeTier[];  // Lista de prêmios escalonados
   drawMode: DrawMode;   // 'drum' (bilhete) | 'wheel' (roleta) | 'battleroyale'
   supportPixKey?: string; // Chave Pix para colaboração espontânea

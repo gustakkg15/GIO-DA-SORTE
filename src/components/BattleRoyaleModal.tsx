@@ -126,9 +126,10 @@ export const BattleRoyaleModal: React.FC<BattleRoyaleModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex flex-col justify-between p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
-      {/* Top Header */}
-      <div className="flex items-center justify-between max-w-5xl mx-auto w-full pb-3 sm:pb-4 border-b border-slate-800 gap-2 shrink-0">
+    <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex flex-col justify-between p-3 sm:p-6 overflow-y-auto animate-fade-in">
+      <div className="animate-slide-up max-w-5xl mx-auto w-full flex flex-col flex-1 justify-between space-y-4">
+        {/* Top Header */}
+        <div className="flex items-center justify-between w-full pb-3 sm:pb-4 border-b border-slate-800 gap-2 shrink-0">
         <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-red-600 text-white font-bold flex items-center justify-center shadow-lg shadow-red-600/30 shrink-0">
             <Flame className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -259,9 +260,10 @@ export const BattleRoyaleModal: React.FC<BattleRoyaleModalProps> = ({
         )}
       </div>
 
-      {/* Footer */}
-      <div className="text-center text-xs text-slate-600">
-        Cada bilhete concorre igualmente. Quem possui mais moedas tem mais bilhetes e maior chance de sobreviver!
+        {/* Footer */}
+        <div className="text-center text-xs text-slate-600">
+          Cada bilhete concorre igualmente. Quem possui mais moedas tem mais bilhetes e maior chance de sobreviver!
+        </div>
       </div>
     </div>
   );

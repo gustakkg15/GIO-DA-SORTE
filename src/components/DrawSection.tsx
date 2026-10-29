@@ -178,7 +178,7 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
       {subTab === 'arena' && (
         <div className="space-y-6 animate-in fade-in duration-200">
           {/* Card de Destaque do Prêmio (Nome do Prêmio + Imagem do Prêmio) */}
-          <div className="bg-gradient-to-r from-blue-950/70 via-slate-900 to-indigo-950/70 border-2 border-blue-500/40 rounded-2xl p-4 shadow-xl relative overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-950/70 via-slate-900 to-indigo-950/70 border-2 border-blue-500/40 rounded-2xl p-4 shadow-xl relative overflow-hidden animate-card-enter neon-card">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3.5 min-w-0">
                 {/* Prize Image Thumbnail with Glow */}
@@ -237,7 +237,7 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
           </div>
 
           {/* Visual Arena Card (Drum or Fortune Wheel) */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-7 shadow-xl space-y-5">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-7 shadow-xl space-y-5 animate-card-enter neon-card">
             {/* Arena Mode Switcher */}
             <div className="flex flex-wrap items-center justify-between gap-2.5 pb-3 border-b border-slate-800">
               <div className="flex items-center p-1 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold">
@@ -343,7 +343,7 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
                   onClick={onDraw}
                   className={`w-full py-4 px-6 rounded-xl font-display font-black text-xl tracking-wide flex items-center justify-center gap-3 transition-all duration-200 active:scale-98 ${
                     canDraw
-                      ? 'bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 text-white shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 hover:brightness-105 cursor-pointer ring-1 ring-sky-300/30'
+                      ? 'neon-btn-primary neon-draw-glow bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 text-white shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 hover:brightness-105 cursor-pointer ring-1 ring-sky-300/30'
                       : 'bg-slate-800 text-slate-500 border border-slate-700/50 cursor-not-allowed opacity-60'
                   }`}
                 >
@@ -468,7 +468,7 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
 
           {/* Winners History Podium */}
           {winners.length > 0 && (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4 animate-card-enter neon-card">
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div className="flex items-center gap-2">
                   <span className="font-display font-bold text-base text-white">Ganhadores Anteriores</span>

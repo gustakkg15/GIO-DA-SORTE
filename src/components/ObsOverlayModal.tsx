@@ -50,7 +50,7 @@ export const ObsOverlayModal: React.FC<ObsOverlayModalProps> = ({
       : 'bg-slate-950/95';
 
   return (
-    <div className={`fixed inset-0 z-50 flex flex-col justify-between p-3 sm:p-4 overflow-y-auto ${bgStyle} select-none`}>
+    <div className={`fixed inset-0 z-50 flex flex-col justify-between p-3 sm:p-4 overflow-y-auto ${bgStyle} select-none animate-fade-in`}>
       {/* Streamer Controls Bar */}
       <div
         className={`flex flex-wrap items-center justify-between max-w-4xl mx-auto w-full p-2.5 sm:p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-white backdrop-blur-md transition-opacity duration-300 gap-2 shrink-0 ${
@@ -111,7 +111,7 @@ export const ObsOverlayModal: React.FC<ObsOverlayModalProps> = ({
       </div>
 
       {/* Floating Live Stream Card */}
-      <div className="max-w-md w-full mx-auto my-auto">
+      <div className="max-w-md w-full mx-auto my-auto animate-slide-up">
         <div className="bg-slate-900/95 border-2 border-blue-500/80 rounded-2xl p-6 shadow-2xl backdrop-blur-md text-center space-y-4 shadow-blue-500/20">
           <div className="flex items-center justify-between border-b border-slate-800 pb-2 text-xs">
             <span className="font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1.5">

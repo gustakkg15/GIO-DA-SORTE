@@ -153,7 +153,7 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Settings Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5 animate-card-enter neon-card">
         <div className="flex items-center gap-2 pb-3 border-b border-slate-800">
           <Settings className="w-5 h-5 text-sky-400" />
           <h2 className="font-display font-bold text-lg text-white">Regras e Configurações · GIO DA SORTE</h2>
@@ -278,6 +278,75 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
           </p>
         </div>
 
+        {/* Color Scheme / Visual Theme */}
+        <div className="pt-4 border-t border-slate-800 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-semibold text-slate-300">
+              🎨 Esquema de Cores & Estilo Visual
+            </label>
+            <span
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                settings.themeMode === 'neon'
+                  ? 'bg-fuchsia-950/80 border-fuchsia-500/50 text-fuchsia-300'
+                  : 'bg-slate-950 border-slate-700 text-slate-300'
+              }`}
+            >
+              {settings.themeMode === 'neon' ? 'Neon Night Ativo ✨' : 'Cyber Dark (Padrão)'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                onUpdateSettings({ themeMode: 'default' });
+                notify('Tema Padrão ativado!');
+              }}
+              className={`p-3.5 rounded-xl border text-left transition flex items-start justify-between ${
+                settings.themeMode !== 'neon'
+                  ? 'bg-sky-950/40 border-sky-500 ring-1 ring-sky-500/30'
+                  : 'bg-slate-950/70 border-slate-800 hover:border-slate-700 text-slate-400'
+              }`}
+            >
+              <div>
+                <span className="font-bold text-xs text-white block">Padrão (Cyber Dark)</span>
+                <span className="text-[11px] text-slate-400">Azul escuro clássico e visual limpo</span>
+              </div>
+              {settings.themeMode !== 'neon' && (
+                <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                onUpdateSettings({ themeMode: 'neon' });
+                notify('Modo Neon Night ativado! ✨');
+              }}
+              className={`p-3.5 rounded-xl border text-left transition flex items-start justify-between ${
+                settings.themeMode === 'neon'
+                  ? 'bg-gradient-to-br from-fuchsia-950/50 via-purple-950/40 to-cyan-950/40 border-cyan-400 ring-2 ring-cyan-400/40 shadow-lg shadow-cyan-500/10'
+                  : 'bg-slate-950/70 border-slate-800 hover:border-slate-700 text-slate-400'
+              }`}
+            >
+              <div>
+                <span className="font-bold text-xs text-white block flex items-center gap-1.5">
+                  Neon Night <Sparkles className="w-3.5 h-3.5 text-cyan-400 inline" />
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  Gradientes vibrantes ciano/magenta e sombras brilhantes
+                </span>
+              </div>
+              {settings.themeMode === 'neon' && (
+                <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+              )}
+            </button>
+          </div>
+          <p className="text-[11px] text-slate-500">
+            Aplica iluminação neon pulsante nos cards de sorteio, na roleta e nos tickets vencedores.
+          </p>
+        </div>
+
         {settings.order === 'random' && (
           <div className="pt-2 flex justify-start">
             <button
@@ -296,7 +365,7 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
       </div>
 
       {/* Host Public Identification for Participants */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4 animate-card-enter neon-card">
         <div className="flex items-center gap-2 pb-3 border-b border-slate-800">
           <User className="w-5 h-5 text-sky-400" />
           <h2 className="font-display font-bold text-lg text-white">Identificação para os Participantes</h2>
@@ -367,7 +436,7 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
       </div>
 
       {/* Backup and Export Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4 animate-card-enter neon-card">
         <div className="flex items-center gap-2 pb-3 border-b border-slate-800">
           <Download className="w-5 h-5 text-sky-400" />
           <h2 className="font-display font-bold text-lg text-white">Backup e Exportação</h2>
