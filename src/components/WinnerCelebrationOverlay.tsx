@@ -4,21 +4,28 @@ import {
   Sparkles,
   Award,
   Gift,
-  Share2,
   Copy,
   CheckCircle2,
   X,
-  Flame,
   Image as ImageIcon,
+  FileText,
+  Download,
+  Flame,
+  Check,
 } from 'lucide-react';
-import { Winner, Participant, RaffleSettings } from '../types';
-import { fireWinnerConfetti } from '../utils/confetti';
+import { Winner, Participant, RaffleSettings, ComputedRaffle } from '../types';
+import { fireWinnerConfetti, fireWinnerFireworks, fireCelebrationGrandShow } from '../utils/confetti';
 import { playWinnerFanfare } from '../utils/audio';
+import { downloadRaffleFullPdf } from '../utils/pdfReport';
 
 interface WinnerCelebrationOverlayProps {
   winner: Winner | null;
   participant?: Participant;
   settings: RaffleSettings;
+  winners?: Winner[];
+  rosterHash?: string;
+  computed?: ComputedRaffle;
+  participantsCount?: number;
   onClose: () => void;
   onOpenVictoryCard: (winner: Winner) => void;
 }
@@ -27,10 +34,16 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
   winner,
   participant,
   settings,
+  winners = [],
+  rosterHash = '',
+  computed,
+  participantsCount,
   onClose,
   onOpenVictoryCard,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [pdfDownloaded, setPdfDownloaded] = useState(false);
 
   useEffect(() => {
     if (!winner) return;
@@ -38,17 +51,13 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
     // Play fanfare sound
     playWinnerFanfare();
 
-    // Fire initial confetti burst
-    fireWinnerConfetti();
+    // Fire spectacular tsParticles grand celebration: fireworks + confetti
+    fireCelebrationGrandShow();
 
-    // Fire secondary celebration bursts
+    // Secondary victory fireworks wave
     const timer1 = setTimeout(() => {
-      fireWinnerConfetti();
-    }, 800);
-
-    const timer2 = setTimeout(() => {
-      fireWinnerConfetti();
-    }, 1800);
+      fireWinnerFireworks(2200);
+    }, 1200);
 
     // Keyboard escape listener
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -60,7 +69,6 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
 
     return () => {
       clearTimeout(timer1);
-      clearTimeout(timer2);
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [winner, onClose]);
@@ -78,8 +86,36 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
     });
   };
 
+  const handleFireFireworks = () => {
+    fireWinnerFireworks(3000);
+  };
+
   const handleFireMoreConfetti = () => {
     fireWinnerConfetti();
+  };
+
+  const handleDownloadPdf = async () => {
+    try {
+      setIsDownloadingPdf(true);
+      // Ensure winners array includes at least current winner
+      const winnersList = winners && winners.length > 0 ? winners : [winner];
+      await downloadRaffleFullPdf({
+        title: settings.raffleTitle || settings.prizeName || 'Sorteio Oficial GIO DA SORTE',
+        organizerName: settings.organizerName || 'Organizador Oficial',
+        prizeName: prizeTitle,
+        rosterHash: rosterHash || 'Hash-Criptografico-Verificado',
+        winners: winnersList,
+        settings,
+        computed,
+        participantsCount: participantsCount ?? (computed?.allocations?.length || 1),
+      });
+      setPdfDownloaded(true);
+      setTimeout(() => setPdfDownloaded(false), 3000);
+    } catch (err) {
+      console.error('Erro ao gerar laudo PDF:', err);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
   };
 
   return (
@@ -109,7 +145,7 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
       </button>
 
       {/* Main Fullscreen Showcase Card */}
-      <div className="relative z-10 max-w-2xl w-full my-auto text-center space-y-6 sm:space-y-7 py-6 animate-slide-up">
+      <div className="relative z-10 max-w-2xl w-full my-auto text-center space-y-5 sm:space-y-6 py-6 animate-slide-up">
         {/* Kicker Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500/30 via-yellow-400/20 to-amber-500/30 border border-amber-400/60 text-amber-300 text-xs sm:text-sm font-extrabold uppercase tracking-widest shadow-lg shadow-amber-500/20 animate-bounce">
           <Trophy className="w-4 h-4 text-amber-300 fill-amber-300" />
@@ -119,7 +155,7 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
 
         {/* Prize Showcase Card */}
         <div className="bg-gradient-to-br from-blue-950/80 via-slate-900/90 to-indigo-950/80 border-2 border-amber-400/70 rounded-3xl p-5 sm:p-7 shadow-2xl shadow-blue-900/40 relative overflow-hidden ring-4 ring-amber-400/20">
-          <div className="space-y-4">
+          <div className="space-y-3.5">
             <span className="text-[11px] sm:text-xs font-black uppercase tracking-widest text-amber-400 bg-amber-950/80 border border-amber-500/50 px-3 py-1 rounded-full inline-block">
               🎁 Prêmio Conquistado
             </span>
@@ -132,12 +168,12 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
                   <img
                     src={prizeImage}
                     alt={prizeTitle}
-                    className="relative w-36 h-36 sm:w-48 sm:h-48 rounded-2xl object-cover border-2 border-white shadow-2xl mx-auto"
+                    className="relative w-32 h-32 sm:w-44 sm:h-44 rounded-2xl object-cover border-2 border-white shadow-2xl mx-auto"
                   />
                 </div>
               ) : (
-                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 shadow-xl shadow-amber-500/30 ring-4 ring-amber-300/40 mx-auto">
-                  <Gift className="w-12 h-12 sm:w-14 sm:h-14 stroke-[2.2]" />
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 shadow-xl shadow-amber-500/30 ring-4 ring-amber-300/40 mx-auto">
+                  <Gift className="w-10 h-10 sm:w-12 sm:h-12 stroke-[2.2]" />
                 </div>
               )}
             </div>
@@ -150,24 +186,24 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
         </div>
 
         {/* Winner Highlight Display with Radiant Radial Gradient */}
-        <div className="relative space-y-3 py-2">
+        <div className="relative space-y-3 py-1">
           {/* Radiant Radial Gradient Aura behind winner */}
           <div
             aria-hidden="true"
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] sm:w-[500px] md:w-[620px] h-[190px] sm:h-[240px] pointer-events-none -z-10 overflow-visible"
           >
-            {/* Primary Radiant Radial Gradient Halo */}
             <div
               className="w-full h-full rounded-full blur-2xl opacity-90 animate-pulse transition-all duration-1000"
               style={{
-                background: 'radial-gradient(circle, rgba(56, 189, 248, 0.45) 0%, rgba(99, 102, 241, 0.35) 35%, rgba(245, 158, 11, 0.22) 65%, transparent 75%)',
+                background:
+                  'radial-gradient(circle, rgba(56, 189, 248, 0.45) 0%, rgba(99, 102, 241, 0.35) 35%, rgba(245, 158, 11, 0.22) 65%, transparent 75%)',
               }}
             />
-            {/* Secondary Golden Flare Core */}
             <div
               className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-48 sm:w-72 h-24 sm:h-36 rounded-full blur-xl opacity-80"
               style={{
-                background: 'radial-gradient(ellipse, rgba(254, 240, 138, 0.55) 0%, rgba(245, 158, 11, 0.35) 50%, transparent 75%)',
+                background:
+                  'radial-gradient(ellipse, rgba(254, 240, 138, 0.55) 0%, rgba(245, 158, 11, 0.35) 50%, transparent 75%)',
               }}
             />
           </div>
@@ -202,51 +238,90 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+        {/* Primary Interactive Actions (Victory Card, Download PDF with jsPDF, Copy) */}
+        <div className="pt-2 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
           <button
             type="button"
             onClick={() => {
               onClose();
               onOpenVictoryCard(winner);
             }}
-            className="w-full sm:w-auto min-h-[48px] px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-blue-600/40 transition active:scale-95 flex items-center justify-center gap-2 border border-sky-400/40"
+            className="flex-1 min-w-[160px] sm:min-w-[180px] min-h-[46px] px-5 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm shadow-xl shadow-blue-600/40 transition active:scale-95 flex items-center justify-center gap-2 border border-sky-400/40"
           >
             <ImageIcon className="w-4 h-4 text-sky-200" />
             <span>Gerar Card de Vitória</span>
           </button>
 
+          {/* Download Complete Audit PDF via jsPDF */}
           <button
             type="button"
-            onClick={handleCopyText}
-            className="w-full sm:w-auto min-h-[48px] px-6 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm border border-slate-700 transition active:scale-95 flex items-center justify-center gap-2"
+            onClick={handleDownloadPdf}
+            disabled={isDownloadingPdf}
+            className="flex-1 min-w-[160px] sm:min-w-[180px] min-h-[46px] px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm shadow-xl shadow-emerald-600/30 transition active:scale-95 flex items-center justify-center gap-2 border border-emerald-400/40 disabled:opacity-50"
           >
-            {copied ? (
+            {isDownloadingPdf ? (
               <>
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span className="text-emerald-400">Mensagem Copiada!</span>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Gerando PDF...</span>
+              </>
+            ) : pdfDownloaded ? (
+              <>
+                <Check className="w-4 h-4 text-emerald-200" />
+                <span>PDF Baixado!</span>
               </>
             ) : (
               <>
-                <Copy className="w-4 h-4 text-sky-400" />
-                <span>Copiar Resultado</span>
+                <FileText className="w-4 h-4 text-emerald-200" />
+                <span>Baixar Relatório PDF</span>
               </>
             )}
           </button>
 
           <button
             type="button"
-            onClick={handleFireMoreConfetti}
-            className="w-full sm:w-auto min-h-[48px] px-4 py-3 rounded-2xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 font-bold text-sm transition active:scale-95 flex items-center justify-center gap-1.5"
+            onClick={handleCopyText}
+            className="min-h-[46px] px-4 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm border border-slate-700 transition active:scale-95 flex items-center justify-center gap-1.5"
           >
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>Mais Confetes!</span>
+            {copied ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span className="text-emerald-400">Copiado!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4 text-sky-400" />
+                <span>Copiar</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Secondary Particle Fireworks & Confetti Triggers */}
+        <div className="flex items-center justify-center gap-2 pt-1">
+          <button
+            type="button"
+            onClick={handleFireFireworks}
+            title="Disparar bateria de fogos de artifício com partículas tsParticles"
+            className="px-3.5 py-1.5 rounded-xl bg-purple-950/50 hover:bg-purple-900/60 border border-purple-500/40 text-purple-300 font-bold text-xs transition active:scale-95 flex items-center gap-1.5"
+          >
+            <Flame className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
+            <span>Fogos de Artifício 🎆</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleFireMoreConfetti}
+            title="Disparar chuva de confetes com tsParticles"
+            className="px-3.5 py-1.5 rounded-xl bg-amber-950/50 hover:bg-amber-900/60 border border-amber-500/40 text-amber-300 font-bold text-xs transition active:scale-95 flex items-center gap-1.5"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>Chuva de Confetes 🎉</span>
           </button>
         </div>
 
         {/* Subtitle helper */}
         <p className="text-xs text-slate-500">
-          Pressione <b>Esc</b> ou clique em qualquer lugar para fechar
+          Pressione <b>Esc</b> ou clique fora do card para fechar
         </p>
       </div>
     </div>

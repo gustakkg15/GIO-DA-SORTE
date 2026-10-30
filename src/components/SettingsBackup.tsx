@@ -11,6 +11,7 @@ import {
   Hash,
   User,
   RefreshCw,
+  Zap,
 } from 'lucide-react';
 import { RaffleSettings, Participant, Winner, ComputedRaffle, TicketOrder } from '../types';
 import { exportToCsv, generateRaffleCode } from '../utils/raffle';
@@ -446,6 +447,19 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
           Seus dados são salvos automaticamente no navegador deste dispositivo. Baixe um arquivo de backup antes do
           sorteio para não correr risco de perder informações se trocar de navegador ou computador.
         </p>
+
+        {/* Robust Idle Auto-Save notice */}
+        <div className="flex items-center gap-2.5 p-3 rounded-xl bg-sky-950/30 border border-sky-500/30 text-xs text-sky-200">
+          <div className="p-1.5 rounded-lg bg-sky-500/20 text-sky-400 shrink-0">
+            <Zap className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <span className="font-bold text-sky-300 block">Auto-Salvamento Ocioso Ativo (requestIdleCallback)</span>
+            <span className="text-[11px] text-slate-400">
+              O estado da lista é persistido nos períodos ociosos da CPU, garantindo 60fps sem travamentos durante a animação e salvamento instantâneo contra perda de dados.
+            </span>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
           <button

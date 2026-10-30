@@ -231,6 +231,34 @@ export async function generateRafflePdfReport(options: GeneratePdfReportOptions)
 
   currentY += 18;
 
+  // --- RAFFLE CONFIGURATIONS SUMMARY BOX ---
+  if (options.settings) {
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(margin, currentY, contentWidth, 13, 1.5, 1.5, 'FD');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(71, 85, 105);
+    doc.text('PARÂMETROS E CONFIGURAÇÕES DO SORTEIO:', margin + 4, currentY + 4.8);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.8);
+    doc.setTextColor(30, 41, 59);
+
+    const s = options.settings;
+    const rateText = `Taxa: ${s.rate} moedas/bilhete`;
+    const totalText = `Total Números: ${s.total}`;
+    const startText = `Início: #${s.start}`;
+    const orderText = `Ordem: ${s.order === 'random' ? 'Aleatória (Seed ' + (s.seed ?? 42) + ')' : s.order === 'desc' ? 'Decrescente' : 'Crescente'}`;
+    const excludeText = `Exclusão de Vencedores: ${s.exclude !== false ? 'Sim' : 'Não'}`;
+    const codeText = `Código: #${s.raffleCode || 'GIO-7492'}`;
+
+    doc.text(`${rateText}   |   ${totalText}   |   ${startText}   |   ${orderText}   |   ${excludeText}   |   ${codeText}`, margin + 4, currentY + 9.5);
+
+    currentY += 17;
+  }
+
   // --- OFFICIAL WINNERS TABLE ---
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
@@ -584,3 +612,26 @@ export async function generateTikTokPdfReport(options: GenerateTikTokPdfReportOp
   addFooter(doc.getNumberOfPages());
   return doc;
 }
+
+/**
+ * Generates and automatically downloads the complete audit PDF file using jsPDF
+ * Includes the official winners table, cryptographic SHA-256 audit hash, and full raffle configurations
+ */
+export async function downloadRaffleFullPdf(options: GeneratePdfReportOptions): Promise<void> {
+  const doc = await generateRafflePdfReport(options);
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+  const rawTitle = options.title || options.settings?.raffleTitle || options.prizeName || 'sorteio-gio';
+  const cleanTitle = rawTitle
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 32);
+  const fileName = `laudo-auditoria-${cleanTitle}-${dateStr}.pdf`;
+  doc.save(fileName);
+}
+
+// Backward-compatible alias
+export const downloadRafflePdfReport = downloadRaffleFullPdf;

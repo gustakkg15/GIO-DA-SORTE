@@ -53,6 +53,9 @@ import { WinnerCelebrationOverlay } from './components/WinnerCelebrationOverlay'
 import { DrawCountdownOverlay } from './components/DrawCountdownOverlay';
 import { TikTokRaffle } from './components/TikTokRaffle';
 import { AuditReportModal } from './components/AuditReportModal';
+import { Footer } from './components/Footer';
+import { useIdleAutoSave } from './hooks/useIdleAutoSave';
+import { idleStorage } from './utils/idleStorage';
 
 export default function App() {
   const [settings, setSettings] = useState<RaffleSettings>(() => {
@@ -279,22 +282,17 @@ export default function App() {
     }
   }, [currentUser]);
 
-  // Persistent storage local auto-save & debounced cloud save
+  // Robust Idle Auto-Save: utilizes requestIdleCallback to prevent animation freezing/lag during active draws
+  const { autoSaveStatus, lastSavedAt, flushNow } = useIdleAutoSave({
+    settings,
+    participants,
+    winners,
+    isDrawing: isDrawing || countdownRemaining !== null,
+  });
+
+  // Debounced cloud save if logged in
   const cloudSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    try {
-      const data = {
-        settings,
-        participants,
-        winners,
-        updatedAt: Date.now(),
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch {
-      // Ignore local storage errors
-    }
-
-    // Debounce cloud save if logged in
     if (currentUser) {
       if (cloudSaveTimerRef.current) clearTimeout(cloudSaveTimerRef.current);
       setSyncStatus('saving');
@@ -407,7 +405,11 @@ export default function App() {
       drawnAt: Date.now(),
     };
 
-    setWinners((prev) => [newWinner, ...prev]);
+    setWinners((prev) => {
+      const next = [newWinner, ...prev];
+      idleStorage.scheduleSave({ settings, participants, winners: next }, true);
+      return next;
+    });
     setCelebrationWinner(newWinner);
   };
 
@@ -446,7 +448,11 @@ export default function App() {
           drawnAt: Date.now(),
         };
 
-        setWinners((prev) => [newWinner, ...prev]);
+        setWinners((prev) => {
+          const next = [newWinner, ...prev];
+          idleStorage.scheduleSave({ settings, participants, winners: next }, true);
+          return next;
+        });
         setCelebrationWinner(newWinner);
         playWinnerFanfare();
         fireWinnerConfetti();
@@ -801,27 +807,30 @@ export default function App() {
         winner={celebrationWinner}
         participant={participants.find((p) => p.id === celebrationWinner?.participantId)}
         settings={settings}
+        winners={winners}
+        rosterHash={rosterHash}
+        computed={computed}
+        participantsCount={participants.length}
         onClose={() => setCelebrationWinner(null)}
         onOpenVictoryCard={(w) => setSelectedWinnerForCard(w)}
       />
 
-      {/* Discreet Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-5 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>GIO DA SORTE · Distribuição e sorteio proporcional com garantia criptográfica</span>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setActiveTab('support')}
-              className="hover:text-sky-300 text-slate-400 font-medium transition flex items-center gap-1 underline underline-offset-2"
-            >
-              <span>Apoiar o Projeto</span>
-            </button>
-            <span>·</span>
-            <span>{currentUser ? 'Nuvem Conectada' : 'Salvo no navegador'}</span>
-          </div>
-        </div>
-      </footer>
+      {/* Professional Full-Featured Footer */}
+      <Footer
+        onSelectTab={setActiveTab}
+        onOpenPresentation={() => setIsPresentationOpen(true)}
+        onOpenBattleRoyale={() => setIsBattleRoyaleOpen(true)}
+        onOpenObsOverlay={() => setIsObsOverlayOpen(true)}
+        onOpenPrintSheet={() => setIsPrintSheetOpen(true)}
+        onOpenMonteCarlo={() => setIsMonteCarloOpen(true)}
+        onOpenAuditReport={() => setIsAuditReportOpen(true)}
+        onOpenAccount={() => setIsAccountOpen(true)}
+        currentUser={currentUser}
+        rosterHash={rosterHash}
+        autoSaveStatus={autoSaveStatus}
+        lastSavedAt={lastSavedAt}
+        onFlushSave={flushNow}
+      />
     </div>
   );
 }
