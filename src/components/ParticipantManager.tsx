@@ -13,12 +13,14 @@ import {
   Ticket,
   X,
   Hash,
+  Download,
 } from 'lucide-react';
 import { Participant, RaffleSettings, ComputedRaffle, Winner } from '../types';
 import {
   parseRawTextList,
   parseExcelBuffer,
   generateUid,
+  exportToCsv,
 } from '../utils/raffle';
 import { playCoinChime } from '../utils/audio';
 import { ParticipantImportModal } from './ParticipantImportModal';
@@ -151,6 +153,32 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
     }
   };
 
+  const handleExportCsv = () => {
+    if (participants.length === 0) {
+      showFeedback('Nenhum participante para exportar.', 'warn');
+      return;
+    }
+
+    try {
+      const csvContent = exportToCsv(computed.allocations, settings);
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateStr = new Date().toISOString().slice(0, 10);
+      a.download = `gio-da-sorte-participantes-${dateStr}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      playCoinChime();
+      showFeedback(`${participants.length} participantes com seus saldos de moedas exportados em CSV com sucesso!`);
+    } catch (err) {
+      console.error('Erro ao exportar CSV:', err);
+      showFeedback('Erro ao gerar arquivo CSV.', 'error');
+    }
+  };
+
   // Ticket Number Search processing
   const cleanTicketInput = ticketSearchQuery.trim().replace(/^#+/, '');
   const parsedTicketNum = cleanTicketInput !== '' ? parseInt(cleanTicketInput, 10) : null;
@@ -197,7 +225,7 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
             <h2 className="font-display font-bold text-base sm:text-lg text-white">Adicionar Participante</h2>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={() => setIsBulkOpen(!isBulkOpen)}
@@ -213,6 +241,17 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
               <FileSpreadsheet className="w-3.5 h-3.5 text-sky-400" />
               <span className="hidden sm:inline">Importar (.xlsx, .csv, .txt)</span>
               <span className="sm:hidden">Importar</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={participants.length === 0}
+              title="Exportar lista atual de participantes e saldo de moedas em CSV"
+              className="text-xs font-bold min-h-[36px] px-3 py-1.5 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 hover:text-emerald-100 border border-emerald-700/60 transition flex items-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">Exportar CSV</span>
+              <span className="sm:hidden">Exportar</span>
             </button>
           </div>
         </div>
@@ -439,6 +478,19 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                 <option value="recent">Adicionados recente</option>
               </select>
             </div>
+
+            {/* Quick Export CSV Button */}
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={participants.length === 0}
+              title="Baixar lista atual de participantes e saldo de moedas em formato CSV"
+              className="flex items-center gap-1.5 bg-slate-950 hover:bg-slate-900 border border-emerald-600/40 hover:border-emerald-500 text-emerald-300 hover:text-white rounded-lg px-3 py-2 text-xs font-bold min-h-[38px] transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">Exportar CSV</span>
+              <span className="sm:hidden">CSV</span>
+            </button>
           </div>
         </div>
 
