@@ -1,34 +1,30 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { Play, Sparkles } from 'lucide-react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { Sparkles, Play } from 'lucide-react';
 import { ComputedRaffle, Winner } from '../types';
+import { secureRandomInt } from '../utils/raffle';
 import { playWheelTick, playWinnerFanfare } from '../utils/audio';
 import { fireWinnerConfetti } from '../utils/confetti';
-import { secureRandomInt } from '../utils/raffle';
 
 interface FortuneWheelProps {
   computed: ComputedRaffle;
   isDrawing: boolean;
   onSpinStart: () => void;
-  onSpinEnd: (winnerTicket: { number: number; participantId: string; name: string }) => void;
+  onSpinEnd: (winningTicket: { number: number; participantId: string; name: string }) => void;
   latestWinner: Winner | null;
   onRequestSpin?: () => void;
   spinSignal?: number;
 }
 
-// Curated distinctive color palette for slices
-const SLICE_COLORS = [
-  '#f59e0b', // Amber
-  '#10b981', // Emerald
-  '#6366f1', // Indigo
-  '#ec4899', // Pink
-  '#06b6d4', // Cyan
-  '#8b5cf6', // Purple
-  '#f97316', // Orange
-  '#14b8a6', // Teal
-  '#e11d48', // Rose
-  '#3b82f6', // Blue
-  '#84cc16', // Lime
-  '#d97706', // Dark Amber
+// Paleta harmônica Grafite, Jade, Latão e Tons Minerais
+const WHEEL_COLORS = [
+  '#2F5E4E', // Jade Profundo
+  '#222B28', // Grafite Secundário
+  '#8C7348', // Latão Escuro
+  '#3D6B5C', // Jade Médio
+  '#2B3632', // Superfície Elevada
+  '#6EAA90', // Jade Oficial
+  '#4A5D56', // Mineral Escuro
+  '#C6A56A', // Latão Oficial
 ];
 
 export const FortuneWheel: React.FC<FortuneWheelProps> = ({
@@ -40,15 +36,37 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   onRequestSpin,
   spinSignal,
 }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [currentAngle, setCurrentAngle] = useState(0);
-  const [activeContender, setActiveContender] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [currentAngle, setCurrentAngle] = useState<number>(0);
+  const [activeContender, setActiveContender] = useState<string>('');
 
-  // Eligible participants with tickets
-  const eligibleSlices = computed.allocations.filter((a) => a.assignedTickets > 0);
-  const totalEligibleTickets = eligibleSlices.reduce((acc, a) => acc + a.assignedTickets, 0);
+  // Build proportional slices based on eligible participants and their tickets
+  const eligibleParticipantIds = new Set(computed.eligibleTickets.map((t) => t.participantId));
+  const eligibleSlices = computed.allocations.filter(
+    (a) => a.assignedTickets > 0 && eligibleParticipantIds.has(a.participant.id)
+  );
 
-  // Animation refs
+  const totalEligibleTickets = computed.eligibleTickets.length;
+
+  // Compute angles for each participant slice
+  const slicesWithAngles = React.useMemo(() => {
+    let start = 0;
+    return eligibleSlices.map((item, idx) => {
+      const fraction = totalEligibleTickets > 0 ? item.assignedTickets / totalEligibleTickets : 0;
+      const arc = fraction * Math.PI * 2;
+      const slice = {
+        item,
+        startAngle: start,
+        endAngle: start + arc,
+        midAngle: start + arc / 2,
+        color: WHEEL_COLORS[idx % WHEEL_COLORS.length],
+      };
+      start += arc;
+      return slice;
+    });
+  }, [eligibleSlices, totalEligibleTickets]);
+
+  // Ref for animation loop state
   const spinStateRef = useRef<{
     spinning: boolean;
     angularVelocity: number;
@@ -65,25 +83,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     lastTickSlice: -1,
   });
 
-  // Calculate slice boundaries
-  const slicesWithAngles = React.useMemo(() => {
-    let startAngle = 0;
-    return eligibleSlices.map((item, idx) => {
-      const sliceAngle = totalEligibleTickets > 0 ? (item.assignedTickets / totalEligibleTickets) * (Math.PI * 2) : 0;
-      const mid = startAngle + sliceAngle / 2;
-      const res = {
-        item,
-        startAngle,
-        endAngle: startAngle + sliceAngle,
-        midAngle: mid,
-        color: SLICE_COLORS[idx % SLICE_COLORS.length],
-      };
-      startAngle += sliceAngle;
-      return res;
-    });
-  }, [eligibleSlices, totalEligibleTickets]);
-
-  // Draw the wheel on canvas
+  // Draw the wheel on Canvas
   const drawWheel = useCallback(
     (rotation: number) => {
       const canvas = canvasRef.current;
@@ -93,79 +93,91 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
 
       const size = canvas.width;
       const center = size / 2;
-      const radius = center - 24;
+      const radius = center - 20;
 
       ctx.clearRect(0, 0, size, size);
 
-      // Save context for rotation
-      ctx.save();
-      ctx.translate(center, center);
-      ctx.rotate(rotation);
-
       if (slicesWithAngles.length === 0) {
-        // Empty wheel state
-        ctx.fillStyle = '#1e293b';
+        // Empty wheel placeholder in Grafite e Jade
+        ctx.save();
+        ctx.translate(center, center);
         ctx.beginPath();
         ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#171D1C';
         ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#313D39';
+        ctx.stroke();
+
+        ctx.fillStyle = '#9BA8A3';
+        ctx.font = '600 15px "IBM Plex Sans", system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Adicione participantes elegíveis', 0, -10);
+        ctx.font = '400 12px "IBM Plex Sans", system-ui, sans-serif';
+        ctx.fillText('para girar a Roleta Proporcional', 0, 12);
         ctx.restore();
         return;
       }
 
-      // Draw slices
+      ctx.save();
+      ctx.translate(center, center);
+      ctx.rotate(rotation);
+
+      // Draw each slice
       slicesWithAngles.forEach((slice) => {
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.arc(0, 0, radius, slice.startAngle, slice.endAngle);
         ctx.closePath();
+
         ctx.fillStyle = slice.color;
         ctx.fill();
 
-        // Slice borders
-        ctx.strokeStyle = 'rgba(15, 23, 42, 0.4)';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#171D1C';
         ctx.stroke();
 
-        // Text labels inside slices
-        const sliceSpan = slice.endAngle - slice.startAngle;
-        if (sliceSpan > 0.08) {
+        // Draw Participant Name along the radius if slice is wide enough
+        const sliceAngle = slice.endAngle - slice.startAngle;
+        if (sliceAngle > 0.09) {
           ctx.save();
           ctx.rotate(slice.midAngle);
           ctx.textAlign = 'right';
-          ctx.fillStyle = '#0f172a';
-          ctx.font = 'bold 14px "Outfit", system-ui, sans-serif';
+          ctx.textBaseline = 'middle';
 
-          // Format name truncate
-          const displayName =
-            slice.item.participant.name.length > 14
-              ? slice.item.participant.name.slice(0, 12) + '…'
-              : slice.item.participant.name;
+          const isLightSlice = slice.color === '#6EAA90' || slice.color === '#C6A56A';
+          ctx.fillStyle = isLightSlice ? '#171D1C' : '#EAE7DE';
+          ctx.font = '600 13px "IBM Plex Sans", system-ui, sans-serif';
 
-          ctx.fillText(displayName, radius - 20, 5);
+          const maxNameLen = 15;
+          const rawName = slice.item.participant.name;
+          const label = rawName.length > maxNameLen ? rawName.slice(0, maxNameLen - 1) + '…' : rawName;
 
-          if (sliceSpan > 0.18) {
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
-            ctx.font = 'bold 11px "JetBrains Mono", monospace';
-            ctx.fillText(`${slice.item.winProbability}%`, radius - 20, 20);
+          ctx.fillText(label, radius - 22, 0);
+
+          if (sliceAngle > 0.22) {
+            ctx.font = '500 10px "IBM Plex Mono", monospace';
+            ctx.fillStyle = isLightSlice ? 'rgba(23,29,28,0.85)' : '#9BA8A3';
+            ctx.fillText(`${slice.item.assignedTickets} bil.`, radius - 22, 13);
           }
 
           ctx.restore();
         }
       });
 
-      // Outer gold metallic rim with decorative pegs
       ctx.restore();
 
-      // Draw Sapphire / Silver Outer Ring
+      // Draw Outer Ring in Grafite & Latão
       ctx.save();
       ctx.translate(center, center);
       ctx.beginPath();
       ctx.arc(0, 0, radius, 0, Math.PI * 2);
-      ctx.lineWidth = 14;
+      ctx.lineWidth = 12;
       const rimGrad = ctx.createLinearGradient(-radius, -radius, radius, radius);
-      rimGrad.addColorStop(0, '#1d4ed8');
-      rimGrad.addColorStop(0.5, '#38bdf8');
-      rimGrad.addColorStop(1, '#2563eb');
+      rimGrad.addColorStop(0, '#313D39');
+      rimGrad.addColorStop(0.5, '#C6A56A');
+      rimGrad.addColorStop(1, '#313D39');
       ctx.strokeStyle = rimGrad;
       ctx.stroke();
 
@@ -173,13 +185,13 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       const pegCount = Math.max(12, Math.min(36, slicesWithAngles.length * 2));
       for (let i = 0; i < pegCount; i++) {
         const ang = (i / pegCount) * Math.PI * 2 + rotation;
-        const px = Math.cos(ang) * (radius - 2);
-        const py = Math.sin(ang) * (radius - 2);
+        const px = Math.cos(ang) * (radius - 1);
+        const py = Math.sin(ang) * (radius - 1);
         ctx.beginPath();
-        ctx.arc(px, py, 3.5, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffffff';
+        ctx.arc(px, py, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#EAE7DE';
         ctx.fill();
-        ctx.strokeStyle = '#0c4a6e';
+        ctx.strokeStyle = '#171D1C';
         ctx.lineWidth = 1;
         ctx.stroke();
       }
@@ -187,19 +199,22 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       // Central Hub
       ctx.beginPath();
       ctx.arc(0, 0, 34, 0, Math.PI * 2);
-      ctx.fillStyle = '#0f172a';
+      ctx.fillStyle = '#171D1C';
       ctx.fill();
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 3.5;
+      ctx.strokeStyle = '#C6A56A';
       ctx.stroke();
 
       ctx.beginPath();
       ctx.arc(0, 0, 20, 0, Math.PI * 2);
-      ctx.fillStyle = '#2563eb';
+      ctx.fillStyle = '#222B28';
       ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#6EAA90';
+      ctx.stroke();
 
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 14px "Outfit", system-ui, sans-serif';
+      ctx.fillStyle = '#C6A56A';
+      ctx.font = 'bold 14px "IBM Plex Sans", system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('★', 0, 1);
@@ -210,20 +225,20 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       ctx.save();
       ctx.translate(center, 12);
       ctx.beginPath();
-      ctx.moveTo(-14, 0);
-      ctx.lineTo(14, 0);
-      ctx.lineTo(0, 28);
+      ctx.moveTo(-13, 0);
+      ctx.lineTo(13, 0);
+      ctx.lineTo(0, 26);
       ctx.closePath();
-      ctx.fillStyle = '#ef4444';
+      ctx.fillStyle = '#C6A56A';
       ctx.fill();
-      ctx.strokeStyle = '#ffffff';
+      ctx.strokeStyle = '#171D1C';
       ctx.lineWidth = 2.5;
       ctx.stroke();
 
       // Needle pin center
       ctx.beginPath();
-      ctx.arc(0, 4, 3, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff';
+      ctx.arc(0, 5, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#171D1C';
       ctx.fill();
       ctx.restore();
     },
@@ -235,7 +250,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     drawWheel(currentAngle);
   }, [currentAngle, drawWheel]);
 
-  // Handle Spin Execution with Physics
+  // Handle Spin Execution with Physics (100% preserved)
   const startSpin = () => {
     if (spinStateRef.current.spinning || isDrawing) return;
     const pool = computed.eligibleTickets;
@@ -248,11 +263,10 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     const chosenSlice = slicesWithAngles.find((s) => s.item.participant.id === chosenTicket.participantId);
 
     // The needle points at the top of the canvas, which is -Math.PI / 2 (or 3*PI/2)
-    // To have slice point to top needle: (rotation + slice.midAngle) % 2PI = 3*PI / 2
     const targetMid = chosenSlice ? chosenSlice.midAngle : 0;
     const needleAngle = (3 * Math.PI) / 2;
 
-    // Add 6 to 10 full rotations for suspense
+    // Add 7 to 10 full rotations for suspense
     const extraRotations = (7 + Math.random() * 3) * (Math.PI * 2);
     const targetAngle = currentAngle + extraRotations + (needleAngle - ((currentAngle + targetMid) % (Math.PI * 2)));
 
@@ -266,7 +280,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     };
 
     const startTime = performance.now();
-    const duration = 4500; // 4.5 seconds of thrilling spin
+    const duration = 4500;
     const startAngle = currentAngle;
 
     const animate = (now: number) => {
@@ -327,31 +341,31 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   return (
     <div className="flex flex-col items-center justify-center space-y-4">
       {/* Current Pointer Name Badge */}
-      <div className="h-8 flex items-center justify-center">
+      <div className="min-h-[32px] flex items-center justify-center">
         {isDrawing && activeContender ? (
-          <div className="px-3 py-1 rounded-full bg-amber-400 text-slate-950 font-bold text-xs animate-pulse">
-            Passando por: {activeContender}
+          <div className="px-3.5 py-1 rounded-lg bg-[#2B3632] border border-[#C6A56A]/60 text-[#EAE7DE] font-semibold text-xs animate-pulse">
+            Apontando: <span className="text-[#C6A56A]">{activeContender}</span>
           </div>
         ) : latestWinner ? (
-          <div className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-xs border border-emerald-500/40">
-            Vencedor: {latestWinner.name} (Bilhete #{latestWinner.number})
+          <div className="px-3.5 py-1 rounded-lg bg-[#2B3632] text-[#EAE7DE] font-semibold text-xs border border-[#6EAA90]/50 tabular-nums">
+            Último vencedor: <span className="text-[#6EAA90]">{latestWinner.name}</span> (#{latestWinner.number})
           </div>
         ) : (
-          <div className="text-xs text-slate-400">
-            {eligibleSlices.length} fatias proporcionais às moedas
+          <div className="text-xs text-[#9BA8A3] tabular-nums">
+            {eligibleSlices.length} {eligibleSlices.length === 1 ? 'participante elegível' : 'participantes elegíveis'} · {totalEligibleTickets} {totalEligibleTickets === 1 ? 'bilhete ativo' : 'bilhetes ativos'}
           </div>
         )}
       </div>
 
       {/* Canvas Wheel */}
-      <div className="relative p-2 rounded-full bg-slate-900 border-2 border-slate-800 shadow-2xl flex items-center justify-center neon-wheel-glow">
+      <div className="relative p-2.5 rounded-full bg-[#171D1C] border border-[#313D39] shadow-xl flex items-center justify-center">
         <canvas
           ref={canvasRef}
           width={440}
           height={440}
-          className="w-[270px] min-[370px]:w-[310px] sm:w-[380px] md:w-[400px] max-w-full h-auto aspect-square rounded-full cursor-pointer select-none"
+          className="w-[260px] min-[370px]:w-[300px] sm:w-[360px] md:w-[380px] max-w-full h-auto aspect-square rounded-full cursor-pointer select-none"
           onClick={handleUserTrigger}
-          aria-label="Roleta da fortuna interativa. Clique para girar."
+          aria-label="Roleta proporcional interativa. Clique para girar."
         />
       </div>
 
@@ -360,21 +374,21 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
         type="button"
         disabled={isDrawing || computed.eligibleTickets.length === 0}
         onClick={handleUserTrigger}
-        className={`w-full max-w-sm min-h-[48px] py-3.5 px-6 rounded-xl font-display font-black text-base sm:text-lg flex items-center justify-center gap-2.5 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${
+        className={`w-full min-h-[48px] py-3.5 px-6 rounded-xl font-semibold text-sm sm:text-base flex items-center justify-center gap-2.5 transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6EAA90] ${
           !isDrawing && computed.eligibleTickets.length > 0
-            ? 'neon-btn-primary bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 text-white shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 hover:brightness-105 cursor-pointer ring-1 ring-sky-300/30'
-            : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+            ? 'bg-[#6EAA90] hover:bg-[#5E9980] text-[#171D1C] shadow-md cursor-pointer'
+            : 'bg-[#2B3632] text-[#9BA8A3] border border-[#313D39] cursor-not-allowed opacity-60'
         }`}
       >
         {isDrawing ? (
           <>
-            <Sparkles className="w-5 h-5 animate-spin text-white" />
+            <Sparkles className="w-5 h-5 animate-spin text-[#171D1C]" />
             <span>Girando a Roleta...</span>
           </>
         ) : (
           <>
-            <Play className="w-5 h-5 fill-white" />
-            <span>GIRAR ROLETA DA FORTUNA</span>
+            <Play className="w-4 h-4 fill-current" />
+            <span>Sortear Agora na Roleta</span>
           </>
         )}
       </button>

@@ -34,7 +34,7 @@ import {
   EmailAuthProvider,
   User as FirebaseUser,
 } from '../firebase';
-import { RaffleSettings, Participant, Winner } from '../types';
+import { RaffleSettings, Participant, Winner, LegalDocumentSlug } from '../types';
 import {
   evaluatePassphrase,
   getGenericAuthErrorMessage,
@@ -42,6 +42,7 @@ import {
   recordFailedAttempt,
   resetThrottleState,
 } from '../utils/authSecurity';
+import { recordDocumentAcceptance } from '../utils/legalAndComplianceService';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -53,6 +54,7 @@ interface AccountModalProps {
   settings: RaffleSettings;
   participants: Participant[];
   winners: Winner[];
+  onOpenLegalDocument?: (slug: LegalDocumentSlug) => void;
 }
 
 type AuthViewMode = 'login' | 'register' | 'forgot_password';
@@ -64,8 +66,10 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   syncStatus,
   onSaveToCloud,
   onLoadFromCloud,
+  onOpenLegalDocument,
 }) => {
   const [viewMode, setViewMode] = useState<AuthViewMode>('login');
+  const [acceptedTermsOnRegister, setAcceptedTermsOnRegister] = useState(false);
 
   // Form Fields
   const [email, setEmail] = useState('');
@@ -194,6 +198,11 @@ export const AccountModal: React.FC<AccountModalProps> = ({
       return;
     }
 
+    if (!acceptedTermsOnRegister) {
+      setErrorMsg('Você precisa ler e aceitar os Termos de Uso e a Política de Privacidade para criar sua conta.');
+      return;
+    }
+
     setLoading(true);
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -203,8 +212,24 @@ export const AccountModal: React.FC<AccountModalProps> = ({
       if (cleanName && credential.user) {
         await updateProfile(credential.user, { displayName: cleanName });
       }
-      // Send verification email to confirm the address
       if (credential.user) {
+        await Promise.all([
+          recordDocumentAcceptance({
+            userId: credential.user.uid,
+            userEmail: cleanEmail,
+            documentId: 'termos-de-uso',
+            version: '1.0.0',
+            context: 'CADASTRO',
+          }),
+          recordDocumentAcceptance({
+            userId: credential.user.uid,
+            userEmail: cleanEmail,
+            documentId: 'politica-de-privacidade',
+            version: '1.0.0',
+            context: 'CADASTRO',
+          }),
+        ]).catch(() => {});
+
         try {
           await sendEmailVerification(credential.user);
         } catch {
@@ -213,7 +238,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
       }
       resetThrottleState();
       clearForm();
-      setSuccessMsg('Conta criada com sucesso! Um link de verificação foi enviado para o seu e-mail.');
+      setSuccessMsg('Conta criada com sucesso e aceite dos Termos registrado! Um link de verificação foi enviado para o seu e-mail.');
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err) {
       const genericMsg = getGenericAuthErrorMessage(err, 'register');
@@ -399,20 +424,22 @@ export const AccountModal: React.FC<AccountModalProps> = ({
       className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
     >
       <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-slide-up my-8">
-        {/* Header */}
+        {/* Header with Official Logo */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-blue-600/20 text-sky-400 flex items-center justify-center border border-blue-500/30">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
+          <div className="flex items-center gap-2.5">
+            <img
+              src="/logo.png"
+              alt="GIO DA SORTE PRO"
+              className="w-10 h-10 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(225,29,72,0.35)]"
+            />
             <div>
               <h2 id="account-modal-title" className="font-display font-bold text-base sm:text-lg text-white">
                 {currentUser
-                  ? 'Minha Conta de Sorteador'
+                  ? 'Minha Conta — GIO DA SORTE PRO'
                   : viewMode === 'login'
-                  ? 'Entrar no GIO DA SORTE'
+                  ? 'Entrar no GIO DA SORTE PRO'
                   : viewMode === 'register'
-                  ? 'Criar Nova Conta'
+                  ? 'Criar Conta — GIO DA SORTE PRO'
                   : 'Recuperação de Acesso'}
               </h2>
               <span className="text-[11px] text-slate-400 block">
@@ -870,10 +897,45 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   </p>
                 </div>
 
+                {/* Explicit Legal Acceptance Checkbox (Fase 11) */}
+                <label className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-start gap-2.5 text-[11px] text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={acceptedTermsOnRegister}
+                    onChange={(e) => setAcceptedTermsOnRegister(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 accent-[#E11D48] shrink-0"
+                  />
+                  <span>
+                    Declaro que li e concordo expressamente com os{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onOpenLegalDocument?.('termos-de-uso');
+                      }}
+                      className="text-[#FDA4AF] underline hover:text-white font-semibold"
+                    >
+                      Termos de Uso
+                    </button>{' '}
+                    e com a{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onOpenLegalDocument?.('politica-de-privacidade');
+                      }}
+                      className="text-[#FDA4AF] underline hover:text-white font-semibold"
+                    >
+                      Política de Privacidade (LGPD)
+                    </button>{' '}
+                    do GIO DA SORTE PRO.
+                  </span>
+                </label>
+
                 <button
                   type="submit"
                   disabled={loading || (password.length > 0 && !registrationPassEvaluation.isValid)}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 via-teal-500 to-blue-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                  className="w-full py-3 px-4 bg-gradient-to-r from-[#E11D48] via-[#F43F5E] to-[#BE123C] hover:brightness-110 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-[#E11D48]/25 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>{loading ? 'Cadastrando...' : 'Criar Conta Segura'}</span>

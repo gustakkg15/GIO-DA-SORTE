@@ -15,8 +15,11 @@ import {
   EmailAuthProvider,
   User,
 } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getFirestore, doc, getDocFromServer, setLogLevel } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
+
+// Silence benign @firebase/firestore internal gRPC 'Disconnecting idle stream' messages in Node.js/browser
+setLogLevel('silent');
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
@@ -74,9 +77,10 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 }
 
 /**
- * Validates connection to Firestore on initialization
+ * Validates connection to Firestore on initialization (browser only to avoid idle Node gRPC Listen streams)
  */
 async function testConnection() {
+  if (typeof window === 'undefined') return;
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
@@ -86,7 +90,9 @@ async function testConnection() {
   }
 }
 
-testConnection();
+if (typeof window !== 'undefined') {
+  testConnection();
+}
 
 export {
   signInWithPopup,

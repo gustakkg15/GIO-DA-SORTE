@@ -1,417 +1,403 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  Sparkles,
-  Tv,
-  Printer,
-  Video,
-  Swords,
-  Search,
-  BarChart3,
-  HelpCircle,
-  Settings,
-  Heart,
-  Cloud,
   ShieldCheck,
-  Cpu,
-  Layers,
-  ArrowUp,
-  FileText,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  RotateCcw,
-  Hash,
-  Download,
-  Copy,
-  Check,
-  Zap,
+  Scale,
+  Cookie,
+  Radio,
+  Crown,
 } from 'lucide-react';
-import { AutoSaveStatus } from '../utils/idleStorage';
-import { User as FirebaseUser } from 'firebase/auth';
+import { LegalDocumentSlug } from '../types';
 
 interface FooterProps {
-  onSelectTab: (tab: 'draw' | 'tiktok' | 'search' | 'stats' | 'settings' | 'help' | 'support') => void;
-  onOpenPresentation: () => void;
-  onOpenBattleRoyale: () => void;
-  onOpenObsOverlay: () => void;
-  onOpenPrintSheet: () => void;
-  onOpenMonteCarlo: () => void;
-  onOpenAuditReport: () => void;
-  onOpenAccount: () => void;
-  currentUser: FirebaseUser | null;
-  rosterHash: string;
-  autoSaveStatus: AutoSaveStatus;
-  lastSavedAt: number | null;
-  onFlushSave?: () => void;
+  onNavigateTab?: (tab: any) => void;
+  onOpenLegalDocument?: (slug: LegalDocumentSlug) => void;
+  onOpenPrivacyPortal?: () => void;
+  onOpenSupportPortal?: () => void;
+  onOpenCookieSettings?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
-  onSelectTab,
-  onOpenPresentation,
-  onOpenBattleRoyale,
-  onOpenObsOverlay,
-  onOpenPrintSheet,
-  onOpenMonteCarlo,
-  onOpenAuditReport,
-  onOpenAccount,
-  currentUser,
-  rosterHash,
-  autoSaveStatus,
-  lastSavedAt,
-  onFlushSave,
+  onNavigateTab,
+  onOpenLegalDocument,
+  onOpenPrivacyPortal,
+  onOpenSupportPortal,
+  onOpenCookieSettings,
 }) => {
-  const [copiedHash, setCopiedHash] = useState(false);
-
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    });
-  };
-
-  const handleCopyHash = () => {
-    if (!rosterHash) return;
-    navigator.clipboard.writeText(rosterHash);
-    setCopiedHash(true);
-    setTimeout(() => setCopiedHash(false), 2000);
+  const handleLegalClick = (slug: LegalDocumentSlug) => {
+    if (onOpenLegalDocument) {
+      onOpenLegalDocument(slug);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   return (
-    <footer className="border-t border-blue-950/70 bg-gradient-to-b from-slate-950 via-[#070b16] to-[#040711] text-slate-400 relative overflow-hidden">
-      {/* Subtle background ambient glow */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-sky-500/5 rounded-full blur-3xl pointer-events-none" />
-
-      {/* Main Footer Container */}
-      <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8">
-          
-          {/* Brand & Mission Column (Col 1 to 5) */}
-          <div className="lg:col-span-5 flex flex-col justify-between pr-0 lg:pr-6">
-            <div className="space-y-4">
-              {/* Brand Wordmark & PRO badge */}
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-blue-500/30 ring-1 ring-blue-400/40">
-                  <Sparkles className="w-5 h-5 fill-white" />
-                </div>
-                <div className="flex items-center gap-1.5 font-display font-black text-xl sm:text-2xl tracking-tight">
-                  <span className="text-white">GIO DA SORTE</span>
-                  <span className="bg-gradient-to-r from-sky-400 to-cyan-300 bg-clip-text text-transparent px-1 font-black">
+    <footer className="mt-16 border-t border-[#313D39] bg-[#171D1C] text-[#9BA8A3] print:hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+        {/* Colunas Institucionais e de Navegação */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8">
+          {/* Coluna Marca & Logo Original */}
+          <div className="lg:col-span-4 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-[#222B28] border border-[#313D39] flex items-center justify-center p-1.5 shrink-0">
+                <img
+                  src="/logo.png"
+                  alt="GIO DA SORTE PRO"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base font-semibold text-[#EAE7DE] tracking-tight">
+                    GIO DA SORTE
+                  </span>
+                  <span className="text-[10px] font-semibold tracking-wider uppercase px-1.5 py-0.5 rounded bg-[#C6A56A]/15 text-[#C6A56A] border border-[#C6A56A]/35">
                     PRO
                   </span>
                 </div>
-              </div>
-
-              {/* Mission Statement */}
-              <p className="text-sm leading-relaxed text-slate-300 max-w-xl">
-                Plataforma web avançada para distribuição proporcional por moedas, gestão de bilhetes e sorteios
-                auditáveis. Criada para transmissões ao vivo no YouTube, Twitch, TikTok, rifas beneficentes e gincanas
-                com total transparência matemática.
-              </p>
-
-              {/* Trust Badges matching screenshot */}
-              <div className="flex flex-wrap items-center gap-2 pt-2">
-                {/* Web Crypto CSPRNG */}
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/40 border border-emerald-500/40 text-emerald-400 text-xs font-semibold shadow-sm shadow-emerald-950/50">
-                  <Cpu className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Web Crypto CSPRNG</span>
-                </div>
-
-                {/* SHA-256 Anti-Fraude */}
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-950/50 border border-blue-500/40 text-sky-300 text-xs font-semibold shadow-sm shadow-blue-950/50">
-                  <ShieldCheck className="w-3.5 h-3.5 text-sky-400" />
-                  <span>SHA-256 Anti-Fraude</span>
-                </div>
-
-                {/* Offline / Local */}
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900/90 border border-slate-700/60 text-slate-300 text-xs font-semibold shadow-sm">
-                  <Cloud className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Offline / Local</span>
-                </div>
-
-                {/* Auto-Save requestIdleCallback badge */}
-                <div
-                  title="Auto-salvamento resiliente via requestIdleCallback sem travamento durante os sorteios"
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
-                    autoSaveStatus === 'saved'
-                      ? 'bg-sky-950/40 border-sky-500/40 text-sky-300'
-                      : autoSaveStatus === 'saving'
-                      ? 'bg-amber-950/40 border-amber-500/40 text-amber-300 animate-pulse'
-                      : autoSaveStatus === 'error'
-                      ? 'bg-rose-950/40 border-rose-500/40 text-rose-300'
-                      : 'bg-slate-900 border-slate-700 text-slate-300'
-                  }`}
-                >
-                  <Zap className="w-3.5 h-3.5 text-sky-400" />
-                  <span>Auto-Salvo Ocioso</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block animate-ping" />
-                </div>
+                <span className="text-xs text-[#9BA8A3] block">
+                  Sorteios, Moedas & Bilhetes Auditáveis
+                </span>
               </div>
             </div>
 
-            {/* Quick Hash Verification in Brand Column */}
-            {rosterHash && (
-              <div className="mt-6 pt-4 border-t border-slate-900/80 flex items-center justify-between gap-3 bg-slate-950/60 p-2.5 rounded-xl border border-blue-950/40">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Hash className="w-4 h-4 text-sky-400 shrink-0" />
-                  <div className="min-w-0">
-                    <div className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
-                      Hash de Verificação da Lista
-                    </div>
-                    <code className="text-[11px] text-sky-200/90 font-mono truncate block max-w-xs">
-                      {rosterHash}
-                    </code>
-                  </div>
-                </div>
+            <p className="text-xs text-[#9BA8A3] leading-relaxed">
+              Plataforma profissional para contabilização automática de presentes em transmissões ao vivo, emissão de bilhetes e sorteios com verificação criptográfica SHA-256.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  onNavigateTab?.('legal');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="px-3 py-1.5 rounded-lg bg-[#222B28] hover:bg-[#2A3531] text-xs font-medium text-[#EAE7DE] border border-[#313D39] transition inline-flex items-center gap-1.5"
+              >
+                <Scale className="w-3.5 h-3.5 text-[#6EAA90]" />
+                <span>Central Legal e LGPD</span>
+              </button>
+
+              {onOpenCookieSettings && (
                 <button
                   type="button"
-                  onClick={handleCopyHash}
-                  className="px-2 py-1 text-xs rounded-lg bg-blue-950/60 hover:bg-blue-900/80 text-sky-300 border border-blue-800/50 flex items-center gap-1 shrink-0 transition"
+                  onClick={onOpenCookieSettings}
+                  className="px-3 py-1.5 rounded-lg bg-[#222B28] hover:bg-[#2A3531] text-xs font-medium text-[#9BA8A3] hover:text-[#EAE7DE] border border-[#313D39] transition inline-flex items-center gap-1.5"
                 >
-                  {copiedHash ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedHash ? 'Copiado!' : 'Copiar'}</span>
+                  <Cookie className="w-3.5 h-3.5 text-[#C6A56A]" />
+                  <span>Preferências de Cookies</span>
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
-          {/* Links Column 1: MÓDULOS DE SORTEIO (Col 6 to 7) */}
-          <div className="lg:col-span-2 sm:col-span-1 space-y-3">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-display flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-              Módulos de Sorteio
+          {/* Coluna 1: PLATAFORMA */}
+          <div className="lg:col-span-2 space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-[#EAE7DE]">
+              Plataforma
             </h3>
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-2 text-xs">
               <li>
                 <button
                   type="button"
-                  onClick={() => onSelectTab('draw')}
-                  className="hover:text-sky-300 text-slate-300 transition-colors text-left flex items-center gap-2 py-0.5"
+                  onClick={() => {
+                    onNavigateTab?.('dashboard');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="text-[#9BA8A3] hover:text-[#EAE7DE] transition text-left"
                 >
-                  <span>Mesa de Sorteio (Tambor / Roleta)</span>
+                  Painel Principal
                 </button>
               </li>
               <li>
                 <button
                   type="button"
-                  onClick={onOpenPresentation}
-                  className="hover:text-sky-300 text-slate-300 transition-colors text-left flex items-center gap-2 py-0.5"
+                  onClick={() => {
+                    onNavigateTab?.('draw');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="text-[#9BA8A3] hover:text-[#EAE7DE] transition text-left"
                 >
-                  <Tv className="w-4 h-4 text-sky-400 shrink-0" />
-                  <span>Modo Telão Fullscreen</span>
+                  Sorteios e Roleta
                 </button>
               </li>
               <li>
                 <button
                   type="button"
-                  onClick={onOpenBattleRoyale}
-                  className="hover:text-sky-300 text-slate-300 transition-colors text-left flex items-center gap-2 py-0.5"
+                  onClick={() => {
+                    onNavigateTab?.('tiktok');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="text-[#9BA8A3] hover:text-[#6EAA90] font-medium transition text-left flex items-center gap-1.5"
                 >
-                  <Swords className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>Torneio Battle Royale</span>
+                  <Radio className="w-3 h-3 text-[#6EAA90]" />
+                  <span>TikTok LIVE</span>
                 </button>
               </li>
               <li>
                 <button
                   type="button"
-                  onClick={onOpenObsOverlay}
-                  className="hover:text-sky-300 text-slate-300 transition-colors text-left flex items-center gap-2 py-0.5"
+                  onClick={() => {
+                    onNavigateTab?.('subscription');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="text-[#9BA8A3] hover:text-[#EAE7DE] transition text-left flex items-center gap-1.5"
                 >
-                  <Video className="w-4 h-4 text-sky-400 shrink-0" />
-                  <span>Overlay Transparente OBS</span>
+                  <Crown className="w-3 h-3 text-[#C6A56A]" />
+                  <span>Assinatura e Planos</span>
                 </button>
               </li>
               <li>
                 <button
                   type="button"
-                  onClick={() => onSelectTab('tiktok')}
-                  className="hover:text-[#00F2FE] text-slate-300 transition-colors text-left flex items-center gap-2 py-0.5"
+                  onClick={() => handleLegalClick('sobre-nos')}
+                  className="text-[#9BA8A3] hover:text-[#EAE7DE] transition text-left"
                 >
-                  <Video className="w-4 h-4 text-[#FE2C55] shrink-0" />
-                  <span>Sorteio TikTok Live</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full font-bold bg-[#FE2C55]/20 text-[#FE2C55] border border-[#FE2C55]/40">
-                    Novo
-                  </span>
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => onSelectTab('stats')}
-                  className="hover:text-sky-300 text-slate-300 transition-colors text-left flex items-center gap-2 py-0.5"
-                >
-                  <BarChart3 className="w-4 h-4 text-indigo-400 shrink-0" />
-                  <span>Chances & Estatísticas</span>
+                  Sobre Nós
                 </button>
               </li>
             </ul>
           </div>
 
-          {/* Links Column 2: AUDITORIA & BILHETES (Col 8 to 9) */}
-          <div className="lg:col-span-3 sm:col-span-1 space-y-3">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-display flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
-              Auditoria & Bilhetes
+          {/* Coluna 2: SUPORTE */}
+          <div className="lg:col-span-2 space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-[#EAE7DE]">
+              Suporte
             </h3>
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-2 text-xs">
               <li>
                 <button
                   type="button"
-                  onClick={() => onSelectTab('search')}
-                  className="hover:text-sky-300 text-slate-300 transition-colors text-left flex items-center gap-2 py-0.5"
+                  onClick={() => handleLegalClick('central-de-ajuda')}
+                  className="text-[#9BA8A3] hover:text-[#EAE7DE] transition text-left"
                 >
-                  <Search className="w-4 h-4 text-sky-400 shrink-0" />
-                  <span>Consultar Bilhete / Rifa</span>
+                  Central de Ajuda
                 </button>
               </li>
               <li>
                 <button
                   type="button"
-                  onClick={onOpenMonteCarlo}
-                  className="hover:text-sky-300 text-slate-300 transition-colors text-left flex items-center gap-2 py-0.5"
+                  onClick={() => {
+                    onOpenSupportPortal?.();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="text-[#9BA8A3] hover:text-[#EAE7DE] transition text-left"
                 >
-                  <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>Simulador Monte Carlo (Auditoria)</span>
+                  Perguntas Frequentes (FAQ)
                 </button>
               </li>
               <li>
                 <button
                   type="button"
-                  onClick={onOpenAuditReport}
-                  className="hover:text-sky-300 text-slate-300 transition-colors text-left flex items-center gap-2 py-0.5"
+                  onClick={() => handleLegalClick('contato-e-suporte')}
+                  className="text-[#9BA8A3] hover:text-[#EAE7DE] transition text-left"
                 >
-                  <FileText className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Relatório Oficial em PDF (Auditado)</span>
+                  Contato e Suporte
                 </button>
               </li>
               <li>
                 <button
                   type="button"
-                  onClick={onOpenPrintSheet}
-                  className="hover:text-sky-300 text-slate-300 transition-colors text-left flex items-center gap-2 py-0.5"
+                  onClick={() => {
+                    onOpenSupportPortal?.();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="text-[#9BA8A3] hover:text-[#6EAA90] transition text-left"
                 >
-                  <Printer className="w-4 h-4 text-sky-400 shrink-0" />
-                  <span>Imprimir Folha de Bilhetes</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => onSelectTab('help')}
-                  className="hover:text-sky-300 text-slate-300 transition-colors text-left flex items-center gap-2 py-0.5"
-                >
-                  <HelpCircle className="w-4 h-4 text-slate-400 shrink-0" />
-                  <span>Calculadora & Como Funciona</span>
+                  Relatar um Problema
                 </button>
               </li>
             </ul>
           </div>
 
-          {/* Links Column 3: CONTA & APOIO (Col 10 to 12) */}
-          <div className="lg:col-span-2 sm:col-span-1 space-y-3">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-display flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-              Conta & Apoio
+          {/* Coluna 3: LEGAL */}
+          <div className="lg:col-span-2 space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-[#EAE7DE]">
+              Documentos Legais
             </h3>
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-2 text-xs">
               <li>
                 <button
                   type="button"
-                  onClick={onOpenAccount}
-                  className="hover:text-sky-300 text-slate-300 transition-colors text-left flex items-center gap-2 py-0.5"
+                  onClick={() => handleLegalClick('termos-de-uso')}
+                  className="text-[#9BA8A3] hover:text-[#EAE7DE] transition text-left"
                 >
-                  <Cloud className="w-4 h-4 text-sky-400 shrink-0" />
-                  <span>{currentUser ? 'Gerenciar Conta Conectada' : 'Conectar Conta Google'}</span>
+                  Termos de Uso
                 </button>
               </li>
               <li>
                 <button
                   type="button"
-                  onClick={() => onSelectTab('settings')}
-                  className="hover:text-sky-300 text-slate-300 transition-colors text-left flex items-center gap-2 py-0.5"
+                  onClick={() => handleLegalClick('politica-de-privacidade')}
+                  className="text-[#9BA8A3] hover:text-[#EAE7DE] transition text-left"
                 >
-                  <Settings className="w-4 h-4 text-slate-400 shrink-0" />
-                  <span>Backup & Configurações</span>
+                  Política de Privacidade
                 </button>
               </li>
               <li>
                 <button
                   type="button"
-                  onClick={() => onSelectTab('support')}
-                  className="text-rose-400 hover:text-rose-300 font-semibold transition-colors text-left flex items-center gap-2 py-0.5"
+                  onClick={() => handleLegalClick('politica-de-cookies')}
+                  className="text-[#9BA8A3] hover:text-[#EAE7DE] transition text-left"
                 >
-                  <Heart className="w-4 h-4 text-rose-500 fill-rose-500 shrink-0" />
-                  <span>Apoiar o Projeto (PIX)</span>
+                  Política de Cookies
                 </button>
               </li>
-              {/* Real-time Storage Monitor */}
-              <li className="pt-2">
-                <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400 flex items-center gap-1 font-medium">
-                      <Zap className="w-3.5 h-3.5 text-sky-400" />
-                      Auto-salvo
-                    </span>
-                    <span
-                      className={`font-semibold ${
-                        autoSaveStatus === 'saved'
-                          ? 'text-emerald-400'
-                          : autoSaveStatus === 'saving'
-                          ? 'text-amber-400'
-                          : autoSaveStatus === 'error'
-                          ? 'text-rose-400'
-                          : 'text-slate-400'
-                      }`}
-                    >
-                      {autoSaveStatus === 'saved'
-                        ? 'Protegido'
-                        : autoSaveStatus === 'saving'
-                        ? 'Gravando...'
-                        : autoSaveStatus === 'pending'
-                        ? 'Aguardando ocioso'
-                        : 'Atenção'}
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-slate-500">
-                    {lastSavedAt
-                      ? `Último salvamento: ${new Date(lastSavedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`
-                      : 'Pronto para persistência'}
-                  </div>
-                  {onFlushSave && (
-                    <button
-                      type="button"
-                      onClick={onFlushSave}
-                      className="w-full mt-1 py-1 px-2 text-[11px] rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition text-center font-medium"
-                    >
-                      Forçar Salvamento Imediato
-                    </button>
-                  )}
-                </div>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleLegalClick('politica-de-assinaturas-e-pagamentos')}
+                  className="text-[#9BA8A3] hover:text-[#EAE7DE] transition text-left"
+                >
+                  Assinaturas e Pagamentos
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleLegalClick('politica-de-cancelamento-e-reembolso')}
+                  className="text-[#9BA8A3] hover:text-[#EAE7DE] transition text-left"
+                >
+                  Cancelamento e Reembolso
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleLegalClick('regulamento-de-sorteios-e-campanhas')}
+                  className="text-[#9BA8A3] hover:text-[#EAE7DE] transition text-left"
+                >
+                  Regulamento de Sorteios
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleLegalClick('politica-de-exclusao-de-conta-e-dados')}
+                  className="text-[#9BA8A3] hover:text-[#EAE7DE] transition text-left"
+                >
+                  Exclusão de Conta e Dados
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          {/* Coluna 4: TRANSPARÊNCIA */}
+          <div className="lg:col-span-2 space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-[#EAE7DE]">
+              Transparência
+            </h3>
+            <ul className="space-y-2 text-xs">
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleLegalClick('politica-antifraude')}
+                  className="text-[#9BA8A3] hover:text-[#EAE7DE] transition text-left"
+                >
+                  Política Antifraude
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleLegalClick('aviso-de-independencia-do-tiktok')}
+                  className="text-[#9BA8A3] hover:text-[#EAE7DE] transition text-left"
+                >
+                  Independência do TikTok
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleLegalClick('aviso-legal-e-isencao-de-responsabilidade')}
+                  className="text-[#9BA8A3] hover:text-[#EAE7DE] transition text-left"
+                >
+                  Isenção de Responsabilidade
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleLegalClick('politica-de-uso-aceitavel')}
+                  className="text-[#9BA8A3] hover:text-[#EAE7DE] transition text-left"
+                >
+                  Uso Aceitável
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleLegalClick('politica-de-seguranca')}
+                  className="text-[#9BA8A3] hover:text-[#EAE7DE] transition text-left"
+                >
+                  Política de Segurança
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenPrivacyPortal?.();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="text-[#6EAA90] hover:text-[#EAE7DE] font-medium transition text-left flex items-center gap-1"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Portal de Privacidade (LGPD)</span>
+                </button>
               </li>
             </ul>
           </div>
         </div>
 
-        {/* Separator Line */}
-        <div className="my-8 border-t border-slate-900/90" />
+        {/* Nota de Independência e Responsabilidade */}
+        <div className="p-4 rounded-xl bg-[#222B28] border border-[#313D39] text-[11px] text-[#9BA8A3] space-y-1.5 leading-relaxed">
+          <p>
+            <strong className="text-[#EAE7DE]">Aviso de Independência do TikTok:</strong> O GIO DA SORTE PRO é uma plataforma tecnológica independente e não é afiliada, patrocinada, administrada ou endossada pelo TikTok Inc. ou ByteDance Ltd. A autenticação via TikTok Login Kit (OAuth 2.0) identifica o organizador mediante autorização explícita, enquanto a leitura de eventos públicos da transmissão ao vivo ocorre de forma separada via sala pública Webcast.
+          </p>
+          <p>
+            <strong className="text-[#EAE7DE]">Responsabilidade Promocional:</strong> O GIO DA SORTE PRO fornece infraestrutura tecnológica de contabilização e sorteio auditável SHA-256. A definição das regras da campanha, eventual autorização regulatória exigida e a entrega dos prêmios são de responsabilidade exclusiva do organizador.
+          </p>
+        </div>
 
-        {/* Bottom Bar: Copyright & Back to Top */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-center sm:text-left">
-            <span>© 2026 GIO DA SORTE PRO. Todos os direitos reservados.</span>
-            <span className="hidden sm:inline">·</span>
-            <span>Processamento no navegador com proteção criptográfica.</span>
+        {/* Barra Inferior Fixa de Direitos e Acesso Rápido à Central Legal */}
+        <div className="pt-4 border-t border-[#313D39] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#9BA8A3]">
+          <div className="flex items-center gap-2">
+            <span>© {new Date().getFullYear()} GIO DA SORTE PRO. Todos os direitos reservados.</span>
           </div>
-
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-4">
             <button
               type="button"
-              onClick={scrollToTop}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-850 hover:text-white text-slate-300 border border-slate-800 transition active:scale-95 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 font-medium"
+              onClick={() => {
+                onNavigateTab?.('legal');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="text-[#EAE7DE] hover:text-[#6EAA90] font-medium transition"
             >
-              <span>Voltar ao topo</span>
-              <ArrowUp className="w-3.5 h-3.5" />
+              Central Legal
             </button>
+            <button
+              type="button"
+              onClick={() => handleLegalClick('termos-de-uso')}
+              className="hover:text-[#EAE7DE] transition"
+            >
+              Termos de Uso
+            </button>
+            <button
+              type="button"
+              onClick={() => handleLegalClick('politica-de-privacidade')}
+              className="hover:text-[#EAE7DE] transition"
+            >
+              Privacidade (LGPD)
+            </button>
+            {onOpenCookieSettings && (
+              <button
+                type="button"
+                onClick={onOpenCookieSettings}
+                className="hover:text-[#EAE7DE] transition"
+              >
+                Cookies
+              </button>
+            )}
           </div>
         </div>
       </div>

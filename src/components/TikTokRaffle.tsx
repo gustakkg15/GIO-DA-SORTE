@@ -1,159 +1,211 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
-  Video,
-  Play,
-  RotateCcw,
-  Trophy,
-  Users,
   MessageSquare,
-  CheckCircle,
-  Filter,
-  AtSign,
-  Search,
-  Copy,
-  Download,
   Sparkles,
-  ExternalLink,
-  Trash2,
-  AlertCircle,
-  Check,
+  Users,
+  Filter,
+  CheckCircle,
+  Trophy,
+  AtSign,
+  RotateCcw,
   Upload,
-  Clock,
+  Play,
+  Copy,
+  Check,
+  AlertCircle,
+  Download,
+  Video,
+  ExternalLink,
   Volume2,
   VolumeX,
+  Trash2,
+  Clock,
+  FileText,
   Code,
   Plus,
   RefreshCw,
-  HelpCircle,
-  FileText,
+  Search,
 } from 'lucide-react';
-import {
-  TikTokComment,
-  TikTokFilterSettings,
-  TikTokVideoInfo,
-  TikTokWinner,
-  RaffleSettings,
-} from '../types';
+import { TikTokComment, TikTokFilterSettings, TikTokVideoInfo, TikTokWinner, Winner, RaffleSettings } from '../types';
 import {
   parseTikTokUrl,
-  fetchTikTokVideoDetails,
-  fetchTikTokCommentsBatch,
-  loadTikTokComments,
-  filterComments,
   parseImportedComments,
+  validateAndParseCommentsInput,
+  mergeImportedCommentsWithoutDuplicates,
+  filterComments,
   SAMPLE_TIKTOK_COMMENTS,
-  TIKTOK_BROWSER_CONSOLE_SNIPPET,
+  loadTikTokComments,
+  fetchTikTokCommentsBatch,
+  fetchTikTokVideoDetails,
   clearTikTokCache,
+  TIKTOK_BROWSER_CONSOLE_SNIPPET,
 } from '../utils/tiktok';
-import { generateTikTokPdfReport } from '../utils/pdfReport';
-import {
-  playTick,
-  playWinnerFanfare,
-  playCountdownTick,
-  playCountdownLaunch,
-} from '../utils/audio';
+import { getAuthBearerHeaders, getProPlanEntitlement } from '../utils/tiktokLiveService';
+import { playTick, playWinnerFanfare, playCountdownTick, playCountdownLaunch } from '../utils/audio';
 import { fireWinnerConfetti } from '../utils/confetti';
+import { generateTikTokPdfReport } from '../utils/pdfReport';
 
 interface TikTokRaffleProps {
-  settings: RaffleSettings;
-  soundEnabled: boolean;
+  soundEnabled?: boolean;
   onToggleSound?: () => void;
-  onOpenVictoryCard?: (winner: {
-    id: string;
-    participantId: string;
-    name: string;
-    number: number;
-    prize: string;
-    drawnAt: number;
-  }) => void;
+  onOpenVictoryCard?: (winner: Winner) => void;
+  settings?: RaffleSettings;
 }
 
+const TIKTOK_STORAGE_KEY = 'gio_tiktok_raffle_v1';
+
 export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
-  settings,
-  soundEnabled,
+  soundEnabled = true,
   onToggleSound,
   onOpenVictoryCard,
+  settings,
 }) => {
-  // Input & Video State
-  const [videoUrl, setVideoUrl] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingProgressMsg, setLoadingProgressMsg] = useState<string | null>(null);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [loadSuccessMsg, setLoadSuccessMsg] = useState<string | null>(null);
-  const [videoInfo, setVideoInfo] = useState<TikTokVideoInfo | null>(null);
-
-  // Comments State
-  const [comments, setComments] = useState<TikTokComment[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // Filters State
-  const [filters, setFilters] = useState<TikTokFilterSettings>({
-    filterDuplicates: true,
-    keyword: '',
-    minMentions: 0,
-    excludeAuthor: true,
-    minCharacters: 0,
+  // Video & Comments State
+  const [videoUrl, setVideoUrl] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem(TIKTOK_STORAGE_KEY);
+      if (saved) return JSON.parse(saved).videoUrl || '';
+    } catch {}
+    return '';
   });
 
-  // Draw Configuration
-  const [winnerCount, setWinnerCount] = useState<number>(1);
-  const [prizeName, setPrizeName] = useState(settings.prizeName || settings.currentPrize || 'Prêmio Especial TikTok');
-  const [useCountdown, setUseCountdown] = useState<boolean>(true);
+  const [videoInfo, setVideoInfo] = useState<TikTokVideoInfo | null>(() => {
+    try {
+      const saved = localStorage.getItem(TIKTOK_STORAGE_KEY);
+      if (saved && JSON.parse(saved).videoInfo) return JSON.parse(saved).videoInfo;
+    } catch {}
+    return null;
+  });
 
-  // Drawing Animation State
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [countdownRemaining, setCountdownRemaining] = useState<number | null>(null);
-  const [cyclingComment, setCyclingComment] = useState<TikTokComment | null>(null);
+  const [comments, setComments] = useState<TikTokComment[]>(() => {
+    try {
+      const saved = localStorage.getItem(TIKTOK_STORAGE_KEY);
+      if (saved && Array.isArray(JSON.parse(saved).comments)) {
+        return JSON.parse(saved).comments;
+      }
+    } catch {}
+    return SAMPLE_TIKTOK_COMMENTS;
+  });
 
-  // Winners State
-  const [winners, setWinners] = useState<TikTokWinner[]>([]);
-  const [copiedSuccess, setCopiedSuccess] = useState(false);
-
-  // Modals State
+  // Loading & Import State
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [loadingProgressMsg, setLoadingProgressMsg] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadSuccessMsg, setLoadSuccessMsg] = useState<string | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [rawImportText, setRawImportText] = useState('');
   const [isExtractorModalOpen, setIsExtractorModalOpen] = useState(false);
+  const [rawImportText, setRawImportText] = useState('');
+  const [selectedImportFileName, setSelectedImportFileName] = useState<string | null>(null);
+  const [importModalError, setImportModalError] = useState<string | null>(null);
+  const [importModalInfo, setImportModalInfo] = useState<string | null>(null);
+  const importFileInputRef = useRef<HTMLInputElement | null>(null);
   const [copiedSnippet, setCopiedSnippet] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter & Draw Rules
+  const [filters, setFilters] = useState<TikTokFilterSettings>(() => {
+    try {
+      const saved = localStorage.getItem(TIKTOK_STORAGE_KEY);
+      if (saved && JSON.parse(saved).filters) return JSON.parse(saved).filters;
+    } catch {}
+    return {
+      filterDuplicates: true,
+      keyword: '',
+      minMentions: 0,
+      excludeAuthor: true,
+      minCharacters: 0,
+    };
+  });
+
+  const [winnerCount, setWinnerCount] = useState<number>(1);
+  const [prizeName, setPrizeName] = useState<string>(
+    settings?.prizeName || settings?.currentPrize || 'Prêmio Especial TikTok'
+  );
+  const [useCountdown, setUseCountdown] = useState<boolean>(true);
+  const [countdownRemaining, setCountdownRemaining] = useState<number | null>(null);
+
+  // Sync with global settings prize if updated
+  useEffect(() => {
+    if (settings?.prizeName) {
+      setPrizeName(settings.prizeName);
+    } else if (settings?.currentPrize) {
+      setPrizeName(settings.currentPrize);
+    }
+  }, [settings?.prizeName, settings?.currentPrize]);
+
+  // Winners & Drawing Animation State
+  const [winners, setWinners] = useState<TikTokWinner[]>(() => {
+    try {
+      const saved = localStorage.getItem(TIKTOK_STORAGE_KEY);
+      if (saved && Array.isArray(JSON.parse(saved).winners)) {
+        return JSON.parse(saved).winners;
+      }
+    } catch {}
+    return [];
+  });
+
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [cyclingComment, setCyclingComment] = useState<TikTokComment | null>(null);
+  const [copiedSuccess, setCopiedSuccess] = useState(false);
   const [isConfirmingClear, setIsConfirmingClear] = useState(false);
 
-  // Filtered comments computation
+  // Save to LocalStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        TIKTOK_STORAGE_KEY,
+        JSON.stringify({
+          videoUrl,
+          videoInfo,
+          comments,
+          filters,
+          winners,
+        })
+      );
+    } catch (e) {
+      console.warn('Erro ao salvar estado do sorteio TikTok:', e);
+    }
+  }, [videoUrl, videoInfo, comments, filters, winners]);
+
+  // Filtered Eligible Comments
   const { eligible, totalEligibleUsers } = useMemo(() => {
     return filterComments(comments, filters, videoInfo?.authorName);
   }, [comments, filters, videoInfo]);
 
-  // Search filtered view of comments
+  // Searched comments for table preview
   const displayComments = useMemo(() => {
     if (!searchQuery.trim()) return eligible;
-    const query = searchQuery.toLowerCase();
+    const q = searchQuery.toLowerCase();
     return eligible.filter(
       (c) =>
-        c.username.toLowerCase().includes(query) ||
-        (c.nickname && c.nickname.toLowerCase().includes(query)) ||
-        c.text.toLowerCase().includes(query)
+        c.username.toLowerCase().includes(q) ||
+        c.text.toLowerCase().includes(q) ||
+        (c.nickname && c.nickname.toLowerCase().includes(q))
     );
   }, [eligible, searchQuery]);
 
-  // Load sample TikTok video with comments
+  // Load sample video
   const handleLoadSample = () => {
+    setLoadError(null);
     setVideoUrl('https://www.tiktok.com/@gio_da_sorte/video/7329482710182740231');
     setVideoInfo({
       url: 'https://www.tiktok.com/@gio_da_sorte/video/7329482710182740231',
       videoId: '7329482710182740231',
       authorName: '@gio_da_sorte',
       authorUrl: 'https://www.tiktok.com/@gio_da_sorte',
-      title: '🎁 SORTEIO OFICIAL! Comente marcando seus amigos e concorra ao super prêmio! #sorteio #giodasorte',
+      title: 'SORTEIO OFICIAL! Comente marcando seus amigos e concorra ao prêmio! #sorteio #giodasorte',
       thumbnailUrl: '',
       commentCount: SAMPLE_TIKTOK_COMMENTS.length,
       hasMoreComments: false,
     });
     setComments(SAMPLE_TIKTOK_COMMENTS);
-    setLoadError(null);
-    setLoadSuccessMsg('Demonstração carregada: 20 comentários de exemplo prontos para testar o sorteio!');
+    setWinners([]);
+    setLoadSuccessMsg('Vídeo de demonstração carregado com 20 comentários.');
     setTimeout(() => setLoadSuccessMsg(null), 4000);
   };
 
-  // Real comment fetching from URL
+  // Fetch comments from URL via protected backend PRO endpoint
   const handleFetchFromUrl = async (e?: React.FormEvent, forceRefresh = false) => {
     if (e) e.preventDefault();
     if (!videoUrl.trim()) {
@@ -163,54 +215,64 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
 
     const parsed = parseTikTokUrl(videoUrl);
     if (!parsed.isValid) {
-      setLoadError('Link do TikTok inválido. Certifique-se de que o link contém tiktok.com (ex: https://www.tiktok.com/@usuario/video/...).');
+      setLoadError(
+        'Link do TikTok inválido. Certifique-se de que o link contém tiktok.com (ex: https://www.tiktok.com/@usuario/video/...).'
+      );
       return;
     }
 
     setIsLoading(true);
     setLoadError(null);
     setLoadSuccessMsg(null);
-    setLoadingProgressMsg(forceRefresh ? 'Atualizando dados diretamente do TikTok (ignorando cache)...' : 'Conectando ao TikTok e buscando vídeo...');
+    setLoadingProgressMsg(
+      forceRefresh
+        ? 'Atualizando dados diretamente do TikTok via backend PRO (sem cache)...'
+        : 'Conectando ao TikTok e buscando vídeo via backend PRO...'
+    );
 
     try {
-      const result = await loadTikTokComments(parsed.cleanUrl || videoUrl, {
-        maxPages: 3, // Initial pull: up to ~150 comments
-        forceRefresh,
-        onProgress: (msg, currentCount) => {
-          setLoadingProgressMsg(currentCount > 0 ? `${msg} (${currentCount} comentários até agora)` : msg);
-        },
+      const authHeaders = await getAuthBearerHeaders({ 'Content-Type': 'application/json' });
+      const response = await fetch('/api/tiktok/pro/comments/extract', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          videoUrl: parsed.cleanUrl || videoUrl,
+          maxPages: 3,
+          forceRefresh,
+        }),
       });
 
-      setVideoInfo(result.videoInfo);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 401 || response.status === 403) {
+          throw new Error(
+            errorData.error ||
+              'A extração de comentários requer login Firebase e plano TikTok LIVE PRO ativo no backend.'
+          );
+        }
+        throw new Error(errorData.error || `Erro ${response.status} ao extrair comentários no servidor.`);
+      }
 
-      if (result.comments.length > 0) {
+      const result = await response.json();
+      if (result.videoInfo) {
+        setVideoInfo(result.videoInfo);
+      }
+
+      if (Array.isArray(result.comments) && result.comments.length > 0) {
         setComments(result.comments);
         setLoadSuccessMsg(
-          result.fromCache
-            ? `⚡ ${result.comments.length} comentários recuperados do cache temporário! (${result.totalCommentsInVideo ? `${result.totalCommentsInVideo} no total do vídeo` : ''})`
-            : `🎉 ${result.comments.length} comentários reais carregados com sucesso do TikTok! (${result.totalCommentsInVideo ? `${result.totalCommentsInVideo} no total do vídeo` : ''})`
+          `${result.comments.length} comentários reais processados com segurança pelo backend PRO!`
         );
       } else {
-        // Video was found, but 0 comments returned
         setLoadError(
-          'O vídeo foi localizado, mas não retornou comentários públicos (podem estar desativados ou bloqueados pelo criador). Você pode colar os comentários ou usar nosso Extrator de 1-Clique!'
+          'O vídeo foi localizado, mas não retornou comentários públicos. Você pode colar os comentários usando "Colar / Importar".'
         );
       }
     } catch (err: any) {
       console.warn('Load comments notice:', err);
-
-      // Attempt fallback to at least show video info
-      try {
-        const fallbackInfo = await fetchTikTokVideoDetails(parsed.cleanUrl || videoUrl, { forceRefresh });
-        if (fallbackInfo) {
-          setVideoInfo(fallbackInfo);
-        }
-      } catch {
-        // ignore
-      }
-
       setLoadError(
-        'Não foi possível extrair comentários automaticamente deste link (o TikTok pode ter limitado temporariamente o acesso direto a este vídeo). Use o botão "Colar / Importar Lista" ou o "Extrator de 1-Clique" para carregar seus comentários!'
+        err.message ||
+          'Não foi possível extrair comentários automaticamente deste link. Certifique-se de possuir o plano PRO ativo.'
       );
     } finally {
       setIsLoading(false);
@@ -259,19 +321,126 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
     }
   };
 
-  // Import comments from manual text
-  const handleImportSubmit = () => {
-    if (!rawImportText.trim()) return;
-    const parsed = parseImportedComments(rawImportText);
-    if (parsed.length > 0) {
-      setComments(parsed);
-      setIsImportModalOpen(false);
+  // Read .txt or .csv file locally and populate import payload
+  const handleImportFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportModalError(null);
+    setImportModalInfo(null);
+    setSelectedImportFileName(file.name);
+
+    const lowerName = file.name.trim().toLowerCase();
+    if (!lowerName.endsWith('.txt') && !lowerName.endsWith('.csv')) {
+      setImportModalError('Formato de arquivo inválido. Selecione apenas arquivos .txt ou .csv.');
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size === 0) {
+      setImportModalError('O arquivo selecionado está vazio. Escolha um arquivo .txt ou .csv com comentários válidos.');
       setRawImportText('');
-      setLoadError(null);
-      setLoadSuccessMsg(`Sucesso! ${parsed.length} comentários importados para a lista.`);
-      setTimeout(() => setLoadSuccessMsg(null), 4000);
-    } else {
-      setLoadError('Nenhum comentário detectado no texto informado.');
+      e.target.value = '';
+      return;
+    }
+
+    try {
+      const content = await file.text();
+      if (!content.replace(/^\uFEFF/, '').trim()) {
+        setImportModalError('O arquivo selecionado está vazio. Escolha um arquivo .txt ou .csv com comentários válidos.');
+        setRawImportText('');
+        e.target.value = '';
+        return;
+      }
+
+      const validation = validateAndParseCommentsInput(content);
+      if (!validation.valid) {
+        setImportModalError(
+          validation.error ||
+            'Formato inválido: não foi possível identificar comentários válidos neste arquivo.'
+        );
+        setRawImportText('');
+        e.target.value = '';
+        return;
+      }
+
+      setRawImportText(content);
+      setImportModalInfo(
+        `Arquivo "${file.name}" carregado localmente: ${validation.comments.length} comentário(s) válido(s) identificado(s)${
+          validation.headerSkipped ? ' (cabeçalho CSV ignorado automaticamente)' : ''
+        }. Clique em "Importar Lista" para confirmar.`
+      );
+    } catch {
+      setImportModalError('Não foi possível ler o arquivo selecionado. Verifique se está em texto UTF-8.');
+    } finally {
+      e.target.value = '';
+    }
+  };
+
+  // Import comments from manual text or uploaded .txt/.csv file via protected backend PRO endpoint
+  const handleImportSubmit = async () => {
+    setImportModalError(null);
+    setImportModalInfo(null);
+
+    const validation = validateAndParseCommentsInput(rawImportText);
+    if (!validation.valid) {
+      const msg =
+        validation.error ||
+        'Formato inválido: nenhum comentário válido foi encontrado no texto ou arquivo informado.';
+      setImportModalError(msg);
+      setLoadError(msg);
+      return;
+    }
+
+    try {
+      const authHeaders = await getAuthBearerHeaders({ 'Content-Type': 'application/json' });
+      const response = await fetch('/api/tiktok/pro/comments/import', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ rawInput: rawImportText }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(
+          errData.error || 'A importação de comentários requer autenticação e plano PRO ativo no backend.'
+        );
+      }
+
+      const result = await response.json();
+      if (Array.isArray(result.comments) && result.comments.length > 0) {
+        const mergeOutcome = mergeImportedCommentsWithoutDuplicates(comments, result.comments);
+        setComments(mergeOutcome.merged);
+        setIsImportModalOpen(false);
+        setRawImportText('');
+        setSelectedImportFileName(null);
+        setImportModalError(null);
+        setImportModalInfo(null);
+        setLoadError(null);
+
+        if (mergeOutcome.addedCount === 0 && mergeOutcome.duplicatesSkipped > 0) {
+          setLoadSuccessMsg(
+            `Importação concluída: todos os ${mergeOutcome.duplicatesSkipped} participante(s) enviados já estavam na lista (duplicações evitadas).`
+          );
+        } else if (mergeOutcome.duplicatesSkipped > 0) {
+          setLoadSuccessMsg(
+            `Sucesso! ${mergeOutcome.addedCount} novo(s) participante(s) importado(s) pelo backend PRO (${mergeOutcome.duplicatesSkipped} duplicado(s) ignorado(s)). Total: ${mergeOutcome.merged.length}.`
+          );
+        } else {
+          setLoadSuccessMsg(
+            `Sucesso! ${mergeOutcome.addedCount} comentário(s) importado(s) e validado(s) pelo backend PRO.`
+          );
+        }
+        setTimeout(() => setLoadSuccessMsg(null), 4500);
+      } else {
+        const msg = 'Nenhum comentário válido detectado no conteúdo enviado.';
+        setImportModalError(msg);
+        setLoadError(msg);
+      }
+    } catch (err: any) {
+      const msg = err.message || 'Falha ao importar comentários via backend.';
+      setImportModalError(msg);
+      setLoadError(msg);
     }
   };
 
@@ -295,14 +464,22 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
     setIsConfirmingClear(false);
   };
 
-  // Execute drawing logic
+  // Execute drawing logic (validated against PRO plan and executed via backend CSPRNG)
   const executeDraw = () => {
     if (eligible.length === 0) return;
 
+    const entitlement = getProPlanEntitlement();
+    if (!entitlement.active || entitlement.tier !== 'PRO' || entitlement.statusState !== 'ACTIVE') {
+      setLoadError(
+        'O Sorteio por Comentários TikTok é exclusivo para assinantes do plano TikTok LIVE PRO ativo.'
+      );
+      return;
+    }
+
     setIsDrawing(true);
+    setLoadError(null);
     const needed = Math.min(winnerCount, eligible.length);
 
-    // Fast cycling animation through comments
     let cycleCount = 0;
     const maxCycles = 24;
     const interval = setInterval(() => {
@@ -318,34 +495,43 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
     }, 75);
   };
 
-  const finalizeDraw = (count: number) => {
-    // Pick winners randomly without replacement
-    const pool = [...eligible];
-    const picked: TikTokWinner[] = [];
-
-    for (let i = 0; i < count; i++) {
-      if (pool.length === 0) break;
-      const index = Math.floor(Math.random() * pool.length);
-      const chosenComment = pool.splice(index, 1)[0];
-
-      picked.push({
-        id: `tk-win-${Date.now()}-${i + 1}`,
-        rank: i + 1,
-        comment: chosenComment,
-        prize: prizeName || `Prêmio ${i + 1}º Lugar`,
-        drawnAt: Date.now(),
+  const finalizeDraw = async (count: number) => {
+    try {
+      const authHeaders = await getAuthBearerHeaders({ 'Content-Type': 'application/json' });
+      const response = await fetch('/api/tiktok/pro/comments/draw', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          comments,
+          filters,
+          authorName: videoInfo?.authorName,
+          winnerCount: count,
+          prizeName: prizeName || `Prêmio Especial TikTok`,
+          videoUrl,
+        }),
       });
-    }
 
-    setWinners(picked);
-    setIsDrawing(false);
-    setCyclingComment(null);
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(
+          errData.error || 'Falha ao executar o sorteio com CSPRNG no backend protegido.'
+        );
+      }
 
-    // Fanfare & Confetti
-    if (soundEnabled) {
-      playWinnerFanfare();
+      const result = await response.json();
+      setWinners(result.winners || []);
+      setIsDrawing(false);
+      setCyclingComment(null);
+
+      if (soundEnabled) {
+        playWinnerFanfare();
+      }
+      fireWinnerConfetti();
+    } catch (err: any) {
+      setIsDrawing(false);
+      setCyclingComment(null);
+      setLoadError(err.message || 'Erro ao processar sorteio no backend.');
     }
-    fireWinnerConfetti();
   };
 
   // Countdown timer effect
@@ -395,13 +581,13 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
     const text = winners
       .map(
         (w) =>
-          `🏆 ${w.rank}º Lugar: ${w.comment.username} (${w.prize})\n💬 Comentário: "${w.comment.text}"`
+          `${w.rank}º Lugar: ${w.comment.username} (${w.prize})\nComentário: "${w.comment.text}"`
       )
       .join('\n\n');
 
-    const fullSummary = `🎁 VENCEDORES DO SORTEIO TIKTOK - GIO DA SORTE\n${
+    const fullSummary = `VENCEDORES DO SORTEIO POR COMENTÁRIOS - GIO DA SORTE PRO\n${
       videoInfo?.title ? `Vídeo: ${videoInfo.title}\n` : ''
-    }Data: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}\n\n${text}\n\nSorteio auditado e verificado no GIO DA SORTE!`;
+    }Data: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}\n\n${text}\n\nSorteio auditado e verificado no GIO DA SORTE PRO!`;
 
     navigator.clipboard.writeText(fullSummary).then(() => {
       setCopiedSuccess(true);
@@ -443,7 +629,9 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
       };
       const encoder = new TextEncoder();
       const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(JSON.stringify(canonical)));
-      const integrityHash = Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, '0')).join('');
+      const integrityHash = Array.from(new Uint8Array(hashBuffer))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
 
       const doc = await generateTikTokPdfReport({
         videoTitle: videoInfo?.title || 'Sorteio TikTok',
@@ -463,69 +651,64 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-200">
-      {/* Hero Banner with TikTok Style Neon Glow */}
-      <div className="relative overflow-hidden rounded-3xl bg-slate-900/90 border border-slate-800 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
-        <div className="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-gradient-to-br from-[#00F2FE]/20 via-[#FE2C55]/20 to-transparent rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 -mb-16 -ml-16 w-64 h-64 bg-gradient-to-tr from-[#FE2C55]/20 via-[#00F2FE]/20 to-transparent rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase bg-slate-950 border border-slate-800 text-slate-200 shadow-inner">
-              <span className="w-2 h-2 rounded-full bg-[#FE2C55] animate-pulse" />
-              <span className="text-[#00F2FE]">TikTok</span>
-              <span className="text-slate-400">|</span>
-              <span>Sorteador Oficial por Comentários</span>
+    <div className="space-y-6 animate-fade-in min-w-0 overflow-x-hidden">
+      {/* Top Header & Quick Actions Card */}
+      <div className="rounded-xl bg-[#222B28] border border-[#313D39] p-5 sm:p-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-[11px] font-semibold uppercase tracking-wider bg-[#171D1C] border border-[#313D39] text-[#6EAA90]">
+              <MessageSquare className="w-3.5 h-3.5 text-[#C6A56A]" />
+              <span>Sorteio Oficial por Comentários</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-display font-black tracking-tight text-white">
-              Sorteador de Comentários do <span className="bg-gradient-to-r from-[#00F2FE] via-sky-300 to-[#FE2C55] bg-clip-text text-transparent">TikTok</span>
-            </h1>
-            <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
-              Carregamento automático de comentários reais via link, filtros avançados anti-duplicidade (1 chance por @usuário, @amigos marcados, hashtags) e sorteio de múltiplos ganhadores com suspense e efeitos sonoros.
+            <h2 className="text-xl sm:text-2xl font-semibold text-[#EAE7DE]">
+              Sorteador de Comentários do TikTok
+            </h2>
+            <p className="text-xs sm:text-sm text-[#9BA8A3] leading-relaxed">
+              Carregue comentários reais via link do vídeo, aplique filtros anti-duplicidade (1 chance por @usuário, palavras-chave e menções) e sorteie com certificado SHA-256.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={handleLoadSample}
-              className="px-4 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-xs sm:text-sm font-semibold text-sky-300 border border-slate-700 hover:border-sky-500/50 transition flex items-center gap-2 shadow-sm"
+              className="min-h-[38px] px-3.5 py-2 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] text-xs font-semibold text-[#EAE7DE] border border-[#313D39] transition flex items-center gap-1.5"
             >
-              <Sparkles className="w-4 h-4 text-[#00F2FE]" />
+              <Sparkles className="w-3.5 h-3.5 text-[#C6A56A]" />
               <span>Vídeo de Demonstração</span>
             </button>
             <button
               type="button"
               onClick={() => setIsExtractorModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-xs sm:text-sm font-semibold text-[#00F2FE] border border-slate-700 hover:border-[#00F2FE]/40 transition flex items-center gap-2 shadow-sm"
+              className="min-h-[38px] px-3.5 py-2 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] text-xs font-semibold text-[#6EAA90] border border-[#313D39] transition flex items-center gap-1.5"
               title="Copie todos os comentários de qualquer vídeo diretamente do seu navegador"
             >
-              <Code className="w-4 h-4 text-[#00F2FE]" />
+              <Code className="w-3.5 h-3.5 text-[#6EAA90]" />
               <span>Extrator de 1-Clique</span>
             </button>
             <button
               type="button"
               onClick={() => setIsImportModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-xs sm:text-sm font-semibold text-slate-200 border border-slate-700 hover:border-slate-500 transition flex items-center gap-2 shadow-sm"
+              className="min-h-[38px] px-3.5 py-2 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] text-xs font-semibold text-[#EAE7DE] border border-[#313D39] transition flex items-center gap-1.5"
             >
-              <Upload className="w-4 h-4 text-slate-300" />
+              <Upload className="w-3.5 h-3.5 text-[#9BA8A3]" />
               <span>Colar / Importar</span>
             </button>
-            {comments.length > 0 && (
-              isConfirmingClear ? (
-                <div className="flex items-center gap-1.5 p-1 bg-rose-950/80 border border-rose-800 rounded-xl text-xs">
-                  <span className="text-rose-200 px-2 font-semibold">Limpar tudo?</span>
+            {comments.length > 0 &&
+              (isConfirmingClear ? (
+                <div className="flex items-center gap-1.5 p-1 bg-[#D96B6B]/10 border border-[#D96B6B]/40 rounded-lg text-xs">
+                  <span className="text-[#D96B6B] px-2 font-semibold">Limpar tudo?</span>
                   <button
                     type="button"
                     onClick={handleClearAll}
-                    className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg transition"
+                    className="px-2.5 py-1 bg-[#D96B6B] text-[#171D1C] font-semibold rounded transition"
                   >
                     Sim
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsConfirmingClear(false)}
-                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
+                    className="px-2 py-1 bg-[#171D1C] text-[#9BA8A3] hover:text-[#EAE7DE] rounded transition"
                   >
                     Não
                   </button>
@@ -535,55 +718,54 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                   type="button"
                   onClick={() => setIsConfirmingClear(true)}
                   title="Limpar dados carregados"
-                  className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 border border-slate-700 hover:border-rose-800/60 transition"
+                  className="min-h-[38px] p-2 rounded-lg bg-[#171D1C] hover:bg-[#D96B6B]/15 text-[#9BA8A3] hover:text-[#D96B6B] border border-[#313D39] transition"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
-              )
-            )}
+              ))}
           </div>
         </div>
       </div>
 
       {/* URL Input Form */}
-      <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4 sm:p-6 backdrop-blur-md shadow-lg space-y-4">
+      <div className="bg-[#222B28] border border-[#313D39] rounded-xl p-4 sm:p-6 space-y-4">
         <form onSubmit={handleFetchFromUrl} className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <label htmlFor="tiktok-url-input" className="block text-sm font-bold text-slate-200">
+            <label htmlFor="tiktok-url-input" className="block text-sm font-semibold text-[#EAE7DE]">
               Link do Vídeo do TikTok (URL completa ou link curto)
             </label>
-            <span className="text-xs text-slate-400">
-              Suporta: <b>tiktok.com/@user/video/...</b>, <b>vm.tiktok.com/...</b> e <b>vt.tiktok.com/...</b>
+            <span className="text-xs text-[#9BA8A3]">
+              Compatível com <strong className="text-[#EAE7DE]">tiktok.com/@user/video/...</strong> e <strong className="text-[#EAE7DE]">vm.tiktok.com/...</strong>
             </span>
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch gap-2.5">
             <div className="relative flex-1">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                <Video className="w-5 h-5 text-[#FE2C55]" />
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#9BA8A3]">
+                <Video className="w-4 h-4 text-[#6EAA90]" />
               </div>
               <input
                 id="tiktok-url-input"
                 type="text"
                 value={videoUrl}
                 onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder="Ex: https://www.tiktok.com/@tiktok/video/7106594312292453675 ou https://vm.tiktok.com/..."
-                className="w-full pl-11 pr-4 py-3 bg-slate-950 border border-slate-700 focus:border-[#00F2FE] focus:ring-2 focus:ring-[#00F2FE]/20 rounded-xl text-sm text-slate-100 placeholder:text-slate-500 transition"
+                placeholder="Ex: https://www.tiktok.com/@usuario/video/7106594312292453675"
+                className="w-full pl-10 pr-4 py-2.5 bg-[#171D1C] border border-[#313D39] focus:border-[#6EAA90] focus:outline-none rounded-lg text-sm text-[#EAE7DE] placeholder:text-[#9BA8A3]/50 transition"
               />
             </div>
             <button
               type="submit"
               disabled={isLoading || !videoUrl.trim()}
-              className="px-6 py-3 bg-gradient-to-r from-[#00F2FE] to-[#FE2C55] hover:from-[#38f8ff] hover:to-[#ff4369] disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-black text-sm rounded-xl transition shadow-lg shadow-[#FE2C55]/20 flex items-center justify-center gap-2 shrink-0 active:scale-95"
+              className="min-h-[42px] px-5 py-2.5 bg-[#6EAA90] hover:bg-[#5E9980] disabled:opacity-50 disabled:cursor-not-allowed text-[#171D1C] font-semibold text-sm rounded-lg transition flex items-center justify-center gap-2 shrink-0"
             >
               {isLoading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-[#171D1C] border-t-transparent rounded-full animate-spin" />
                   <span>Carregando Comentários...</span>
                 </>
               ) : (
                 <>
-                  <RotateCcw className="w-4 h-4 text-slate-950" />
+                  <RotateCcw className="w-4 h-4" />
                   <span>Carregar Comentários Reais</span>
                 </>
               )}
@@ -592,48 +774,48 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
 
           {/* Real-time Progress Bar during live fetching */}
           {isLoading && loadingProgressMsg && (
-            <div className="flex items-center gap-2 p-3 bg-blue-950/40 border border-blue-800/60 rounded-xl text-xs sm:text-sm text-sky-300 animate-pulse">
-              <RefreshCw className="w-4 h-4 animate-spin text-[#00F2FE] shrink-0" />
+            <div className="flex items-center gap-2 p-3 bg-[#171D1C] border border-[#6EAA90]/40 rounded-lg text-xs sm:text-sm text-[#EAE7DE]">
+              <RefreshCw className="w-4 h-4 animate-spin text-[#6EAA90] shrink-0" />
               <span>{loadingProgressMsg}</span>
             </div>
           )}
 
           {/* Success Message */}
           {loadSuccessMsg && (
-            <div className="flex items-center gap-2 p-3 bg-emerald-950/50 border border-emerald-800/80 rounded-xl text-xs sm:text-sm text-emerald-300">
-              <CheckCircle className="w-4 h-4 shrink-0 text-emerald-400" />
+            <div className="flex items-center gap-2 p-3 bg-[#6EAA90]/15 border border-[#6EAA90]/40 rounded-lg text-xs sm:text-sm text-[#6EAA90]">
+              <CheckCircle className="w-4 h-4 shrink-0" />
               <span>{loadSuccessMsg}</span>
             </div>
           )}
 
           {/* Error Message with action buttons */}
           {loadError && (
-            <div className="p-3.5 bg-rose-950/40 border border-rose-800/60 rounded-xl text-xs sm:text-sm text-rose-300 space-y-2">
+            <div className="p-3.5 bg-[#D96B6B]/10 border border-[#D96B6B]/40 rounded-lg text-xs sm:text-sm text-[#D96B6B] space-y-2.5">
               <div className="flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>{loadError}</span>
               </div>
               <div className="flex flex-wrap items-center gap-2 pt-1 pl-6">
                 <button
                   type="button"
                   onClick={() => setIsExtractorModalOpen(true)}
-                  className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs font-bold text-[#00F2FE] border border-slate-700"
+                  className="px-3 py-1.5 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] text-xs font-semibold text-[#6EAA90] border border-[#313D39]"
                 >
-                  ⚡ Usar Extrator de 1-Clique
+                  Usar Extrator de 1-Clique
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsImportModalOpen(true)}
-                  className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs font-bold text-white border border-slate-700"
+                  className="px-3 py-1.5 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] text-xs font-semibold text-[#EAE7DE] border border-[#313D39]"
                 >
-                  📋 Colar Comentários Manualmente
+                  Colar Comentários Manualmente
                 </button>
                 <button
                   type="button"
                   onClick={handleLoadSample}
-                  className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs font-bold text-sky-300 border border-slate-700"
+                  className="px-3 py-1.5 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] text-xs font-semibold text-[#C6A56A] border border-[#313D39]"
                 >
-                  🧪 Testar com Dados de Exemplo
+                  Testar com Dados de Exemplo
                 </button>
               </div>
             </div>
@@ -642,30 +824,30 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
 
         {/* Video Metadata Preview Card */}
         {videoInfo && (
-          <div className="mt-4 pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-950/60 rounded-xl p-3.5 border border-slate-800/60">
+          <div className="mt-4 pt-4 border-t border-[#313D39] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[#171D1C] rounded-xl p-3.5 border">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-14 h-14 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+              <div className="w-12 h-12 rounded-lg bg-[#222B28] border border-[#313D39] flex items-center justify-center overflow-hidden shrink-0">
                 {videoInfo.thumbnailUrl ? (
                   <img src={videoInfo.thumbnailUrl} alt="Thumbnail do TikTok" className="w-full h-full object-cover" />
                 ) : (
-                  <Video className="w-6 h-6 text-[#00F2FE]" />
+                  <Video className="w-5 h-5 text-[#6EAA90]" />
                 )}
               </div>
               <div className="space-y-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-bold text-sm text-white truncate">{videoInfo.authorName}</span>
+                  <span className="font-semibold text-sm text-[#EAE7DE] truncate">{videoInfo.authorName}</span>
                   {videoInfo.commentCount !== undefined && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-950/80 text-sky-300 border border-blue-800/50">
-                      💬 {videoInfo.commentCount} comentários no TikTok
+                    <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-[#2B3632] text-[#6EAA90] border border-[#313D39] tabular-nums">
+                      {videoInfo.commentCount} comentários no vídeo
                     </span>
                   )}
                   {videoInfo.videoId && (
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#222B28] text-[#9BA8A3] tabular-nums">
                       ID: {videoInfo.videoId}
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-300 line-clamp-1">{videoInfo.title || 'Vídeo do TikTok'}</p>
+                <p className="text-xs text-[#9BA8A3] line-clamp-1">{videoInfo.title || 'Vídeo do TikTok'}</p>
               </div>
             </div>
 
@@ -675,11 +857,11 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                   type="button"
                   onClick={handleLoadMoreComments}
                   disabled={isLoadingMore}
-                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1.5 shadow-md"
+                  className="px-3 py-1.5 rounded-lg bg-[#6EAA90] hover:bg-[#5E9980] disabled:opacity-50 text-[#171D1C] font-semibold text-xs flex items-center gap-1.5"
                 >
                   {isLoadingMore ? (
                     <>
-                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div className="w-3 h-3 border-2 border-[#171D1C] border-t-transparent rounded-full animate-spin" />
                       <span>Buscando...</span>
                     </>
                   ) : (
@@ -696,9 +878,9 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                   href={videoInfo.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-xs font-semibold text-[#00F2FE] hover:underline flex items-center gap-1.5 shrink-0 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800"
+                  className="text-xs font-medium text-[#EAE7DE] hover:text-[#6EAA90] flex items-center gap-1.5 shrink-0 px-2.5 py-1.5 rounded-lg bg-[#222B28] border border-[#313D39]"
                 >
-                  <span>Abrir TikTok</span>
+                  <span>Abrir Vídeo</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               )}
@@ -708,32 +890,34 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
       </div>
 
       {/* Main Controls Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Sorteio Configuration & Draw Trigger */}
-        <div className="lg:col-span-5 space-y-6">
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 sm:p-6 backdrop-blur-md shadow-xl space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-[#00F2FE]" />
-                <span>Configuração do Sorteio</span>
+        <div className="lg:col-span-5 space-y-6 min-w-0">
+          <div className="bg-[#222B28] border border-[#313D39] rounded-xl p-5 sm:p-6 space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-[#313D39]">
+              <h2 className="text-base sm:text-lg font-semibold text-[#EAE7DE] flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-[#C6A56A]" />
+                <span>Regras e Sorteio</span>
               </h2>
               {onToggleSound && (
                 <button
                   type="button"
                   onClick={onToggleSound}
                   title={soundEnabled ? 'Silenciar som' : 'Ativar som'}
-                  className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white"
+                  className="p-1.5 rounded-lg bg-[#171D1C] border border-[#313D39] text-[#9BA8A3] hover:text-[#EAE7DE]"
                 >
-                  {soundEnabled ? <Volume2 className="w-4 h-4 text-sky-400" /> : <VolumeX className="w-4 h-4" />}
+                  {soundEnabled ? <Volume2 className="w-4 h-4 text-[#6EAA90]" /> : <VolumeX className="w-4 h-4" />}
                 </button>
               )}
             </div>
 
             {/* Number of Winners */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
+              <div className="flex items-center justify-between text-xs font-medium text-[#9BA8A3]">
                 <span>Quantidade de Vencedores</span>
-                <span className="text-[#00F2FE] font-bold text-sm">{winnerCount} {winnerCount === 1 ? 'Vencedor' : 'Vencedores'}</span>
+                <span className="text-[#C6A56A] font-semibold tabular-nums">
+                  {winnerCount} {winnerCount === 1 ? 'Vencedor' : 'Vencedores'}
+                </span>
               </div>
               <div className="grid grid-cols-5 gap-2">
                 {[1, 2, 3, 5, 10].map((num) => (
@@ -741,10 +925,10 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                     key={num}
                     type="button"
                     onClick={() => setWinnerCount(num)}
-                    className={`py-2 text-xs font-bold rounded-xl transition ${
+                    className={`py-2 text-xs font-semibold rounded-lg transition tabular-nums ${
                       winnerCount === num
-                        ? 'bg-gradient-to-r from-[#00F2FE] to-[#FE2C55] text-slate-950 font-black shadow-md'
-                        : 'bg-slate-950 text-slate-300 hover:bg-slate-800 border border-slate-800'
+                        ? 'bg-[#6EAA90] text-[#171D1C] font-bold'
+                        : 'bg-[#171D1C] text-[#9BA8A3] hover:text-[#EAE7DE] border border-[#313D39]'
                     }`}
                   >
                     {num}
@@ -755,7 +939,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
 
             {/* Prize Name */}
             <div className="space-y-1.5">
-              <label htmlFor="tiktok-prize-input" className="block text-xs font-semibold text-slate-300">
+              <label htmlFor="tiktok-prize-input" className="block text-xs font-medium text-[#9BA8A3]">
                 Nome do Prêmio
               </label>
               <input
@@ -763,69 +947,69 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                 type="text"
                 value={prizeName}
                 onChange={(e) => setPrizeName(e.target.value)}
-                placeholder="Ex: iPhone 15, PIX R$ 500, Camiseta Oficial"
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 focus:border-[#00F2FE] rounded-xl text-sm text-slate-100"
+                placeholder="Ex: PIX R$ 500,00 ou Prêmio Especial"
+                className="w-full px-3.5 py-2.5 bg-[#171D1C] border border-[#313D39] focus:border-[#6EAA90] focus:outline-none rounded-lg text-sm text-[#EAE7DE]"
               />
             </div>
 
-            {/* Filter Rules Accordion / Card */}
-            <div className="space-y-3 pt-3 border-t border-slate-800">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <Filter className="w-3.5 h-3.5 text-[#00F2FE]" />
-                <span>Regras de Validação & Filtros</span>
+            {/* Filter Rules */}
+            <div className="space-y-3 pt-3 border-t border-[#313D39]">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#9BA8A3] flex items-center gap-1.5">
+                <Filter className="w-3.5 h-3.5 text-[#6EAA90]" />
+                <span>Filtros de Qualificação</span>
               </h3>
 
-              <div className="space-y-2.5 text-xs text-slate-300">
+              <div className="space-y-2.5 text-xs text-[#EAE7DE]">
                 {/* 1 Entry per User */}
-                <label className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-950/60 border border-slate-800/60 cursor-pointer hover:bg-slate-950 transition">
+                <label className="flex items-center gap-2.5 p-2.5 rounded-lg bg-[#171D1C] border border-[#313D39] cursor-pointer hover:border-[#6EAA90]/40 transition">
                   <input
                     type="checkbox"
                     checked={filters.filterDuplicates}
                     onChange={(e) => setFilters((f) => ({ ...f, filterDuplicates: e.target.checked }))}
-                    className="w-4 h-4 rounded text-[#FE2C55] focus:ring-[#FE2C55] bg-slate-900 border-slate-700"
+                    className="w-4 h-4 rounded text-[#6EAA90] focus:ring-[#6EAA90] bg-[#222B28] border-[#313D39]"
                   />
                   <div>
-                    <span className="font-semibold text-slate-200">1 chance por usuário (Desduplicar)</span>
-                    <p className="text-[11px] text-slate-400">Mesmo que alguém comente várias vezes, concorre só com 1 cupom.</p>
+                    <span className="font-semibold text-[#EAE7DE]">1 chance por @usuário (Desduplicar)</span>
+                    <p className="text-[11px] text-[#9BA8A3]">Mesmo comentando várias vezes, cada perfil concorre uma única vez.</p>
                   </div>
                 </label>
 
                 {/* Exclude Creator */}
-                <label className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-950/60 border border-slate-800/60 cursor-pointer hover:bg-slate-950 transition">
+                <label className="flex items-center gap-2.5 p-2.5 rounded-lg bg-[#171D1C] border border-[#313D39] cursor-pointer hover:border-[#6EAA90]/40 transition">
                   <input
                     type="checkbox"
                     checked={filters.excludeAuthor}
                     onChange={(e) => setFilters((f) => ({ ...f, excludeAuthor: e.target.checked }))}
-                    className="w-4 h-4 rounded text-[#FE2C55] focus:ring-[#FE2C55] bg-slate-900 border-slate-700"
+                    className="w-4 h-4 rounded text-[#6EAA90] focus:ring-[#6EAA90] bg-[#222B28] border-[#313D39]"
                   />
                   <div>
-                    <span className="font-semibold text-slate-200">Excluir comentários do autor do vídeo</span>
-                    <p className="text-[11px] text-slate-400">Garante que respostas do criador não entrem no sorteio.</p>
+                    <span className="font-semibold text-[#EAE7DE]">Excluir comentários do autor do vídeo</span>
+                    <p className="text-[11px] text-[#9BA8A3]">Impede que respostas do próprio criador sejam sorteadas.</p>
                   </div>
                 </label>
 
                 {/* Required Keyword or Hashtag */}
-                <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60 space-y-1.5">
-                  <span className="font-semibold text-slate-200 block">Palavra-chave ou Hashtag obrigatória</span>
+                <div className="p-2.5 rounded-lg bg-[#171D1C] border border-[#313D39] space-y-1.5">
+                  <span className="font-semibold text-[#EAE7DE] block">Palavra-chave ou Hashtag obrigatória</span>
                   <input
                     type="text"
                     value={filters.keyword}
                     onChange={(e) => setFilters((f) => ({ ...f, keyword: e.target.value }))}
-                    placeholder="Ex: #sorteio, #giodasorte, eu quero (vazio = qualquer comentário)"
-                    className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 focus:border-[#00F2FE] rounded-lg text-xs text-slate-100"
+                    placeholder="Ex: #sorteio, eu quero (vazio = qualquer comentário)"
+                    className="w-full px-3 py-1.5 bg-[#222B28] border border-[#313D39] focus:border-[#6EAA90] focus:outline-none rounded-lg text-xs text-[#EAE7DE]"
                   />
                 </div>
 
                 {/* Min Mentions Required */}
-                <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60 flex items-center justify-between gap-3">
+                <div className="p-2.5 rounded-lg bg-[#171D1C] border border-[#313D39] flex items-center justify-between gap-3">
                   <div>
-                    <span className="font-semibold text-slate-200 block">Mínimo de amigos marcados (@)</span>
-                    <span className="text-[11px] text-slate-400">Exige @amigo no texto do comentário</span>
+                    <span className="font-semibold text-[#EAE7DE] block">Mínimo de amigos marcados (@)</span>
+                    <span className="text-[11px] text-[#9BA8A3]">Exige @amigo no comentário</span>
                   </div>
                   <select
                     value={filters.minMentions}
                     onChange={(e) => setFilters((f) => ({ ...f, minMentions: Number(e.target.value) }))}
-                    className="px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-100 font-bold"
+                    className="px-2.5 py-1.5 bg-[#222B28] border border-[#313D39] rounded-lg text-xs text-[#EAE7DE] font-semibold"
                   >
                     <option value={0}>Nenhum</option>
                     <option value={1}>1 amigo (@)</option>
@@ -835,19 +1019,19 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                 </div>
 
                 {/* Countdown 10s Toggle */}
-                <label className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-950/60 border border-slate-800/60 cursor-pointer hover:bg-slate-950 transition">
+                <label className="flex items-center gap-2.5 p-2.5 rounded-lg bg-[#171D1C] border border-[#313D39] cursor-pointer hover:border-[#6EAA90]/40 transition">
                   <input
                     type="checkbox"
                     checked={useCountdown}
                     onChange={(e) => setUseCountdown(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#00F2FE] focus:ring-[#00F2FE] bg-slate-900 border-slate-700"
+                    className="w-4 h-4 rounded text-[#6EAA90] focus:ring-[#6EAA90] bg-[#222B28] border-[#313D39]"
                   />
                   <div>
-                    <span className="font-semibold text-slate-200 flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-[#00F2FE]" />
-                      <span>Contagem regressiva de suspense (10 segundos)</span>
+                    <span className="font-semibold text-[#EAE7DE] flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-[#C6A56A]" />
+                      <span>Contagem regressiva de 10 segundos</span>
                     </span>
-                    <p className="text-[11px] text-slate-400">Cria suspense na live antes da revelação do ganhador.</p>
+                    <p className="text-[11px] text-[#9BA8A3]">Exibe contagem antes de revelar o comentário vencedor.</p>
                   </div>
                 </label>
               </div>
@@ -859,11 +1043,11 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                 type="button"
                 disabled={isDrawing || eligible.length === 0 || countdownRemaining !== null}
                 onClick={handleStartDrawFlow}
-                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#00F2FE] via-sky-400 to-[#FE2C55] hover:from-[#38f8ff] hover:to-[#ff4369] disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-display font-black text-base sm:text-lg tracking-tight uppercase shadow-xl shadow-[#FE2C55]/20 hover:shadow-[#00F2FE]/30 transition transform active:scale-95 flex items-center justify-center gap-3"
+                className="w-full min-h-[48px] py-3.5 px-6 rounded-xl bg-[#6EAA90] hover:bg-[#5E9980] disabled:bg-[#2B3632] disabled:text-[#9BA8A3] disabled:border disabled:border-[#313D39] disabled:opacity-60 disabled:cursor-not-allowed text-[#171D1C] font-semibold text-sm sm:text-base transition flex items-center justify-center gap-2.5"
               >
                 {isDrawing ? (
                   <>
-                    <div className="w-5 h-5 border-3 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-5 h-5 border-2 border-[#171D1C] border-t-transparent rounded-full animate-spin" />
                     <span>Sorteando Comentário...</span>
                   </>
                 ) : countdownRemaining !== null ? (
@@ -873,16 +1057,16 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                   </>
                 ) : (
                   <>
-                    <Play className="w-5 h-5 fill-slate-950 text-slate-950" />
+                    <Play className="w-4 h-4 fill-current" />
                     <span>
-                      {winnerCount === 1 ? 'Sortear 1 Vencedor' : `Sortear ${winnerCount} Vencedores`}
+                      {winnerCount === 1 ? 'Sortear Agora (1 Vencedor)' : `Sortear Agora (${winnerCount} Vencedores)`}
                     </span>
                   </>
                 )}
               </button>
               {eligible.length === 0 && (
-                <p className="text-center text-xs text-amber-400 mt-2">
-                  Carregue comentários ou ajuste os filtros para realizar o sorteio.
+                <p className="text-center text-xs text-[#D96B6B] mt-2">
+                  Nenhum comentário elegível disponível. Carregue comentários ou relaxe os filtros acima.
                 </p>
               )}
             </div>
@@ -890,46 +1074,46 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
         </div>
 
         {/* Right Column: Live Stats, Comments Feed & Winners Podium */}
-        <div className="lg:col-span-7 space-y-6">
+        <div className="lg:col-span-7 space-y-6 min-w-0">
           {/* Winners Card (if drawn) */}
           {winners.length > 0 && (
-            <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border-2 border-[#00F2FE]/50 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="bg-[#222B28] border border-[#C6A56A] rounded-xl p-5 sm:p-6 shadow-xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#313D39]">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00F2FE] to-[#FE2C55] flex items-center justify-center text-slate-950 font-black shadow-lg">
+                  <div className="w-10 h-10 rounded-lg bg-[#2B3632] border border-[#C6A56A]/50 flex items-center justify-center text-[#C6A56A]">
                     <Trophy className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-white">
-                      {winners.length === 1 ? 'Vencedor Sorteado!' : `${winners.length} Vencedores Sorteados!`}
+                    <h3 className="text-base sm:text-lg font-semibold text-[#EAE7DE]">
+                      {winners.length === 1 ? 'Comentário Vencedor!' : `${winners.length} Comentários Vencedores!`}
                     </h3>
-                    <p className="text-xs text-[#00F2FE] font-medium">Sorteio auditado e verificado</p>
+                    <p className="text-xs text-[#6EAA90] font-medium">Resultado auditado e verificado</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
                     onClick={handleCopyWinners}
-                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition flex items-center gap-1.5"
+                    className="px-3 py-1.5 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] text-xs font-medium text-[#EAE7DE] border border-[#313D39] transition flex items-center gap-1.5"
                   >
-                    {copiedSuccess ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedSuccess ? <Check className="w-3.5 h-3.5 text-[#6EAA90]" /> : <Copy className="w-3.5 h-3.5 text-[#9BA8A3]" />}
                     <span>{copiedSuccess ? 'Copiado!' : 'Copiar'}</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleExportPDF}
-                    className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-xs font-bold text-white shadow-md shadow-blue-600/30 transition flex items-center gap-1.5 active:scale-95"
+                    className="px-3 py-1.5 rounded-lg bg-[#6EAA90] hover:bg-[#5E9980] text-xs font-semibold text-[#171D1C] transition flex items-center gap-1.5"
                   >
                     <FileText className="w-3.5 h-3.5" />
-                    <span>PDF</span>
+                    <span>Laudo PDF</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleExportCSV}
-                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition flex items-center gap-1.5"
+                    className="px-3 py-1.5 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] text-xs font-medium text-[#EAE7DE] border border-[#313D39] transition flex items-center gap-1.5"
                   >
-                    <Download className="w-3.5 h-3.5" />
+                    <Download className="w-3.5 h-3.5 text-[#C6A56A]" />
                     <span>CSV</span>
                   </button>
                 </div>
@@ -940,21 +1124,21 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                 {winners.map((winner) => (
                   <div
                     key={winner.id}
-                    className="p-4 rounded-xl bg-slate-950/90 border border-slate-800 hover:border-[#00F2FE]/40 transition space-y-2 relative overflow-hidden"
+                    className="p-4 rounded-xl bg-[#171D1C] border border-[#313D39] space-y-2.5"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 font-black text-xs flex items-center justify-center shadow-md shrink-0">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-[#2B3632] border border-[#C6A56A]/50 text-[#C6A56A] font-mono font-bold text-xs flex items-center justify-center shrink-0 tabular-nums">
                           {winner.rank}º
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-sm text-white">{winner.comment.username}</span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-sm text-[#EAE7DE] truncate">{winner.comment.username}</span>
                             {winner.comment.nickname && (
-                              <span className="text-xs text-slate-400">({winner.comment.nickname})</span>
+                              <span className="text-xs text-[#9BA8A3] truncate">({winner.comment.nickname})</span>
                             )}
                           </div>
-                          <span className="text-xs font-semibold text-[#00F2FE]">{winner.prize}</span>
+                          <span className="text-xs font-medium text-[#C6A56A]">{winner.prize}</span>
                         </div>
                       </div>
 
@@ -971,21 +1155,21 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                               drawnAt: winner.drawnAt,
                             })
                           }
-                          className="px-2.5 py-1 rounded-md bg-blue-600/30 hover:bg-blue-600/50 text-[#00F2FE] text-[11px] font-bold border border-blue-500/30 transition shrink-0"
+                          className="px-2.5 py-1 rounded-lg bg-[#222B28] hover:bg-[#2B3632] text-[#C6A56A] text-xs font-medium border border-[#C6A56A]/40 transition shrink-0"
                         >
                           Cartão VIP
                         </button>
                       )}
                     </div>
 
-                    <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800/80 text-xs text-slate-200 italic">
-                      "{winner.comment.text}"
+                    <div className="p-2.5 rounded-lg bg-[#222B28] border border-[#313D39] text-xs text-[#EAE7DE] italic">
+                      &ldquo;{winner.comment.text}&rdquo;
                     </div>
 
                     {winner.comment.mentions.length > 0 && (
-                      <div className="flex items-center gap-1.5 flex-wrap text-[11px] text-[#FE2C55]">
+                      <div className="flex items-center gap-1.5 flex-wrap text-[11px] text-[#6EAA90]">
                         <AtSign className="w-3 h-3" />
-                        <span>Amigos marcados: {winner.comment.mentions.join(', ')}</span>
+                        <span>Menções: {winner.comment.mentions.join(', ')}</span>
                       </div>
                     )}
                   </div>
@@ -996,46 +1180,44 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
 
           {/* Cycling Animation Display while drawing */}
           {isDrawing && cyclingComment && (
-            <div className="bg-slate-900 border-2 border-[#FE2C55] rounded-2xl p-6 text-center space-y-3 animate-pulse shadow-2xl shadow-[#FE2C55]/30">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#00F2FE]">
-                Sorteando entre {eligible.length} comentários...
+            <div className="bg-[#222B28] border border-[#6EAA90] rounded-xl p-6 text-center space-y-2.5 animate-pulse">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#6EAA90]">
+                Sorteando entre {eligible.length} comentários elegíveis...
               </span>
-              <div className="text-2xl font-black text-white tracking-tight">{cyclingComment.username}</div>
-              <p className="text-xs text-slate-300 italic line-clamp-2 max-w-md mx-auto">
-                "{cyclingComment.text}"
+              <div className="text-2xl font-bold text-[#EAE7DE]">{cyclingComment.username}</div>
+              <p className="text-xs text-[#9BA8A3] italic line-clamp-2 max-w-md mx-auto">
+                &ldquo;{cyclingComment.text}&rdquo;
               </p>
             </div>
           )}
 
           {/* Comments Data Grid & Search */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 sm:p-6 backdrop-blur-md shadow-xl space-y-4">
-            {/* Header & Stats Badges */}
+          <div className="bg-[#222B28] border border-[#313D39] rounded-xl p-5 sm:p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-[#FE2C55]" />
-                  <span>Comentários Carregados</span>
+                <h3 className="text-base font-semibold text-[#EAE7DE] flex items-center gap-2">
+                  <Users className="w-4 h-4 text-[#6EAA90]" />
+                  <span>Comentários Qualificados</span>
                 </h3>
-                <p className="text-xs text-slate-400">Lista com validação em tempo real</p>
+                <p className="text-xs text-[#9BA8A3]">Lista filtrada em tempo real conforme as regras ao lado</p>
               </div>
 
-              {/* Metrics Pill */}
-              <div className="flex items-center gap-2 text-xs flex-wrap">
-                <span className="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-slate-300">
-                  Total: <b className="text-white">{comments.length}</b>
+              <div className="flex items-center gap-2 text-xs flex-wrap tabular-nums">
+                <span className="px-2.5 py-1 rounded-lg bg-[#171D1C] border border-[#313D39] text-[#9BA8A3]">
+                  Total: <strong className="text-[#EAE7DE]">{comments.length}</strong>
                 </span>
-                <span className="px-2.5 py-1 rounded-lg bg-emerald-950/60 border border-emerald-800/60 text-emerald-300">
-                  Elegíveis: <b className="text-white">{eligible.length}</b>
+                <span className="px-2.5 py-1 rounded-lg bg-[#6EAA90]/15 border border-[#6EAA90]/40 text-[#6EAA90]">
+                  Elegíveis: <strong className="text-[#EAE7DE]">{eligible.length}</strong>
                 </span>
-                <span className="px-2.5 py-1 rounded-lg bg-blue-950/60 border border-blue-800/60 text-sky-300">
-                  Únicos: <b className="text-white">{totalEligibleUsers}</b>
+                <span className="px-2.5 py-1 rounded-lg bg-[#171D1C] border border-[#313D39] text-[#C6A56A]">
+                  Únicos: <strong className="text-[#EAE7DE]">{totalEligibleUsers}</strong>
                 </span>
               </div>
             </div>
 
             {/* Search Bar */}
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#9BA8A3]">
                 <Search className="w-4 h-4" />
               </div>
               <input
@@ -1043,58 +1225,57 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar por @usuário, nome ou texto do comentário..."
-                className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 focus:border-[#00F2FE] rounded-xl text-xs text-slate-100 placeholder:text-slate-500"
+                className="w-full pl-9 pr-4 py-2 bg-[#171D1C] border border-[#313D39] focus:border-[#6EAA90] focus:outline-none rounded-lg text-xs text-[#EAE7DE] placeholder:text-[#9BA8A3]/50"
               />
             </div>
 
             {/* Comments Scrollable List */}
-            <div className="max-h-[460px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+            <div className="max-h-[460px] overflow-y-auto space-y-2 pr-1">
               {displayComments.length > 0 ? (
                 displayComments.map((comment) => (
                   <div
                     key={comment.id}
-                    className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/70 hover:border-slate-700 transition space-y-1.5"
+                    className="p-3 rounded-xl bg-[#171D1C] border border-[#313D39] hover:border-[#6EAA90]/40 transition space-y-1.5"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         {comment.avatarUrl ? (
                           <img
                             src={comment.avatarUrl}
                             alt=""
-                            className="w-6 h-6 rounded-full object-cover border border-slate-700"
+                            className="w-6 h-6 rounded-full object-cover border border-[#313D39] shrink-0"
                             onError={(e) => {
-                              // If image fails to load, fallback to initial
                               (e.target as HTMLElement).style.display = 'none';
                             }}
                           />
                         ) : (
-                          <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#00F2FE]/40 to-[#FE2C55]/40 text-white text-[10px] font-bold flex items-center justify-center">
+                          <div className="w-6 h-6 rounded-full bg-[#2B3632] border border-[#313D39] text-[#C6A56A] text-[10px] font-bold flex items-center justify-center shrink-0">
                             {comment.username.replace('@', '').charAt(0).toUpperCase()}
                           </div>
                         )}
-                        <span className="font-bold text-xs text-white">{comment.username}</span>
+                        <span className="font-semibold text-xs text-[#EAE7DE] truncate">{comment.username}</span>
                         {comment.nickname && (
-                          <span className="text-[11px] text-slate-400 truncate max-w-[120px]">
+                          <span className="text-[11px] text-[#9BA8A3] truncate max-w-[120px]">
                             {comment.nickname}
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                      <div className="flex items-center gap-1.5 text-[10px] text-[#9BA8A3] shrink-0">
                         {comment.likes !== undefined && comment.likes > 0 && (
-                          <span>❤️ {comment.likes}</span>
+                          <span className="tabular-nums">♥ {comment.likes}</span>
                         )}
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 font-semibold">
+                        <span className="px-1.5 py-0.5 rounded bg-[#6EAA90]/15 text-[#6EAA90] border border-[#6EAA90]/30 font-medium">
                           Elegível
                         </span>
                       </div>
                     </div>
 
-                    <p className="text-xs text-slate-300 leading-snug break-words">
+                    <p className="text-xs text-[#EAE7DE]/90 leading-snug break-words">
                       {comment.text}
                     </p>
 
                     {comment.mentions.length > 0 && (
-                      <div className="text-[10px] text-[#FE2C55] flex items-center gap-1">
+                      <div className="text-[10px] text-[#C6A56A] flex items-center gap-1">
                         <AtSign className="w-2.5 h-2.5" />
                         <span>{comment.mentions.join(' ')}</span>
                       </div>
@@ -1102,16 +1283,16 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                   </div>
                 ))
               ) : (
-                <div className="py-12 text-center space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center mx-auto text-slate-500">
-                    <MessageSquare className="w-6 h-6" />
+                <div className="py-12 text-center space-y-3 bg-[#171D1C]/60 rounded-xl border border-dashed border-[#313D39]">
+                  <div className="w-11 h-11 rounded-xl bg-[#222B28] border border-[#313D39] flex items-center justify-center mx-auto text-[#9BA8A3]">
+                    <MessageSquare className="w-5 h-5" />
                   </div>
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-semibold text-slate-300">Nenhum comentário na lista</h4>
-                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  <div className="space-y-1 px-4">
+                    <h4 className="text-sm font-semibold text-[#EAE7DE]">Nenhum comentário elegível na lista</h4>
+                    <p className="text-xs text-[#9BA8A3] max-w-sm mx-auto">
                       {comments.length === 0
-                        ? 'Cole o link de qualquer vídeo do TikTok acima e clique em "Carregar Comentários Reais" para começar.'
-                        : 'Nenhum comentário passou pelos filtros selecionados. Tente relaxar as regras de validação.'}
+                        ? 'Cole o link de um vídeo do TikTok acima ou importe uma lista de comentários para começar.'
+                        : 'Nenhum comentário atendeu aos filtros atuais. Relaxe os filtros ao lado para ver os participantes.'}
                     </p>
                   </div>
                   {comments.length === 0 && (
@@ -1119,14 +1300,14 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                       <button
                         type="button"
                         onClick={handleLoadSample}
-                        className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-[#00F2FE] border border-slate-700"
+                        className="px-3.5 py-1.5 rounded-lg bg-[#222B28] hover:bg-[#2B3632] text-xs font-semibold text-[#6EAA90] border border-[#313D39]"
                       >
                         Carregar Exemplo Rápido
                       </button>
                       <button
                         type="button"
                         onClick={() => setIsImportModalOpen(true)}
-                        className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white border border-slate-700"
+                        className="px-3.5 py-1.5 rounded-lg bg-[#222B28] hover:bg-[#2B3632] text-xs font-semibold text-[#EAE7DE] border border-[#313D39]"
                       >
                         Colar Comentários
                       </button>
@@ -1138,22 +1319,22 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
 
             {/* Load More Button at bottom of list */}
             {videoInfo?.hasMoreComments && comments.length > 0 && (
-              <div className="pt-2 border-t border-slate-800/80 flex justify-center">
+              <div className="pt-2 border-t border-[#313D39] flex justify-center">
                 <button
                   type="button"
                   onClick={handleLoadMoreComments}
                   disabled={isLoadingMore}
-                  className="px-4 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-xs font-bold text-[#00F2FE] border border-slate-800 hover:border-[#00F2FE]/40 transition flex items-center gap-2 shadow-sm"
+                  className="px-4 py-2 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] text-xs font-semibold text-[#6EAA90] border border-[#313D39] transition flex items-center gap-2"
                 >
                   {isLoadingMore ? (
                     <>
-                      <div className="w-3.5 h-3.5 border-2 border-[#00F2FE] border-t-transparent rounded-full animate-spin" />
+                      <div className="w-3.5 h-3.5 border-2 border-[#6EAA90] border-t-transparent rounded-full animate-spin" />
                       <span>Buscando mais comentários...</span>
                     </>
                   ) : (
                     <>
                       <Plus className="w-4 h-4" />
-                      <span>Carregar Mais Comentários do TikTok (+50)</span>
+                      <span>Carregar Mais Comentários (+50)</span>
                     </>
                   )}
                 </button>
@@ -1168,33 +1349,27 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[70] bg-slate-950/95 backdrop-blur-2xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+          className="fixed inset-0 z-[70] bg-[#171D1C]/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
         >
-          <div className="relative w-full max-w-md bg-slate-900 border-2 border-[#00F2FE] rounded-3xl p-8 text-center space-y-6 shadow-2xl shadow-[#FE2C55]/30 animate-slide-up">
+          <div className="relative w-full max-w-md bg-[#222B28] border border-[#6EAA90] rounded-2xl p-8 text-center space-y-6 shadow-2xl">
             <div className="space-y-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-slate-950 border border-slate-800 text-[#00F2FE]">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-[#171D1C] border border-[#313D39] text-[#6EAA90]">
                 <Clock className="w-3.5 h-3.5 animate-spin" />
-                <span>Sorteio do TikTok Iniciando</span>
+                <span>Sorteio por Comentários</span>
               </span>
-              <h2 className="text-xl font-bold text-white">{prizeName}</h2>
-              <p className="text-xs text-slate-400">
+              <h2 className="text-xl font-semibold text-[#EAE7DE]">{prizeName}</h2>
+              <p className="text-xs text-[#9BA8A3] tabular-nums">
                 Sorteando entre {eligible.length} comentários qualificados
               </p>
             </div>
 
-            {/* Glowing Big Counter */}
-            <div className="relative w-36 h-36 mx-auto flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#00F2FE]/20 to-[#FE2C55]/20 animate-ping opacity-30" />
-              <div className="w-32 h-32 rounded-full bg-slate-950 border-4 border-[#FE2C55] flex items-center justify-center shadow-inner">
-                <span className="font-display font-black text-6xl text-white">
+            <div className="relative w-32 h-32 mx-auto flex items-center justify-center">
+              <div className="w-32 h-32 rounded-full bg-[#171D1C] border-4 border-[#C6A56A] flex items-center justify-center">
+                <span className="font-mono font-bold text-5xl text-[#EAE7DE] tabular-nums">
                   {countdownRemaining}
                 </span>
               </div>
             </div>
-
-            <p className="text-xs text-slate-400 italic">
-              Preparem os prints e preparem a torcida!
-            </p>
 
             <div className="flex items-center justify-center gap-3">
               <button
@@ -1203,14 +1378,14 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                   setCountdownRemaining(null);
                   executeDraw();
                 }}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#00F2FE] to-[#FE2C55] text-slate-950 font-bold text-xs"
+                className="px-4 py-2 rounded-lg bg-[#6EAA90] hover:bg-[#5E9980] text-[#171D1C] font-semibold text-xs"
               >
-                Pular Contagem
+                Revelar Agora
               </button>
               <button
                 type="button"
                 onClick={() => setCountdownRemaining(null)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs"
+                className="px-4 py-2 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] text-[#9BA8A3] hover:text-[#EAE7DE] border border-[#313D39] font-semibold text-xs"
               >
                 Cancelar
               </button>
@@ -1219,61 +1394,59 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
         </div>
       )}
 
-      {/* 1-Click Extractor Modal for TikTok */}
+      {/* 1-Click Extractor Modal */}
       {isExtractorModalOpen && (
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+          className="fixed inset-0 z-50 bg-[#171D1C]/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
         >
-          <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl animate-slide-up">
+          <div className="relative w-full max-w-xl bg-[#222B28] border border-[#313D39] rounded-2xl p-6 sm:p-7 space-y-5 shadow-2xl">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Code className="w-5 h-5 text-[#00F2FE]" />
+                <h3 className="text-lg font-semibold text-[#EAE7DE] flex items-center gap-2">
+                  <Code className="w-5 h-5 text-[#6EAA90]" />
                   <span>Extrator de 1-Clique para TikTok</span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-1">
-                  Extraia 100% dos comentários de qualquer vídeo do TikTok diretamente pelo seu próprio navegador sem bloqueios de API.
+                <p className="text-xs text-[#9BA8A3] mt-1">
+                  Extraia todos os comentários carregados na página do vídeo diretamente pelo navegador.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsExtractorModalOpen(false)}
-                className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white"
+                className="p-1.5 rounded-lg bg-[#171D1C] border border-[#313D39] text-[#9BA8A3] hover:text-[#EAE7DE]"
               >
                 ✕
               </button>
             </div>
 
-            {/* Steps */}
-            <div className="space-y-3 bg-slate-950/70 p-4 rounded-2xl border border-slate-800 text-xs text-slate-300">
+            <div className="space-y-3 bg-[#171D1C] p-4 rounded-xl border border-[#313D39] text-xs text-[#EAE7DE]">
               <div className="flex items-start gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-[#00F2FE] text-slate-950 font-black text-[11px] flex items-center justify-center shrink-0">1</span>
-                <span>Abra o vídeo no site do TikTok no computador (role os comentários um pouco para carregar mais).</span>
+                <span className="w-5 h-5 rounded-full bg-[#6EAA90] text-[#171D1C] font-bold text-[11px] flex items-center justify-center shrink-0">1</span>
+                <span>Abra o vídeo no site do TikTok no computador e role os comentários que deseja incluir.</span>
               </div>
               <div className="flex items-start gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-[#00F2FE] text-slate-950 font-black text-[11px] flex items-center justify-center shrink-0">2</span>
-                <span>Pressione <b>F12</b> no teclado (ou clique com botão direito &gt; Inspecionar) e clique na aba <b>Console</b>.</span>
+                <span className="w-5 h-5 rounded-full bg-[#6EAA90] text-[#171D1C] font-bold text-[11px] flex items-center justify-center shrink-0">2</span>
+                <span>Pressione <strong>F12</strong> (Inspecionar) e abra a aba <strong>Console</strong>.</span>
               </div>
               <div className="flex items-start gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-[#00F2FE] text-slate-950 font-black text-[11px] flex items-center justify-center shrink-0">3</span>
-                <span>Cole o código abaixo e aperte <b>Enter</b>. Ele copia todos os comentários para sua área de transferência!</span>
+                <span className="w-5 h-5 rounded-full bg-[#6EAA90] text-[#171D1C] font-bold text-[11px] flex items-center justify-center shrink-0">3</span>
+                <span>Cole o comando abaixo e pressione <strong>Enter</strong>. Os comentários serão copiados automaticamente.</span>
               </div>
             </div>
 
-            {/* Code Snippet Box */}
             <div className="relative">
-              <pre className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-[11px] text-sky-200 font-mono overflow-x-auto max-h-36">
+              <pre className="p-3 bg-[#171D1C] border border-[#313D39] rounded-xl text-[11px] text-[#EAE7DE] font-mono overflow-x-auto max-h-36">
                 {TIKTOK_BROWSER_CONSOLE_SNIPPET}
               </pre>
               <button
                 type="button"
                 onClick={handleCopyExtractorSnippet}
-                className="absolute top-2 right-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md"
+                className="absolute top-2 right-2 px-3 py-1.5 rounded-lg bg-[#6EAA90] hover:bg-[#5E9980] text-[#171D1C] font-semibold text-xs flex items-center gap-1.5"
               >
                 {copiedSnippet ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedSnippet ? 'Código Copiado!' : 'Copiar Código'}</span>
+                <span>{copiedSnippet ? 'Copiado!' : 'Copiar Código'}</span>
               </button>
             </div>
 
@@ -1284,7 +1457,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                   setIsExtractorModalOpen(false);
                   setIsImportModalOpen(true);
                 }}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700"
+                className="px-4 py-2 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] text-xs font-semibold text-[#EAE7DE] border border-[#313D39]"
               >
                 Ir para Colar Comentários
               </button>
@@ -1292,46 +1465,100 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
               <button
                 type="button"
                 onClick={() => setIsExtractorModalOpen(false)}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#00F2FE] to-[#FE2C55] text-slate-950 font-bold text-xs"
+                className="px-5 py-2 rounded-lg bg-[#6EAA90] text-[#171D1C] font-semibold text-xs"
               >
-                Entendi
+                Concluir
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Manual Comments Import Modal */}
+      {/* Manual & File (.TXT / .CSV) Comments Import Modal */}
       {isImportModalOpen && (
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+          className="fixed inset-0 z-50 bg-[#171D1C]/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
         >
-          <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl animate-slide-up">
+          <div className="relative w-full max-w-xl bg-[#222B28] border border-[#313D39] rounded-2xl p-6 sm:p-7 space-y-5 shadow-2xl">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Upload className="w-5 h-5 text-[#00F2FE]" />
-                  <span>Importar / Colar Comentários</span>
+                <h3 className="text-lg font-semibold text-[#EAE7DE] flex items-center gap-2">
+                  <Upload className="w-5 h-5 text-[#6EAA90]" />
+                  <span>Importar / Colar Comentários (.TXT ou .CSV)</span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-1">
-                  Cole os comentários copiados de ferramentas como TikTok Studio, ExportComments ou JSON/CSV.
+                <p className="text-xs text-[#9BA8A3] mt-1">
+                  Selecione um arquivo <code>.txt</code> ou <code>.csv</code> do seu dispositivo ou cole comentários nos formatos <code>@usuario: texto</code>, <code>usuario,comentario,curtidas</code> ou JSON.
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => setIsImportModalOpen(false)}
-                className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white"
+                onClick={() => {
+                  setIsImportModalOpen(false);
+                  setImportModalError(null);
+                  setImportModalInfo(null);
+                }}
+                className="p-1.5 rounded-lg bg-[#171D1C] border border-[#313D39] text-[#9BA8A3] hover:text-[#EAE7DE]"
               >
                 ✕
               </button>
             </div>
 
+            {/* Upload de Arquivo .TXT ou .CSV Local */}
+            <div className="p-3.5 rounded-xl bg-[#171D1C] border border-[#313D39] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-0.5 min-w-0">
+                <span className="text-xs font-semibold text-[#EAE7DE] flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-[#6EAA90] shrink-0" />
+                  <span className="truncate">
+                    {selectedImportFileName
+                      ? `Arquivo selecionado: ${selectedImportFileName}`
+                      : 'Importar de arquivo local (.txt ou .csv)'}
+                  </span>
+                </span>
+                <p className="text-[11px] text-[#9BA8A3]">
+                  Cabeçalhos CSV (ex: <code>usuario,comentario,curtidas</code>) são reconhecidos e ignorados automaticamente.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <input
+                  ref={importFileInputRef}
+                  id="comments-file-upload-input"
+                  type="file"
+                  accept=".txt,.csv,text/plain,text/csv"
+                  onChange={handleImportFileSelected}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => importFileInputRef.current?.click()}
+                  className="px-3.5 py-2 rounded-lg bg-[#222B28] hover:bg-[#2B3632] text-[#EAE7DE] border border-[#6EAA90]/50 text-xs font-semibold flex items-center gap-1.5 transition"
+                >
+                  <Upload className="w-3.5 h-3.5 text-[#6EAA90]" />
+                  <span>Escolher Arquivo (.TXT / .CSV)</span>
+                </button>
+              </div>
+            </div>
+
+            {importModalError && (
+              <div className="p-3 rounded-xl bg-[#D96B6B]/10 border border-[#D96B6B]/40 text-xs text-[#D96B6B] flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{importModalError}</span>
+              </div>
+            )}
+
+            {importModalInfo && (
+              <div className="p-3 rounded-xl bg-[#6EAA90]/15 border border-[#6EAA90]/40 text-xs text-[#6EAA90] flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{importModalInfo}</span>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs text-slate-300">
-                <label htmlFor="import-textarea" className="font-semibold">
-                  Cole a lista (Formato: @usuario: comentario ou usuario,texto ou JSON)
+              <div className="flex items-center justify-between text-xs text-[#9BA8A3]">
+                <label htmlFor="import-textarea" className="font-semibold text-[#EAE7DE]">
+                  Lista de comentários (colagem manual ou pré-visualização do arquivo)
                 </label>
                 <button
                   type="button"
@@ -1339,7 +1566,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                     setIsImportModalOpen(false);
                     setIsExtractorModalOpen(true);
                   }}
-                  className="text-[#00F2FE] hover:underline"
+                  className="text-[#6EAA90] hover:underline"
                 >
                   Como extrair do TikTok?
                 </button>
@@ -1348,25 +1575,31 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                 id="import-textarea"
                 rows={8}
                 value={rawImportText}
-                onChange={(e) => setRawImportText(e.target.value)}
-                placeholder={`@maria_silva: Eu quero muito ganhar esse prêmio @joao #sorteio\n@pedro_gamer: Participando da live!\n@carla_costa: Maravilhoso @amiga1 @amiga2`}
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 focus:border-[#00F2FE] rounded-xl text-xs text-slate-100 font-mono"
+                onChange={(e) => {
+                  setRawImportText(e.target.value);
+                  if (importModalError) setImportModalError(null);
+                }}
+                placeholder={`@maria_silva: Eu quero ganhar @joao #sorteio\n@pedro_gamer: Participando!\nusuario,comentario,curtidas\n@carla_costa,"Muito bom, quero ganhar! @amiga1 @amiga2",15`}
+                className="w-full px-3.5 py-2.5 bg-[#171D1C] border border-[#313D39] focus:border-[#6EAA90] focus:outline-none rounded-lg text-xs text-[#EAE7DE] font-mono"
               />
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => setIsImportModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300"
+                onClick={() => {
+                  setIsImportModalOpen(false);
+                  setImportModalError(null);
+                  setImportModalInfo(null);
+                }}
+                className="px-4 py-2 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] text-xs font-semibold text-[#9BA8A3] hover:text-[#EAE7DE] border border-[#313D39]"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={handleImportSubmit}
-                disabled={!rawImportText.trim()}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#00F2FE] to-[#FE2C55] disabled:opacity-50 text-slate-950 font-bold text-xs"
+                className="px-5 py-2 rounded-lg bg-[#6EAA90] hover:bg-[#5E9980] text-[#171D1C] font-semibold text-xs"
               >
                 Importar Lista
               </button>

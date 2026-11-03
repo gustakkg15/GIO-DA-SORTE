@@ -1,38 +1,89 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
   <defs>
-    <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#1e3a8a"/>
-      <stop offset="70%" stop-color="#0f172a"/>
-      <stop offset="100%" stop-color="#020617"/>
+    <radialGradient id="obsidianBg" cx="50%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#111C35"/>
+      <stop offset="55%" stop-color="#0A101F"/>
+      <stop offset="100%" stop-color="#050811"/>
     </radialGradient>
-    <linearGradient id="goldCoin" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#fef08a"/>
-      <stop offset="25%" stop-color="#f59e0b"/>
-      <stop offset="70%" stop-color="#d97706"/>
-      <stop offset="100%" stop-color="#78350f"/>
+    <linearGradient id="neonCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F2FE"/>
+      <stop offset="50%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#2563EB"/>
     </linearGradient>
-    <linearGradient id="blueRing" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#38bdf8"/>
-      <stop offset="50%" stop-color="#2563eb"/>
-      <stop offset="100%" stop-color="#1d4ed8"/>
+    <linearGradient id="ticketSurface" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#162447"/>
+      <stop offset="100%" stop-color="#0B132B"/>
     </linearGradient>
+    <linearGradient id="goldAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047"/>
+      <stop offset="50%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#D97706"/>
+    </linearGradient>
+    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
   </defs>
 
-  <!-- Background rounded canvas -->
-  <rect width="512" height="512" rx="112" fill="url(#bgGlow)"/>
-  
-  <!-- Outer glowing blue ring -->
-  <circle cx="256" cy="256" r="195" fill="none" stroke="url(#blueRing)" stroke-width="8" stroke-dasharray="14 10" opacity="0.8"/>
-  <circle cx="256" cy="256" r="182" fill="#0f172a" stroke="#1e40af" stroke-width="4"/>
+  <!-- Squircle Dark Obsidian Base -->
+  <rect width="512" height="512" rx="116" fill="url(#obsidianBg)"/>
+  <rect x="14" y="14" width="484" height="484" rx="104" fill="none" stroke="url(#neonCyan)" stroke-width="3" opacity="0.45"/>
 
-  <!-- Golden Coin -->
-  <circle cx="256" cy="256" r="150" fill="url(#goldCoin)"/>
-  <circle cx="256" cy="256" r="132" fill="none" stroke="#fef08a" stroke-width="6" stroke-dasharray="6 6"/>
+  <!-- Subtle Ambient Neon Ring -->
+  <circle cx="256" cy="256" r="196" fill="none" stroke="url(#neonCyan)" stroke-width="2" stroke-dasharray="10 14" opacity="0.35"/>
 
-  <!-- Inner Sparkle Star -->
-  <path d="M256 150 L275 225 L350 256 L275 287 L256 362 L237 287 L162 256 L237 225 Z" fill="#ffffff" filter="drop-shadow(0 0 16px #38bdf8)"/>
-  
-  <!-- Mini sparkles -->
-  <polygon points="175,175 183,195 203,203 183,211 175,231 167,211 147,203 167,195" fill="#fef08a"/>
-  <polygon points="340,310 346,325 361,331 346,337 340,352 334,337 319,331 334,325" fill="#38bdf8"/>
+  <!-- Minimalist Tilted Lucky Ticket -->
+  <g transform="translate(256, 264) rotate(-14) translate(-256, -256)">
+    <!-- Ticket Outer Body with Side Perforation Notches -->
+    <path
+      d="M 106 166
+         H 406
+         A 16 16 0 0 1 422 182
+         V 224
+         A 32 32 0 0 0 422 288
+         V 330
+         A 16 16 0 0 1 406 346
+         H 106
+         A 16 16 0 0 1 90 330
+         V 288
+         A 32 32 0 0 0 90 224
+         V 182
+         A 16 16 0 0 1 106 166 Z"
+      fill="url(#ticketSurface)"
+      stroke="url(#neonCyan)"
+      stroke-width="6"
+      filter="url(#neonGlow)"
+    />
+
+    <!-- Ticket Stub Divider Line -->
+    <line x1="318" y1="176" x2="318" y2="336" stroke="#38BDF8" stroke-width="4" stroke-dasharray="8 8" opacity="0.65"/>
+
+    <!-- Four-Leaf Neon Clover Inside Ticket -->
+    <g transform="translate(208, 256)">
+      <!-- Top Leaf -->
+      <circle cx="0" cy="-28" r="22" fill="url(#neonCyan)" opacity="0.95"/>
+      <!-- Bottom Leaf -->
+      <circle cx="0" cy="28" r="22" fill="url(#neonCyan)" opacity="0.95"/>
+      <!-- Left Leaf -->
+      <circle cx="-28" cy="0" r="22" fill="url(#neonCyan)" opacity="0.95"/>
+      <!-- Right Leaf -->
+      <circle cx="28" cy="0" r="22" fill="url(#neonCyan)" opacity="0.95"/>
+      <!-- Center Diamond Core -->
+      <polygon points="0,-12 12,0 0,12 -12,0" fill="#FFFFFF"/>
+    </g>
+
+    <!-- Serial Bars on Stub -->
+    <rect x="346" y="212" width="42" height="8" rx="4" fill="#00F2FE" opacity="0.85"/>
+    <rect x="346" y="232" width="30" height="8" rx="4" fill="#38BDF8" opacity="0.55"/>
+    <rect x="346" y="252" width="42" height="8" rx="4" fill="#00F2FE" opacity="0.85"/>
+    <rect x="346" y="272" width="24" height="8" rx="4" fill="#FDE047" opacity="0.9"/>
+    <rect x="346" y="292" width="38" height="8" rx="4" fill="#38BDF8" opacity="0.55"/>
+  </g>
+
+  <!-- Minimalist Crown / Sparkle Emblem Above Ticket -->
+  <path
+    d="M 216 118 L 236 142 L 256 106 L 276 142 L 296 118 L 288 156 H 224 Z"
+    fill="url(#goldAccent)"
+  />
+  <circle cx="256" cy="96" r="5" fill="#00F2FE"/>
 </svg>

@@ -635,3 +635,174 @@ export async function downloadRaffleFullPdf(options: GeneratePdfReportOptions): 
 
 // Backward-compatible alias
 export const downloadRafflePdfReport = downloadRaffleFullPdf;
+
+export interface TikTokLivePdfCertificateOptions {
+  drawType: 'INDIVIDUAL_LIVE' | 'CAMPAIGN';
+  targetTitle: string;
+  prizeName: string;
+  drawDate: number;
+  winnerUsername: string;
+  winnerNickname: string;
+  winnerTiktokUserId: string;
+  winningTicketNumber: number;
+  totalTickets: number;
+  rosterSha256Hash: string;
+  seedCommitment: string;
+  seedRevealed: string;
+  sessionId?: string;
+  campaignId?: string;
+}
+
+export async function downloadTikTokLivePdfCertificate(
+  options: TikTokLivePdfCertificateOptions
+): Promise<void> {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  const pageWidth = 210;
+  const pageHeight = 297;
+  const margin = 16;
+  const contentWidth = pageWidth - margin * 2;
+  let currentY = margin;
+
+  // Header banner background
+  doc.setFillColor(15, 23, 42); // slate-900
+  doc.rect(margin, currentY, contentWidth, 34, 'F');
+
+  // Decorative accent line
+  doc.setFillColor(0, 242, 254);
+  doc.rect(margin, currentY + 34, contentWidth * 0.5, 2, 'F');
+  doc.setFillColor(254, 44, 85);
+  doc.rect(margin + contentWidth * 0.5, currentY + 34, contentWidth * 0.5, 2, 'F');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(255, 255, 255);
+  doc.text('GIO DA SORTE PRO', margin + 8, currentY + 12);
+
+  doc.setFontSize(10);
+  doc.setTextColor(148, 163, 184);
+  doc.text('CERTIFICADO OFICIAL DE AUDITORIA CRIPTOGRÁFICA', margin + 8, currentY + 19);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(0, 242, 254);
+  doc.text(
+    `TIPO: ${options.drawType === 'INDIVIDUAL_LIVE' ? 'SORTEIO INDIVIDUAL POR LIVE (MOTOR 1)' : 'CAMPANHA ESPECIAL MULTI-LIVE (MOTOR 2)'}`,
+    margin + 8,
+    currentY + 26
+  );
+
+  currentY += 44;
+
+  // Winner card box
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(203, 213, 225);
+  doc.rect(margin, currentY, contentWidth, 54, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(15, 23, 42);
+  doc.text('BILHETE CONTEMPLADO', margin + 6, currentY + 8);
+
+  doc.setFontSize(26);
+  doc.setTextColor(254, 44, 85);
+  doc.text(`#${options.winningTicketNumber}`, margin + 6, currentY + 22);
+
+  doc.setFontSize(14);
+  doc.setTextColor(15, 23, 42);
+  doc.text(`@${options.winnerUsername} (${options.winnerNickname})`, margin + 6, currentY + 32);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text(`ID Estável do TikTok: ${options.winnerTiktokUserId}`, margin + 6, currentY + 40);
+  doc.text(`Prêmio Sorteado: ${options.prizeName}`, margin + 6, currentY + 47);
+
+  currentY += 62;
+
+  // Metadata Grid
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(15, 23, 42);
+  doc.text('PARÂMETROS DA TRANSMISSÃO & SORTEIO', margin, currentY);
+
+  currentY += 6;
+  doc.setFillColor(241, 245, 249);
+  doc.rect(margin, currentY, contentWidth, 24, 'F');
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(51, 65, 85);
+  doc.text(`Transmissão / Campanha: ${options.targetTitle}`, margin + 6, currentY + 7);
+  doc.text(`Data e Horário: ${formatFullTimestamp(options.drawDate)}`, margin + 6, currentY + 14);
+  doc.text(`Total de Bilhetes Elegíveis Concorrentes: ${options.totalTickets.toLocaleString('pt-BR')}`, margin + 6, currentY + 21);
+
+  currentY += 32;
+
+  // Cryptographic Verifiable Proof Section
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(15, 23, 42);
+  doc.text('AUDITORIA DE INTEGRIDADE & PROVA CRIPTOGRÁFICA', margin, currentY);
+
+  currentY += 6;
+  doc.setFillColor(15, 23, 42);
+  doc.rect(margin, currentY, contentWidth, 68, 'F');
+
+  doc.setFont('courier', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(0, 242, 254);
+  doc.text('[1] HASH DE INTEGRIDADE DA LISTA DE BILHETES (SHA-256 ROSTER):', margin + 6, currentY + 8);
+  doc.setFont('courier', 'normal');
+  doc.setTextColor(248, 250, 252);
+  doc.text(options.rosterSha256Hash || 'N/A', margin + 6, currentY + 14);
+
+  doc.setFont('courier', 'bold');
+  doc.setTextColor(0, 242, 254);
+  doc.text('[2] COMPROMISSO DE SEMENTE (SHA-256 COMMITMENT):', margin + 6, currentY + 24);
+  doc.setFont('courier', 'normal');
+  doc.setTextColor(248, 250, 252);
+  doc.text(options.seedCommitment || 'N/A', margin + 6, currentY + 30);
+
+  doc.setFont('courier', 'bold');
+  doc.setTextColor(0, 242, 254);
+  doc.text('[3] SEMENTE REVELADA (CSPRNG 256-BIT ENTROPY):', margin + 6, currentY + 40);
+  doc.setFont('courier', 'normal');
+  doc.setTextColor(248, 250, 252);
+  doc.text(options.seedRevealed || 'N/A', margin + 6, currentY + 46);
+
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(7.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text(
+    'Qualquer espectador pode calcular SHA-256(seedRevealed) para verificar a correspondência exata com o compromisso.',
+    margin + 6,
+    currentY + 58
+  );
+
+  currentY += 76;
+
+  // Footer statement
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(100, 116, 139);
+  doc.text('DECLARAÇÃO DE CONFORMIDADE', margin, currentY);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.text(
+    'Este documento certifica que o sorteio foi realizado sem intervenção manual, utilizando geração atômica de bilhetes, lista congelada imutável e extração verdadeiramente pseudo-aleatória criptográfica (CSPRNG).',
+    margin,
+    currentY + 6,
+    { maxWidth: contentWidth }
+  );
+
+  const cleanTitle = (options.winnerUsername || 'vencedor')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '-');
+  doc.save(`certificado-sorteio-tiktok-${cleanTitle}-${Date.now()}.pdf`);
+}
+

@@ -131,7 +131,7 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
       {/* Background Ambient Glow Lights */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-b from-blue-600/30 via-indigo-600/20 to-transparent rounded-full blur-3xl animate-pulse" />
-        <div className="absolute -bottom-40 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-t from-amber-500/20 via-sky-600/20 to-transparent rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-t from-[#E11D48]/25 via-sky-600/20 to-transparent rounded-full blur-3xl" />
       </div>
 
       {/* Close Button Top Right */}
@@ -147,16 +147,16 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
       {/* Main Fullscreen Showcase Card */}
       <div className="relative z-10 max-w-2xl w-full my-auto text-center space-y-5 sm:space-y-6 py-6 animate-slide-up">
         {/* Kicker Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500/30 via-yellow-400/20 to-amber-500/30 border border-amber-400/60 text-amber-300 text-xs sm:text-sm font-extrabold uppercase tracking-widest shadow-lg shadow-amber-500/20 animate-bounce">
-          <Trophy className="w-4 h-4 text-amber-300 fill-amber-300" />
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#E11D48]/30 via-[#F43F5E]/20 to-[#E11D48]/30 border border-[#E11D48]/60 text-[#FDA4AF] text-xs sm:text-sm font-extrabold uppercase tracking-widest shadow-lg shadow-[#E11D48]/20 animate-bounce">
+          <Trophy className="w-4 h-4 text-[#F43F5E] fill-[#F43F5E]" />
           <span>Grande Campeão(ã) do Sorteio!</span>
-          <Sparkles className="w-4 h-4 text-yellow-300" />
+          <Sparkles className="w-4 h-4 text-[#FDA4AF]" />
         </div>
 
         {/* Prize Showcase Card */}
-        <div className="bg-gradient-to-br from-blue-950/80 via-slate-900/90 to-indigo-950/80 border-2 border-amber-400/70 rounded-3xl p-5 sm:p-7 shadow-2xl shadow-blue-900/40 relative overflow-hidden ring-4 ring-amber-400/20">
+        <div className="bg-gradient-to-br from-blue-950/80 via-slate-900/90 to-indigo-950/80 border-2 border-[#E11D48]/70 rounded-3xl p-5 sm:p-7 shadow-2xl shadow-blue-900/40 relative overflow-hidden ring-4 ring-[#E11D48]/20">
           <div className="space-y-3.5">
-            <span className="text-[11px] sm:text-xs font-black uppercase tracking-widest text-amber-400 bg-amber-950/80 border border-amber-500/50 px-3 py-1 rounded-full inline-block">
+            <span className="text-[11px] sm:text-xs font-black uppercase tracking-widest text-[#FDA4AF] bg-[#E11D48]/20 border border-[#E11D48]/50 px-3 py-1 rounded-full inline-block">
               🎁 Prêmio Conquistado
             </span>
 
@@ -164,7 +164,7 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
             <div className="flex justify-center">
               {prizeImage ? (
                 <div className="relative group">
-                  <div className="absolute -inset-2 bg-gradient-to-r from-amber-400 to-yellow-300 rounded-3xl blur-md opacity-70 group-hover:opacity-100 transition duration-300" />
+                  <div className="absolute -inset-2 bg-gradient-to-r from-[#E11D48] to-[#F43F5E] rounded-3xl blur-md opacity-70 group-hover:opacity-100 transition duration-300" />
                   <img
                     src={prizeImage}
                     alt={prizeTitle}
@@ -172,14 +172,14 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
                   />
                 </div>
               ) : (
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 shadow-xl shadow-amber-500/30 ring-4 ring-amber-300/40 mx-auto">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-br from-[#E11D48] to-[#BE123C] flex items-center justify-center text-white shadow-xl shadow-[#E11D48]/30 ring-4 ring-[#F43F5E]/40 mx-auto">
                   <Gift className="w-10 h-10 sm:w-12 sm:h-12 stroke-[2.2]" />
                 </div>
               )}
             </div>
 
             {/* Prize Title */}
-            <h3 className="font-display font-black text-2xl sm:text-3xl md:text-4xl text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-sm">
+            <h3 className="font-display font-black text-2xl sm:text-3xl md:text-4xl text-transparent bg-clip-text bg-gradient-to-r from-[#FDA4AF] via-white to-[#F43F5E] drop-shadow-sm">
               {prizeTitle}
             </h3>
           </div>
@@ -196,22 +196,22 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
               className="w-full h-full rounded-full blur-2xl opacity-90 animate-pulse transition-all duration-1000"
               style={{
                 background:
-                  'radial-gradient(circle, rgba(56, 189, 248, 0.45) 0%, rgba(99, 102, 241, 0.35) 35%, rgba(245, 158, 11, 0.22) 65%, transparent 75%)',
+                  'radial-gradient(circle, rgba(56, 189, 248, 0.45) 0%, rgba(99, 102, 241, 0.35) 35%, rgba(225, 29, 72, 0.25) 65%, transparent 75%)',
               }}
             />
             <div
               className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-48 sm:w-72 h-24 sm:h-36 rounded-full blur-xl opacity-80"
               style={{
                 background:
-                  'radial-gradient(ellipse, rgba(254, 240, 138, 0.55) 0%, rgba(245, 158, 11, 0.35) 50%, transparent 75%)',
+                  'radial-gradient(ellipse, rgba(253, 164, 175, 0.5) 0%, rgba(225, 29, 72, 0.35) 50%, transparent 75%)',
               }}
             />
           </div>
 
           <div className="text-xs uppercase font-extrabold tracking-widest text-sky-300/90 relative z-10 flex items-center justify-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+            <Sparkles className="w-3.5 h-3.5 text-[#F43F5E]" />
             <span>Parabéns ao ganhador oficial:</span>
-            <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+            <Sparkles className="w-3.5 h-3.5 text-[#F43F5E]" />
           </div>
 
           <div className="relative z-10 font-display font-black text-4xl sm:text-6xl md:text-7xl text-white tracking-tight break-words drop-shadow-[0_10px_35px_rgba(37,99,235,0.7)]">

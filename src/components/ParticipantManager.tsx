@@ -1,25 +1,22 @@
 import React, { useState, useRef } from 'react';
 import {
   UserPlus,
-  FileSpreadsheet,
+  Upload,
   Trash2,
   Coins,
   Search,
   ArrowUpDown,
-  ChevronDown,
-  ChevronUp,
   AlertTriangle,
-  Upload,
   Ticket,
   X,
-  Hash,
   Download,
+  FileSpreadsheet,
+  Sliders,
 } from 'lucide-react';
-import { Participant, RaffleSettings, ComputedRaffle, Winner } from '../types';
+import { Participant, ComputedRaffle, RaffleSettings, Winner } from '../types';
 import {
   parseRawTextList,
   parseExcelBuffer,
-  generateUid,
   exportToCsv,
 } from '../utils/raffle';
 import { playCoinChime } from '../utils/audio';
@@ -34,8 +31,9 @@ interface ParticipantManagerProps {
   onUpdateCoins: (id: string, coins: number) => void;
   onRemoveParticipant: (id: string) => void;
   onClearAll: () => void;
-  onBulkAdd: (list: { name: string; coins: number }[], replace: boolean) => void;
-  onSetParticipants?: (list: Participant[]) => void;
+  onBulkAdd: (items: { name: string; coins: number }[], replace: boolean) => void;
+  onSetParticipants?: (newParticipants: Participant[]) => void;
+  onUpdateSettings?: (patch: Partial<RaffleSettings>) => void;
 }
 
 export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
@@ -49,52 +47,61 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
   onClearAll,
   onBulkAdd,
   onSetParticipants,
+  onUpdateSettings,
 }) => {
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [coinsInput, setCoinsInput] = useState('');
-  const [feedbackMsg, setFeedbackMsg] = useState<{ text: string; type: 'success' | 'warn' | 'error' } | null>(null);
-
-  const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState('');
-
+  const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [replaceOnImport, setReplaceOnImport] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const [filterQuery, setFilterQuery] = useState('');
   const [ticketSearchQuery, setTicketSearchQuery] = useState('');
-  const [filterOnlyTicketMatch, setFilterOnlyTicketMatch] = useState(true);
-  const [sortBy, setSortBy] = useState<'coins-desc' | 'name-asc' | 'tickets-desc' | 'recent'>('tickets-desc');
-
+  const [filterOnlyTicketMatch, setFilterOnlyTicketMatch] = useState(false);
+  const [sortBy, setSortBy] = useState<'coins-desc' | 'tickets-desc' | 'name-asc' | 'recent'>('tickets-desc');
+  const [feedbackMsg, setFeedbackMsg] = useState<{ text: string; type: 'info' | 'warn' | 'error' } | null>(null);
   const [isConfirmingClear, setIsConfirmingClear] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const wonIds = new Set(winners.map((w) => w.participantId));
 
-  const showFeedback = (text: string, type: 'success' | 'warn' | 'error' = 'success') => {
+  const showFeedback = (text: string, type: 'info' | 'warn' | 'error' = 'info') => {
     setFeedbackMsg({ text, type });
-    setTimeout(() => setFeedbackMsg(null), 4000);
+    setTimeout(() => {
+      setFeedbackMsg((prev) => (prev?.text === text ? null : prev));
+    }, 4500);
   };
 
   const handleSingleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanName = nameInput.trim();
-    const parsedCoins = parseInt(coinsInput, 10);
+    const trimmed = nameInput.trim();
+    const coins = parseInt(coinsInput, 10);
 
-    if (!cleanName) {
-      showFeedback('Por favor, informe o nome do participante.', 'warn');
+    if (!trimmed) {
+      showFeedback('Por favor, informe o nome do participante.', 'error');
       return;
     }
-    if (isNaN(parsedCoins) || parsedCoins < 0) {
-      showFeedback('Informe uma quantidade válida de moedas.', 'warn');
+    if (isNaN(coins) || coins < 0) {
+      showFeedback('Informe uma quantidade válida de moedas (0 ou mais).', 'error');
       return;
     }
 
-    onAddParticipant(cleanName, parsedCoins);
+    onAddParticipant(trimmed, coins);
     playCoinChime();
-    showFeedback(`${cleanName} adicionado(a) com ${parsedCoins} moedas.`);
     setNameInput('');
     setCoinsInput('');
+
+    if (coins < settings.rate) {
+      showFeedback(
+        `${trimmed} adicionado(a) com ${coins} moedas. Faltam ${settings.rate - coins} moedas para ganhar 1 bilhete.`,
+        'warn'
+      );
+    } else {
+      const ticketsEarned = Math.floor(coins / settings.rate);
+      showFeedback(`${trimmed} adicionado(a) com ${ticketsEarned} bilhete(s)!`, 'info');
+    }
   };
 
   const handleBulkSubmit = () => {
@@ -102,18 +109,16 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
       showFeedback('Cole os dados no campo de texto.', 'warn');
       return;
     }
-
     const parsed = parseRawTextList(bulkText);
     if (parsed.length === 0) {
-      showFeedback('Nenhum formato válido encontrado. Use: Nome 200 (uma linha por pessoa).', 'error');
+      showFeedback('Nenhum participante válido encontrado. Use o formato: Nome 200', 'error');
       return;
     }
-
     onBulkAdd(parsed, false);
     playCoinChime();
-    showFeedback(`${parsed.length} participantes processados com sucesso!`);
     setBulkText('');
     setIsBulkOpen(false);
+    showFeedback(`${parsed.length} participantes processados com sucesso!`);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -133,6 +138,7 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
         onBulkAdd(parsed, replaceOnImport);
         playCoinChime();
         showFeedback(`${parsed.length} participantes importados da planilha com sucesso!`);
+        setIsImportOpen(false);
       } else {
         const text = await file.text();
         const parsed = parseRawTextList(text);
@@ -143,19 +149,18 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
         onBulkAdd(parsed, replaceOnImport);
         playCoinChime();
         showFeedback(`${parsed.length} participantes importados com sucesso!`);
+        setIsImportOpen(false);
       }
     } catch {
-      showFeedback('Erro ao ler arquivo. Verifique o formato.', 'error');
+      showFeedback('Erro ao ler o arquivo. Tente usar CSV, TXT ou XLSX válido.', 'error');
     } finally {
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
   const handleExportCsv = () => {
     if (participants.length === 0) {
-      showFeedback('Nenhum participante para exportar.', 'warn');
+      showFeedback('Não há participantes na lista para exportar.', 'warn');
       return;
     }
 
@@ -199,7 +204,6 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
   });
 
   filteredAllocations.sort((a, b) => {
-    // If ticket is searched in highlight mode (not strictly filtered), place matching ticket holder at top for fast audit
     if (isValidTicketSearch && !filterOnlyTicketMatch) {
       const aMatches = a.tickets.includes(parsedTicketNum);
       const bMatches = b.tickets.includes(parsedTicketNum);
@@ -216,30 +220,39 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
   const isCapacityExceeded = computed.usedCount >= settings.total;
 
   return (
-    <div className="space-y-6">
-      {/* Add Participant Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4 animate-card-enter neon-card">
+    <div className="space-y-5 min-w-0 overflow-x-hidden">
+      {/* Add Participant & Conversion Rule Card */}
+      <div className="rounded-xl bg-[#222B28] border border-[#313D39] p-5 sm:p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <UserPlus className="w-5 h-5 text-sky-400" />
-            <h2 className="font-display font-bold text-base sm:text-lg text-white">Adicionar Participante</h2>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#2B3632] border border-[#313D39] flex items-center justify-center text-[#6EAA90]">
+              <UserPlus className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-base sm:text-lg text-[#EAE7DE]">
+                Adicionar Participantes
+              </h2>
+              <p className="text-xs text-[#9BA8A3] tabular-nums">
+                Conversão persistida: <strong className="text-[#EAE7DE]">{settings.rate} moedas = 1 bilhete</strong>
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={() => setIsBulkOpen(!isBulkOpen)}
-              className="text-xs font-semibold min-h-[36px] px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+              className="text-xs font-medium min-h-[36px] px-3 py-1.5 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] text-[#EAE7DE] border border-[#313D39] transition"
             >
-              {isBulkOpen ? 'Fechar Lista' : 'Colar Lista'}
+              {isBulkOpen ? 'Fechar Colagem' : 'Colar Lista'}
             </button>
             <button
               type="button"
               onClick={() => setIsImportModalOpen(true)}
-              className="text-xs font-bold min-h-[36px] px-3 py-1.5 rounded-xl bg-blue-600/30 border border-blue-500/50 text-sky-200 hover:text-white hover:bg-blue-600/50 transition flex items-center gap-1.5 shadow-sm active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+              className="text-xs font-medium min-h-[36px] px-3 py-1.5 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] border border-[#313D39] text-[#EAE7DE] transition flex items-center gap-1.5"
             >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-sky-400" />
-              <span className="hidden sm:inline">Importar (.xlsx, .csv, .txt)</span>
+              <FileSpreadsheet className="w-3.5 h-3.5 text-[#6EAA90]" />
+              <span className="hidden sm:inline">Importar Planilha/Lista</span>
               <span className="sm:hidden">Importar</span>
             </button>
             <button
@@ -247,31 +260,79 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
               onClick={handleExportCsv}
               disabled={participants.length === 0}
               title="Exportar lista atual de participantes e saldo de moedas em CSV"
-              className="text-xs font-bold min-h-[36px] px-3 py-1.5 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 hover:text-emerald-100 border border-emerald-700/60 transition flex items-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+              className="text-xs font-medium min-h-[36px] px-3 py-1.5 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] text-[#EAE7DE] border border-[#313D39] transition flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <Download className="w-3.5 h-3.5 text-emerald-400" />
+              <Download className="w-3.5 h-3.5 text-[#C6A56A]" />
               <span className="hidden sm:inline">Exportar CSV</span>
-              <span className="sm:hidden">Exportar</span>
+              <span className="sm:hidden">CSV</span>
             </button>
           </div>
         </div>
 
+        {/* Real Persisted Conversion Rate Bar (when onUpdateSettings is provided) */}
+        {onUpdateSettings && (
+          <div className="p-3 rounded-lg bg-[#171D1C] border border-[#313D39] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-[#9BA8A3]">
+              <Sliders className="w-3.5 h-3.5 text-[#C6A56A] shrink-0" />
+              <span>Regra de conversão deste sorteio (moedas por bilhete):</span>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 bg-[#222B28] border border-[#313D39] rounded-lg px-2.5 py-1">
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  aria-label="Moedas necessárias para 1 bilhete"
+                  value={settings.rate}
+                  onChange={(e) => {
+                    const nextRate = Math.max(1, parseInt(e.target.value, 10) || 1);
+                    onUpdateSettings({ rate: nextRate });
+                  }}
+                  className="w-16 bg-transparent text-right font-mono font-bold text-xs text-[#C6A56A] focus:outline-none tabular-nums"
+                />
+                <span className="text-[11px] text-[#9BA8A3]">moedas = 1 bilhete</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-[#222B28] border border-[#313D39] rounded-lg px-2.5 py-1">
+                <span className="text-[11px] text-[#9BA8A3]">Limite:</span>
+                <input
+                  type="number"
+                  min={10}
+                  max={100000}
+                  step={10}
+                  aria-label="Capacidade total de bilhetes"
+                  value={settings.total}
+                  onChange={(e) => {
+                    const nextTotal = Math.max(10, parseInt(e.target.value, 10) || 100);
+                    onUpdateSettings({ total: nextTotal });
+                  }}
+                  className="w-16 bg-transparent text-right font-mono font-bold text-xs text-[#EAE7DE] focus:outline-none tabular-nums"
+                />
+                <span className="text-[11px] text-[#9BA8A3]">bilhetes</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Single participant form */}
         <form onSubmit={handleSingleSubmit} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
-            <div className="sm:col-span-7">
-              <label htmlFor="participant-name-input" className="block text-xs text-slate-400 mb-1 font-medium">Nome da pessoa</label>
+            <div className="sm:col-span-6">
+              <label htmlFor="participant-name-input" className="block text-xs text-[#9BA8A3] mb-1 font-medium">
+                Nome ou @usuário
+              </label>
               <input
                 id="participant-name-input"
                 type="text"
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
                 placeholder="Ex.: Mariana Silva"
-                className="w-full min-h-[44px] bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-400 focus-visible:ring-2 focus-visible:ring-sky-400"
+                className="w-full min-h-[42px] bg-[#171D1C] border border-[#313D39] rounded-lg px-3.5 py-2 text-sm text-[#EAE7DE] placeholder:text-[#9BA8A3]/50 focus:outline-none focus:border-[#6EAA90]"
               />
             </div>
             <div className="sm:col-span-3">
-              <label htmlFor="participant-coins-input" className="block text-xs text-slate-400 mb-1 font-medium">Moedas acumuladas</label>
+              <label htmlFor="participant-coins-input" className="block text-xs text-[#9BA8A3] mb-1 font-medium">
+                Moedas ({settings.rate} = 1 bil.)
+              </label>
               <div className="relative">
                 <input
                   id="participant-coins-input"
@@ -280,18 +341,18 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                   step="1"
                   value={coinsInput}
                   onChange={(e) => setCoinsInput(e.target.value)}
-                  placeholder="Ex.: 300"
-                  className="w-full min-h-[44px] bg-slate-950 border border-slate-700 rounded-xl pl-3.5 pr-8 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-400 focus-visible:ring-2 focus-visible:ring-sky-400 tabular-nums"
+                  placeholder={`Ex.: ${settings.rate}`}
+                  className="w-full min-h-[42px] bg-[#171D1C] border border-[#313D39] rounded-lg pl-3.5 pr-8 py-2 text-sm text-[#EAE7DE] placeholder:text-[#9BA8A3]/50 focus:outline-none focus:border-[#6EAA90] font-mono tabular-nums"
                 />
-                <Coins className="w-4 h-4 text-sky-400 absolute right-2.5 top-3.5 pointer-events-none" />
+                <Coins className="w-4 h-4 text-[#C6A56A] absolute right-2.5 top-3 pointer-events-none" />
               </div>
             </div>
-            <div className="sm:col-span-2 flex items-end">
+            <div className="sm:col-span-3 flex items-end">
               <button
                 type="submit"
-                className="w-full min-h-[44px] py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl transition active:scale-95 shadow-md shadow-blue-600/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+                className="w-full min-h-[42px] py-2 px-4 bg-[#6EAA90] hover:bg-[#5E9980] text-[#171D1C] font-semibold text-sm rounded-lg transition active:scale-[0.99]"
               >
-                Adicionar
+                + Adicionar
               </button>
             </div>
           </div>
@@ -299,30 +360,30 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
 
         {/* Bulk Paste Accordion */}
         {isBulkOpen && (
-          <div className="pt-3 border-t border-slate-800 space-y-2">
-            <div className="flex items-center justify-between text-xs text-slate-400">
-              <span className="font-semibold text-slate-200">Colar Lista de Participantes</span>
-              <span>Formato: Nome 200 (um por linha)</span>
+          <div className="pt-3 border-t border-[#313D39] space-y-2.5">
+            <div className="flex items-center justify-between text-xs text-[#9BA8A3]">
+              <span className="font-semibold text-[#EAE7DE]">Colar Lista de Participantes</span>
+              <span>Formato: Nome {settings.rate} (um por linha)</span>
             </div>
             <textarea
               rows={4}
               value={bulkText}
               onChange={(e) => setBulkText(e.target.value)}
-              placeholder="Ana 250&#10;Bruno, 100&#10;Carla; 340&#10;Diego 500"
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs sm:text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-400 font-mono"
+              placeholder={`Ana ${settings.rate * 2}\nBruno, ${settings.rate}\nCarla; ${settings.rate * 3}`}
+              className="w-full bg-[#171D1C] border border-[#313D39] rounded-lg p-3 text-xs sm:text-sm text-[#EAE7DE] placeholder:text-[#9BA8A3]/50 focus:outline-none focus:border-[#6EAA90] font-mono"
             />
             <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setBulkText('')}
-                className="px-3 py-1.5 text-xs text-slate-400 hover:text-white"
+                className="px-3 py-1.5 text-xs text-[#9BA8A3] hover:text-[#EAE7DE]"
               >
                 Limpar
               </button>
               <button
                 type="button"
                 onClick={handleBulkSubmit}
-                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-sky-400 font-bold text-xs rounded-lg transition"
+                className="px-4 py-1.5 bg-[#6EAA90] hover:bg-[#5E9980] text-[#171D1C] font-semibold text-xs rounded-lg transition"
               >
                 Processar e Adicionar
               </button>
@@ -332,13 +393,13 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
 
         {/* File Import Accordion */}
         {isImportOpen && (
-          <div className="pt-3 border-t border-slate-800 space-y-3">
-            <div className="text-xs text-slate-300 font-semibold">
+          <div className="pt-3 border-t border-[#313D39] space-y-3">
+            <div className="text-xs text-[#EAE7DE] font-semibold">
               Importar de Planilha (.xlsx, .xls) ou Texto (.csv, .txt, .tsv)
             </div>
-            <div className="p-4 bg-slate-950 border border-dashed border-slate-700 rounded-xl text-center space-y-2">
-              <Upload className="w-6 h-6 text-slate-400 mx-auto" />
-              <p className="text-xs text-slate-400">
+            <div className="p-4 bg-[#171D1C] border border-dashed border-[#313D39] rounded-lg text-center space-y-2">
+              <Upload className="w-6 h-6 text-[#9BA8A3] mx-auto" />
+              <p className="text-xs text-[#9BA8A3]">
                 Selecione o arquivo da lista. A primeira coluna deve conter os nomes e a segunda as moedas.
               </p>
               <input
@@ -346,15 +407,15 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                 type="file"
                 accept=".csv,.txt,.tsv,.xlsx,.xls"
                 onChange={handleFileUpload}
-                className="text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer"
+                className="text-xs text-[#9BA8A3] file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#6EAA90] file:text-[#171D1C] hover:file:bg-[#5E9980] cursor-pointer"
               />
             </div>
-            <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer select-none">
+            <label className="flex items-center gap-2 text-xs text-[#9BA8A3] cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={replaceOnImport}
                 onChange={(e) => setReplaceOnImport(e.target.checked)}
-                className="w-3.5 h-3.5 rounded text-blue-600 bg-slate-800 border-slate-700"
+                className="w-3.5 h-3.5 rounded text-[#6EAA90] bg-[#171D1C] border-[#313D39]"
               />
               <span>Substituir a lista existente por esta (apagar os atuais)</span>
             </label>
@@ -366,10 +427,10 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
           <div
             className={`text-xs p-2.5 rounded-lg border flex items-center justify-between ${
               feedbackMsg.type === 'error'
-                ? 'bg-red-950/40 border-red-800 text-red-300'
+                ? 'bg-[#D96B6B]/10 border-[#D96B6B]/40 text-[#D96B6B]'
                 : feedbackMsg.type === 'warn'
-                ? 'bg-blue-950/60 border-blue-800 text-sky-300'
-                : 'bg-emerald-950/40 border-emerald-800 text-emerald-300'
+                ? 'bg-[#C6A56A]/10 border-[#C6A56A]/40 text-[#C6A56A]'
+                : 'bg-[#6EAA90]/10 border-[#6EAA90]/40 text-[#6EAA90]'
             }`}
           >
             <span>{feedbackMsg.text}</span>
@@ -379,51 +440,52 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
 
       {/* Capacity & Distribution Warning */}
       {isCapacityExceeded && (
-        <div className="bg-blue-950/40 border border-blue-800/60 rounded-xl p-3.5 flex items-start gap-3 text-sky-200 text-xs">
-          <AlertTriangle className="w-5 h-5 shrink-0 text-sky-400 mt-0.5" />
+        <div className="bg-[#C6A56A]/10 border border-[#C6A56A]/40 rounded-xl p-3.5 flex items-start gap-3 text-[#EAE7DE] text-xs">
+          <AlertTriangle className="w-5 h-5 shrink-0 text-[#C6A56A] mt-0.5" />
           <div>
-            <p className="font-bold text-white">Capacidade de bilhetes esgotada!</p>
-            <p className="text-sky-200/80 mt-0.5">
-              Os participantes acumularam moedas para mais bilhetes do que o total disponível ({settings.total}). Os
-              últimos participantes da lista ficaram sem alguns números. Aumente a "Quantidade de números" em
-              Configurações para contemplar todos.
+            <p className="font-semibold text-[#EAE7DE]">Capacidade máxima de bilhetes atingida ({settings.total})</p>
+            <p className="text-[#9BA8A3] mt-0.5">
+              Os participantes acumularam moedas para mais bilhetes do que o limite atual ({settings.total}). Aumente o limite de bilhetes acima ou nas Configurações para contemplar todos.
             </p>
           </div>
         </div>
       )}
 
       {/* Participants Table & List View */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4 animate-card-enter neon-card">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+      <div className="rounded-xl bg-[#222B28] border border-[#313D39] p-5 sm:p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#313D39]">
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="font-display font-bold text-lg text-white">Participantes</h2>
-              <span className="text-xs font-bold bg-blue-950 border border-blue-800 text-sky-300 px-2.5 py-0.5 rounded-full tabular-nums">
+            <div className="flex items-center gap-2.5">
+              <h2 className="font-semibold text-base sm:text-lg text-[#EAE7DE]">
+                Participantes do Sorteio
+              </h2>
+              <span className="text-xs font-mono font-bold bg-[#2B3632] border border-[#313D39] text-[#6EAA90] px-2 py-0.5 rounded tabular-nums">
                 {participants.length}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              <b className="text-slate-200">{computed.usedCount}</b> de <b className="text-slate-200">{settings.total}</b> bilhetes entregues (a cada {settings.rate} moedas = 1 bilhete)
+            <p className="text-xs text-[#9BA8A3] mt-0.5 tabular-nums">
+              <strong className="text-[#EAE7DE]">{computed.usedCount}</strong> de{' '}
+              <strong className="text-[#EAE7DE]">{settings.total}</strong> bilhetes emitidos ({settings.rate} moedas = 1 bilhete)
             </p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
             {/* Filter by Name */}
-            <div className="relative flex-1 sm:w-40">
+            <div className="relative flex-1 sm:w-40 min-w-[130px]">
               <input
                 type="text"
                 placeholder="Filtrar nome..."
                 aria-label="Filtrar participante por nome"
                 value={filterQuery}
                 onChange={(e) => setFilterQuery(e.target.value)}
-                className="bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-7 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-400 focus-visible:ring-2 focus-visible:ring-sky-400 w-full min-h-[38px]"
+                className="bg-[#171D1C] border border-[#313D39] rounded-lg pl-8 pr-7 py-2 text-xs text-[#EAE7DE] placeholder:text-[#9BA8A3]/50 focus:outline-none focus:border-[#6EAA90] w-full min-h-[36px]"
               />
-              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-3 pointer-events-none" />
+              <Search className="w-3.5 h-3.5 text-[#9BA8A3] absolute left-2.5 top-2.5 pointer-events-none" />
               {filterQuery && (
                 <button
                   type="button"
                   onClick={() => setFilterQuery('')}
-                  className="absolute right-2 top-2.5 text-slate-500 hover:text-white"
+                  className="absolute right-2 top-2.5 text-[#9BA8A3] hover:text-[#EAE7DE]"
                   title="Limpar filtro de nome"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -432,7 +494,7 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
             </div>
 
             {/* Filter / Search by Ticket Number */}
-            <div className="relative flex-1 sm:w-36">
+            <div className="relative flex-1 sm:w-32 min-w-[110px]">
               <input
                 type="text"
                 inputMode="numeric"
@@ -440,22 +502,22 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                 aria-label="Buscar por número de bilhete"
                 value={ticketSearchQuery}
                 onChange={(e) => setTicketSearchQuery(e.target.value)}
-                className={`bg-slate-950 border rounded-lg pl-8 pr-7 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus-visible:ring-2 w-full min-h-[38px] tabular-nums font-mono ${
+                className={`bg-[#171D1C] border rounded-lg pl-8 pr-7 py-2 text-xs text-[#EAE7DE] placeholder:text-[#9BA8A3]/50 focus:outline-none w-full min-h-[36px] tabular-nums font-mono ${
                   isValidTicketSearch
-                    ? 'border-amber-500 text-amber-300 ring-1 ring-amber-500/40 bg-amber-950/20'
-                    : 'border-slate-700 focus:border-blue-400 focus-visible:ring-sky-400'
+                    ? 'border-[#C6A56A] text-[#C6A56A] bg-[#C6A56A]/10'
+                    : 'border-[#313D39] focus:border-[#6EAA90]'
                 }`}
               />
               <Ticket
-                className={`w-3.5 h-3.5 absolute left-2.5 top-3 pointer-events-none ${
-                  isValidTicketSearch ? 'text-amber-400' : 'text-slate-500'
+                className={`w-3.5 h-3.5 absolute left-2.5 top-2.5 pointer-events-none ${
+                  isValidTicketSearch ? 'text-[#C6A56A]' : 'text-[#9BA8A3]'
                 }`}
               />
               {ticketSearchQuery && (
                 <button
                   type="button"
                   onClick={() => setTicketSearchQuery('')}
-                  className="absolute right-2 top-2.5 text-slate-500 hover:text-white"
+                  className="absolute right-2 top-2.5 text-[#9BA8A3] hover:text-[#EAE7DE]"
                   title="Limpar busca de bilhete"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -464,72 +526,59 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
             </div>
 
             {/* Sort Dropdown */}
-            <div className="flex items-center gap-1 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 min-h-[38px]">
-              <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+            <div className="flex items-center gap-1 bg-[#171D1C] border border-[#313D39] rounded-lg px-2.5 py-1.5 text-xs text-[#EAE7DE] min-h-[36px]">
+              <ArrowUpDown className="w-3.5 h-3.5 text-[#9BA8A3]" />
               <select
                 value={sortBy}
                 aria-label="Ordenar participantes por"
                 onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                className="bg-transparent text-xs text-slate-300 focus:outline-none cursor-pointer py-1"
+                className="bg-[#171D1C] text-xs text-[#EAE7DE] focus:outline-none cursor-pointer py-0.5"
               >
                 <option value="tickets-desc">Mais bilhetes</option>
                 <option value="coins-desc">Mais moedas</option>
                 <option value="name-asc">Nome (A-Z)</option>
-                <option value="recent">Adicionados recente</option>
+                <option value="recent">Mais recentes</option>
               </select>
             </div>
-
-            {/* Quick Export CSV Button */}
-            <button
-              type="button"
-              onClick={handleExportCsv}
-              disabled={participants.length === 0}
-              title="Baixar lista atual de participantes e saldo de moedas em formato CSV"
-              className="flex items-center gap-1.5 bg-slate-950 hover:bg-slate-900 border border-emerald-600/40 hover:border-emerald-500 text-emerald-300 hover:text-white rounded-lg px-3 py-2 text-xs font-bold min-h-[38px] transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-            >
-              <Download className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden sm:inline">Exportar CSV</span>
-              <span className="sm:hidden">CSV</span>
-            </button>
           </div>
         </div>
 
         {/* Ticket Search Active Status Bar */}
         {isValidTicketSearch && (
           <div
-            className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs transition animate-fade-in ${
+            className={`p-3 rounded-lg border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs transition ${
               ticketHolder
-                ? 'bg-amber-950/40 border-amber-500/50 text-amber-200'
-                : 'bg-slate-950 border-slate-800 text-slate-400'
+                ? 'bg-[#C6A56A]/10 border-[#C6A56A]/50 text-[#EAE7DE]'
+                : 'bg-[#171D1C] border-[#313D39] text-[#9BA8A3]'
             }`}
           >
             <div className="flex items-center gap-2 min-w-0">
-              <Ticket className={`w-4 h-4 shrink-0 ${ticketHolder ? 'text-amber-400' : 'text-slate-500'}`} />
+              <Ticket className={`w-4 h-4 shrink-0 ${ticketHolder ? 'text-[#C6A56A]' : 'text-[#9BA8A3]'}`} />
               {ticketHolder ? (
                 <div className="truncate">
                   <span>Bilhete </span>
-                  <span className="font-mono font-black text-amber-300 bg-amber-900/60 border border-amber-500/40 px-1.5 py-0.5 rounded mr-1">
+                  <span className="font-mono font-bold text-[#C6A56A] bg-[#222B28] border border-[#C6A56A]/40 px-1.5 py-0.5 rounded mr-1 tabular-nums">
                     #{parsedTicketNum}
                   </span>
-                  <span>encontrado! Pertence a: </span>
-                  <b className="text-white font-bold">{ticketHolder.participant.name}</b>
-                  <span className="text-amber-300/80 ml-1">
+                  <span>pertence a </span>
+                  <strong className="text-[#EAE7DE]">{ticketHolder.participant.name}</strong>
+                  <span className="text-[#9BA8A3] ml-1 tabular-nums">
                     ({ticketHolder.assignedTickets} {ticketHolder.assignedTickets === 1 ? 'bilhete' : 'bilhetes'})
                   </span>
                 </div>
               ) : (
                 <div>
                   <span>Bilhete </span>
-                  <span className="font-mono font-bold text-slate-300 bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded mr-1">
+                  <span className="font-mono font-bold text-[#EAE7DE] bg-[#222B28] border border-[#313D39] px-1.5 py-0.5 rounded mr-1 tabular-nums">
                     #{parsedTicketNum}
                   </span>
-                  <span>não pertence a nenhum participante cadastrado</span>
+                  <span>não atribuído a nenhum participante</span>
                   {parsedTicketNum < settings.start || parsedTicketNum >= settings.start + settings.total ? (
-                    <span className="text-rose-400 ml-1 font-semibold">
+                    <span className="text-[#D96B6B] ml-1 font-medium">
                       (fora da série #{settings.start} a #{settings.start + settings.total - 1})
                     </span>
                   ) : (
-                    <span className="text-slate-500 ml-1">(ainda não distribuído na série)</span>
+                    <span className="text-[#9BA8A3] ml-1">(disponível na série)</span>
                   )}
                 </div>
               )}
@@ -539,20 +588,19 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
               <button
                 type="button"
                 onClick={() => setFilterOnlyTicketMatch(!filterOnlyTicketMatch)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border ${
+                className={`px-2.5 py-1 rounded text-xs font-semibold transition border ${
                   filterOnlyTicketMatch
-                    ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-sm'
-                    : 'bg-slate-900 text-slate-300 border-slate-700 hover:text-white'
+                    ? 'bg-[#C6A56A] text-[#171D1C] border-[#C6A56A]'
+                    : 'bg-[#222B28] text-[#EAE7DE] border-[#313D39]'
                 }`}
-                title="Alternar entre filtrar apenas o portador ou manter todos e destacar"
               >
-                <span>{filterOnlyTicketMatch ? 'Modo: Filtrando Portador' : 'Modo: Destacando na Lista'}</span>
+                <span>{filterOnlyTicketMatch ? 'Filtrando Portador' : 'Destacando na Lista'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setTicketSearchQuery('')}
-                className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition"
+                className="p-1 hover:bg-[#2B3632] rounded text-[#9BA8A3] hover:text-[#EAE7DE] transition"
                 title="Limpar busca de bilhete"
               >
                 <X className="w-4 h-4" />
@@ -563,12 +611,14 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
 
         {/* Participant List */}
         {participants.length === 0 ? (
-          <div className="py-12 text-center space-y-2 border border-dashed border-slate-800 rounded-xl">
-            <p className="text-sm font-semibold text-slate-400">Nenhum participante cadastrado ainda.</p>
-            <p className="text-xs text-slate-500">Adicione pessoas individualmente ou importe uma planilha acima.</p>
+          <div className="py-10 text-center space-y-2 border border-dashed border-[#313D39] rounded-xl bg-[#171D1C]/60">
+            <p className="text-sm font-semibold text-[#EAE7DE]">Nenhum participante cadastrado ainda</p>
+            <p className="text-xs text-[#9BA8A3]">
+              Adicione participantes individualmente ou importe uma lista no formulário acima.
+            </p>
           </div>
         ) : filteredAllocations.length === 0 ? (
-          <div className="py-8 text-center text-xs text-slate-500 space-y-2">
+          <div className="py-8 text-center text-xs text-[#9BA8A3] space-y-2">
             <p>
               {isValidTicketSearch
                 ? `Nenhum participante possui o bilhete #${parsedTicketNum}.`
@@ -578,21 +628,20 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
               <button
                 type="button"
                 onClick={() => setTicketSearchQuery('')}
-                className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-lg text-xs font-semibold"
+                className="px-3 py-1 bg-[#2B3632] hover:bg-[#313D39] text-[#6EAA90] rounded-lg text-xs font-semibold"
               >
                 Limpar busca de bilhete
               </button>
             )}
           </div>
         ) : (
-          <div className="space-y-2.5 max-h-[520px] overflow-y-auto pr-1">
+          <div className="space-y-2.5 max-h-[540px] overflow-y-auto pr-1">
             {filteredAllocations.map((alloc) => {
               const p = alloc.participant;
               const hasWon = wonIds.has(p.id);
               const neededNext = settings.rate - alloc.remainderCoins;
               const isHoldingSearchedTicket = isValidTicketSearch && alloc.tickets.includes(parsedTicketNum);
 
-              // Prepare tickets to display: ensure the searched ticket is always visible in the badge list
               let ticketsToDisplay = alloc.tickets.slice(0, 10);
               if (isHoldingSearchedTicket && !ticketsToDisplay.includes(parsedTicketNum)) {
                 ticketsToDisplay = [parsedTicketNum, ...ticketsToDisplay.slice(0, 9)];
@@ -603,31 +652,33 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                   key={p.id}
                   className={`p-3.5 rounded-xl border transition-all duration-200 ${
                     isHoldingSearchedTicket
-                      ? 'bg-gradient-to-r from-amber-950/40 via-slate-900 to-amber-950/20 border-amber-400 ring-2 ring-amber-400/50 shadow-lg shadow-amber-500/10'
+                      ? 'bg-[#2B3632] border-[#C6A56A] ring-1 ring-[#C6A56A]/60'
                       : hasWon
-                      ? 'bg-blue-950/20 border-blue-700/50'
-                      : 'bg-slate-950/70 border-slate-800 hover:border-slate-700'
+                      ? 'bg-[#171D1C]/90 border-[#6EAA90]/40'
+                      : 'bg-[#171D1C] border-[#313D39] hover:border-[#6EAA90]/40'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
                     <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                      <span className="font-bold text-sm text-white truncate">{p.name}</span>
+                      <span className="font-semibold text-sm text-[#EAE7DE] truncate max-w-[200px] sm:max-w-none">
+                        {p.name}
+                      </span>
                       {isHoldingSearchedTicket && (
-                        <span className="text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 px-2 py-0.5 rounded flex items-center gap-1 shadow-sm shrink-0">
-                          <Ticket className="w-3 h-3 fill-slate-950" />
-                          <span>Portador do Bilhete #{parsedTicketNum}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-[#C6A56A] text-[#171D1C] px-2 py-0.5 rounded flex items-center gap-1 shrink-0 tabular-nums">
+                          <Ticket className="w-3 h-3" />
+                          <span>Portador #{parsedTicketNum}</span>
                         </span>
                       )}
                       {hasWon && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600/30 text-sky-300 px-2 py-0.5 rounded border border-blue-500/40 shrink-0">
-                          Já Ganhou
+                        <span className="text-[10px] font-semibold uppercase tracking-wider bg-[#6EAA90]/20 text-[#6EAA90] px-2 py-0.5 rounded border border-[#6EAA90]/40 shrink-0">
+                          Premiado
                         </span>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="flex items-center gap-1 bg-slate-900 border border-slate-700/80 rounded-lg px-2 py-1 min-h-[36px]">
-                        <span className="text-xs text-slate-400 font-medium">Moedas:</span>
+                    <div className="flex items-center gap-2 shrink-0 ml-auto">
+                      <div className="flex items-center gap-1.5 bg-[#222B28] border border-[#313D39] rounded-lg px-2 py-1 min-h-[34px]">
+                        <span className="text-xs text-[#9BA8A3] font-medium">Moedas:</span>
                         <input
                           type="number"
                           min="0"
@@ -638,7 +689,7 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                             const val = parseInt(e.target.value, 10);
                             onUpdateCoins(p.id, isNaN(val) || val < 0 ? 0 : val);
                           }}
-                          className="w-16 bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-xs text-right text-sky-400 font-bold focus:outline-none focus:border-blue-400 tabular-nums"
+                          className="w-16 bg-[#171D1C] border border-[#313D39] rounded px-1.5 py-0.5 text-xs text-right text-[#EAE7DE] font-mono font-bold focus:outline-none focus:border-[#6EAA90] tabular-nums"
                         />
                       </div>
 
@@ -647,23 +698,24 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                         onClick={() => onRemoveParticipant(p.id)}
                         title={`Remover ${p.name}`}
                         aria-label={`Remover participante ${p.name}`}
-                        className="min-w-[36px] min-h-[36px] p-2 flex items-center justify-center text-slate-500 hover:text-red-400 hover:bg-slate-900 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                        className="min-w-[34px] min-h-[34px] p-1.5 flex items-center justify-center text-[#9BA8A3] hover:text-[#D96B6B] hover:bg-[#222B28] rounded-lg transition"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
 
-                  <div className="mt-2.5 pt-2 border-t border-slate-800/60 flex flex-wrap items-center justify-between gap-2 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-400">
+                  <div className="mt-2.5 pt-2 border-t border-[#313D39]/70 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
+                      <span className="text-[#9BA8A3] tabular-nums">
                         {alloc.assignedTickets === 0 ? (
-                          <span className="text-slate-500">
-                            Sem bilhete ainda · Faltam <b>{neededNext}</b> moedas
+                          <span className="text-[#9BA8A3]">
+                            Sem bilhete · Faltam <strong className="text-[#EAE7DE]">{neededNext}</strong> moedas
                           </span>
                         ) : (
                           <span>
-                            <b className="text-white">{alloc.assignedTickets}</b> {alloc.assignedTickets === 1 ? 'bilhete' : 'bilhetes'}:
+                            <strong className="text-[#EAE7DE]">{alloc.assignedTickets}</strong>{' '}
+                            {alloc.assignedTickets === 1 ? 'bilhete' : 'bilhetes'}:
                           </span>
                         )}
                       </span>
@@ -675,10 +727,10 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                             return (
                               <span
                                 key={num}
-                                className={`font-mono font-bold px-1.5 py-0.5 rounded text-[11px] tabular-nums transition ${
+                                className={`font-mono font-semibold px-1.5 py-0.5 rounded text-[11px] tabular-nums transition ${
                                   isTargetTicket
-                                    ? 'bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 font-black shadow-md ring-2 ring-amber-300 scale-105'
-                                    : 'bg-blue-600 text-white'
+                                    ? 'bg-[#C6A56A] text-[#171D1C] font-bold ring-1 ring-[#C6A56A]'
+                                    : 'bg-[#2B3632] text-[#EAE7DE] border border-[#313D39]'
                                 }`}
                               >
                                 #{num} {isTargetTicket && '★'}
@@ -686,23 +738,23 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                             );
                           })}
                           {alloc.tickets.length > ticketsToDisplay.length && (
-                            <span className="text-slate-400 text-[11px] font-medium">
-                              +{alloc.tickets.length - ticketsToDisplay.length} mais
+                            <span className="text-[#9BA8A3] text-[11px] font-mono tabular-nums">
+                              +{alloc.tickets.length - ticketsToDisplay.length}
                             </span>
                           )}
                         </div>
                       )}
                     </div>
 
-                    <div className="text-slate-400 text-[11px] flex items-center gap-2 ml-auto">
+                    <div className="text-[#9BA8A3] text-[11px] flex items-center gap-2 ml-auto tabular-nums">
                       {alloc.assignedTickets > 0 && (
-                        <span className="text-sky-400 font-semibold tabular-nums">
+                        <span className="text-[#6EAA90] font-semibold">
                           {alloc.winProbability}% de chance
                         </span>
                       )}
                       {alloc.assignedTickets < alloc.wantedTickets && (
-                        <span className="text-red-400 font-medium">
-                          (Faltaram {alloc.wantedTickets - alloc.assignedTickets} por limite de vagas)
+                        <span className="text-[#D96B6B] font-medium">
+                          (Faltaram {alloc.wantedTickets - alloc.assignedTickets} por limite)
                         </span>
                       )}
                     </div>
@@ -714,14 +766,17 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
         )}
 
         {participants.length > 0 && (
-          <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
-            <span className="text-xs text-slate-500">
-              Total de moedas acumuladas: <b className="text-sky-300 font-bold">{participants.reduce((acc, p) => acc + p.coins, 0)}</b>
+          <div className="pt-3 border-t border-[#313D39] flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs text-[#9BA8A3] tabular-nums">
+              Total de moedas acumuladas:{' '}
+              <strong className="text-[#C6A56A] font-mono">
+                {participants.reduce((acc, p) => acc + p.coins, 0)}
+              </strong>
             </span>
 
             {isConfirmingClear ? (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-red-400 font-semibold">Tem certeza?</span>
+                <span className="text-xs text-[#D96B6B] font-semibold">Apagar todos?</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -729,14 +784,14 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                     setIsConfirmingClear(false);
                     showFeedback('Todos os participantes foram removidos.');
                   }}
-                  className="px-2.5 py-1 text-xs font-bold bg-red-600 hover:bg-red-500 text-white rounded transition"
+                  className="px-2.5 py-1 text-xs font-semibold bg-[#D96B6B] text-[#171D1C] rounded transition"
                 >
                   Sim, Apagar Tudo
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsConfirmingClear(false)}
-                  className="px-2.5 py-1 text-xs text-slate-400 hover:text-white"
+                  className="px-2.5 py-1 text-xs text-[#9BA8A3] hover:text-[#EAE7DE]"
                 >
                   Cancelar
                 </button>
@@ -745,7 +800,7 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
               <button
                 type="button"
                 onClick={() => setIsConfirmingClear(true)}
-                className="text-xs text-slate-500 hover:text-red-400 transition"
+                className="text-xs text-[#9BA8A3] hover:text-[#D96B6B] transition"
               >
                 Limpar todos os participantes
               </button>

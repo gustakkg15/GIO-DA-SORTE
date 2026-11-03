@@ -1,131 +1,113 @@
 import React from 'react';
-import { Sparkles, Trophy, Award, Gift } from 'lucide-react';
-import { Winner } from '../types';
+import { Sparkles, Trophy, Ticket } from 'lucide-react';
+import { ThemeMode } from '../types';
 
 interface TicketDisplayProps {
-  currentNumber: number | string;
-  isDrawing: boolean;
-  latestWinner: Winner | null;
-  currentPrize: string;
-  prizeImage?: string;
-  eligibleCount: number;
-  totalCapacity: number;
+  displayNumber: number | string;
+  isSpinning: boolean;
+  winnerName?: string | null;
+  winnerPrize?: string | null;
+  themeMode?: ThemeMode;
 }
 
 export const TicketDisplay: React.FC<TicketDisplayProps> = ({
-  currentNumber,
-  isDrawing,
-  latestWinner,
-  currentPrize,
-  prizeImage,
-  eligibleCount,
-  totalCapacity,
+  displayNumber,
+  isSpinning,
+  winnerName,
+  winnerPrize,
 }) => {
-  return (
-    <div className="relative w-full max-w-lg mx-auto">
-      {/* Glow aura behind ticket when winning */}
-      {latestWinner && !isDrawing && (
-        <div className="absolute -inset-2 bg-gradient-to-r from-blue-600/40 via-sky-400/50 to-indigo-600/40 rounded-2xl blur-xl animate-pulse-subtle pointer-events-none" />
-      )}
+  const isDefaultPlaceholder = displayNumber === '?';
 
-      {/* Main Royal Sapphire Ticket Surface */}
+  return (
+    <div className="relative w-full max-w-md mx-auto my-2 select-none px-1 sm:px-0">
+      {/* Main Ticket / Globo Digital Body */}
       <div
-        className={`relative ticket-notch bg-gradient-to-br from-blue-600 via-sky-500 to-indigo-700 text-white px-4 sm:px-8 md:px-10 py-5 sm:py-7 rounded-xl shadow-2xl transition-all duration-300 neon-draw-glow ${
-          isDrawing
-            ? 'scale-[1.01] shadow-sky-500/40 border-t-2 border-sky-300'
-            : latestWinner
-            ? 'scale-100 ring-2 ring-sky-300/80 shadow-blue-500/50'
-            : 'border-t border-sky-300/30'
+        className={`relative overflow-hidden rounded-xl border transition-all duration-300 ${
+          isSpinning
+            ? 'border-[#6EAA90] bg-[#171D1C] shadow-lg'
+            : winnerName
+            ? 'border-[#C6A56A] bg-[#171D1C] shadow-lg'
+            : 'border-[#313D39] bg-[#171D1C]'
         }`}
       >
-        {/* Ticket Header & Watermark */}
-        <div className="flex items-center justify-between border-b border-sky-200/30 pb-2.5 sm:pb-3 gap-2">
-          <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-sky-100 truncate">
-            <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-200 shrink-0" />
-            <span className="truncate">Bilhete Oficial · GIO DA SORTE</span>
-          </div>
+        {/* Left Ticket Stub Cutout */}
+        <div className="hidden min-[380px]:block absolute top-1/2 -left-3.5 -translate-y-1/2 w-7 h-7 rounded-full bg-[#222B28] border-r border-[#313D39] z-20" />
 
-          <div className="flex items-center gap-1 text-[11px] sm:text-xs font-mono font-bold text-sky-100/90 shrink-0">
-            <span>SÉRIE #{(totalCapacity).toString().padStart(4, '0')}</span>
-          </div>
+        {/* Right Ticket Stub Cutout */}
+        <div className="hidden min-[380px]:block absolute top-1/2 -right-3.5 -translate-y-1/2 w-7 h-7 rounded-full bg-[#222B28] border-l border-[#313D39] z-20" />
+
+        {/* Top Header Strip */}
+        <div className="px-4 py-2.5 bg-[#2B3632]/70 border-b border-[#313D39] flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-[#9BA8A3]">
+          <span className="flex items-center gap-1.5 text-[#EAE7DE]">
+            <Ticket className="w-3.5 h-3.5 text-[#6EAA90]" />
+            <span>Globo Digital · Bilhete Oficial</span>
+          </span>
+          <span
+            className={`px-2 py-0.5 rounded text-[10px] font-mono tabular-nums ${
+              isSpinning
+                ? 'bg-[#6EAA90]/20 text-[#6EAA90] border border-[#6EAA90]/40'
+                : winnerName
+                ? 'bg-[#C6A56A]/20 text-[#C6A56A] border border-[#C6A56A]/40'
+                : 'bg-[#222B28] text-[#9BA8A3] border border-[#313D39]'
+            }`}
+          >
+            {isSpinning ? 'SORTEANDO...' : winnerName ? 'PREMIADO' : 'AGUARDANDO'}
+          </span>
         </div>
 
-        {/* Current Prize Badge & Photo */}
-        {(currentPrize || prizeImage) && (
-          <div className="mt-3 flex items-center justify-center gap-2 bg-slate-950/40 backdrop-blur-md border border-white/25 py-1 px-3 sm:px-3.5 rounded-full mx-auto w-fit max-w-full shadow-md">
-            {prizeImage ? (
-              <img
-                src={prizeImage}
-                alt={currentPrize || 'Prêmio'}
-                className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover border border-amber-300/80 shadow-sm shrink-0"
-              />
-            ) : (
-              <Gift className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-            )}
-            <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-white truncate min-w-0">
-              <span className="text-sky-200/90 text-[9px] sm:text-[10px] uppercase tracking-wider shrink-0">Prêmio:</span>
-              <span className="font-extrabold text-white truncate max-w-[160px] sm:max-w-[240px]">
-                {currentPrize || 'Prêmio da Rodada'}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Giant Number Display (Slot / Drum Animation) */}
-        <div className="py-4 sm:py-5 text-center overflow-hidden">
-          <div className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-sky-100/80 mb-1">
-            {isDrawing ? 'Sorteando bilhete...' : latestWinner ? 'Número Premiado' : 'Número Sorteado'}
+        {/* Center Number Display */}
+        <div className="px-4 sm:px-6 py-7 sm:py-9 flex flex-col items-center justify-center text-center relative z-10">
+          <div className="text-[11px] uppercase tracking-widest text-[#9BA8A3] font-medium mb-1.5">
+            {isSpinning
+              ? 'Girando bilhetes elegíveis...'
+              : isDefaultPlaceholder
+              ? 'Pronto para sortear'
+              : 'Bilhete Sorteado'}
           </div>
 
           <div
-            className={`font-mono font-black tabular-nums select-none tracking-tight leading-none transition-transform duration-100 truncate neon-number-text ${
-              isDrawing
-                ? 'text-5xl sm:text-7xl md:text-8xl text-white blur-[0.4px] scale-105 drop-shadow-lg'
-                : latestWinner
-                ? 'text-5xl sm:text-7xl md:text-8xl text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.4)] scale-100'
-                : 'text-5xl sm:text-7xl md:text-8xl text-white/50'
+            className={`font-mono font-bold text-5xl sm:text-6xl md:text-7xl tracking-tight tabular-nums transition-transform duration-150 ${
+              isSpinning
+                ? 'scale-105 text-[#6EAA90]'
+                : isDefaultPlaceholder
+                ? 'text-[#9BA8A3]/40'
+                : 'text-[#EAE7DE] scale-100'
             }`}
           >
-            {currentNumber}
+            {isDefaultPlaceholder ? '—' : `#${displayNumber}`}
+          </div>
+
+          {/* Winner Name Banner inside Ticket */}
+          <div className="mt-4 min-h-[2.5rem] flex items-center justify-center w-full">
+            {winnerName && !isSpinning ? (
+              <div className="inline-flex flex-col items-center gap-1 px-4 py-2 rounded-lg bg-[#222B28] border border-[#C6A56A]/50 max-w-full animate-fade-in">
+                <div className="flex items-center gap-2 text-[#EAE7DE] font-semibold text-sm sm:text-base max-w-full">
+                  <Trophy className="w-4 h-4 text-[#C6A56A] shrink-0" />
+                  <span className="truncate">{winnerName}</span>
+                </div>
+                {winnerPrize && (
+                  <span className="text-[11px] font-medium text-[#C6A56A] tracking-wide truncate max-w-full">
+                    Prêmio: {winnerPrize}
+                  </span>
+                )}
+              </div>
+            ) : isSpinning ? (
+              <div className="inline-flex items-center gap-2 text-xs text-[#6EAA90] font-medium">
+                <Sparkles className="w-3.5 h-3.5 animate-spin" />
+                <span>Selecionando bilhete com criptografia CSPRNG...</span>
+              </div>
+            ) : (
+              <div className="text-xs text-[#9BA8A3]">
+                Clique em <strong className="text-[#EAE7DE]">Sortear Agora</strong> para revelar o ganhador
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Perforated Divider Line */}
-        <div className="relative my-2">
-          <div className="border-t-2 border-dashed border-sky-200/40 w-full" />
-        </div>
-
-        {/* Ticket Stub (Who won / Status) */}
-        <div className="pt-3 min-h-[64px] flex flex-col items-center justify-center text-center">
-          {isDrawing ? (
-            <div className="flex items-center gap-2 text-white font-bold text-sm sm:text-base animate-pulse">
-              <Sparkles className="w-4 h-4 animate-spin text-sky-200" />
-              <span>Girando o tambor da sorte...</span>
-            </div>
-          ) : latestWinner ? (
-            <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 text-sky-200 text-xs font-bold tracking-wide uppercase">
-                <Trophy className="w-4 h-4 fill-sky-300 text-sky-950" />
-                <span>Ganhador Confirmado</span>
-              </div>
-              <div className="text-2xl sm:text-3xl font-display font-black text-white tracking-tight break-words drop-shadow-sm">
-                {latestWinner.name}
-              </div>
-              <div className="text-xs font-medium text-sky-100">
-                Bilhete premiado entre {eligibleCount} concorrentes
-              </div>
-            </div>
-          ) : (
-            <div className="text-xs sm:text-sm font-medium text-sky-100">
-              {eligibleCount > 0 ? (
-                <span>
-                  Pronto para o sorteio! <b>{eligibleCount}</b> bilhetes estão concorrendo.
-                </span>
-              ) : (
-                <span>Cadastre participantes e adicione moedas para começar.</span>
-              )}
-            </div>
-          )}
+        {/* Bottom Perforated Line & Serial Footer */}
+        <div className="px-4 py-2 bg-[#222B28] border-t border-dashed border-[#313D39] flex items-center justify-between text-[11px] font-mono text-[#9BA8A3] tabular-nums">
+          <span>SÉRIE AUDITADA SHA-256</span>
+          <span className="text-[#C6A56A]">GIO DA SORTE PRO</span>
         </div>
       </div>
     </div>

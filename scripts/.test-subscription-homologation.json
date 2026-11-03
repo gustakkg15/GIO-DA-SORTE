@@ -1,0 +1,18 @@
+{
+  "httpStatus": 201,
+  "preapprovalId": "501b05a39dbd4ed4ac4e8188714317e2",
+  "initPoint": "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_id=501b05a39dbd4ed4ac4e8188714317e2&activation=true",
+  "payerId": 3804949770,
+  "expectedPayerId": 3804949770,
+  "payerIdMatched": true,
+  "payerEmailSent": "test_user_8121071805419353144@testuser.com",
+  "externalReference": "uid_homolog_assisted_1793557917318",
+  "status": "pending",
+  "nextPaymentDate": "2026-11-08T14:31:57.000-04:00",
+  "freeTrial": {
+    "frequency": 7,
+    "frequency_type": "days",
+    "first_invoice_offset": 7
+  },
+  "dateCreated": "2026-11-01T14:31:57.000-04:00"
+}

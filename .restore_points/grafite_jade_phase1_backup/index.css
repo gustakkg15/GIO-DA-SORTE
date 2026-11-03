@@ -1,0 +1,207 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Identidade Gestão Editorial */
+    --color-limestone: #F4F1E8;
+    --color-limestone-card: #FFFFFF;
+    --color-limestone-hover: #ECE7DC;
+    --color-verde-ink: #203A32;
+    --color-verde-ink-deep: #162822;
+    --color-verde-musgo: #486D56;
+    --color-verde-musgo-light: #5B846B;
+    --color-terracota: #B8664B;
+    --color-dourado: #B48A51;
+    --color-dourado-light: #C9A167;
+    --color-border-editorial: #E2DDD2;
+    --color-border-subtle: #ECE8DE;
+    --color-text-primary: #203A32;
+    --color-text-muted: #5E6F68;
+
+    /* Cores legadas preservadas para componentes especiais (OBS, Roleta) */
+    --color-metallic-red: #E11D48;
+    --color-metallic-red-bright: #F43F5E;
+    --color-metallic-red-light: #FDA4AF;
+    --color-metallic-red-deep: #BE123C;
+  }
+
+  html {
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+    background-color: #F4F1E8;
+  }
+
+  body {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+    background-color: #F4F1E8;
+    color: #203A32;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  
+  h1, h2, h3, h4, h5, h6, .font-editorial {
+    font-family: 'Fraunces', Georgia, serif;
+    letter-spacing: -0.015em;
+  }
+
+  .font-body {
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  }
+
+  .font-mono, .tabular-nums {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Accessible focus indicators */
+  :focus-visible {
+    outline: 2px solid #486D56;
+    outline-offset: 2px;
+  }
+}
+
+/* ==========================================================================
+   Obsidian Studio Ambient Canvas — Metallic Crimson & Sapphire Contrast
+   ========================================================================== */
+
+.studio-canvas {
+  background-color: #080B11;
+  background-image: 
+    radial-gradient(ellipse 90% 45% at 50% -10%, rgba(225, 29, 72, 0.11) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 35% at 85% 20%, rgba(56, 189, 248, 0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 30% at 15% 45%, rgba(244, 63, 94, 0.08) 0%, transparent 50%);
+  background-attachment: fixed;
+}
+
+/* Studio Surface Cards */
+.studio-card {
+  background: rgba(14, 19, 31, 0.78);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(225, 29, 72, 0.16);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.studio-card:hover {
+  border-color: rgba(244, 63, 94, 0.32);
+}
+
+.studio-card-interactive {
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.studio-card-interactive:hover {
+  border-color: rgba(244, 63, 94, 0.45);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.6), 0 0 15px rgba(225, 29, 72, 0.14);
+}
+
+/* ==========================================================================
+   Fluid Entry Animations
+   ========================================================================== */
+
+@keyframes modalBackdropFadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes modalContentSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes cardEntranceSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: modalBackdropFadeIn 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-up {
+  animation: modalContentSlideUp 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-card-enter {
+  animation: cardEntranceSlideUp 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Perforated Golden / Sapphire Ticket Mask */
+.ticket-notch {
+  -webkit-mask:
+    radial-gradient(circle 14px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle 14px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+  mask:
+    radial-gradient(circle 14px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle 14px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+}
+
+.ticket-notch-lg {
+  -webkit-mask:
+    radial-gradient(circle 20px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle 20px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+  mask:
+    radial-gradient(circle 20px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle 20px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.015); opacity: 1; }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s infinite ease-in-out;
+}
+
+/* Custom Sleek Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(8, 11, 17, 0.4);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

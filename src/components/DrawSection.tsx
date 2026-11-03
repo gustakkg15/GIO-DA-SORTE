@@ -1,65 +1,74 @@
 import React, { useState } from 'react';
 import {
-  Play,
-  RotateCcw,
-  Trash2,
-  CheckCircle2,
-  Copy,
   Sparkles,
-  Clock,
-  Flame,
-  Award,
-  BarChart2,
-  Image as ImageIcon,
+  Trophy,
+  Trash2,
+  AlertCircle,
+  Play,
   Disc,
-  Ticket,
-  Settings,
+  Ticket as TicketIcon,
+  Award,
+  Flame,
+  BarChart2,
+  ListOrdered,
   Gift,
-  Upload,
-  Edit3,
+  Maximize2,
+  ShieldCheck,
   FileText,
+  Copy,
+  Check,
+  Edit3,
+  ChevronDown,
+  ChevronUp,
+  Sliders,
 } from 'lucide-react';
+import { ComputedRaffle, RaffleSettings, Winner, Participant } from '../types';
 import { TicketDisplay } from './TicketDisplay';
 import { FortuneWheel } from './FortuneWheel';
-import { SettingsBackup } from './SettingsBackup';
-import { PrizeConfigModal } from './PrizeConfigModal';
-import { RaffleSettings, Winner, ComputedRaffle, Participant } from '../types';
 import { formatDateTime } from '../utils/raffle';
+import { PrizeConfigModal } from './PrizeConfigModal';
+import { SettingsBackup } from './SettingsBackup';
 
 interface DrawSectionProps {
   computed: ComputedRaffle;
   settings: RaffleSettings;
   winners: Winner[];
-  participants?: Participant[];
+  participants: Participant[];
   isDrawing: boolean;
   currentDisplayNumber: number | string;
   onDraw: () => void;
-  onWheelSpinEnd: (winnerTicket: { number: number; participantId: string; name: string }) => void;
+  onRequestWheelSpin?: () => void;
+  wheelSpinSignal?: number;
+  onWheelSpinEnd: (chosenTicket: { number: number; participantId: string; name: string }) => void;
   onUpdateSettings: (patch: Partial<RaffleSettings>) => void;
-  onRemoveWinner: (winnerId: string) => void;
+  onRemoveWinner: (id: string) => void;
   onClearWinners: () => void;
   onOpenBattleRoyale: () => void;
   onOpenVictoryCard: (winner: Winner) => void;
   onOpenMonteCarlo: () => void;
   onOpenPrizeQueue: () => void;
-  onOpenCelebration?: (winner: Winner) => void;
-  onOpenAuditReport?: () => void;
-  rosterHash?: string;
-  onRequestWheelSpin?: () => void;
-  wheelSpinSignal?: number;
-  onRestoreState?: (state: { settings: RaffleSettings; participants: Participant[]; winners: Winner[] }) => void;
-  onResetToSample?: () => void;
-  onResetCoinsOnly?: () => void;
+  onOpenCelebration: (winner: Winner) => void;
+  onOpenAuditReport: () => void;
+  rosterHash: string;
+  onRestoreState: (state: {
+    settings: RaffleSettings;
+    participants: Participant[];
+    winners: Winner[];
+  }) => void;
+  onResetToSample: () => void;
+  onResetCoinsOnly: () => void;
 }
 
 export const DrawSection: React.FC<DrawSectionProps> = ({
   computed,
   settings,
   winners,
-  participants = [],
+  participants,
   isDrawing,
   currentDisplayNumber,
   onDraw,
+  onRequestWheelSpin,
+  wheelSpinSignal,
   onWheelSpinEnd,
   onUpdateSettings,
   onRemoveWinner,
@@ -71,37 +80,497 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
   onOpenCelebration,
   onOpenAuditReport,
   rosterHash,
-  onRequestWheelSpin,
-  wheelSpinSignal,
   onRestoreState,
   onResetToSample,
   onResetCoinsOnly,
 }) => {
-  const [subTab, setSubTab] = useState<'arena' | 'settings'>('arena');
+  const [isConfirmingClearWinners, setIsConfirmingClearWinners] = useState(false);
+  const [copiedHash, setCopiedHash] = useState(false);
   const [isPrizeModalOpen, setIsPrizeModalOpen] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isExtrasOpen, setIsExtrasOpen] = useState(false);
 
-  const latestWinner = winners.length > 0 ? winners[0] : null;
-  const eligibleCount = computed.eligibleTickets.length;
-  const canDraw = eligibleCount > 0 && !isDrawing;
-
-  const currentPrizeName = settings.prizeName || settings.currentPrize || 'Prêmio Principal';
-
-  const handleCopyWinner = (winner: Winner) => {
-    const text = `🎉 GIO DA SORTE: Parabéns a ${winner.name} com o bilhete #${winner.number}! (${winner.prize || currentPrizeName})`;
-    navigator.clipboard.writeText(text).then(() => {
-      setCopiedId(winner.id);
-      setTimeout(() => setCopiedId(null), 2000);
-    });
+  const handleCopyHash = () => {
+    if (!rosterHash) return;
+    navigator.clipboard.writeText(rosterHash);
+    setCopiedHash(true);
+    setTimeout(() => setCopiedHash(false), 2000);
   };
 
+  const eligibleCount = computed.eligibleTickets.length;
+  const latestWinner = winners.length > 0 ? winners[0] : null;
+  const drawMode = settings.drawMode || 'drum';
+
+  // Determine next ranked prize from queue if available
+  const prizes = settings.prizes || [];
+  const nextRankedPrize = [...prizes]
+    .sort((a, b) => a.rank - b.rank)
+    .find((p) => !p.winnerId);
+
+  const activePrizeLabel = nextRankedPrize
+    ? nextRankedPrize.name
+    : settings.prizeName || settings.currentPrize || 'Prêmio Principal';
+
+  const canDraw = !isDrawing && eligibleCount > 0;
+
   return (
-    <div className="space-y-5">
-      {/* Prize Configuration Modal */}
+    <div className="space-y-5 min-w-0">
+      {/* Main Draw Mesa Card */}
+      <div className="rounded-xl bg-[#222B28] border border-[#313D39] p-5 sm:p-6 space-y-5">
+        {/* Header & Mode Selector (Globo Digital vs Roleta Proporcional) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#313D39]">
+          <div>
+            <h2 className="text-base sm:text-lg font-semibold text-[#EAE7DE]">
+              Mesa de Sorteio
+            </h2>
+            <p className="text-xs text-[#9BA8A3] tabular-nums">
+              {eligibleCount} {eligibleCount === 1 ? 'bilhete elegível' : 'bilhetes elegíveis'} · Regra ativa: {settings.rate} moedas = 1 bilhete
+            </p>
+          </div>
+
+          {/* Segmented Mode Switcher */}
+          <div className="flex items-center bg-[#171D1C] p-1 rounded-lg border border-[#313D39] self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => onUpdateSettings({ drawMode: 'drum' })}
+              className={`min-h-[34px] px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${
+                drawMode === 'drum'
+                  ? 'bg-[#6EAA90] text-[#171D1C]'
+                  : 'text-[#9BA8A3] hover:text-[#EAE7DE]'
+              }`}
+            >
+              <TicketIcon className="w-3.5 h-3.5" />
+              <span>Globo Digital</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onUpdateSettings({ drawMode: 'wheel' })}
+              className={`min-h-[34px] px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${
+                drawMode === 'wheel'
+                  ? 'bg-[#6EAA90] text-[#171D1C]'
+                  : 'text-[#9BA8A3] hover:text-[#EAE7DE]'
+              }`}
+            >
+              <Disc className="w-3.5 h-3.5" />
+              <span>Roleta Visual</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Active Prize Card (Discrete & Editable) */}
+        <div className="p-3.5 rounded-xl bg-[#171D1C] border border-[#313D39] flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            {settings.prizeImage ? (
+              <div className="w-11 h-11 rounded-lg overflow-hidden border border-[#C6A56A]/40 shrink-0 bg-[#222B28]">
+                <img
+                  src={settings.prizeImage}
+                  alt={activePrizeLabel}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="w-10 h-10 rounded-lg bg-[#2B3632] border border-[#C6A56A]/40 flex items-center justify-center shrink-0 text-[#C6A56A]">
+                <Gift className="w-5 h-5" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-medium uppercase tracking-wider text-[#9BA8A3]">
+                  Prêmio em Disputa
+                </span>
+                {nextRankedPrize && (
+                  <span className="px-1.5 py-0.5 rounded bg-[#C6A56A]/15 text-[#C6A56A] text-[10px] font-mono font-semibold tabular-nums">
+                    #{nextRankedPrize.rank}º da Fila
+                  </span>
+                )}
+              </div>
+              <div className="text-sm font-semibold text-[#EAE7DE] truncate">
+                {activePrizeLabel}
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsPrizeModalOpen(true)}
+            className="min-h-[36px] px-3 py-1.5 rounded-lg bg-[#2B3632] hover:bg-[#313D39] text-[#EAE7DE] border border-[#313D39] text-xs font-medium flex items-center gap-1.5 shrink-0 transition"
+          >
+            <Edit3 className="w-3.5 h-3.5 text-[#C6A56A]" />
+            <span>Editar Prêmio</span>
+          </button>
+        </div>
+
+        {/* Display Arena: Globo Digital or Roleta Visual */}
+        {drawMode === 'drum' ? (
+          <div className="space-y-4">
+            <TicketDisplay
+              displayNumber={currentDisplayNumber}
+              isSpinning={isDrawing}
+              winnerName={latestWinner ? latestWinner.name : null}
+              winnerPrize={latestWinner ? latestWinner.prize : null}
+              themeMode={settings.themeMode}
+            />
+
+            {/* Primary Draw CTA Button */}
+            <button
+              type="button"
+              disabled={!canDraw}
+              onClick={onDraw}
+              className={`w-full min-h-[50px] py-3.5 px-6 rounded-xl font-semibold text-sm sm:text-base flex items-center justify-center gap-2.5 transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6EAA90] ${
+                canDraw
+                  ? 'bg-[#6EAA90] hover:bg-[#5E9980] text-[#171D1C] shadow-md cursor-pointer'
+                  : 'bg-[#2B3632] text-[#9BA8A3] border border-[#313D39] cursor-not-allowed opacity-60'
+              }`}
+            >
+              {isDrawing ? (
+                <>
+                  <Sparkles className="w-5 h-5 animate-spin text-[#171D1C]" />
+                  <span>Sorteando Bilhete...</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>Sortear Agora no Globo</span>
+                </>
+              )}
+            </button>
+          </div>
+        ) : (
+          <div className="py-1">
+            <FortuneWheel
+              computed={computed}
+              isDrawing={isDrawing}
+              onSpinStart={() => {}}
+              onSpinEnd={onWheelSpinEnd}
+              latestWinner={latestWinner}
+              onRequestSpin={onRequestWheelSpin}
+              spinSignal={wheelSpinSignal}
+            />
+          </div>
+        )}
+
+        {/* Eligibility Alert when no eligible tickets exist */}
+        {eligibleCount === 0 && (
+          <div className="flex items-start gap-2.5 text-xs text-[#D96B6B] bg-[#D96B6B]/10 border border-[#D96B6B]/30 rounded-xl p-3.5">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[#D96B6B]" />
+            <span>
+              {computed.usedCount === 0
+                ? `Nenhum bilhete elegível emitido. Adicione participantes com pelo menos ${settings.rate} moedas na lista ao lado para liberar o sorteio.`
+                : 'Todos os participantes com bilhetes já foram premiados! Desmarque a opção "Não repetir ganhador" nos recursos extras ou limpe o histórico para sortear novamente.'}
+            </span>
+          </div>
+        )}
+
+        {/* Quick Winner Actions Bar (when at least 1 winner exists) */}
+        {latestWinner && !isDrawing && (
+          <div className="p-3.5 rounded-xl bg-[#171D1C] border border-[#C6A56A]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="min-w-0">
+              <span className="text-[11px] font-medium text-[#C6A56A] block">
+                Último Ganhador Sorteado
+              </span>
+              <div className="text-sm font-semibold text-[#EAE7DE] truncate tabular-nums">
+                #{latestWinner.number} · {latestWinner.name}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => onOpenCelebration(latestWinner)}
+                className="min-h-[34px] px-2.5 py-1.5 rounded-lg bg-[#2B3632] hover:bg-[#313D39] text-[#EAE7DE] border border-[#313D39] text-xs font-medium flex items-center gap-1.5 transition"
+              >
+                <Maximize2 className="w-3.5 h-3.5 text-[#6EAA90]" />
+                <span>Telão</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onOpenVictoryCard(latestWinner)}
+                className="min-h-[34px] px-2.5 py-1.5 rounded-lg bg-[#2B3632] hover:bg-[#313D39] text-[#C6A56A] border border-[#C6A56A]/40 text-xs font-medium flex items-center gap-1.5 transition"
+              >
+                <Award className="w-3.5 h-3.5" />
+                <span>Cartão VIP</span>
+              </button>
+              <button
+                type="button"
+                onClick={onOpenAuditReport}
+                className="min-h-[34px] px-2.5 py-1.5 rounded-lg bg-[#6EAA90]/15 hover:bg-[#6EAA90]/25 text-[#6EAA90] border border-[#6EAA90]/40 text-xs font-semibold flex items-center gap-1.5 transition"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Certificado PDF</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Collapsible Advanced Block: Recursos Extras da Mesa */}
+        <div className="pt-2 border-t border-[#313D39]">
+          <button
+            type="button"
+            onClick={() => setIsExtrasOpen((prev) => !prev)}
+            aria-expanded={isExtrasOpen}
+            className="w-full min-h-[40px] px-3.5 py-2 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] border border-[#313D39] flex items-center justify-between text-xs font-semibold text-[#EAE7DE] transition"
+          >
+            <span className="flex items-center gap-2">
+              <Sliders className="w-3.5 h-3.5 text-[#6EAA90]" />
+              <span>Recursos Extras da Mesa (Eliminatória, Fila de Prêmios e Auditoria)</span>
+            </span>
+            {isExtrasOpen ? (
+              <ChevronUp className="w-4 h-4 text-[#9BA8A3]" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-[#9BA8A3]" />
+            )}
+          </button>
+
+          {isExtrasOpen && (
+            <div className="mt-3 p-4 rounded-xl bg-[#171D1C] border border-[#313D39] space-y-4 animate-fade-in">
+              {/* Quick Rules Toggle: Exclude previous winners & Countdown */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#313D39]">
+                <label className="flex items-center gap-2 text-xs text-[#EAE7DE] cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={settings.exclude}
+                    onChange={(e) => onUpdateSettings({ exclude: e.target.checked })}
+                    className="w-4 h-4 rounded border-[#313D39] bg-[#222B28] text-[#6EAA90] focus:ring-[#6EAA90]"
+                  />
+                  <span>Não repetir ganhador em sorteios seguidos</span>
+                </label>
+
+                <div className="flex items-center gap-2 text-xs text-[#9BA8A3]">
+                  <span>Contagem regressiva:</span>
+                  <select
+                    value={settings.countdownSeconds ?? 10}
+                    onChange={(e) => onUpdateSettings({ countdownSeconds: Number(e.target.value) })}
+                    className="px-2 py-1 rounded bg-[#222B28] border border-[#313D39] text-xs text-[#EAE7DE] font-mono tabular-nums"
+                  >
+                    <option value={0}>Desativada (0s)</option>
+                    <option value={3}>3 segundos</option>
+                    <option value={5}>5 segundos</option>
+                    <option value={10}>10 segundos</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Advanced Tools Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  disabled={eligibleCount < 2}
+                  onClick={onOpenBattleRoyale}
+                  className="p-3 rounded-lg bg-[#222B28] hover:bg-[#2B3632] disabled:opacity-40 disabled:cursor-not-allowed border border-[#313D39] text-left flex items-center gap-2.5 transition"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-[#2B3632] border border-[#C6A56A]/40 flex items-center justify-center text-[#C6A56A] shrink-0">
+                    <Flame className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold text-[#EAE7DE]">Modo Eliminatória</div>
+                    <div className="text-[11px] text-[#9BA8A3] truncate">Battle Royale até restar 1 campeão</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onOpenPrizeQueue}
+                  className="p-3 rounded-lg bg-[#222B28] hover:bg-[#2B3632] border border-[#313D39] text-left flex items-center gap-2.5 transition"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-[#2B3632] border border-[#313D39] flex items-center justify-center text-[#6EAA90] shrink-0">
+                    <ListOrdered className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold text-[#EAE7DE]">Fila de Prêmios ({prizes.length})</div>
+                    <div className="text-[11px] text-[#9BA8A3] truncate">Configurar 1º, 2º e 3º lugares</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={eligibleCount === 0}
+                  onClick={onOpenMonteCarlo}
+                  className="p-3 rounded-lg bg-[#222B28] hover:bg-[#2B3632] disabled:opacity-40 disabled:cursor-not-allowed border border-[#313D39] text-left flex items-center gap-2.5 transition"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-[#2B3632] border border-[#313D39] flex items-center justify-center text-[#6EAA90] shrink-0">
+                    <BarChart2 className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold text-[#EAE7DE]">Simulação 10k</div>
+                    <div className="text-[11px] text-[#9BA8A3] truncate">Testar probabilidades (Monte Carlo)</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onOpenAuditReport}
+                  className="p-3 rounded-lg bg-[#222B28] hover:bg-[#2B3632] border border-[#313D39] text-left flex items-center gap-2.5 transition"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-[#2B3632] border border-[#C6A56A]/40 flex items-center justify-center text-[#C6A56A] shrink-0">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold text-[#EAE7DE]">Certificado e Laudo PDF</div>
+                    <div className="text-[11px] text-[#9BA8A3] truncate">Relatório oficial com QR Code</div>
+                  </div>
+                </button>
+              </div>
+
+              {/* SHA-256 Roster Integrity Hash */}
+              <div className="p-3 rounded-lg bg-[#222B28] border border-[#313D39] space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#6EAA90]">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Hash SHA-256 da Lista de Bilhetes</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyHash}
+                    className="px-2 py-0.5 rounded bg-[#171D1C] hover:bg-[#2B3632] border border-[#313D39] text-[10px] font-medium text-[#EAE7DE] flex items-center gap-1 transition"
+                  >
+                    {copiedHash ? (
+                      <>
+                        <Check className="w-3 h-3 text-[#6EAA90]" />
+                        <span className="text-[#6EAA90]">Copiado</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3 text-[#9BA8A3]" />
+                        <span>Copiar Hash</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div className="font-mono text-[10px] text-[#9BA8A3] truncate bg-[#171D1C] px-2.5 py-1.5 rounded border border-[#313D39] select-all">
+                  {rosterHash || 'Calculando hash de integridade...'}
+                </div>
+              </div>
+
+              {/* Settings Backup & Quick Reset Controls */}
+              <SettingsBackup
+                settings={settings}
+                participants={participants}
+                winners={winners}
+                computed={computed}
+                onUpdateSettings={onUpdateSettings}
+                onOpenAuditReport={onOpenAuditReport}
+                rosterHash={rosterHash}
+                onRestoreState={
+                  onRestoreState ||
+                  (() => {
+                    /* fallback */
+                  })
+                }
+                onResetToSample={
+                  onResetToSample ||
+                  (() => {
+                    /* fallback */
+                  })
+                }
+                onResetCoinsOnly={
+                  onResetCoinsOnly ||
+                  (() => {
+                    /* fallback */
+                  })
+                }
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Compact Recent Winners Card below Mesa */}
+      {winners.length > 0 && (
+        <div className="rounded-xl bg-[#222B28] border border-[#313D39] p-5 space-y-3.5">
+          <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-[#313D39]">
+            <div className="flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-[#C6A56A]" />
+              <h3 className="text-sm font-semibold text-[#EAE7DE]">
+                Ganhadores desta Sessão ({winners.length})
+              </h3>
+            </div>
+
+            {isConfirmingClearWinners ? (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClearWinners();
+                    setIsConfirmingClearWinners(false);
+                  }}
+                  className="px-2.5 py-1 text-[11px] font-semibold bg-[#D96B6B] text-[#171D1C] rounded transition"
+                >
+                  Confirmar Limpeza
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsConfirmingClearWinners(false)}
+                  className="px-2 py-1 text-[11px] text-[#9BA8A3] hover:text-[#EAE7DE]"
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsConfirmingClearWinners(true)}
+                className="text-xs text-[#9BA8A3] hover:text-[#D96B6B] transition"
+              >
+                Limpar histórico
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+            {winners.map((w, index) => (
+              <div
+                key={w.id}
+                className="p-2.5 rounded-lg bg-[#171D1C] border border-[#313D39] flex items-center justify-between gap-2"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="px-2 py-1 rounded bg-[#2B3632] border border-[#C6A56A]/40 text-[#C6A56A] font-mono font-bold text-xs tabular-nums shrink-0">
+                    #{w.number}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-xs text-[#EAE7DE] truncate">
+                        {w.name}
+                      </span>
+                      {index === 0 && (
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#6EAA90]/20 text-[#6EAA90] font-medium shrink-0">
+                          Mais recente
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-[#9BA8A3] truncate tabular-nums">
+                      {w.prize || 'Prêmio'} · {formatDateTime(w.drawnAt)}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => onOpenVictoryCard(w)}
+                    title="Gerar Cartão VIP"
+                    className="px-2 py-1 rounded bg-[#222B28] hover:bg-[#2B3632] text-[#C6A56A] border border-[#313D39] text-[11px] font-medium flex items-center gap-1 transition"
+                  >
+                    <Award className="w-3 h-3" />
+                    <span className="hidden sm:inline">Cartão</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onRemoveWinner(w.id)}
+                    title="Remover registro"
+                    className="p-1.5 text-[#9BA8A3] hover:text-[#D96B6B] rounded transition"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Prize Config Modal */}
       <PrizeConfigModal
         isOpen={isPrizeModalOpen}
         onClose={() => setIsPrizeModalOpen(false)}
-        currentPrizeName={currentPrizeName}
+        currentPrizeName={settings.prizeName || settings.currentPrize || 'Prêmio Oficial'}
         currentPrizeImage={settings.prizeImage}
         onSavePrize={(name, image) => {
           onUpdateSettings({
@@ -111,472 +580,6 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
           });
         }}
       />
-
-      {/* Sorteio & Configurações Sub-Navigation Bar */}
-      <div className="flex items-center p-1 bg-slate-950 border border-slate-800 rounded-2xl shadow-md">
-        <button
-          type="button"
-          onClick={() => setSubTab('arena')}
-          className={`flex-1 py-2 px-3.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
-            subTab === 'arena'
-              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <Ticket className="w-4 h-4" />
-          <span>Mesa de Sorteio</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setSubTab('settings')}
-          className={`flex-1 py-2 px-3.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
-            subTab === 'settings'
-              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <Settings className="w-4 h-4" />
-          <span>Configurações & Regras</span>
-        </button>
-      </div>
-
-      {/* VIEW 1: Full Embedded Settings & Backup inside Sorteio Tab */}
-      {subTab === 'settings' && (
-        <div className="space-y-6 animate-in fade-in duration-200">
-          <SettingsBackup
-            settings={settings}
-            participants={participants}
-            winners={winners}
-            computed={computed}
-            onUpdateSettings={onUpdateSettings}
-            onOpenAuditReport={onOpenAuditReport}
-            rosterHash={rosterHash}
-            onRestoreState={
-              onRestoreState ||
-              (() => {
-                /* fallback */
-              })
-            }
-            onResetToSample={
-              onResetToSample ||
-              (() => {
-                /* fallback */
-              })
-            }
-            onResetCoinsOnly={
-              onResetCoinsOnly ||
-              (() => {
-                /* fallback */
-              })
-            }
-          />
-        </div>
-      )}
-
-      {/* VIEW 2: Arena & Drawing Operations */}
-      {subTab === 'arena' && (
-        <div className="space-y-6 animate-in fade-in duration-200">
-          {/* Card de Destaque do Prêmio (Nome do Prêmio + Imagem do Prêmio) */}
-          <div className="bg-gradient-to-r from-blue-950/70 via-slate-900 to-indigo-950/70 border-2 border-blue-500/40 rounded-2xl p-4 shadow-xl relative overflow-hidden animate-card-enter neon-card">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5 min-w-0">
-                {/* Prize Image Thumbnail with Glow */}
-                <div
-                  onClick={() => setIsPrizeModalOpen(true)}
-                  className="w-16 h-16 rounded-2xl bg-slate-950 border-2 border-amber-400/80 flex items-center justify-center overflow-hidden shrink-0 shadow-lg shadow-amber-500/20 cursor-pointer group hover:scale-105 transition"
-                  title="Clique para alterar a foto do prêmio"
-                >
-                  {settings.prizeImage ? (
-                    <img
-                      src={settings.prizeImage}
-                      alt={currentPrizeName}
-                      className="w-full h-full object-cover group-hover:opacity-90"
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-amber-400 p-1">
-                      <Gift className="w-7 h-7" />
-                      <span className="text-[9px] font-bold text-amber-300 uppercase tracking-tighter">Sem Foto</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="min-w-0 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400 bg-amber-950/80 border border-amber-500/40 px-2 py-0.5 rounded-full">
-                      🎁 Prêmio em Disputa
-                    </span>
-                    {settings.prizeImage && (
-                      <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" />
-                        <span>Foto Ativa</span>
-                      </span>
-                    )}
-                  </div>
-
-                  <h3 className="font-display font-black text-lg sm:text-xl text-white truncate drop-shadow-sm">
-                    {currentPrizeName}
-                  </h3>
-
-                  <p className="text-xs text-slate-400 truncate">
-                    {settings.prizeImage ? 'A imagem será exibida no telão, bilhete e certificado!' : 'Adicione uma foto do prêmio para animar os participantes!'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Action Button to Open Prize Config */}
-              <button
-                type="button"
-                onClick={() => setIsPrizeModalOpen(true)}
-                className="w-full sm:w-auto min-h-[44px] px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-blue-600/30 transition shrink-0 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
-              >
-                <Edit3 className="w-3.5 h-3.5 text-sky-200" />
-                <span>Configurar Prêmio & Imagem</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Visual Arena Card (Drum or Fortune Wheel) */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-7 shadow-xl space-y-5 animate-card-enter neon-card">
-            {/* Arena Mode Switcher */}
-            <div className="flex flex-wrap items-center justify-between gap-2.5 pb-3 border-b border-slate-800">
-              <div className="flex items-center p-1 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold">
-                <button
-                  type="button"
-                  onClick={() => onUpdateSettings({ drawMode: 'drum' })}
-                  className={`min-h-[36px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${
-                    settings.drawMode === 'drum'
-                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-bold'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Ticket className="w-3.5 h-3.5" />
-                  <span>Bilhete Azul</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onUpdateSettings({ drawMode: 'wheel' })}
-                  className={`min-h-[36px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${
-                    settings.drawMode === 'wheel'
-                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-bold'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Disc className="w-3.5 h-3.5" />
-                  <span>Roleta da Fortuna</span>
-                </button>
-              </div>
-
-              {/* Quick Innovative Triggers */}
-              <button
-                type="button"
-                onClick={onOpenBattleRoyale}
-                className="min-h-[36px] flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-sky-300 hover:text-white bg-blue-950/50 hover:bg-blue-900/60 border border-blue-800/60 rounded-xl transition shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
-              >
-                <Flame className="w-3.5 h-3.5 text-sky-400" />
-                <span className="hidden sm:inline">Modo Battle Royale</span>
-                <span className="sm:hidden">Eliminatória</span>
-              </button>
-            </div>
-
-            {/* Display: Ticket or Wheel */}
-            {settings.drawMode === 'wheel' ? (
-              <FortuneWheel
-                computed={computed}
-                isDrawing={isDrawing}
-                onSpinStart={onDraw}
-                onSpinEnd={onWheelSpinEnd}
-                latestWinner={latestWinner}
-                onRequestSpin={onRequestWheelSpin || onDraw}
-                spinSignal={wheelSpinSignal}
-              />
-            ) : (
-              <TicketDisplay
-                currentNumber={currentDisplayNumber}
-                isDrawing={isDrawing}
-                latestWinner={latestWinner}
-                currentPrize={currentPrizeName}
-                prizeImage={settings.prizeImage}
-                eligibleCount={eligibleCount}
-                totalCapacity={settings.total}
-              />
-            )}
-
-            {/* Countdown Duration Quick Selector */}
-            <div className="max-w-lg mx-auto flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs">
-              <div className="flex items-center gap-1.5 text-slate-300 font-semibold">
-                <Clock className="w-3.5 h-3.5 text-sky-400" />
-                <span>Contagem regressiva do sorteio:</span>
-              </div>
-              <div className="flex items-center gap-1 p-0.5 bg-slate-900 border border-slate-800 rounded-lg">
-                {[
-                  { label: '10s (Padrão)', val: 10 },
-                  { label: '5s', val: 5 },
-                  { label: '3s', val: 3 },
-                  { label: 'Desativada', val: 0 },
-                ].map((opt) => {
-                  const active = (settings.countdownSeconds ?? 10) === opt.val;
-                  return (
-                    <button
-                      key={opt.val}
-                      type="button"
-                      onClick={() => onUpdateSettings({ countdownSeconds: opt.val })}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-400 ${
-                        active
-                          ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
-                          : 'text-slate-400 hover:text-slate-200'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Primary Draw Button (Only for Drum mode, Wheel has its own button) */}
-            {settings.drawMode === 'drum' && (
-              <div className="max-w-lg mx-auto space-y-4">
-                <button
-                  type="button"
-                  disabled={!canDraw}
-                  onClick={onDraw}
-                  className={`w-full py-4 px-6 rounded-xl font-display font-black text-xl tracking-wide flex items-center justify-center gap-3 transition-all duration-200 active:scale-98 ${
-                    canDraw
-                      ? 'neon-btn-primary neon-draw-glow bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 text-white shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 hover:brightness-105 cursor-pointer ring-1 ring-sky-300/30'
-                      : 'bg-slate-800 text-slate-500 border border-slate-700/50 cursor-not-allowed opacity-60'
-                  }`}
-                >
-                  {isDrawing ? (
-                    <>
-                      <Sparkles className="w-6 h-6 animate-spin text-white" />
-                      <span>Sorteando Número...</span>
-                    </>
-                  ) : (
-                    <div className="flex items-center gap-2.5">
-                      <Play className="w-6 h-6 fill-white" />
-                      <span>Sortear Agora</span>
-                      {(settings.countdownSeconds ?? 10) > 0 && (
-                        <span className="text-xs font-mono font-semibold bg-white/20 px-2 py-0.5 rounded-full text-white/90">
-                          ⏱️ {(settings.countdownSeconds ?? 10)}s
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </button>
-              </div>
-            )}
-
-            {/* Innovation Toolbar (Podium, Card, Monte Carlo) */}
-            <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={onOpenPrizeQueue}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition"
-                >
-                  <Award className="w-3.5 h-3.5 text-sky-400" />
-                  <span>Pódio & Prêmios</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={onOpenMonteCarlo}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition"
-                >
-                  <BarChart2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Auditoria (10k)</span>
-                </button>
-              </div>
-
-              {latestWinner && (
-                <div className="flex flex-wrap items-center gap-2">
-                  {onOpenCelebration && (
-                    <button
-                      type="button"
-                      onClick={() => onOpenCelebration(latestWinner)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:brightness-105 text-slate-950 font-bold transition shadow-md shadow-amber-500/25 active:scale-95 text-xs"
-                      title="Ver animação comemorativa do prêmio e ganhador na tela toda"
-                      aria-label="Ver animação comemorativa do prêmio e ganhador na tela toda"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 fill-slate-950" />
-                      <span>Ver Celebração na Tela Toda</span>
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => onOpenVictoryCard(latestWinner)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition shadow-md shadow-blue-600/30 text-xs active:scale-95"
-                  >
-                    <ImageIcon className="w-3.5 h-3.5" />
-                    <span>Card de Vitória</span>
-                  </button>
-                  {onOpenAuditReport && (
-                    <button
-                      type="button"
-                      onClick={onOpenAuditReport}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-300 font-bold transition border border-slate-700 text-xs active:scale-95"
-                      title="Exportar Laudo Oficial em PDF com Hash de Integridade"
-                    >
-                      <FileText className="w-3.5 h-3.5 text-sky-400" />
-                      <span>Laudo PDF</span>
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Quick Config Toggles */}
-            <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5 space-y-3 text-xs sm:text-sm">
-              <label className="flex items-center gap-2.5 cursor-pointer text-slate-200 select-none">
-                <input
-                  type="checkbox"
-                  checked={settings.exclude}
-                  onChange={(e) => onUpdateSettings({ exclude: e.target.checked })}
-                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 bg-slate-700 border-slate-600 accent-blue-600"
-                />
-                <span className="font-medium">Quem já ganhou não concorre de novo</span>
-              </label>
-
-              <div className="pt-2 border-t border-slate-700/60 flex flex-col sm:flex-row sm:items-center gap-2">
-                <span className="text-slate-400 text-xs shrink-0">Prêmio desta rodada:</span>
-                <div className="flex-1 flex gap-2">
-                  <input
-                    type="text"
-                    value={settings.currentPrize || settings.prizeName || ''}
-                    onChange={(e) =>
-                      onUpdateSettings({
-                        currentPrize: e.target.value,
-                        prizeName: e.target.value,
-                      })
-                    }
-                    placeholder="Ex.: Smartphone, Pix R$ 100, Fone..."
-                    className="w-full bg-slate-900 border border-slate-700 rounded-md px-2.5 py-1 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-400"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setIsPrizeModalOpen(true)}
-                    className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 border border-slate-700 rounded-md text-sky-400 text-xs font-bold transition whitespace-nowrap shrink-0 flex items-center gap-1"
-                  >
-                    <Upload className="w-3 h-3" />
-                    <span>{settings.prizeImage ? 'Trocar Foto' : '+ Foto'}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Winners History Podium */}
-          {winners.length > 0 && (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4 animate-card-enter neon-card">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                <div className="flex items-center gap-2">
-                  <span className="font-display font-bold text-base text-white">Ganhadores Anteriores</span>
-                  <span className="text-xs font-bold bg-blue-500/20 text-sky-300 border border-blue-500/30 px-2 py-0.5 rounded-full tabular-nums">
-                    {winners.length} {winners.length === 1 ? 'sorteado' : 'sorteados'}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {onOpenAuditReport && (
-                    <button
-                      type="button"
-                      onClick={onOpenAuditReport}
-                      className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition flex items-center gap-1.5 active:scale-95"
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      <span>Exportar Laudo PDF</span>
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={onClearWinners}
-                    className="text-xs text-slate-400 hover:text-red-400 flex items-center gap-1 transition px-2 py-1.5 rounded-lg hover:bg-slate-800"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Limpar histórico</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="divide-y divide-slate-800/70 max-h-72 overflow-y-auto pr-1">
-                {winners.map((winner, index) => (
-                  <div key={winner.id} className="py-2.5 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-slate-300 shrink-0">
-                        {index + 1}º
-                      </div>
-
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-sm text-white truncate">{winner.name}</span>
-                          <span className="bg-blue-600 text-white font-mono font-bold text-xs px-1.5 py-0.2 rounded tabular-nums shrink-0">
-                            #{winner.number}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                          <span>{winner.prize || 'Sorteio padrão'}</span>
-                          <span>·</span>
-                          <span className="flex items-center gap-1 text-slate-500">
-                            <Clock className="w-3 h-3" />
-                            {formatDateTime(winner.drawnAt)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1 shrink-0">
-                      {onOpenCelebration && (
-                        <button
-                          type="button"
-                          onClick={() => onOpenCelebration(winner)}
-                          title={`Ver animação na tela toda de ${winner.name}`}
-                          aria-label={`Ver animação na tela toda de ${winner.name}`}
-                          className="min-w-[36px] min-h-[36px] p-2 flex items-center justify-center text-amber-400 hover:text-white hover:bg-slate-800 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
-                        >
-                          <Sparkles className="w-4 h-4" />
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => onOpenVictoryCard(winner)}
-                        title={`Gerar card de vitória para ${winner.name}`}
-                        aria-label={`Gerar card de vitória para ${winner.name}`}
-                        className="min-w-[36px] min-h-[36px] p-2 flex items-center justify-center text-sky-400 hover:text-white hover:bg-slate-800 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
-                      >
-                        <ImageIcon className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyWinner(winner)}
-                        title={`Copiar resultado de ${winner.name}`}
-                        aria-label={`Copiar resultado de ${winner.name}`}
-                        className="min-w-[36px] min-h-[36px] p-2 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
-                      >
-                        {copiedId === winner.id ? (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onRemoveWinner(winner.id)}
-                        title={`Remover sorteio de ${winner.name}`}
-                        aria-label={`Remover sorteio de ${winner.name}`}
-                        className="min-w-[36px] min-h-[36px] p-2 flex items-center justify-center text-slate-500 hover:text-red-400 hover:bg-slate-800 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };

@@ -109,12 +109,170 @@
         }
       },
       "required": ["code", "userId", "settings", "participants"]
+    },
+    "LegalDocument": {
+      "title": "LegalDocument",
+      "description": "Public institutional or legal document in the Legal Trust Center",
+      "type": "object",
+      "properties": {
+        "slug": { "type": "string", "description": "Unique document slug" },
+        "title": { "type": "string", "description": "Document title" },
+        "version": { "type": "string", "description": "Current published version" },
+        "status": { "type": "string", "description": "PUBLISHED or DRAFT" },
+        "publishedAt": { "type": "number", "description": "Publication timestamp" },
+        "updatedAt": { "type": "number", "description": "Last update timestamp" },
+        "sections": { "type": "array", "description": "Document sections with headings and paragraphs" }
+      },
+      "required": ["slug", "title", "version", "status"]
+    },
+    "LegalDocumentVersion": {
+      "title": "LegalDocumentVersion",
+      "description": "Immutable archived version of a legal document",
+      "type": "object",
+      "properties": {
+        "versionId": { "type": "string", "description": "Version identifier" },
+        "slug": { "type": "string", "description": "Document slug" },
+        "version": { "type": "string", "description": "Version string" },
+        "publishedAt": { "type": "number", "description": "Timestamp of publication" },
+        "publishedBy": { "type": "string", "description": "Admin email" }
+      },
+      "required": ["versionId", "slug", "version", "publishedAt"]
+    },
+    "DocumentAcceptance": {
+      "title": "DocumentAcceptance",
+      "description": "Record of explicit user acceptance of legal or commercial terms",
+      "type": "object",
+      "properties": {
+        "acceptanceId": { "type": "string", "description": "Unique acceptance ID" },
+        "userId": { "type": "string", "description": "User ID" },
+        "userEmail": { "type": "string", "description": "User email" },
+        "documentSlug": { "type": "string", "description": "Accepted document slug" },
+        "documentVersion": { "type": "string", "description": "Accepted document version" },
+        "acceptedAt": { "type": "number", "description": "Acceptance timestamp" },
+        "context": { "type": "string", "description": "Acceptance context (CADASTRO, ATIVACAO_PRO, etc.)" }
+      },
+      "required": ["acceptanceId", "documentSlug", "documentVersion", "acceptedAt"]
+    },
+    "CookieConsent": {
+      "title": "CookieConsent",
+      "description": "LGPD cookie consent record",
+      "type": "object",
+      "properties": {
+        "consentId": { "type": "string", "description": "Unique consent ID" },
+        "policyVersion": { "type": "string", "description": "Cookie policy version" },
+        "action": { "type": "string", "description": "ACCEPT_ALL, REJECT_NON_ESSENTIAL, or CUSTOM" },
+        "categories": { "type": "object", "description": "Selected cookie categories" },
+        "decidedAt": { "type": "number", "description": "Decision timestamp" }
+      },
+      "required": ["consentId", "policyVersion", "action", "decidedAt"]
+    },
+    "LgpdRequest": {
+      "title": "LgpdRequest",
+      "description": "LGPD data subject right request with protocol and status tracking",
+      "type": "object",
+      "properties": {
+        "requestId": { "type": "string", "description": "Request ID" },
+        "protocol": { "type": "string", "description": "Protocol code" },
+        "userName": { "type": "string", "description": "Requester name" },
+        "userEmail": { "type": "string", "description": "Requester email" },
+        "requestType": { "type": "string", "description": "Type of LGPD request" },
+        "status": { "type": "string", "description": "RECEBIDA, EM_ANALISE, CONCLUIDA, or REJEITADA" },
+        "createdAt": { "type": "number", "description": "Creation timestamp" }
+      },
+      "required": ["requestId", "protocol", "userName", "userEmail", "requestType", "status"]
+    },
+    "SupportTicket": {
+      "title": "SupportTicket",
+      "description": "Customer support ticket with protocol and admin response",
+      "type": "object",
+      "properties": {
+        "ticketId": { "type": "string", "description": "Ticket ID" },
+        "protocol": { "type": "string", "description": "Support protocol" },
+        "name": { "type": "string", "description": "Requester name" },
+        "email": { "type": "string", "description": "Requester email" },
+        "category": { "type": "string", "description": "Ticket category" },
+        "subject": { "type": "string", "description": "Subject" },
+        "status": { "type": "string", "description": "ABERTO, EM_ATENDIMENTO, or RESOLVIDO" },
+        "createdAt": { "type": "number", "description": "Creation timestamp" }
+      },
+      "required": ["ticketId", "protocol", "name", "email", "subject", "status"]
+    },
+    "SubscriptionSettings": {
+      "title": "SubscriptionSettings",
+      "description": "Commercial subscription configuration for GIO DA SORTE PRO (Monthly R$ 29,90 and Annual R$ 199,90 with 7-day free trial)",
+      "type": "object",
+      "properties": {
+        "planId": { "type": "string", "description": "Configuration document identifier" },
+        "monthlyPriceBrl": { "type": "number", "description": "Monthly recurring price in BRL (29.90)" },
+        "annualPriceBrl": { "type": "number", "description": "Annual recurring price in BRL (199.90)" },
+        "freeTrialDays": { "type": "number", "description": "Free trial duration in days (7)" },
+        "freeTrialEnabled": { "type": "boolean", "description": "Whether 7-day free trial is active for new subscribers" },
+        "priceVersion": { "type": "string", "description": "Current commercial pricing version" },
+        "mpHomologationStatus": { "type": "string", "description": "Homologation status of Mercado Pago recurring billing" },
+        "updatedAt": { "type": "number", "description": "Last update timestamp" }
+      },
+      "required": ["planId", "monthlyPriceBrl", "annualPriceBrl", "freeTrialDays", "priceVersion"]
+    },
+    "SubscriptionWebhook": {
+      "title": "SubscriptionWebhook",
+      "description": "Idempotent record of processed Mercado Pago subscription and payment webhooks",
+      "type": "object",
+      "properties": {
+        "webhookId": { "type": "string", "description": "Unique webhook event identifier" },
+        "topic": { "type": "string", "description": "Notification topic or type" },
+        "action": { "type": "string", "description": "Notification action" },
+        "dataId": { "type": "string", "description": "Mercado Pago preapproval or payment ID" },
+        "processedAt": { "type": "number", "description": "Timestamp of processing" }
+      },
+      "required": ["webhookId", "dataId", "processedAt"]
+    },
+    "OrganizerRaffleDefaults": {
+      "title": "OrganizerRaffleDefaults",
+      "description": "Permanent raffle default settings per authenticated organizer",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Organizer Firebase Auth UID" },
+        "defaultRaffleTitle": { "type": "string", "description": "Default raffle title" },
+        "defaultPrizeName": { "type": "string", "description": "Default prize name" },
+        "coinsPerTicket": { "type": "number", "description": "Coins required to earn 1 ticket" },
+        "minCoinsPerGift": { "type": "number", "description": "Minimum gift coins to qualify" },
+        "maxTicketsPerUser": { "type": "number", "description": "Maximum tickets allowed per user" },
+        "maxTotalTickets": { "type": "number", "description": "Maximum total tickets for the raffle" },
+        "eligibilityRuleDefault": { "type": "string", "description": "Default eligibility rule" },
+        "allowDuplicateWinners": { "type": "boolean", "description": "Whether duplicate winners are permitted" },
+        "updatedAt": { "type": "number", "description": "Last update timestamp" }
+      },
+      "required": ["uid", "defaultRaffleTitle", "defaultPrizeName", "coinsPerTicket"]
+    },
+    "CampaignCycleRecord": {
+      "title": "CampaignCycleRecord",
+      "description": "Individual cycle of a recurring campaign with draw and delivery status",
+      "type": "object",
+      "properties": {
+        "cycleId": { "type": "string", "description": "Deterministic cycle identifier" },
+        "campaignId": { "type": "string", "description": "Parent campaign identifier" },
+        "cycleIndex": { "type": "number", "description": "Monotonic 1-indexed cycle number" },
+        "status": { "type": "string", "description": "Cycle status (OPEN, FROZEN, DRAWN, COMPLETED)" },
+        "deliveryStatus": { "type": "string", "description": "Delivery status of cycle prize" },
+        "prizeName": { "type": "string", "description": "Prize for this cycle" },
+        "startDate": { "type": "number", "description": "Cycle start timestamp" },
+        "createdAt": { "type": "number", "description": "Cycle creation timestamp" }
+      },
+      "required": ["cycleId", "campaignId", "cycleIndex", "status", "deliveryStatus"]
     }
   },
   "firestore": {
     "/users/{userId}": {
       "schema": "UserProfile",
-      "description": "User profile document for raffle organizer"
+      "description": "User profile and verified subscription state document for raffle organizer"
+    },
+    "/users/{userId}/settings/{settingId}": {
+      "schema": "OrganizerRaffleDefaults",
+      "description": "Organizer permanent raffle defaults"
+    },
+    "/campaigns/{campaignId}/cycles/{cycleId}": {
+      "schema": "CampaignCycleRecord",
+      "description": "Recurring campaign cycle record"
     },
     "/users/{userId}/raffles/{raffleId}": {
       "schema": "RaffleDocument",
@@ -123,6 +281,38 @@
     "/public_raffles/{raffleCode}": {
       "schema": "PublicRaffle",
       "description": "Public raffle document readable by any participant to find tickets"
+    },
+    "/legal_documents/{slug}": {
+      "schema": "LegalDocument",
+      "description": "Official institutional and legal documents"
+    },
+    "/legal_document_versions/{versionId}": {
+      "schema": "LegalDocumentVersion",
+      "description": "Immutable archived versions of legal documents"
+    },
+    "/document_acceptances/{acceptanceId}": {
+      "schema": "DocumentAcceptance",
+      "description": "User acceptance records for legal and commercial documents"
+    },
+    "/cookie_consents/{consentId}": {
+      "schema": "CookieConsent",
+      "description": "LGPD cookie consent records"
+    },
+    "/lgpd_requests/{requestId}": {
+      "schema": "LgpdRequest",
+      "description": "LGPD data subject requests"
+    },
+    "/support_tickets/{ticketId}": {
+      "schema": "SupportTicket",
+      "description": "Support and help center tickets"
+    },
+    "/subscription_settings/{settingId}": {
+      "schema": "SubscriptionSettings",
+      "description": "Commercial plan settings and Mercado Pago homologation state"
+    },
+    "/subscription_webhooks/{webhookId}": {
+      "schema": "SubscriptionWebhook",
+      "description": "Idempotent log of processed Mercado Pago webhooks"
     }
   }
 }

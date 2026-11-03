@@ -1,51 +1,101 @@
 @import "tailwindcss";
 
 @layer base {
+  :root {
+    /* Direção 3 Oficial — Grafite e Jade */
+    --color-grafite-profundo: #171D1C;
+    --color-grafite-secundario: #222B28;
+    --color-grafite-elevado: #2A3531;
+    --color-borda-grafite: #313D39;
+    --color-marfim: #EAE7DE;
+    --color-marfim-secundario: #9BA8A3;
+    --color-jade: #6EAA90;
+    --color-jade-hover: #5C967D;
+    --color-latao: #C6A56A;
+    --color-latao-suave: rgba(198, 165, 106, 0.16);
+
+    /* Variáveis preservadas para compatibilidade de componentes especiais (OBS, Roleta) */
+    --color-metallic-red: #6EAA90;
+    --color-metallic-red-bright: #82B9A1;
+    --color-metallic-red-light: #C6A56A;
+    --color-metallic-red-deep: #4E856D;
+  }
+
   html {
     overflow-x: hidden;
     scroll-behavior: smooth;
     -webkit-tap-highlight-color: transparent;
+    background-color: #171D1C;
   }
 
   body {
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     overflow-x: hidden;
     min-height: 100vh;
+    background-color: #171D1C;
+    color: #EAE7DE;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
-  
-  h1, h2, h3, h4, h5, h6, .font-display {
-    font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+
+  h1, h2, h3, h4, h5, h6, .font-display, .font-editorial, .font-body {
+    font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.015em;
   }
 
   .font-mono, .tabular-nums {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-variant-numeric: tabular-nums;
   }
 
-  /* Accessible focus indicators for keyboard navigation */
+  /* Indicador de foco acessível em Jade */
   :focus-visible {
-    outline: 2px solid #38bdf8;
+    outline: 2px solid #6EAA90;
     outline-offset: 2px;
   }
 }
 
 /* ==========================================================================
-   Fluid Entry Animations for Modals and Main Cards
+   Superfícies Grafite e Jade (Discretas, sem neon e sem sombras pesadas)
+   ========================================================================== */
+
+.studio-canvas {
+  background-color: #171D1C;
+}
+
+.studio-card {
+  background: #222B28;
+  border: 1px solid #313D39;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+}
+
+.studio-card:hover {
+  border-color: #3E4D48;
+}
+
+.studio-card-interactive {
+  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.studio-card-interactive:hover {
+  border-color: #6EAA90;
+  background: #26302D;
+}
+
+/* ==========================================================================
+   Animações de Entrada Suaves
    ========================================================================== */
 
 @keyframes modalBackdropFadeIn {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 @keyframes modalContentSlideUp {
   0% {
     opacity: 0;
-    transform: translateY(22px) scale(0.96);
+    transform: translateY(14px) scale(0.98);
   }
   100% {
     opacity: 1;
@@ -56,7 +106,7 @@
 @keyframes cardEntranceSlideUp {
   0% {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translateY(8px);
   }
   100% {
     opacity: 1;
@@ -64,108 +114,19 @@
   }
 }
 
-@keyframes neonGlowPulse {
-  0%, 100% {
-    box-shadow: 0 0 25px rgba(0, 242, 254, 0.4), 0 0 50px rgba(254, 44, 85, 0.25);
-  }
-  50% {
-    box-shadow: 0 0 42px rgba(0, 242, 254, 0.65), 0 0 75px rgba(254, 44, 85, 0.45);
-  }
-}
-
-@keyframes neonBorderShift {
-  0%, 100% {
-    border-color: rgba(0, 242, 254, 0.6);
-  }
-  50% {
-    border-color: rgba(254, 44, 85, 0.6);
-  }
-}
-
 .animate-fade-in {
-  animation: modalBackdropFadeIn 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: modalBackdropFadeIn 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-slide-up {
-  animation: modalContentSlideUp 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: modalContentSlideUp 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-card-enter {
-  animation: cardEntranceSlideUp 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: cardEntranceSlideUp 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* ==========================================================================
-   NEON NIGHT THEME - Vibrant Gradients, Ambient Glow & Radiant Shadows
-   ========================================================================== */
-
-.theme-neon {
-  --neon-cyan: #00F2FE;
-  --neon-magenta: #FE2C55;
-  --neon-purple: #A855F7;
-  --neon-gold: #FBBF24;
-  background-color: #060814;
-}
-
-/* Ambient glow background spots in Neon Night */
-.theme-neon-canvas {
-  background:
-    radial-gradient(circle 600px at 15% 10%, rgba(0, 242, 254, 0.09) 0%, transparent 60%),
-    radial-gradient(circle 700px at 85% 15%, rgba(254, 44, 85, 0.09) 0%, transparent 60%),
-    radial-gradient(circle 800px at 50% 75%, rgba(168, 85, 247, 0.08) 0%, transparent 60%),
-    linear-gradient(180deg, #070914 0%, #0d0a22 50%, #060814 100%);
-  background-attachment: fixed;
-}
-
-/* Radiant Neon Text Gradients */
-.theme-neon .neon-title-gradient {
-  background: linear-gradient(135deg, #00F2FE 0%, #C084FC 50%, #FE2C55 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 16px rgba(0, 242, 254, 0.3));
-}
-
-/* Neon Cards with High-Vibrancy Borders and Colored Shadows */
-.theme-neon .neon-card {
-  background: linear-gradient(145deg, rgba(13, 16, 38, 0.95) 0%, rgba(24, 15, 48, 0.9) 100%) !important;
-  border-color: rgba(0, 242, 254, 0.3) !important;
-  box-shadow: 0 10px 35px -5px rgba(0, 242, 254, 0.15), 0 0 25px -2px rgba(168, 85, 247, 0.18) !important;
-}
-
-.theme-neon .neon-card:hover {
-  border-color: rgba(0, 242, 254, 0.5) !important;
-  box-shadow: 0 12px 45px -5px rgba(0, 242, 254, 0.25), 0 0 35px 0 rgba(254, 44, 85, 0.2) !important;
-}
-
-/* Neon Drawing Element Glow (Ticket Display / Wheel / Drum Number) */
-.theme-neon .neon-draw-glow {
-  box-shadow: 0 0 35px rgba(0, 242, 254, 0.45), 0 0 70px rgba(254, 44, 85, 0.25), inset 0 0 25px rgba(0, 242, 254, 0.2) !important;
-  border-color: rgba(0, 242, 254, 0.7) !important;
-  animation: neonGlowPulse 4s infinite ease-in-out;
-}
-
-.theme-neon .neon-number-text {
-  text-shadow: 0 0 20px #00F2FE, 0 0 40px #FE2C55, 0 0 60px #A855F7;
-}
-
-/* Neon Primary Action Buttons (Draw / Spin / Trigger) */
-.theme-neon .neon-btn-primary {
-  background: linear-gradient(135deg, #00F2FE 0%, #A855F7 50%, #FE2C55 100%) !important;
-  box-shadow: 0 0 25px rgba(0, 242, 254, 0.55), 0 0 45px rgba(254, 44, 85, 0.35) !important;
-  color: #060814 !important;
-  font-weight: 900 !important;
-}
-
-.theme-neon .neon-btn-primary:hover {
-  box-shadow: 0 0 35px rgba(0, 242, 254, 0.8), 0 0 60px rgba(254, 44, 85, 0.5) !important;
-  filter: brightness(1.1);
-}
-
-/* Neon Wheel Filter Glow */
-.theme-neon .neon-wheel-glow {
-  filter: drop-shadow(0 0 22px rgba(0, 242, 254, 0.6)) drop-shadow(0 0 45px rgba(254, 44, 85, 0.35)) !important;
-}
-
-/* Perforated Golden Raffle Ticket Mask */
+/* Máscara de Bilhete (Preservada para Cartão de Vitória e Impressão) */
 .ticket-notch {
   -webkit-mask:
     radial-gradient(circle 14px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
@@ -185,26 +146,45 @@
 }
 
 @keyframes pulse-subtle {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.02); }
+  0%, 100% { transform: scale(1); opacity: 0.92; }
+  50% { transform: scale(1.01); opacity: 1; }
 }
 
 .animate-pulse-subtle {
-  animation: pulse-subtle 2s infinite ease-in-out;
+  animation: pulse-subtle 3s infinite ease-in-out;
 }
 
-/* Custom scrollbars */
+/* Barras de Rolagem Discretas em Grafite */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #171D1C;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.2);
+  background: #313D39;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.4);
+  background: #485953;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

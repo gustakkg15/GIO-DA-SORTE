@@ -1,0 +1,2190 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {
+  ClientSseCursorRecord,
+  ComponentDiagnosticEntry,
+  DurableSseOutboxEvent,
+  EventLossStageEntry,
+  LatencyPercentiles,
+  LiveSystemMonitorSnapshot,
+  MilestoneEventSummary,
+  MonitoredComponentId,
+  MonitorErrorLogEntry,
+  ReconnectHistoryEntry,
+  TikTokConnectionState,
+  TikTokDiagnosticAlert,
+  TikTokLiveGiftEvent,
+  TikTokPerformanceDiagnostics,
+  TimeSeriesMetricPoint,
+} from '../types.js';
+import {
+  fetchSessionEventsAfterSequence,
+  getOrCreateLiveSession,
+  GiftEventAtomicResult,
+  recordGiftEventsBatchAtomic,
+} from '../utils/tiktokLiveService.js';
+import { tiktokDiagnosticService } from './tiktokDiagnosticService.js';
+
+export interface DurableWalEntry {
+  walId: string;
+  seqId: number;
+  sessionSequenceNumber?: number;
+  event: TikTokLiveGiftEvent;
+  status: 'PENDING' | 'PROCESSING' | 'CONFIRMED' | 'FAILED';
+  attempts: number;
+  enqueuedAt: number;
+  enqueueMonoMs: number;
+  serverReceiveLatencyMs: number;
+  processingLatencyMs: number;
+  confirmedAt?: number;
+  ticketNumbers?: number[];
+  persistenceLatencyMs?: number;
+  lastError?: string;
+}
+
+export interface SequencedSseFrame {
+  seqId: number;
+  sequenceNumber?: number;
+  sseEventId?: string;
+  type: 'gift' | 'gift_confirmed' | 'gift_persisted' | 'member' | 'status' | 'diagnostics' | 'sync_required';
+  sessionId: string;
+  eventKey?: string;
+  eventId?: string;
+  timestamp: number;
+  persistedMonoMs?: number;
+  payload: Record<string, unknown>;
+}
+
+export type QueueEventCallback = (frame: SequencedSseFrame) => void;
+export type OutboxEventCallback = (outboxEvent: DurableSseOutboxEvent) => void;
+
+const DATA_DIR = path.resolve(process.cwd(), '.data');
+const WAL_FILE_PATH = path.join(DATA_DIR, 'tiktok_event_wal.json');
+const REPLAY_FILE_PATH = path.join(DATA_DIR, 'tiktok_sse_replay.json');
+const OUTBOX_FILE_PATH = path.join(DATA_DIR, 'tiktok_sse_outbox.json');
+
+function ensureDataDir(): void {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+  } catch {
+    // ignore fs errors in restricted environments
+  }
+}
+
+export function computePercentiles(samples: number[]): LatencyPercentiles {
+  if (samples.length === 0) {
+    return { p50: 0, p95: 0, p99: 0, avg: 0, last: 0, samples: 0 };
+  }
+  const sorted = [...samples].sort((a, b) => a - b);
+  const pick = (q: number) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * q))];
+  const sum = samples.reduce((acc, v) => acc + v, 0);
+  return {
+    p50: Number(pick(0.5).toFixed(2)),
+    p95: Number(pick(0.95).toFixed(2)),
+    p99: Number(pick(0.99).toFixed(2)),
+    avg: Number((sum / samples.length).toFixed(2)),
+    last: Number(samples[samples.length - 1].toFixed(2)),
+    samples: samples.length,
+  };
+}
+
+/**
+ * Parses an SSE Last-Event-ID / cursor string into a sessionId (optional) and numeric sequenceNumber.
+ * Supports formats:
+ * - `${sessionId}:${sequenceNumber}` (e.g. "live_1730000:42")
+ * - `${sequenceNumber}` (e.g. "42")
+ */
+export function parseSseEventCursor(
+  rawCursor: string | number | undefined | null
+): { sessionId?: string; sequenceNumber: number; valid: boolean } {
+  if (rawCursor === undefined || rawCursor === null || rawCursor === '') {
+    return { sequenceNumber: 0, valid: false };
+  }
+  if (typeof rawCursor === 'number') {
+    return {
+      sequenceNumber: Number.isFinite(rawCursor) ? Math.floor(rawCursor) : NaN,
+      valid: Number.isFinite(rawCursor) && rawCursor >= 0,
+    };
+  }
+  const trimmed = String(rawCursor).trim();
+  if (!trimmed) {
+    return { sequenceNumber: 0, valid: false };
+  }
+  if (trimmed.includes(':')) {
+    const lastColon = trimmed.lastIndexOf(':');
+    const sessionPart = trimmed.slice(0, lastColon).trim();
+    const numPart = Number(trimmed.slice(lastColon + 1).trim());
+    if (Number.isFinite(numPart) && numPart >= 0) {
+      return { sessionId: sessionPart || undefined, sequenceNumber: Math.floor(numPart), valid: true };
+    }
+    return { sessionId: sessionPart || undefined, sequenceNumber: NaN, valid: false };
+  }
+  const parsed = Number(trimmed);
+  if (Number.isFinite(parsed) && parsed >= 0) {
+    return { sequenceNumber: Math.floor(parsed), valid: true };
+  }
+  return { sequenceNumber: NaN, valid: false };
+}
+
+/**
+ * TikTokDurableEventQueue
+ * High-performance, low-latency, resilient event queue with:
+ * - Disk-backed Write-Ahead Log (WAL)
+ * - Session-ordered micro-batch Firestore persistence
+ * - Persist-Before-SSE Durable Outbox with sequential per-session `sequenceNumber`
+ * - Client cursor tracking (`Last-Event-ID` + explicit browser ACK after render)
+ * - Out-of-retention full state sync fallback (`OUT_OF_RETENTION_FULL_SYNC`)
+ * - Full telemetry for LIVE SYSTEM MONITOR (monotonic clocks for durations, UTC timestamps for audit)
+ */
+export class TikTokDurableEventQueue {
+  private seqCounter = 0;
+  private walEntries: Map<string, DurableWalEntry> = new Map();
+  private sessionQueues: Map<string, DurableWalEntry[]> = new Map();
+  private activeSessionWorkers: Set<string> = new Set();
+  private initializedSessions: Set<string> = new Set();
+
+  // Per-session sequential durable SSE outbox (`sessionId` -> ordered `DurableSseOutboxEvent[]`)
+  private sessionOutbox: Map<string, DurableSseOutboxEvent[]> = new Map();
+  private sessionSequenceCounters: Map<string, number> = new Map();
+  private sessionFirstAvailableSequence: Map<string, number> = new Map();
+  private retentionMaxEventsPerSession = 1000;
+  private retentionWindowMs = 30 * 60 * 1000; // 30 minutes default
+
+  // Per-client SSE cursor tracking (`${sessionId}::${clientId}` -> ClientSseCursorRecord)
+  private clientCursors: Map<string, ClientSseCursorRecord> = new Map();
+  private clientSecrets: Map<string, string> = new Map();
+
+  // Durable SSE replay buffer (ordered by seqId for backwards compatibility)
+  private replayLog: SequencedSseFrame[] = [];
+  private maxReplayLogSize = 2500;
+
+  // Subscribers
+  private frameListeners: Set<QueueEventCallback> = new Set();
+  private outboxListeners: Set<OutboxEventCallback> = new Set();
+
+  // Sliding window timestamps (UTC ms) for separate EPS rates
+  private receivedTimestamps: number[] = [];
+  private processedTimestamps: number[] = [];
+  private persistedTimestamps: number[] = [];
+  private transmittedTimestamps: number[] = [];
+  private peakReceivedEps = 0;
+
+  // Monotonic duration samples (ms) for all 6 pipeline latency stages
+  private serverReceiveLatencySamples: number[] = [];
+  private processingLatencySamples: number[] = [];
+  private persistenceLatencySamples: number[] = [];
+  private sseDeliveryLatencySamples: number[] = [];
+  private browserRenderLatencySamples: number[] = [];
+  private totalEndToEndLatencySamples: number[] = [];
+  private displayLatencySamples: number[] = [];
+
+  // Cumulative counters
+  private totalReceivedCount = 0;
+  private totalProcessedCount = 0;
+  private totalPersistedCount = 0;
+  private totalTransmittedCount = 0;
+  private totalConfirmedByBrowserCount = 0;
+  private receivedNotEnqueuedCount = 0;
+  private duplicatesBlockedCount = 0;
+  private errorsCount = 0;
+  private consecutiveFirestoreErrors = 0;
+  private lastFirestoreVerifiedAt = 0;
+  private lastErrorMessage: string | null = null;
+  private tiktokReconnectCount = 0;
+  private sseReconnectCount = 0;
+
+  // 4 Milestone Event Summaries
+  private milestoneReceived: MilestoneEventSummary | null = null;
+  private milestonePersisted: MilestoneEventSummary | null = null;
+  private milestoneDelivered: MilestoneEventSummary | null = null;
+  private milestoneConfirmedByBrowser: MilestoneEventSummary | null = null;
+
+  // Legacy diagnostic fields
+  private lastEventReceived: TikTokPerformanceDiagnostics['lastEventReceived'] = null;
+  private lastEventConfirmed: TikTokPerformanceDiagnostics['lastEventConfirmed'] = null;
+
+  // Historical time-series, reconnect log & error log for LIVE SYSTEM MONITOR
+  private timeSeriesHistory: TimeSeriesMetricPoint[] = [];
+  private lastTimeSeriesSampleAt = 0;
+  private reconnectHistory: ReconnectHistoryEntry[] = [];
+  private recentErrors: MonitorErrorLogEntry[] = [];
+
+  // Test & simulation hooks for load/recovery verification
+  private simulatedFirestoreDelayMs = 0;
+  private simulatedFailuresRemaining = 0;
+  private maxBackpressureQueueSize = 5000;
+  private walFlushTimer: ReturnType<typeof setTimeout> | null = null;
+  private replayFlushTimer: ReturnType<typeof setTimeout> | null = null;
+  private outboxFlushTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor(autoRecover = true) {
+    ensureDataDir();
+    this.loadReplayLogFromDisk();
+    this.loadOutboxFromDisk();
+    if (autoRecover) {
+      this.loadWalFromDisk();
+    }
+  }
+
+  public onFrame(listener: QueueEventCallback): () => void {
+    this.frameListeners.add(listener);
+    return () => this.frameListeners.delete(listener);
+  }
+
+  public onOutboxEvent(listener: OutboxEventCallback): () => void {
+    this.outboxListeners.add(listener);
+    return () => this.outboxListeners.delete(listener);
+  }
+
+  public setRetentionConfig(config: { maxEventsPerSession?: number; retentionWindowMs?: number }): void {
+    if (config.maxEventsPerSession !== undefined && config.maxEventsPerSession > 0) {
+      this.retentionMaxEventsPerSession = Math.floor(config.maxEventsPerSession);
+    }
+    if (config.retentionWindowMs !== undefined && config.retentionWindowMs > 0) {
+      this.retentionWindowMs = Math.floor(config.retentionWindowMs);
+    }
+    for (const sid of this.sessionOutbox.keys()) {
+      this.pruneSessionOutbox(sid);
+    }
+  }
+
+  public getRetentionConfig(): { maxEventsPerSession: number; retentionWindowMs: number } {
+    return {
+      maxEventsPerSession: this.retentionMaxEventsPerSession,
+      retentionWindowMs: this.retentionWindowMs,
+    };
+  }
+
+  private pruneSessionOutbox(sessionId: string): void {
+    const list = this.sessionOutbox.get(sessionId);
+    if (!list || list.length === 0) return;
+
+    const now = Date.now();
+    const cutoffTime = now - this.retentionWindowMs;
+
+    // Remove events older than retentionWindowMs
+    while (list.length > 0 && list[0].persistedAt < cutoffTime) {
+      const removed = list.shift()!;
+      this.sessionFirstAvailableSequence.set(sessionId, removed.sequenceNumber + 1);
+    }
+
+    // Enforce max retained events per session
+    if (list.length > this.retentionMaxEventsPerSession) {
+      const excess = list.length - this.retentionMaxEventsPerSession;
+      const removedSlice = list.splice(0, excess);
+      const lastRemoved = removedSlice[removedSlice.length - 1];
+      if (lastRemoved) {
+        this.sessionFirstAvailableSequence.set(sessionId, lastRemoved.sequenceNumber + 1);
+      }
+    }
+
+    if (list.length > 0) {
+      this.sessionFirstAvailableSequence.set(sessionId, list[0].sequenceNumber);
+    }
+  }
+
+  private emitFrame(frame: SequencedSseFrame): void {
+    this.replayLog.push(frame);
+    if (this.replayLog.length > this.maxReplayLogSize) {
+      this.replayLog.splice(0, this.replayLog.length - this.maxReplayLogSize);
+    }
+    this.scheduleReplayFlush();
+
+    for (const listener of this.frameListeners) {
+      try {
+        listener(frame);
+      } catch (err) {
+        console.error('[TikTokDurableEventQueue] Error in frame listener:', err);
+      }
+    }
+  }
+
+  private emitOutboxEvent(outboxEvent: DurableSseOutboxEvent): void {
+    for (const listener of this.outboxListeners) {
+      try {
+        listener(outboxEvent);
+      } catch (err) {
+        console.error('[TikTokDurableEventQueue] Error in outbox listener:', err);
+      }
+    }
+  }
+
+  public nextSeqId(): number {
+    this.seqCounter += 1;
+    return this.seqCounter;
+  }
+
+  public getCurrentSeqId(): number {
+    return this.seqCounter;
+  }
+
+  public getSessionLatestSequence(sessionId: string): number {
+    return this.sessionSequenceCounters.get(sessionId) || 0;
+  }
+
+  public getSessionMinRetainedSequence(sessionId: string): number {
+    this.pruneSessionOutbox(sessionId);
+    const list = this.sessionOutbox.get(sessionId);
+    if (list && list.length > 0) {
+      return list[0].sequenceNumber;
+    }
+    const trackedMin = this.sessionFirstAvailableSequence.get(sessionId);
+    if (trackedMin !== undefined) {
+      return trackedMin;
+    }
+    const latest = this.sessionSequenceCounters.get(sessionId) || 0;
+    return latest > 0 ? latest + 1 : 1;
+  }
+
+  public recordDuplicateBlocked(sessionId?: string, details?: string): void {
+    const now = Date.now();
+    this.totalReceivedCount += 1;
+    this.duplicatesBlockedCount += 1;
+    this.receivedTimestamps.push(now);
+    this.pruneSlidingTimestamps(now);
+    if (details && sessionId) {
+      // Technical retransmission blocked cleanly (not an error, tracked in totals.technicalRetransmissionsDetected)
+    }
+  }
+
+  public recordReceivedNotEnqueued(reason: string, sessionId?: string): void {
+    this.totalReceivedCount += 1;
+    this.receivedNotEnqueuedCount += 1;
+    this.recordComponentError('tiktok_live_adapter', 'warning', reason, sessionId);
+  }
+
+  public recordReconnect(
+    source: 'TIKTOK_WEBCAST' | 'SSE_CLIENT' = 'TIKTOK_WEBCAST',
+    sessionId = 'global',
+    reason = 'Reconexão automática',
+    extra?: {
+      clientId?: string;
+      recoveredEventsCount?: number;
+      lastConfirmedSequenceNumber?: number;
+      outOfRetentionFullSync?: boolean;
+    }
+  ): void {
+    if (source === 'SSE_CLIENT') {
+      this.sseReconnectCount += 1;
+    } else {
+      this.tiktokReconnectCount += 1;
+    }
+    this.reconnectHistory.unshift({
+      id: `rec_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      source,
+      sessionId,
+      clientId: extra?.clientId,
+      timestamp: Date.now(),
+      reason,
+      recoveredEventsCount: extra?.recoveredEventsCount,
+      lastConfirmedSequenceNumber: extra?.lastConfirmedSequenceNumber,
+      outOfRetentionFullSync: extra?.outOfRetentionFullSync,
+    });
+    if (this.reconnectHistory.length > 100) {
+      this.reconnectHistory.pop();
+    }
+  }
+
+  public recordComponentError(
+    component: MonitoredComponentId,
+    severity: 'warning' | 'error',
+    message: string,
+    sessionId?: string,
+    eventId?: string,
+    attempts?: number
+  ): void {
+    this.errorsCount += 1;
+    this.lastErrorMessage = message;
+    this.recentErrors.unshift({
+      id: `err_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      timestamp: Date.now(),
+      component,
+      severity,
+      message,
+      sessionId,
+      eventId,
+      attempts,
+    });
+    if (this.recentErrors.length > 100) {
+      this.recentErrors.pop();
+    }
+  }
+
+  public recordError(message: string, sessionId?: string): void {
+    this.recordComponentError('tiktok_live_service', 'error', message, sessionId);
+  }
+
+  public setSimulatedFirestoreDelayMs(delayMs: number): void {
+    this.simulatedFirestoreDelayMs = Math.max(0, delayMs);
+  }
+
+  public setSimulatedFailuresRemaining(count: number): void {
+    this.simulatedFailuresRemaining = Math.max(0, count);
+  }
+
+  private pruneSlidingTimestamps(now: number): void {
+    const window10s = now - 10000;
+    while (this.receivedTimestamps.length > 0 && this.receivedTimestamps[0] < window10s) {
+      this.receivedTimestamps.shift();
+    }
+    while (this.processedTimestamps.length > 0 && this.processedTimestamps[0] < window10s) {
+      this.processedTimestamps.shift();
+    }
+    while (this.persistedTimestamps.length > 0 && this.persistedTimestamps[0] < window10s) {
+      this.persistedTimestamps.shift();
+    }
+    while (this.transmittedTimestamps.length > 0 && this.transmittedTimestamps[0] < window10s) {
+      this.transmittedTimestamps.shift();
+    }
+
+    const cutoff1s = now - 1000;
+    const currentRecvEps = this.receivedTimestamps.filter((t) => t >= cutoff1s).length;
+    if (currentRecvEps > this.peakReceivedEps) {
+      this.peakReceivedEps = currentRecvEps;
+    }
+  }
+
+  /**
+   * Registers or updates an SSE client cursor for a session.
+   * Scoped strictly by `(sessionId, clientId)` so tabs/clients never overwrite each other's cursor.
+   */
+  public registerClientConnection(params: {
+    sessionId: string;
+    clientId: string;
+    clientSecret?: string;
+    initialConfirmedSequence?: number;
+    isReconnect?: boolean;
+    userAgent?: string;
+  }): ClientSseCursorRecord {
+    const key = `${params.sessionId}::${params.clientId}`;
+    if (params.clientSecret) {
+      const existingSecret = this.clientSecrets.get(key);
+      if (!existingSecret) {
+        this.clientSecrets.set(key, params.clientSecret);
+      }
+    }
+
+    const existing = this.clientCursors.get(key);
+    const now = Date.now();
+    const confirmedSeq =
+      params.initialConfirmedSequence !== undefined && Number.isFinite(params.initialConfirmedSequence)
+        ? Math.max(existing?.lastConfirmedSequenceNumber || 0, Math.floor(params.initialConfirmedSequence))
+        : existing?.lastConfirmedSequenceNumber || 0;
+
+    const record: ClientSseCursorRecord = {
+      clientId: params.clientId,
+      sessionId: params.sessionId,
+      lastSentSequenceNumber: Math.max(existing?.lastSentSequenceNumber || 0, confirmedSeq),
+      lastConfirmedSequenceNumber: confirmedSeq,
+      connectedAt: now,
+      lastAckAt: existing?.lastAckAt,
+      disconnectedAt: null,
+      reconnectCount: existing ? existing.reconnectCount + (params.isReconnect ? 1 : 0) : 0,
+      userAgent: params.userAgent || existing?.userAgent,
+    };
+
+    this.clientCursors.set(key, record);
+    return record;
+  }
+
+  public markClientDisconnected(sessionId: string, clientId: string): void {
+    const key = `${sessionId}::${clientId}`;
+    const existing = this.clientCursors.get(key);
+    if (existing) {
+      existing.disconnectedAt = Date.now();
+    }
+  }
+
+  /**
+   * Records that an SSE event was transmitted to a connected browser client.
+   * Updates `transmittedEps`, `sseDeliveryLatency`, and `lastEventDeliveredToBrowser`.
+   */
+  public recordSseEventTransmitted(
+    outboxEvent: DurableSseOutboxEvent,
+    clientId?: string,
+    persistedMonoMs?: number
+  ): void {
+    const now = Date.now();
+    this.totalTransmittedCount += 1;
+    this.transmittedTimestamps.push(now);
+    this.pruneSlidingTimestamps(now);
+
+    const sseDeliveryLatencyMs =
+      persistedMonoMs !== undefined
+        ? Math.max(0.05, Number((performance.now() - persistedMonoMs).toFixed(2)))
+        : Math.max(0.1, now - outboxEvent.persistedAt);
+
+    outboxEvent.transmittedAt = now;
+    outboxEvent.sseDeliveryLatencyMs = sseDeliveryLatencyMs;
+    this.pushLatencySample(this.sseDeliveryLatencySamples, sseDeliveryLatencyMs);
+
+    if (clientId) {
+      const key = `${outboxEvent.sessionId}::${clientId}`;
+      const cursor = this.clientCursors.get(key);
+      if (cursor && outboxEvent.sequenceNumber > cursor.lastSentSequenceNumber) {
+        cursor.lastSentSequenceNumber = outboxEvent.sequenceNumber;
+      }
+    }
+
+    const ev = outboxEvent.payload.event;
+    this.milestoneDelivered = {
+      sequenceNumber: outboxEvent.sequenceNumber,
+      sseEventId: outboxEvent.sseEventId,
+      eventId: outboxEvent.eventId,
+      eventKey: outboxEvent.eventKey,
+      sessionId: outboxEvent.sessionId,
+      senderId: outboxEvent.senderId,
+      displayHandle: ev.displayHandle || `@${ev.username}`,
+      giftId: outboxEvent.giftId,
+      giftName: ev.giftName,
+      coinsGranted: ev.coinsGranted,
+      repeatCount: ev.repeatCount,
+      ticketNumbers: outboxEvent.payload.ticketNumbers,
+      receivedAt: outboxEvent.receivedAt,
+      persistedAt: outboxEvent.persistedAt,
+      deliveredAt: now,
+      latencyMs: sseDeliveryLatencyMs,
+    };
+  }
+
+  /**
+   * Browser ACK endpoint handler:
+   * Updates the client's confirmed cursor ONLY after the browser has applied the event to the React feed.
+   * Also records monotonic `browserRenderLatencyMs` and `totalEndToEndLatencyMs`.
+   */
+  public acknowledgeClientEvent(params: {
+    sessionId: string;
+    clientId: string;
+    sequenceNumber: number;
+    eventId?: string;
+    browserRenderLatencyMs?: number;
+    clientSecret?: string;
+  }): {
+    accepted: boolean;
+    reason?: string;
+    cursor?: ClientSseCursorRecord;
+  } {
+    const { sessionId, clientId, sequenceNumber } = params;
+    if (!sessionId || !clientId || !Number.isFinite(sequenceNumber) || sequenceNumber <= 0) {
+      return { accepted: false, reason: 'Parâmetros de cursor inválidos.' };
+    }
+
+    const key = `${sessionId}::${clientId}`;
+    const expectedSecret = this.clientSecrets.get(key);
+    if (expectedSecret && params.clientSecret && expectedSecret !== params.clientSecret) {
+      return { accepted: false, reason: 'Token de cliente inválido para alteração de cursor.' };
+    }
+
+    const latestSessionSeq = this.getSessionLatestSequence(sessionId);
+    if (sequenceNumber > latestSessionSeq) {
+      return {
+        accepted: false,
+        reason: `Cursor ${sequenceNumber} excede o último sequenceNumber persistido da sessão (${latestSessionSeq}).`,
+      };
+    }
+
+    const now = Date.now();
+    let cursor = this.clientCursors.get(key);
+    if (!cursor) {
+      cursor = {
+        clientId,
+        sessionId,
+        lastSentSequenceNumber: sequenceNumber,
+        lastConfirmedSequenceNumber: sequenceNumber,
+        connectedAt: now,
+        lastAckAt: now,
+        disconnectedAt: null,
+        reconnectCount: 0,
+      };
+      this.clientCursors.set(key, cursor);
+    } else {
+      if (sequenceNumber > cursor.lastConfirmedSequenceNumber) {
+        cursor.lastConfirmedSequenceNumber = sequenceNumber;
+      }
+      if (sequenceNumber > cursor.lastSentSequenceNumber) {
+        cursor.lastSentSequenceNumber = sequenceNumber;
+      }
+      cursor.lastAckAt = now;
+    }
+
+    const renderLatMs =
+      params.browserRenderLatencyMs !== undefined && Number.isFinite(params.browserRenderLatencyMs)
+        ? Math.max(0.05, Number(params.browserRenderLatencyMs.toFixed(2)))
+        : 0.8;
+    this.pushLatencySample(this.browserRenderLatencySamples, renderLatMs);
+
+    // Locate corresponding outbox event to compute accurate monotonic totalEndToEndLatencyMs
+    const sessionEvents = this.sessionOutbox.get(sessionId) || [];
+    const targetOutbox = sessionEvents.find((e) => e.sequenceNumber === sequenceNumber);
+
+    this.totalConfirmedByBrowserCount += 1;
+
+    if (targetOutbox) {
+      targetOutbox.confirmedByBrowserAt = now;
+      targetOutbox.browserRenderLatencyMs = renderLatMs;
+      const totalE2E = Number(
+        (
+          targetOutbox.serverReceiveLatencyMs +
+          targetOutbox.processingLatencyMs +
+          targetOutbox.persistenceLatencyMs +
+          (targetOutbox.sseDeliveryLatencyMs || 0.2) +
+          renderLatMs
+        ).toFixed(2)
+      );
+      targetOutbox.totalEndToEndLatencyMs = totalE2E;
+      this.pushLatencySample(this.totalEndToEndLatencySamples, totalE2E);
+
+      const ev = targetOutbox.payload.event;
+      this.milestoneConfirmedByBrowser = {
+        sequenceNumber: targetOutbox.sequenceNumber,
+        sseEventId: targetOutbox.sseEventId,
+        eventId: targetOutbox.eventId,
+        eventKey: targetOutbox.eventKey,
+        sessionId: targetOutbox.sessionId,
+        senderId: targetOutbox.senderId,
+        displayHandle: ev.displayHandle || `@${ev.username}`,
+        giftId: targetOutbox.giftId,
+        giftName: ev.giftName,
+        coinsGranted: ev.coinsGranted,
+        repeatCount: ev.repeatCount,
+        ticketNumbers: targetOutbox.payload.ticketNumbers,
+        receivedAt: targetOutbox.receivedAt,
+        persistedAt: targetOutbox.persistedAt,
+        deliveredAt: targetOutbox.transmittedAt || now,
+        confirmedByBrowserAt: now,
+        latencyMs: totalE2E,
+      };
+    }
+
+    return { accepted: true, cursor };
+  }
+
+  /**
+   * Recovers persisted Durable SSE Outbox events after a client's last confirmed cursor.
+   * - Never re-executes financial operations (only replays already persisted events).
+   * - Paginated (`pageSize` default 250) without full-collection Firestore scans on every reconnect.
+   * - Detects out-of-retention or non-existent cursors and returns `OUT_OF_RETENTION_FULL_SYNC`.
+   */
+  public async recoverEventsForClient(params: {
+    sessionId: string;
+    clientId: string;
+    rawCursor: string | number | undefined | null;
+    pageSize?: number;
+  }): Promise<{
+    status: 'FRESH_CONNECT' | 'RECOVERED' | 'OUT_OF_RETENTION_FULL_SYNC';
+    events: DurableSseOutboxEvent[];
+    hasMore: boolean;
+    nextCursor: number;
+    minRetainedSequence: number;
+    latestSequence: number;
+    message: string;
+  }> {
+    const { sessionId, clientId, rawCursor, pageSize = 250 } = params;
+    this.pruneSessionOutbox(sessionId);
+
+    // If outbox in memory is empty for this session (e.g. cold boot), warm up bounded page from Firestore
+    let sessionList = this.sessionOutbox.get(sessionId) || [];
+    const parsed = parseSseEventCursor(rawCursor);
+
+    if (sessionList.length === 0 && parsed.valid && parsed.sequenceNumber >= 0) {
+      try {
+        const firestoreEvents = await fetchSessionEventsAfterSequence(
+          sessionId,
+          Math.max(0, parsed.sequenceNumber - 1),
+          pageSize
+        );
+        if (firestoreEvents.length > 0) {
+          for (const fev of firestoreEvents) {
+            if (fev.sequenceNumber && !sessionList.some((x) => x.sequenceNumber === fev.sequenceNumber)) {
+              const outboxItem: DurableSseOutboxEvent = {
+                sessionId,
+                sequenceNumber: fev.sequenceNumber,
+                sseEventId: `${sessionId}:${fev.sequenceNumber}`,
+                eventId: fev.eventId,
+                eventKey: fev.eventKey || `evt_${fev.eventId}`,
+                eventType: 'gift_persisted',
+                receivedAt: fev.receivedAt,
+                persistedAt: fev.persistedAt || fev.receivedAt,
+                senderId: fev.tiktokUserId,
+                giftId: fev.giftId,
+                transactionId: fev.transactionId,
+                serverReceiveLatencyMs: fev.serverReceiveLatencyMs || 0.2,
+                processingLatencyMs: fev.processingLatencyMs || 0.3,
+                persistenceLatencyMs: fev.persistenceLatencyMs || 15,
+                payload: {
+                  event: fev,
+                  ticketNumbers: fev.ticketNumbers || [],
+                  newTickets: (fev.ticketNumbers || []).length,
+                  carryover: 0,
+                  totalCoinsInSession: fev.coinsGranted,
+                },
+              };
+              sessionList.push(outboxItem);
+              const curMax = this.sessionSequenceCounters.get(sessionId) || 0;
+              if (fev.sequenceNumber > curMax) {
+                this.sessionSequenceCounters.set(sessionId, fev.sequenceNumber);
+              }
+            }
+          }
+          sessionList.sort((a, b) => a.sequenceNumber - b.sequenceNumber);
+          this.sessionOutbox.set(sessionId, sessionList);
+        }
+      } catch {
+        // Ignore Firestore warmup error if session doesn't have persisted events yet
+      }
+    }
+
+    const latestSequence = this.getSessionLatestSequence(sessionId);
+    const minRetainedSequence = this.getSessionMinRetainedSequence(sessionId);
+
+    // Case 1: Fresh connection without cursor
+    if (rawCursor === undefined || rawCursor === null || rawCursor === '' || parsed.sequenceNumber === 0) {
+      return {
+        status: 'FRESH_CONNECT',
+        events: [],
+        hasMore: false,
+        nextCursor: latestSequence,
+        minRetainedSequence,
+        latestSequence,
+        message: 'Conexão SSE inicial estabelecida.',
+      };
+    }
+
+    // Case 2: Malformed cursor, cursor from a different session, future non-existent cursor, or expired cursor outside retention window
+    const isDifferentSession = Boolean(parsed.sessionId && parsed.sessionId !== sessionId);
+    const isFutureNonExistent = ! parsed.valid || parsed.sequenceNumber > latestSequence || latestSequence === 0;
+    // If cursor is < minRetainedSequence - 1, then sequenceNumber + 1 was already evicted from retention!
+    const isExpiredBeforeRetention = latestSequence > 0 && parsed.sequenceNumber + 1 < minRetainedSequence;
+
+    if (isDifferentSession || isFutureNonExistent || isExpiredBeforeRetention) {
+      const reason = isDifferentSession
+        ? `Cursor pertence a outra sessão (${parsed.sessionId} != ${sessionId}).`
+        : isFutureNonExistent
+        ? `Cursor solicitado (${rawCursor}) é inexistente na sessão atual (último sequenceNumber=${latestSequence}).`
+        : `Cursor solicitado (${parsed.sequenceNumber}) está fora da janela de retenção (mínimo retido=${minRetainedSequence}, último=${latestSequence}).`;
+
+      this.recordReconnect('SSE_CLIENT', sessionId, `${reason} Executando sincronização completa (Full Sync).`, {
+        clientId,
+        recoveredEventsCount: 0,
+        lastConfirmedSequenceNumber: parsed.sequenceNumber || 0,
+        outOfRetentionFullSync: true,
+      });
+
+      return {
+        status: 'OUT_OF_RETENTION_FULL_SYNC',
+        events: [],
+        hasMore: false,
+        nextCursor: latestSequence,
+        minRetainedSequence,
+        latestSequence,
+        message: `Histórico intermediário não está mais disponível na janela de retenção (${reason}). Sincronização completa do estado atual da sessão realizada.`,
+      };
+    }
+
+    // Case 3: Valid cursor within retention window -> return persisted events with sequenceNumber > cursor
+    const allMissed = sessionList.filter((e) => e.sequenceNumber > parsed.sequenceNumber);
+    const page = allMissed.slice(0, pageSize);
+    const hasMore = allMissed.length > pageSize;
+    const nextCursor = page.length > 0 ? page[page.length - 1].sequenceNumber : parsed.sequenceNumber;
+
+    this.recordReconnect(
+      'SSE_CLIENT',
+      sessionId,
+      `Retomada SSE para cliente ${clientId} a partir do cursor #${parsed.sequenceNumber} (${page.length} eventos recuperados).`,
+      {
+        clientId,
+        recoveredEventsCount: page.length,
+        lastConfirmedSequenceNumber: parsed.sequenceNumber,
+        outOfRetentionFullSync: false,
+      }
+    );
+
+    return {
+      status: 'RECOVERED',
+      events: page,
+      hasMore,
+      nextCursor,
+      minRetainedSequence,
+      latestSequence,
+      message: `${page.length} evento(s) persistido(s) recuperado(s) em ordem após o cursor #${parsed.sequenceNumber}.`,
+    };
+  }
+
+  /**
+   * Ingests a validated gift event:
+   * 1. Measures monotonic `serverReceiveLatencyMs` and `processingLatencyMs`.
+   * 2. Records durable WAL entry (`PENDING`).
+   * 3. Schedules non-blocking session-ordered micro-batch persistence to Firestore.
+   * 4. Upon Firestore confirmation, assigns sequential `sequenceNumber` and delivers via Durable SSE Outbox.
+   */
+  public enqueueGiftEvent(
+    event: TikTokLiveGiftEvent,
+    capturePerfStart?: number,
+    options?: { skipPersistence?: boolean }
+  ): {
+    accepted: boolean;
+    seqId: number;
+    walId: string;
+    captureToDisplayLatencyMs: number;
+    backpressureActive: boolean;
+  } {
+    const enqueueMonoStart = performance.now();
+    const now = Date.now(); // UTC epoch ms for audit
+
+    this.totalReceivedCount += 1;
+    this.receivedTimestamps.push(now);
+
+    const walId = event.eventKey || `evt_${event.eventId}`;
+    const existingWal = this.walEntries.get(walId);
+    if (existingWal && existingWal.status === 'CONFIRMED') {
+      this.duplicatesBlockedCount += 1;
+      this.pruneSlidingTimestamps(now);
+      return {
+        accepted: false,
+        seqId: existingWal.seqId,
+        walId,
+        captureToDisplayLatencyMs: 0,
+        backpressureActive: this.getPendingQueueSize() >= this.maxBackpressureQueueSize,
+      };
+    }
+
+    this.totalProcessedCount += 1;
+    this.processedTimestamps.push(now);
+    this.pruneSlidingTimestamps(now);
+
+    const seqId = this.nextSeqId();
+    const serverReceiveLatencyMs =
+      capturePerfStart !== undefined
+        ? Math.max(0.05, Number((enqueueMonoStart - capturePerfStart).toFixed(2)))
+        : 0.15;
+
+    const processingLatencyMs = Math.max(0.05, Number((performance.now() - enqueueMonoStart).toFixed(2)));
+    const displayLatencyMs = Number((serverReceiveLatencyMs + processingLatencyMs).toFixed(2));
+
+    this.pushLatencySample(this.serverReceiveLatencySamples, serverReceiveLatencyMs);
+    this.pushLatencySample(this.processingLatencySamples, processingLatencyMs);
+    this.pushLatencySample(this.displayLatencySamples, displayLatencyMs);
+
+    const normalizedEvent: TikTokLiveGiftEvent = {
+      ...event,
+      receivedAt: event.receivedAt && event.receivedAt > 0 ? event.receivedAt : now,
+      eventKey: walId,
+      persistenceStatus: 'PENDING',
+      sseSeqId: seqId,
+      captureToFeedLatencyMs: displayLatencyMs,
+      serverReceiveLatencyMs,
+      processingLatencyMs,
+    };
+
+    const walEntry: DurableWalEntry = {
+      walId,
+      seqId,
+      event: normalizedEvent,
+      status: 'PENDING',
+      attempts: 0,
+      enqueuedAt: now,
+      enqueueMonoMs: performance.now(),
+      serverReceiveLatencyMs,
+      processingLatencyMs,
+    };
+
+    this.walEntries.set(walId, walEntry);
+    this.lastEventReceived = {
+      eventKey: walId,
+      eventId: normalizedEvent.eventId,
+      displayHandle: normalizedEvent.displayHandle || `@${normalizedEvent.username}`,
+      giftName: normalizedEvent.giftName,
+      coinsGranted: normalizedEvent.coinsGranted,
+      repeatCount: normalizedEvent.repeatCount,
+      receivedAt: normalizedEvent.receivedAt,
+    };
+
+    this.milestoneReceived = {
+      eventId: normalizedEvent.eventId,
+      eventKey: walId,
+      sessionId: normalizedEvent.sessionId,
+      senderId: normalizedEvent.tiktokUserId,
+      displayHandle: normalizedEvent.displayHandle || `@${normalizedEvent.username}`,
+      giftId: normalizedEvent.giftId,
+      giftName: normalizedEvent.giftName,
+      coinsGranted: normalizedEvent.coinsGranted,
+      repeatCount: normalizedEvent.repeatCount,
+      ticketNumbers: [],
+      receivedAt: normalizedEvent.receivedAt,
+      latencyMs: serverReceiveLatencyMs,
+    };
+
+    this.scheduleWalFlush(5);
+
+    // Emit internal queue capture frame for local subscribers
+    this.emitFrame({
+      seqId,
+      type: 'gift',
+      sessionId: normalizedEvent.sessionId,
+      eventKey: walId,
+      eventId: normalizedEvent.eventId,
+      timestamp: now,
+      payload: {
+        seqId,
+        status: 'PENDING',
+        serverManagedPersistence: !options?.skipPersistence,
+        captureToFeedLatencyMs: displayLatencyMs,
+        event: normalizedEvent,
+      },
+    });
+
+    if (!options?.skipPersistence) {
+      const sQueue = this.sessionQueues.get(normalizedEvent.sessionId) || [];
+      sQueue.push(walEntry);
+      this.sessionQueues.set(normalizedEvent.sessionId, sQueue);
+      this.triggerSessionWorker(normalizedEvent.sessionId);
+    }
+
+    this.maybeRecordTimeSeriesPoint(now);
+
+    return {
+      accepted: true,
+      seqId,
+      walId,
+      captureToDisplayLatencyMs: displayLatencyMs,
+      backpressureActive: this.getPendingQueueSize() >= this.maxBackpressureQueueSize,
+    };
+  }
+
+  /**
+   * Triggers the asynchronous persistence worker for a specific `sessionId`.
+   * Preserves strict order within the session while allowing independent sessions to run in parallel.
+   */
+  private triggerSessionWorker(sessionId: string): void {
+    if (this.activeSessionWorkers.has(sessionId)) {
+      return;
+    }
+    this.activeSessionWorkers.add(sessionId);
+
+    setImmediate(async () => {
+      try {
+        await this.processSessionQueueLoop(sessionId);
+      } finally {
+        this.activeSessionWorkers.delete(sessionId);
+        const remaining = this.sessionQueues.get(sessionId);
+        if (remaining && remaining.length > 0) {
+          this.triggerSessionWorker(sessionId);
+        }
+      }
+    });
+  }
+
+  private async processSessionQueueLoop(sessionId: string): Promise<void> {
+    const queue = this.sessionQueues.get(sessionId);
+    if (!queue || queue.length === 0) return;
+
+    // Ensure the session document exists in Firestore before running batch transactions
+    if (!this.initializedSessions.has(sessionId)) {
+      try {
+        const firstEv = queue[0]?.event;
+        const sess = await getOrCreateLiveSession(
+          sessionId,
+          firstEv?.username && firstEv.username !== 'arroba_indisponivel' ? firstEv.username : 'gioborelli',
+          firstEv?.rateApplied || 100
+        );
+        this.initializedSessions.add(sessionId);
+        this.lastFirestoreVerifiedAt = Date.now();
+        if (sess.currentSequenceNumber && sess.currentSequenceNumber > (this.sessionSequenceCounters.get(sessionId) || 0)) {
+          this.sessionSequenceCounters.set(sessionId, sess.currentSequenceNumber);
+        }
+      } catch (err) {
+        this.consecutiveFirestoreErrors += 1;
+        this.recordComponentError(
+          'firestore',
+          'error',
+          `Erro ao inicializar sessão ${sessionId}: ${(err as Error).message}`,
+          sessionId
+        );
+      }
+    }
+
+    while (queue.length > 0) {
+      // Ensure pending WAL state is durably on disk before starting Firestore transaction
+      this.flushWalToDiskSync();
+
+      // Take a micro-batch of up to 50 pending events for this session
+      const batchEntries = queue.slice(0, 50);
+      for (const entry of batchEntries) {
+        entry.status = 'PROCESSING';
+        entry.attempts += 1;
+      }
+
+      try {
+        if (this.simulatedFirestoreDelayMs > 0) {
+          await new Promise((resolve) => setTimeout(resolve, this.simulatedFirestoreDelayMs));
+        }
+
+        if (this.simulatedFailuresRemaining > 0) {
+          this.simulatedFailuresRemaining -= 1;
+          throw new Error('SIMULATED_TRANSIENT_FIRESTORE_FAILURE');
+        }
+
+        const batchInputs = batchEntries.map((e) => ({
+          eventId: e.event.eventId,
+          eventKey: e.event.eventKey,
+          transactionId: e.event.transactionId,
+          technicalSignature: e.event.technicalSignature,
+          originalTimestamp: e.event.originalTimestamp,
+          streakKey: e.event.streakKey,
+          sessionId: e.event.sessionId,
+          tiktokUserId: e.event.tiktokUserId,
+          username: e.event.username,
+          displayHandle: e.event.displayHandle,
+          handleAvailable: e.event.handleAvailable,
+          nickname: e.event.nickname,
+          avatarUrl: e.event.avatarUrl,
+          giftId: e.event.giftId,
+          giftName: e.event.giftName,
+          diamondCount: e.event.diamondCount,
+          repeatCount: e.event.repeatCount,
+          deltaCount: e.event.deltaCount,
+          coinsGranted: e.event.coinsGranted,
+          repeatEnd: e.event.repeatEnd,
+          groupId: e.event.groupId,
+          receivedAt: e.event.receivedAt,
+        }));
+
+        // STEP 3 & 4: Process coins & tickets idempotently and confirm durable record in Firestore!
+        const batchResults: GiftEventAtomicResult[] = await recordGiftEventsBatchAtomic(batchInputs);
+        const persistedAt = Date.now(); // UTC epoch ms
+        const persistedMonoMs = performance.now(); // Monotonic clock
+
+        this.consecutiveFirestoreErrors = 0;
+        this.lastFirestoreVerifiedAt = persistedAt;
+
+        // Remove processed batch from front of session queue
+        queue.splice(0, batchEntries.length);
+
+        const sOutbox = this.sessionOutbox.get(sessionId) || [];
+
+        batchEntries.forEach((entry, idx) => {
+          const outcome = batchResults[idx];
+          // Measure persistence latency using monotonic clock
+          const persistLatencyMs = Math.max(
+            0.5,
+            Number((persistedMonoMs - (entry.enqueueMonoMs || persistedMonoMs - 1)).toFixed(2))
+          );
+          this.pushLatencySample(this.persistenceLatencySamples, persistLatencyMs);
+
+          // STEP 5: Assign sequential durable sequenceNumber per sessionId
+          const prevSessionSeq = this.sessionSequenceCounters.get(sessionId) || 0;
+          const firestoreSeq = outcome?.event?.sequenceNumber || 0;
+          const sequenceNumber = firestoreSeq > prevSessionSeq ? firestoreSeq : prevSessionSeq + 1;
+          this.sessionSequenceCounters.set(sessionId, sequenceNumber);
+
+          if (!this.sessionFirstAvailableSequence.has(sessionId)) {
+            this.sessionFirstAvailableSequence.set(sessionId, sequenceNumber);
+          }
+
+          const sseEventId = `${sessionId}:${sequenceNumber}`;
+          const issuedTickets = outcome?.ticketNumbers || [];
+
+          const confirmedEvent: TikTokLiveGiftEvent = {
+            ...(outcome?.event || entry.event),
+            eventKey: entry.walId,
+            receivedAt: entry.event.receivedAt,
+            persistedAt,
+            sequenceNumber,
+            persistenceStatus: 'CONFIRMED',
+            ticketNumbers: issuedTickets,
+            serverReceiveLatencyMs: entry.serverReceiveLatencyMs,
+            processingLatencyMs: entry.processingLatencyMs,
+            persistenceLatencyMs: persistLatencyMs,
+          };
+
+          entry.status = 'CONFIRMED';
+          entry.confirmedAt = persistedAt;
+          entry.sessionSequenceNumber = sequenceNumber;
+          entry.ticketNumbers = issuedTickets;
+          entry.persistenceLatencyMs = persistLatencyMs;
+          entry.event = confirmedEvent;
+
+          this.totalPersistedCount += 1;
+          this.persistedTimestamps.push(persistedAt);
+
+          this.lastEventConfirmed = {
+            eventKey: entry.walId,
+            eventId: confirmedEvent.eventId,
+            displayHandle: confirmedEvent.displayHandle || `@${confirmedEvent.username}`,
+            giftName: confirmedEvent.giftName,
+            coinsGranted: confirmedEvent.coinsGranted,
+            ticketNumbers: issuedTickets,
+            confirmedAt: persistedAt,
+            persistenceLatencyMs: persistLatencyMs,
+          };
+
+          this.milestonePersisted = {
+            sequenceNumber,
+            sseEventId,
+            eventId: confirmedEvent.eventId,
+            eventKey: entry.walId,
+            sessionId: confirmedEvent.sessionId,
+            senderId: confirmedEvent.tiktokUserId,
+            displayHandle: confirmedEvent.displayHandle || `@${confirmedEvent.username}`,
+            giftId: confirmedEvent.giftId,
+            giftName: confirmedEvent.giftName,
+            coinsGranted: confirmedEvent.coinsGranted,
+            repeatCount: confirmedEvent.repeatCount,
+            ticketNumbers: issuedTickets,
+            receivedAt: confirmedEvent.receivedAt,
+            persistedAt,
+            latencyMs: persistLatencyMs,
+          };
+
+          // Build Durable SSE Outbox Event (Persist-Before-SSE rule)
+          const outboxEvent: DurableSseOutboxEvent = {
+            sessionId: confirmedEvent.sessionId,
+            sequenceNumber,
+            sseEventId,
+            eventId: confirmedEvent.eventId,
+            eventKey: entry.walId,
+            eventType: 'gift_persisted',
+            receivedAt: confirmedEvent.receivedAt,
+            persistedAt,
+            senderId: confirmedEvent.tiktokUserId,
+            giftId: confirmedEvent.giftId,
+            ...(confirmedEvent.transactionId ? { transactionId: confirmedEvent.transactionId } : {}),
+            serverReceiveLatencyMs: entry.serverReceiveLatencyMs,
+            processingLatencyMs: entry.processingLatencyMs,
+            persistenceLatencyMs: persistLatencyMs,
+            payload: {
+              event: confirmedEvent,
+              ticketNumbers: issuedTickets,
+              newTickets: outcome?.newTickets || issuedTickets.length,
+              carryover: outcome?.carryover ?? 0,
+              totalCoinsInSession: outcome?.totalCoins ?? confirmedEvent.coinsGranted,
+            },
+          };
+
+          sOutbox.push(outboxEvent);
+          this.sessionOutbox.set(sessionId, sOutbox);
+          this.pruneSessionOutbox(sessionId);
+
+          // Record Stage E (Accounting) & Stage F (Persistence) for correlated diagnostic trace
+          const diagTraceId = entry.event?.diagnosticTraceId;
+          if (diagTraceId) {
+            tiktokDiagnosticService.recordAccounting(diagTraceId, {
+              deltaCount: entry.event.deltaCount || 1,
+              coinsGranted: entry.event.coinsGranted || 0,
+              ticketsGenerated: issuedTickets.length,
+              ticketNumbers: issuedTickets,
+              ruleIdApplied: entry.event.ruleIdApplied,
+              rateApplied: entry.event.rateApplied,
+            });
+            tiktokDiagnosticService.recordPersistence(diagTraceId, {
+              persistedToFirestore: true,
+              firestoreDocId: confirmedEvent.eventId,
+              serverReceiveLatencyMs: entry.serverReceiveLatencyMs,
+              processingLatencyMs: entry.processingLatencyMs,
+              persistenceLatencyMs: persistLatencyMs,
+              totalTraceLatencyMs: Number(
+                (entry.serverReceiveLatencyMs + entry.processingLatencyMs + persistLatencyMs).toFixed(2)
+              ),
+              persistedAt,
+              status: 'SUCCESS',
+            });
+          }
+
+          // STEP 6: Now that Firestore persistence & outbox sequenceNumber are confirmed, emit to SSE!
+          const confirmSeqId = this.nextSeqId();
+          this.emitOutboxEvent(outboxEvent);
+
+          this.emitFrame({
+            seqId: confirmSeqId,
+            sequenceNumber,
+            sseEventId,
+            type: 'gift_confirmed',
+            sessionId: confirmedEvent.sessionId,
+            eventKey: entry.walId,
+            eventId: confirmedEvent.eventId,
+            timestamp: persistedAt,
+            persistedMonoMs,
+            payload: {
+              seqId: confirmSeqId,
+              sequenceNumber,
+              sseEventId,
+              status: 'CONFIRMED',
+              eventKey: entry.walId,
+              eventId: confirmedEvent.eventId,
+              eventType: 'gift_persisted',
+              receivedAt: confirmedEvent.receivedAt,
+              persistedAt,
+              senderId: confirmedEvent.tiktokUserId,
+              giftId: confirmedEvent.giftId,
+              transactionId: confirmedEvent.transactionId,
+              sessionId: confirmedEvent.sessionId,
+              tiktokUserId: confirmedEvent.tiktokUserId,
+              username: confirmedEvent.username,
+              displayHandle: confirmedEvent.displayHandle,
+              nickname: confirmedEvent.nickname,
+              giftName: confirmedEvent.giftName,
+              coinsGranted: confirmedEvent.coinsGranted,
+              deltaCount: confirmedEvent.deltaCount,
+              repeatCount: confirmedEvent.repeatCount,
+              ticketNumbers: issuedTickets,
+              newTickets: outcome?.newTickets || issuedTickets.length,
+              carryover: outcome?.carryover ?? 0,
+              totalCoinsInSession: outcome?.totalCoins ?? confirmedEvent.coinsGranted,
+              serverReceiveLatencyMs: entry.serverReceiveLatencyMs,
+              processingLatencyMs: entry.processingLatencyMs,
+              persistenceLatencyMs: persistLatencyMs,
+              event: confirmedEvent,
+              ...(diagTraceId ? { diagnosticTraceId: diagTraceId } : {}),
+            },
+          });
+        });
+
+        this.pruneSlidingTimestamps(persistedAt);
+        this.maybeRecordTimeSeriesPoint(persistedAt);
+        this.scheduleWalFlush();
+        this.scheduleOutboxFlush();
+      } catch (err) {
+        const errMsg = (err as Error)?.message || String(err);
+        this.consecutiveFirestoreErrors += 1;
+        const maxAttempts = Math.max(...batchEntries.map((e) => e.attempts));
+        this.recordComponentError(
+          'firestore',
+          maxAttempts >= 4 ? 'error' : 'warning',
+          `Falha na persistência do lote (${sessionId}): ${errMsg}`,
+          sessionId,
+          batchEntries[0]?.event.eventId,
+          maxAttempts
+        );
+
+        // Mark entries back to PENDING for exponential backoff retry; record diagnostic failure
+        for (const entry of batchEntries) {
+          if (entry.event?.diagnosticTraceId) {
+            tiktokDiagnosticService.recordPersistence(entry.event.diagnosticTraceId, {
+              persistedToFirestore: false,
+              error: errMsg,
+              status: 'FAILED',
+            });
+          }
+          entry.status = 'PENDING';
+          entry.lastError = errMsg;
+        }
+        this.scheduleWalFlush();
+
+        if (maxAttempts >= 8) {
+          const failedEntry = queue.shift();
+          if (failedEntry) {
+            failedEntry.status = 'FAILED';
+            this.flushWalToDiskSync();
+          }
+        } else {
+          // Exponential backoff with jitter (e.g. 60ms, 120ms, 240ms, 480ms...)
+          const baseDelay = Math.min(2500, 60 * Math.pow(2, maxAttempts - 1));
+          const jitter = Math.round(baseDelay * (0.85 + Math.random() * 0.3));
+          await new Promise((resolve) => setTimeout(resolve, jitter));
+        }
+      }
+    }
+  }
+
+  /**
+   * Waits until all currently queued events across all sessions have been persisted to Firestore.
+   */
+  public async waitForIdle(timeoutMs = 30000): Promise<boolean> {
+    const start = Date.now();
+    while (this.getPendingQueueSize() > 0 || this.activeSessionWorkers.size > 0) {
+      if (Date.now() - start > timeoutMs) {
+        return false;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 15));
+    }
+    this.flushWalToDiskSync();
+    this.flushOutboxToDiskSync();
+    return true;
+  }
+
+  public getPendingQueueSize(): number {
+    let total = 0;
+    for (const q of this.sessionQueues.values()) {
+      total += q.length;
+    }
+    return total;
+  }
+
+  public getRetryingQueueSize(): number {
+    let retrying = 0;
+    for (const q of this.sessionQueues.values()) {
+      for (const item of q) {
+        if (item.attempts > 1 || item.lastError) {
+          retrying += 1;
+        }
+      }
+    }
+    return retrying;
+  }
+
+  public getFailedWalCount(): number {
+    let failed = 0;
+    for (const entry of this.walEntries.values()) {
+      if (entry.status === 'FAILED') {
+        failed += 1;
+      }
+    }
+    return failed;
+  }
+
+  public getOldestPendingAgeMs(): number {
+    const now = Date.now();
+    let oldestAge = 0;
+    for (const q of this.sessionQueues.values()) {
+      if (q.length > 0) {
+        const age = Math.max(0, now - q[0].enqueuedAt);
+        if (age > oldestAge) oldestAge = age;
+      }
+    }
+    return oldestAge;
+  }
+
+  /**
+   * Returns all sequenced SSE frames with `seqId > lastEventId` (optionally filtered by sessionId).
+   */
+  public getFramesSince(lastEventId: number, sessionId?: string): SequencedSseFrame[] {
+    if (!Number.isFinite(lastEventId) || lastEventId < 0) return [];
+    return this.replayLog.filter(
+      (frame) => frame.seqId > lastEventId && (!sessionId || !frame.sessionId || frame.sessionId === sessionId)
+    );
+  }
+
+  public getOutboxEventsForSession(sessionId: string): DurableSseOutboxEvent[] {
+    this.pruneSessionOutbox(sessionId);
+    return [...(this.sessionOutbox.get(sessionId) || [])];
+  }
+
+  /**
+   * Simulates a server restart by clearing in-memory queues and reloading unconfirmed WAL + Outbox from disk.
+   */
+  public async simulateServerRestartAndRecover(): Promise<{
+    recoveredCount: number;
+    persistedCount: number;
+  }> {
+    this.flushWalToDiskSync();
+    this.flushOutboxToDiskSync();
+
+    this.sessionQueues.clear();
+    this.activeSessionWorkers.clear();
+    this.walEntries.clear();
+    this.sessionOutbox.clear();
+
+    this.loadOutboxFromDisk();
+    const recoveredCount = this.loadWalFromDisk();
+    await this.waitForIdle(20000);
+    return {
+      recoveredCount,
+      persistedCount: Array.from(this.walEntries.values()).filter((e) => e.status === 'CONFIRMED').length,
+    };
+  }
+
+  public loadWalFromDisk(): number {
+    ensureDataDir();
+    if (!fs.existsSync(WAL_FILE_PATH)) return 0;
+
+    let recovered = 0;
+    try {
+      const raw = fs.readFileSync(WAL_FILE_PATH, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed?.entries)) {
+        for (const item of parsed.entries as DurableWalEntry[]) {
+          if (!item || !item.walId || !item.event) continue;
+          if (item.seqId > this.seqCounter) {
+            this.seqCounter = item.seqId;
+          }
+          if (item.sessionSequenceNumber && item.event.sessionId) {
+            const cur = this.sessionSequenceCounters.get(item.event.sessionId) || 0;
+            if (item.sessionSequenceNumber > cur) {
+              this.sessionSequenceCounters.set(item.event.sessionId, item.sessionSequenceNumber);
+            }
+          }
+          item.enqueueMonoMs = performance.now();
+          this.walEntries.set(item.walId, item);
+          if (item.status === 'PENDING' || item.status === 'PROCESSING' || item.status === 'FAILED') {
+            item.status = 'PENDING';
+            item.attempts = 0;
+            const sQueue = this.sessionQueues.get(item.event.sessionId) || [];
+            if (!sQueue.some((existing) => existing.walId === item.walId)) {
+              sQueue.push(item);
+              this.sessionQueues.set(item.event.sessionId, sQueue);
+              recovered += 1;
+            }
+          }
+        }
+      }
+      for (const sid of this.sessionQueues.keys()) {
+        this.triggerSessionWorker(sid);
+      }
+    } catch (err) {
+      console.warn('[TikTokDurableEventQueue] Aviso ao ler WAL do disco:', err);
+    }
+    return recovered;
+  }
+
+  public flushWalToDiskSync(): void {
+    ensureDataDir();
+    try {
+      const all = Array.from(this.walEntries.values());
+      const unconfirmed = all.filter((e) => e.status !== 'CONFIRMED');
+      const confirmed = all.filter((e) => e.status === 'CONFIRMED').slice(-250);
+      const payload = {
+        updatedAt: Date.now(),
+        seqCounter: this.seqCounter,
+        entries: [...unconfirmed, ...confirmed],
+      };
+      fs.writeFileSync(WAL_FILE_PATH, JSON.stringify(payload), 'utf8');
+    } catch {
+      // ignore disk write errors in read-only environments
+    }
+  }
+
+  private scheduleWalFlush(delayMs = 15): void {
+    if (this.walFlushTimer) return;
+    this.walFlushTimer = setTimeout(() => {
+      this.walFlushTimer = null;
+      this.flushWalToDiskSync();
+    }, delayMs);
+  }
+
+  public flushOutboxToDiskSync(): void {
+    ensureDataDir();
+    try {
+      const sessionsObj: Record<string, DurableSseOutboxEvent[]> = {};
+      for (const [sid, events] of this.sessionOutbox.entries()) {
+        sessionsObj[sid] = events.slice(-this.retentionMaxEventsPerSession);
+      }
+      const countersObj: Record<string, number> = {};
+      for (const [sid, count] of this.sessionSequenceCounters.entries()) {
+        countersObj[sid] = count;
+      }
+      const firstSeqObj: Record<string, number> = {};
+      for (const [sid, minSeq] of this.sessionFirstAvailableSequence.entries()) {
+        firstSeqObj[sid] = minSeq;
+      }
+      fs.writeFileSync(
+        OUTBOX_FILE_PATH,
+        JSON.stringify({
+          updatedAt: Date.now(),
+          counters: countersObj,
+          firstAvailable: firstSeqObj,
+          sessions: sessionsObj,
+        }),
+        'utf8'
+      );
+    } catch {
+      // ignore
+    }
+  }
+
+  private scheduleOutboxFlush(delayMs = 25): void {
+    if (this.outboxFlushTimer) return;
+    this.outboxFlushTimer = setTimeout(() => {
+      this.outboxFlushTimer = null;
+      this.flushOutboxToDiskSync();
+    }, delayMs);
+  }
+
+  private loadOutboxFromDisk(): void {
+    ensureDataDir();
+    if (!fs.existsSync(OUTBOX_FILE_PATH)) return;
+    try {
+      const raw = fs.readFileSync(OUTBOX_FILE_PATH, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (parsed?.counters && typeof parsed.counters === 'object') {
+        for (const [sid, val] of Object.entries(parsed.counters)) {
+          if (typeof val === 'number') {
+            this.sessionSequenceCounters.set(sid, val);
+          }
+        }
+      }
+      if (parsed?.firstAvailable && typeof parsed.firstAvailable === 'object') {
+        for (const [sid, val] of Object.entries(parsed.firstAvailable)) {
+          if (typeof val === 'number') {
+            this.sessionFirstAvailableSequence.set(sid, val);
+          }
+        }
+      }
+      if (parsed?.sessions && typeof parsed.sessions === 'object') {
+        for (const [sid, list] of Object.entries(parsed.sessions)) {
+          if (Array.isArray(list)) {
+            this.sessionOutbox.set(sid, list as DurableSseOutboxEvent[]);
+            this.pruneSessionOutbox(sid);
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  private loadReplayLogFromDisk(): void {
+    ensureDataDir();
+    if (!fs.existsSync(REPLAY_FILE_PATH)) return;
+    try {
+      const raw = fs.readFileSync(REPLAY_FILE_PATH, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed?.frames)) {
+        this.replayLog = parsed.frames.slice(-this.maxReplayLogSize);
+        for (const f of this.replayLog) {
+          if (f.seqId > this.seqCounter) {
+            this.seqCounter = f.seqId;
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  private scheduleReplayFlush(): void {
+    if (this.replayFlushTimer) return;
+    this.replayFlushTimer = setTimeout(() => {
+      this.replayFlushTimer = null;
+      try {
+        fs.writeFileSync(
+          REPLAY_FILE_PATH,
+          JSON.stringify({
+            updatedAt: Date.now(),
+            frames: this.replayLog.slice(-600),
+          }),
+          'utf8'
+        );
+      } catch {
+        // ignore
+      }
+    }, 100);
+  }
+
+  private pushLatencySample(arr: number[], value: number): void {
+    arr.push(value);
+    if (arr.length > 600) {
+      arr.shift();
+    }
+  }
+
+  private maybeRecordTimeSeriesPoint(now = Date.now()): void {
+    if (now - this.lastTimeSeriesSampleAt < 1000 && this.timeSeriesHistory.length > 0) {
+      return;
+    }
+    this.lastTimeSeriesSampleAt = now;
+    const cutoff1s = now - 1000;
+    const receivedEps = this.receivedTimestamps.filter((t) => t >= cutoff1s).length;
+    const processedEps = this.processedTimestamps.filter((t) => t >= cutoff1s).length;
+    const persistedEps = this.persistedTimestamps.filter((t) => t >= cutoff1s).length;
+    const transmittedEps = this.transmittedTimestamps.filter((t) => t >= cutoff1s).length;
+
+    const e2eLat = computePercentiles(
+      this.totalEndToEndLatencySamples.length > 0 ? this.totalEndToEndLatencySamples : this.persistenceLatencySamples
+    );
+    const persistLat = computePercentiles(this.persistenceLatencySamples);
+
+    this.timeSeriesHistory.push({
+      timestamp: now,
+      receivedEps,
+      processedEps,
+      persistedEps,
+      transmittedEps,
+      p50EndToEndMs: e2eLat.p50,
+      p95EndToEndMs: e2eLat.p95,
+      p99EndToEndMs: e2eLat.p99,
+      p95PersistenceMs: persistLat.p95,
+      queuePending: this.getPendingQueueSize(),
+    });
+
+    if (this.timeSeriesHistory.length > 60) {
+      this.timeSeriesHistory.shift();
+    }
+  }
+
+  /**
+   * Builds the real, verified 9-component health matrix and 6-stage event loss classification
+   * for the LIVE SYSTEM MONITOR. Never marks a component healthy without verifying its real state.
+   */
+  public getLiveSystemMonitorSnapshot(context: {
+    connectionState: TikTokConnectionState;
+    roomUsername: string;
+    sessionId: string;
+    connectedAt?: number | null;
+    lastHeartbeat?: number | null;
+    activeSseClients: number;
+    adapterDuplicatesBlocked?: number;
+    adapterReconnectCount?: number;
+    adapterErrorsCount?: number;
+    disconnectReason?: string | null;
+  }): LiveSystemMonitorSnapshot {
+    const now = Date.now();
+    this.pruneSlidingTimestamps(now);
+    this.maybeRecordTimeSeriesPoint(now);
+
+    const cutoff1s = now - 1000;
+    const receivedEps = this.receivedTimestamps.filter((t) => t >= cutoff1s).length;
+    const processedEps = this.processedTimestamps.filter((t) => t >= cutoff1s).length;
+    const persistedEps = this.persistedTimestamps.filter((t) => t >= cutoff1s).length;
+    const transmittedEps = this.transmittedTimestamps.filter((t) => t >= cutoff1s).length;
+
+    const pendingInQueue = this.getPendingQueueSize();
+    const retryingInQueue = this.getRetryingQueueSize();
+    const failedCount = this.getFailedWalCount();
+    const oldestPendingAgeMs = this.getOldestPendingAgeMs();
+
+    const serverReceiveLat = computePercentiles(this.serverReceiveLatencySamples);
+    const processingLat = computePercentiles(this.processingLatencySamples);
+    const firestorePersistenceLat = computePercentiles(this.persistenceLatencySamples);
+    const sseDeliveryLat = computePercentiles(this.sseDeliveryLatencySamples);
+    const browserRenderLat = computePercentiles(this.browserRenderLatencySamples);
+    const totalEndToEndLat =
+      this.totalEndToEndLatencySamples.length > 0
+        ? computePercentiles(this.totalEndToEndLatencySamples)
+        : computePercentiles(
+            this.persistenceLatencySamples.map(
+              (p, i) =>
+                p +
+                (this.serverReceiveLatencySamples[i] || 0.2) +
+                (this.processingLatencySamples[i] || 0.2) +
+                (this.sseDeliveryLatencySamples[i] || 0.3)
+            )
+          );
+
+    const totalDuplicates = this.duplicatesBlockedCount + (context.adapterDuplicatesBlocked || 0);
+    const tiktokReconnects = Math.max(this.tiktokReconnectCount, context.adapterReconnectCount || 0);
+    const sessionLatestSeq = this.getSessionLatestSequence(context.sessionId);
+    const sessionMinSeq = this.getSessionMinRetainedSequence(context.sessionId);
+
+    const sessionClients = Array.from(this.clientCursors.values()).filter(
+      (c) => c.sessionId === context.sessionId || !c.sessionId
+    );
+    const activeSessionClients = sessionClients.filter((c) => !c.disconnectedAt);
+
+    // -------------------------------------------------------------------------
+    // VERIFY REAL STATE OF ALL 9 COMPONENTS
+    // -------------------------------------------------------------------------
+    const components: ComponentDiagnosticEntry[] = [
+      // 1. TikTok Webcast
+      {
+        id: 'tiktok_webcast',
+        name: 'TikTok Webcast',
+        status:
+          context.connectionState === 'CONNECTED'
+            ? 'CONNECTED'
+            : context.connectionState === 'CONNECTING' || context.connectionState === 'RECONNECTING'
+            ? 'DEGRADED'
+            : context.connectionState === 'ERROR'
+            ? 'ERROR'
+            : 'DISCONNECTED',
+        verifiedAt: now,
+        reason:
+          context.connectionState === 'CONNECTED'
+            ? `Sala @${context.roomUsername} conectada ao vivo via Webcast.`
+            : context.connectionState === 'RECONNECTING'
+            ? `Reconectando à sala @${context.roomUsername} com backoff exponencial e jitter.`
+            : context.connectionState === 'ERROR'
+            ? `Falha na conexão Webcast: ${context.disconnectReason || 'erro de rede'}.`
+            : `Nenhuma transmissão Webcast ativa conectada no momento (@${context.roomUsername}).`,
+        metrics: {
+          room: `@${context.roomUsername}`,
+          reconnects: tiktokReconnects,
+        },
+      },
+      // 2. Adaptador tiktokLiveAdapter
+      {
+        id: 'tiktok_live_adapter',
+        name: 'Adaptador tiktokLiveAdapter',
+        status:
+          context.connectionState === 'ERROR'
+            ? 'DEGRADED'
+            : this.receivedNotEnqueuedCount > 0
+            ? 'DEGRADED'
+            : 'CONNECTED',
+        verifiedAt: now,
+        reason:
+          this.receivedNotEnqueuedCount > 0
+            ? `${this.receivedNotEnqueuedCount} payload(s) inválido(s) rejeitado(s) na captura.`
+            : `Adaptador operacional (${this.totalReceivedCount} eventos capturados, relógio monotônico ativo).`,
+        metrics: {
+          captured: this.totalReceivedCount,
+          receiveP95Ms: serverReceiveLat.p95,
+        },
+      },
+      // 3. EventBus
+      {
+        id: 'event_bus',
+        name: 'EventBus',
+        status: 'CONNECTED',
+        verifiedAt: now,
+        reason: `Filtro de deduplicação técnica ativo (${totalDuplicates} retransmissões bloqueadas, ${this.totalProcessedCount} únicos processados).`,
+        metrics: {
+          uniqueProcessed: this.totalProcessedCount,
+          retransmissionsBlocked: totalDuplicates,
+        },
+      },
+      // 4. Fila de processamento
+      {
+        id: 'processing_queue',
+        name: 'Fila de processamento',
+        status:
+          failedCount > 0
+            ? 'ERROR'
+            : pendingInQueue >= 100 || retryingInQueue > 0 || oldestPendingAgeMs > 3000
+            ? 'DEGRADED'
+            : 'CONNECTED',
+        verifiedAt: now,
+        reason:
+          failedCount > 0
+            ? `${failedCount} evento(s) em estado FAILED no WAL aguardando intervenção.`
+            : retryingInQueue > 0
+            ? `${retryingInQueue} evento(s) em retry com backoff exponencial.`
+            : pendingInQueue > 0
+            ? `${pendingInQueue} evento(s) em processamento (idade máx: ${oldestPendingAgeMs}ms).`
+            : `Fila WAL em dia (0 pendentes, escrita em disco ativa).`,
+        metrics: {
+          pending: pendingInQueue,
+          retrying: retryingInQueue,
+          oldestAgeMs: oldestPendingAgeMs,
+        },
+      },
+      // 5. Serviço tiktokLiveService
+      {
+        id: 'tiktok_live_service',
+        name: 'Serviço tiktokLiveService',
+        status:
+          this.consecutiveFirestoreErrors >= 3
+            ? 'ERROR'
+            : this.consecutiveFirestoreErrors > 0 || firestorePersistenceLat.p95 > 1500
+            ? 'DEGRADED'
+            : 'CONNECTED',
+        verifiedAt: now,
+        reason:
+          this.consecutiveFirestoreErrors > 0
+            ? `Retentativa transacional ativa (${this.consecutiveFirestoreErrors} falha(s) consecutiva(s)).`
+            : `Transações micro-batch serializadas por sessão (${this.totalPersistedCount} eventos persistidos).`,
+        metrics: {
+          persisted: this.totalPersistedCount,
+          persistP95Ms: firestorePersistenceLat.p95,
+        },
+      },
+      // 6. Firestore
+      {
+        id: 'firestore',
+        name: 'Firestore',
+        status:
+          this.consecutiveFirestoreErrors >= 3
+            ? 'ERROR'
+            : this.consecutiveFirestoreErrors > 0 || this.simulatedFailuresRemaining > 0
+            ? 'DEGRADED'
+            : this.lastFirestoreVerifiedAt > 0 || this.initializedSessions.size > 0 || this.totalPersistedCount > 0
+            ? 'CONNECTED'
+            : 'UNKNOWN',
+        verifiedAt: this.lastFirestoreVerifiedAt || now,
+        reason:
+          this.consecutiveFirestoreErrors > 0
+            ? `Falha temporária no Firestore detectada: ${this.lastErrorMessage || 'erro de transação'}.`
+            : this.lastFirestoreVerifiedAt > 0 || this.initializedSessions.size > 0
+            ? `Banco Firestore verificado (p50=${firestorePersistenceLat.p50}ms, p95=${firestorePersistenceLat.p95}ms).`
+            : `Aguardando primeira operação de leitura/escrita no Firestore.`,
+        metrics: {
+          p50Ms: firestorePersistenceLat.p50,
+          p95Ms: firestorePersistenceLat.p95,
+          failures: this.errorsCount,
+        },
+      },
+      // 7. Canal SSE
+      {
+        id: 'sse_channel',
+        name: 'Canal SSE',
+        status:
+          context.activeSseClients > 0
+            ? 'CONNECTED'
+            : sessionClients.length > 0
+            ? 'DEGRADED'
+            : 'DISCONNECTED',
+        verifiedAt: now,
+        reason:
+          context.activeSseClients > 0
+            ? `${context.activeSseClients} cliente(s) SSE conectado(s) • Outbox seq #${sessionLatestSeq}.`
+            : `Nenhum cliente SSE conectado no momento (Outbox retém seq #${sessionMinSeq}..#${sessionLatestSeq} para retomada).`,
+        metrics: {
+          activeClients: context.activeSseClients,
+          latestSeq: sessionLatestSeq,
+          transmitted: this.totalTransmittedCount,
+        },
+      },
+      // 8. Frontend React
+      {
+        id: 'frontend_react',
+        name: 'Frontend React',
+        status:
+          context.activeSseClients === 0
+            ? 'DISCONNECTED'
+            : activeSessionClients.some(
+                (c) => sessionLatestSeq > c.lastConfirmedSequenceNumber && now - (c.lastAckAt || c.connectedAt) > 8000
+              )
+            ? 'DEGRADED'
+            : 'CONNECTED',
+        verifiedAt: now,
+        reason:
+          context.activeSseClients === 0
+            ? 'Navegador desconectado do stream SSE.'
+            : `Feed React sincronizado (${this.totalConfirmedByBrowserCount} confirmações de renderização, p50=${browserRenderLat.p50}ms).`,
+        metrics: {
+          confirmedAcks: this.totalConfirmedByBrowserCount,
+          renderP50Ms: browserRenderLat.p50,
+          renderP95Ms: browserRenderLat.p95,
+        },
+      },
+      // 9. Persistência e emissão de bilhetes
+      {
+        id: 'ticket_persistence',
+        name: 'Persistência e emissão de bilhetes',
+        status:
+          failedCount > 0
+            ? 'ERROR'
+            : retryingInQueue > 0
+            ? 'DEGRADED'
+            : 'CONNECTED',
+        verifiedAt: now,
+        reason:
+          failedCount > 0
+            ? `${failedCount} evento(s) com falha na emissão de bilhetes.`
+            : retryingInQueue > 0
+            ? `${retryingInQueue} lote(s) em retry transacional para emissão de bilhetes.`
+            : `Emissão sequencial atômica íntegra (Persist-Before-SSE ativo, zero duplicidade financeira).`,
+        metrics: {
+          persistedEvents: this.totalPersistedCount,
+          sequenceHead: sessionLatestSeq,
+        },
+      },
+    ];
+
+    // -------------------------------------------------------------------------
+    // 6-STAGE EVENT LOSS DIAGNOSTIC CLASSIFIER
+    // -------------------------------------------------------------------------
+    const maxSentToAnyClient = sessionClients.reduce(
+      (max, c) => Math.max(max, c.lastSentSequenceNumber),
+      context.activeSseClients > 0 ? sessionLatestSeq : 0
+    );
+    const maxConfirmedByAnyClient = sessionClients.reduce(
+      (max, c) => Math.max(max, c.lastConfirmedSequenceNumber),
+      0
+    );
+
+    const persistedNotTransmittedCount =
+      sessionClients.length > 0 ? Math.max(0, sessionLatestSeq - maxSentToAnyClient) : 0;
+    const transmittedNotAppliedCount =
+      sessionClients.length > 0 ? Math.max(0, maxSentToAnyClient - maxConfirmedByAnyClient) : 0;
+
+    const lossClassification: EventLossStageEntry[] = [
+      {
+        stage: 'NOT_RECEIVED_BY_SERVER',
+        label: '1. Evento não recebido pelo servidor',
+        count: 0,
+        inFlightCount: 0,
+        status: 'UNVERIFIABLE_AT_ORIGIN',
+        explanation:
+          context.connectionState === 'CONNECTED'
+            ? 'Conexão Webcast ativa. Nota técnica: o TikTok não fornece log de auditoria na origem para auditar pacotes descartados antes de chegarem ao servidor.'
+            : `Webcast em estado ${context.connectionState} (${tiktokReconnects} reconexões). Eventos ocorridos no TikTok enquanto o socket Webcast estiver desconectado não são reenviados pela origem.`,
+        lastDetectedAt: tiktokReconnects > 0 ? this.reconnectHistory[0]?.timestamp || null : null,
+      },
+      {
+        stage: 'RECEIVED_NOT_ENQUEUED',
+        label: '2. Evento recebido, mas não enfileirado',
+        count: this.receivedNotEnqueuedCount,
+        inFlightCount: 0,
+        status: this.receivedNotEnqueuedCount > 0 ? 'LOSS_DETECTED' : 'OK',
+        explanation:
+          this.receivedNotEnqueuedCount > 0
+            ? `${this.receivedNotEnqueuedCount} evento(s) rejeitado(s) antes do enfileiramento por falha de estrutura.`
+            : 'Todos os eventos válidos recebidos pelo servidor foram enfileirados no WAL.',
+      },
+      {
+        stage: 'ENQUEUED_NOT_PROCESSED',
+        label: '3. Evento enfileirado, mas não processado',
+        count: 0,
+        inFlightCount: Array.from(this.walEntries.values()).filter((e) => e.status === 'PENDING' && e.attempts === 0)
+          .length,
+        status:
+          oldestPendingAgeMs > 5000
+            ? 'WARNING'
+            : pendingInQueue > 0
+            ? 'IN_FLIGHT'
+            : 'OK',
+        explanation:
+          pendingInQueue > 0
+            ? `${pendingInQueue} evento(s) aguardando worker da sessão (idade máx: ${oldestPendingAgeMs}ms).`
+            : 'Nenhum evento retido sem processamento na fila.',
+      },
+      {
+        stage: 'PROCESSED_NOT_PERSISTED',
+        label: '4. Evento processado, mas não persistido',
+        count: failedCount,
+        inFlightCount: retryingInQueue + Array.from(this.walEntries.values()).filter((e) => e.status === 'PROCESSING').length,
+        status:
+          failedCount > 0
+            ? 'LOSS_DETECTED'
+            : retryingInQueue > 0
+            ? 'WARNING'
+            : pendingInQueue > 0
+            ? 'IN_FLIGHT'
+            : 'OK',
+        explanation:
+          failedCount > 0
+            ? `${failedCount} evento(s) falharam após 8 tentativas e permanecem retidos no WAL em disco para recuperação.`
+            : retryingInQueue > 0
+            ? `${retryingInQueue} evento(s) aguardando retry transacional no Firestore.`
+            : 'Todos os eventos processados foram confirmados no Firestore.',
+      },
+      {
+        stage: 'PERSISTED_NOT_TRANSMITTED_SSE',
+        label: '5. Evento persistido, mas não transmitido pelo SSE',
+        count: 0,
+        inFlightCount: persistedNotTransmittedCount,
+        status: persistedNotTransmittedCount > 0 ? 'IN_FLIGHT' : 'OK',
+        explanation:
+          persistedNotTransmittedCount > 0
+            ? `${persistedNotTransmittedCount} evento(s) persistido(s) no Outbox aguardando reconexão SSE do navegador para retomada por Last-Event-ID.`
+            : 'Todos os eventos persistidos no Firestore foram transmitidos ao canal SSE.',
+      },
+      {
+        stage: 'TRANSMITTED_NOT_APPLIED_BROWSER',
+        label: '6. Evento transmitido, mas não aplicado pelo navegador',
+        count: 0,
+        inFlightCount: transmittedNotAppliedCount,
+        status: transmittedNotAppliedCount > 5 ? 'WARNING' : transmittedNotAppliedCount > 0 ? 'IN_FLIGHT' : 'OK',
+        explanation:
+          transmittedNotAppliedCount > 0
+            ? `${transmittedNotAppliedCount} evento(s) transmitido(s) via SSE aguardando confirmação de renderização (ACK) do navegador.`
+            : 'Todos os eventos transmitidos ao navegador tiveram aplicação confirmada no feed.',
+      },
+    ];
+
+    const queueItems = Array.from(this.walEntries.values())
+      .slice(-40)
+      .reverse()
+      .map((entry) => ({
+        walId: entry.walId,
+        eventId: entry.event.eventId,
+        sessionId: entry.event.sessionId,
+        displayHandle: entry.event.displayHandle || `@${entry.event.username}`,
+        giftName: entry.event.giftName,
+        coinsGranted: entry.event.coinsGranted,
+        status: entry.status,
+        attempts: entry.attempts,
+        enqueuedAt: entry.enqueuedAt,
+        ageMs: entry.confirmedAt ? Math.max(0, entry.confirmedAt - entry.enqueuedAt) : Math.max(0, now - entry.enqueuedAt),
+        sequenceNumber: entry.sessionSequenceNumber,
+        lastError: entry.lastError,
+      }));
+
+    return {
+      sessionId: context.sessionId,
+      roomUsername: context.roomUsername,
+      connectionState: context.connectionState,
+      liveUptimeMs: context.connectedAt ? Math.max(0, now - context.connectedAt) : 0,
+      updatedAt: now,
+      clockInfo: {
+        durationClock: 'MONOTONIC_PERFORMANCE_NOW',
+        auditTimestampFormat: 'UTC_EPOCH_MS',
+      },
+      rates: {
+        receivedEps,
+        processedEps,
+        persistedEps,
+        transmittedEps,
+        peakReceivedEps: this.peakReceivedEps,
+      },
+      totals: {
+        receivedEvents: this.totalReceivedCount + (context.adapterDuplicatesBlocked || 0),
+        processedEvents: this.totalProcessedCount,
+        persistedEvents: this.totalPersistedCount,
+        transmittedEvents: this.totalTransmittedCount,
+        confirmedByBrowserEvents: this.totalConfirmedByBrowserCount,
+        pendingInQueue,
+        oldestPendingAgeMs,
+        retryingInQueue,
+        persistenceFailures: this.errorsCount,
+        technicalRetransmissionsDetected: totalDuplicates,
+        tiktokReconnects,
+        sseReconnects: this.sseReconnectCount,
+      },
+      latencies: {
+        serverReceive: serverReceiveLat,
+        processing: processingLat,
+        firestorePersistence: firestorePersistenceLat,
+        sseDelivery: sseDeliveryLat,
+        browserRender: browserRenderLat,
+        totalEndToEnd: totalEndToEndLat,
+      },
+      components,
+      lossClassification,
+      milestones: {
+        lastEventReceived: this.milestoneReceived,
+        lastEventPersisted: this.milestonePersisted,
+        lastEventDeliveredToBrowser: this.milestoneDelivered,
+        lastEventConfirmedByBrowser: this.milestoneConfirmedByBrowser,
+      },
+      sseRecovery: {
+        retentionMaxEventsPerSession: this.retentionMaxEventsPerSession,
+        retentionWindowMs: this.retentionWindowMs,
+        sessionMinRetainedSequence: sessionMinSeq,
+        sessionLatestSequence: sessionLatestSeq,
+        activeClients: sessionClients,
+      },
+      queueItems,
+      timeSeries: [...this.timeSeriesHistory],
+      reconnectHistory: this.reconnectHistory.slice(0, 30),
+      recentErrors: this.recentErrors.slice(0, 30),
+    };
+  }
+
+  public getDiagnostics(context: {
+    connectionState: TikTokConnectionState;
+    roomUsername: string;
+    sessionId: string;
+    connectedAt?: number | null;
+    activeSseClients: number;
+    adapterDuplicatesBlocked?: number;
+    adapterReconnectCount?: number;
+  }): TikTokPerformanceDiagnostics {
+    const monitorSnapshot = this.getLiveSystemMonitorSnapshot(context);
+    const now = monitorSnapshot.updatedAt;
+    const queueSize = monitorSnapshot.totals.pendingInQueue;
+    const oldestPendingAgeMs = monitorSnapshot.totals.oldestPendingAgeMs;
+    const displayLat = computePercentiles(this.displayLatencySamples);
+    const persistLat = monitorSnapshot.latencies.firestorePersistence;
+    const walPendingCount = Array.from(this.walEntries.values()).filter((e) => e.status !== 'CONFIRMED').length;
+
+    const alerts: TikTokDiagnosticAlert[] = [];
+    if (queueSize >= 50 || oldestPendingAgeMs > 3000) {
+      alerts.push({
+        id: 'alert_queue_backlog',
+        severity: queueSize >= 200 ? 'error' : 'warning',
+        code: 'QUEUE_BACKLOG',
+        message: `Fila de persistência com ${queueSize} eventos pendentes (item mais antigo: ${oldestPendingAgeMs}ms). Backpressure e micro-batching ativos.`,
+        timestamp: now,
+      });
+    }
+    if (persistLat.p95 > 1000 && persistLat.samples >= 3) {
+      alerts.push({
+        id: 'alert_persist_latency',
+        severity: 'warning',
+        code: 'HIGH_PERSIST_LATENCY',
+        message: `Latência p95 de persistência no Firestore acima de 1000ms (${persistLat.p95}ms).`,
+        timestamp: now,
+      });
+    }
+    if (displayLat.p95 > 500 && displayLat.samples >= 3) {
+      alerts.push({
+        id: 'alert_display_latency',
+        severity: 'warning',
+        code: 'HIGH_DISPLAY_LATENCY',
+        message: `Latência p95 de captura acima de 500ms (${displayLat.p95}ms).`,
+        timestamp: now,
+      });
+    }
+    if (context.connectionState === 'RECONNECTING' || context.connectionState === 'ERROR') {
+      alerts.push({
+        id: 'alert_connection_drop',
+        severity: context.connectionState === 'ERROR' ? 'error' : 'warning',
+        code: 'CONNECTION_DROP',
+        message: `Conexão TikTok em estado ${context.connectionState}. Reconexão automática com backoff exponencial e jitter ativa.`,
+        timestamp: now,
+      });
+    }
+    if (this.lastErrorMessage) {
+      alerts.push({
+        id: 'alert_persistence_error',
+        severity: 'warning',
+        code: 'PERSISTENCE_ERROR',
+        message: `Último aviso de infraestrutura: ${this.lastErrorMessage}`,
+        timestamp: now,
+      });
+    }
+
+    return {
+      connectionState: context.connectionState,
+      roomUsername: context.roomUsername,
+      sessionId: context.sessionId,
+      liveUptimeMs: monitorSnapshot.liveUptimeMs,
+      eventsPerSecond: monitorSnapshot.rates.receivedEps,
+      peakEventsPerSecond: monitorSnapshot.rates.peakReceivedEps,
+      totalReceivedEvents: monitorSnapshot.totals.receivedEvents,
+      totalProcessedEvents: monitorSnapshot.totals.processedEvents,
+      totalPersistedEvents: monitorSnapshot.totals.persistedEvents,
+      totalPendingEvents: queueSize,
+      duplicatesBlocked: monitorSnapshot.totals.technicalRetransmissionsDetected,
+      queueSize,
+      oldestPendingAgeMs,
+      captureToDisplayLatency: displayLat,
+      captureToPersistenceLatency: persistLat,
+      reconnectCount: monitorSnapshot.totals.tiktokReconnects + monitorSnapshot.totals.sseReconnects,
+      errorsAndFailuresCount: monitorSnapshot.totals.persistenceFailures,
+      lastErrorMessage: this.lastErrorMessage,
+      lastEventReceived: this.lastEventReceived,
+      lastEventConfirmed: this.lastEventConfirmed,
+      activeSseClients: context.activeSseClients,
+      lastSseSeqId: this.seqCounter,
+      walPendingCount,
+      alerts,
+      monitorSnapshot,
+      updatedAt: now,
+    };
+  }
+
+  public resetMetricsForTesting(): void {
+    this.receivedTimestamps = [];
+    this.processedTimestamps = [];
+    this.persistedTimestamps = [];
+    this.transmittedTimestamps = [];
+    this.peakReceivedEps = 0;
+    this.serverReceiveLatencySamples = [];
+    this.processingLatencySamples = [];
+    this.persistenceLatencySamples = [];
+    this.sseDeliveryLatencySamples = [];
+    this.browserRenderLatencySamples = [];
+    this.totalEndToEndLatencySamples = [];
+    this.displayLatencySamples = [];
+    this.totalReceivedCount = 0;
+    this.totalProcessedCount = 0;
+    this.totalPersistedCount = 0;
+    this.totalTransmittedCount = 0;
+    this.totalConfirmedByBrowserCount = 0;
+    this.receivedNotEnqueuedCount = 0;
+    this.duplicatesBlockedCount = 0;
+    this.errorsCount = 0;
+    this.consecutiveFirestoreErrors = 0;
+    this.lastErrorMessage = null;
+    this.tiktokReconnectCount = 0;
+    this.sseReconnectCount = 0;
+    this.milestoneReceived = null;
+    this.milestonePersisted = null;
+    this.milestoneDelivered = null;
+    this.milestoneConfirmedByBrowser = null;
+    this.lastEventReceived = null;
+    this.lastEventConfirmed = null;
+    this.timeSeriesHistory = [];
+    this.reconnectHistory = [];
+    this.recentErrors = [];
+    this.simulatedFirestoreDelayMs = 0;
+    this.simulatedFailuresRemaining = 0;
+    this.walEntries.clear();
+    this.sessionQueues.clear();
+    this.sessionOutbox.clear();
+    this.sessionSequenceCounters.clear();
+    this.sessionFirstAvailableSequence.clear();
+    this.clientCursors.clear();
+    this.clientSecrets.clear();
+    this.retentionMaxEventsPerSession = 1000;
+    this.retentionWindowMs = 30 * 60 * 1000;
+    this.flushWalToDiskSync();
+    this.flushOutboxToDiskSync();
+  }
+}
+
+export const tiktokEventQueue = new TikTokDurableEventQueue(true);

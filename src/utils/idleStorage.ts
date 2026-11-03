@@ -161,6 +161,12 @@ class IdleAutoSaveController {
     this.setStatus('saving');
 
     try {
+      // Preserve previous valid snapshot in safety backup slot before overwriting
+      const existingRaw = localStorage.getItem(STORAGE_KEY);
+      if (existingRaw) {
+        localStorage.setItem(`${STORAGE_KEY}_backup`, existingRaw);
+      }
+
       const serialized = JSON.stringify(this.pendingPayload);
       localStorage.setItem(STORAGE_KEY, serialized);
       this.isDirty = false;
@@ -196,6 +202,38 @@ class IdleAutoSaveController {
     }
   }
 
+  /**
+   * Creates an explicit timestamped backup of current localStorage state
+   */
+  public createSafetyBackup(): boolean {
+    if (typeof window === 'undefined') return false;
+    try {
+      const current = localStorage.getItem(STORAGE_KEY);
+      if (current) {
+        localStorage.setItem(`${STORAGE_KEY}_backup`, current);
+        localStorage.setItem(`${STORAGE_KEY}_backup_ts`, String(Date.now()));
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Restores state from the safety backup if available
+   */
+  public restoreFromSafetyBackup(): StoragePayload | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const backupRaw = localStorage.getItem(`${STORAGE_KEY}_backup`);
+      if (!backupRaw) return null;
+      return JSON.parse(backupRaw) as StoragePayload;
+    } catch {
+      return null;
+    }
+  }
+
   private handleBeforeUnload(_e: BeforeUnloadEvent) {
     if (this.isDirty) {
       this.flush();
@@ -228,3 +266,4 @@ class IdleAutoSaveController {
 
 // Singleton instance to be shared across React hooks and window listeners
 export const idleStorage = new IdleAutoSaveController();
+

@@ -672,93 +672,459 @@ export function filterComments(
   };
 }
 
+const CSV_USER_HEADER_TOKENS = new Set([
+  'usuario',
+  'usuarios',
+  'username',
+  'usernames',
+  'user',
+  'users',
+  'autor',
+  'author',
+  'participante',
+  'participantes',
+  'participant',
+  'nome',
+  'name',
+  'arroba',
+  'handle',
+  'perfil',
+  'conta',
+]);
+
+const CSV_COMMENT_HEADER_TOKENS = new Set([
+  'comentario',
+  'comentarios',
+  'comment',
+  'comments',
+  'texto',
+  'text',
+  'mensagem',
+  'message',
+  'conteudo',
+  'frase',
+  'resposta',
+]);
+
+function normalizeHeaderToken(raw: string): string {
+  return raw
+    .trim()
+    .replace(/^["']+|["']+$/g, '')
+    .trim()
+    .replace(/^@+/, '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+/**
+ * Recognizes common CSV/TSV header rows (e.g. "usuario,comentario,curtidas",
+ * "username,comment,likes", "@usuario,comentário,curtidas") without discarding real participants.
+ */
+export function isCsvHeaderRow(fields: string[]): boolean {
+  if (fields.length < 2) return false;
+  const col0 = normalizeHeaderToken(fields[0]);
+  const col1 = normalizeHeaderToken(fields[1]);
+  return CSV_USER_HEADER_TOKENS.has(col0) && CSV_COMMENT_HEADER_TOKENS.has(col1);
+}
+
+/**
+ * Parses a single CSV row respecting RFC-4180 double quotes, escaped quotes (""),
+ * internal commas, accents, and special characters.
+ */
+export function parseCsvLineFields(
+  line: string,
+  delimiter: ',' | ';' = ','
+): { fields: string[]; hadQuotedField: boolean; unclosedQuote: boolean } {
+  const fields: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  let hadQuotedField = false;
+  let i = 0;
+
+  while (i < line.length) {
+    const ch = line[i];
+
+    if (inQuotes) {
+      if (ch === '"') {
+        if (i + 1 < line.length && line[i + 1] === '"') {
+          current += '"';
+          i += 2;
+          continue;
+        } else {
+          inQuotes = false;
+          i++;
+          continue;
+        }
+      } else {
+        current += ch;
+        i++;
+        continue;
+      }
+    } else {
+      if (ch === '"' && current.trim() === '') {
+        inQuotes = true;
+        hadQuotedField = true;
+        current = '';
+        i++;
+        continue;
+      }
+      if (ch === delimiter) {
+        fields.push(current);
+        current = '';
+        i++;
+        continue;
+      }
+      current += ch;
+      i++;
+    }
+  }
+
+  fields.push(current);
+  return {
+    fields,
+    hadQuotedField,
+    unclosedQuote: inQuotes,
+  };
+}
+
+export interface CommentImportValidationResult {
+  valid: boolean;
+  error?: string;
+  comments: TikTokComment[];
+  headerSkipped: boolean;
+  invalidLinesCount: number;
+}
+
+/**
+ * Validates and parses TXT, CSV, TSV, JSON, or manual paste comments.
+ * Rejects empty files, binary/corrupted files, header-only CSVs, and invalid formats with clear messages.
+ */
+export function validateAndParseCommentsInput(rawInput: string): CommentImportValidationResult {
+  const withoutBom = (rawInput || '').replace(/^\uFEFF/, '');
+  const text = withoutBom.trim();
+
+  if (!text) {
+    return {
+      valid: false,
+      error: 'O arquivo ou texto informado está vazio. Insira ao menos um comentário válido.',
+      comments: [],
+      headerSkipped: false,
+      invalidLinesCount: 0,
+    };
+  }
+
+  // Reject binary / control characters
+  if (/[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(withoutBom)) {
+    return {
+      valid: false,
+      error: 'Formato inválido: o arquivo contém caracteres binários ou corrompidos. Envie apenas arquivos .txt ou .csv em texto UTF-8.',
+      comments: [],
+      headerSkipped: false,
+      invalidLinesCount: 1,
+    };
+  }
+
+  // Reject HTML / XML documents
+  if (/^\s*(<!DOCTYPE|<html|<head|<body|<script|<\?xml)/i.test(text)) {
+    return {
+      valid: false,
+      error: 'Formato inválido: o conteúdo enviado é um documento HTML/XML e não uma lista de comentários (.txt ou .csv).',
+      comments: [],
+      headerSkipped: false,
+      invalidLinesCount: 1,
+    };
+  }
+
+  // 1. Check JSON format if input starts with '[' or '{'
+  if (text.startsWith('[') || text.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(text);
+      if (!Array.isArray(parsed)) {
+        return {
+          valid: false,
+          error: 'Formato JSON inválido: esperado um array de comentários.',
+          comments: [],
+          headerSkipped: false,
+          invalidLinesCount: 1,
+        };
+      }
+      const jsonComments: TikTokComment[] = [];
+      const seenExact = new Set<string>();
+      parsed.forEach((item, idx) => {
+        if (!item || typeof item !== 'object') return;
+        const rawUser = String(item.username || item.user || item.author || item.name || '').trim();
+        const commentText = String(item.text || item.comment || item.message || item.content || '').trim();
+        if (!rawUser || !commentText) return;
+        const cleanUser = rawUser.replace(/^@+/, '').trim();
+        if (!cleanUser) return;
+        const exactKey = `${cleanUser.toLowerCase()}::${commentText.toLowerCase()}`;
+        if (seenExact.has(exactKey)) return;
+        seenExact.add(exactKey);
+
+        jsonComments.push({
+          id: String(item.id || `cmt-import-${idx + 1}-${Date.now()}`),
+          username: `@${cleanUser}`,
+          nickname: item.nickname ? String(item.nickname) : item.name ? String(item.name) : undefined,
+          avatarUrl: item.avatar || item.avatarUrl || undefined,
+          text: commentText,
+          likes: Number.isFinite(Number(item.likes ?? item.digg_count)) ? Number(item.likes ?? item.digg_count) : 0,
+          mentions: extractMentions(commentText),
+          timestamp: item.timestamp ? Number(item.timestamp) : Date.now() - idx * 1000 * 60,
+        });
+      });
+
+      if (jsonComments.length === 0) {
+        return {
+          valid: false,
+          error: 'Nenhum comentário válido encontrado no JSON informado.',
+          comments: [],
+          headerSkipped: false,
+          invalidLinesCount: 1,
+        };
+      }
+
+      return {
+        valid: true,
+        comments: jsonComments,
+        headerSkipped: false,
+        invalidLinesCount: 0,
+      };
+    } catch {
+      return {
+        valid: false,
+        error: 'Formato inválido: o conteúdo JSON está malformado ou incompleto.',
+        comments: [],
+        headerSkipped: false,
+        invalidLinesCount: 1,
+      };
+    }
+  }
+
+  // 2. Parse Line-by-line (.TXT, .CSV, .TSV, or manual paste)
+  const lines = withoutBom
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  const result: TikTokComment[] = [];
+  const seenExact = new Set<string>();
+  let headerSkipped = false;
+  let invalidLinesCount = 0;
+
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index];
+    let username = '';
+    let commentText = '';
+    let likes: number | undefined = undefined;
+
+    // A. Check if line is CSV (starts with handle followed by comma or semicolon, or quoted handle)
+    const csvDelimiter: ',' | ';' | null =
+      /^"?@?[a-zA-Z0-9_.\u00C0-\u00FF-]+?"?\s*,/.test(line)
+        ? ','
+        : /^"?@?[a-zA-Z0-9_.\u00C0-\u00FF-]+?"?\s*;/.test(line)
+        ? ';'
+        : null;
+
+    if (csvDelimiter) {
+      const parsedRow = parseCsvLineFields(line, csvDelimiter);
+      if (parsedRow.unclosedQuote) {
+        invalidLinesCount++;
+        continue;
+      }
+      const { fields, hadQuotedField } = parsedRow;
+
+      if (index === 0 && isCsvHeaderRow(fields)) {
+        headerSkipped = true;
+        continue;
+      }
+
+      const candidateUser = fields[0].trim().replace(/^["']+|["']+$/g, '').trim();
+      let candidateComment = '';
+
+      if (fields.length === 2) {
+        candidateComment = fields[1].trim();
+        if (!hadQuotedField) {
+          candidateComment = candidateComment.replace(/^["']+|["']+$/g, '').trim();
+        }
+      } else if (fields.length >= 3) {
+        const lastField = fields[fields.length - 1].trim().replace(/^["']+|["']+$/g, '').trim();
+        if (/^\d+$/.test(lastField)) {
+          likes = parseInt(lastField, 10);
+          candidateComment = fields.slice(1, -1).join(csvDelimiter).trim();
+        } else {
+          candidateComment = fields.slice(1).join(csvDelimiter).trim();
+        }
+        if (!hadQuotedField && candidateComment.startsWith('"') && candidateComment.endsWith('"') && candidateComment.length >= 2) {
+          candidateComment = candidateComment.slice(1, -1).replace(/""/g, '"').trim();
+        }
+      }
+
+      const cleanCandidateUser = candidateUser.replace(/^@+/, '').trim();
+      if (cleanCandidateUser && /^[a-zA-Z0-9_.-]{1,64}$/.test(cleanCandidateUser) && candidateComment) {
+        username = cleanCandidateUser;
+        commentText = candidateComment;
+      } else {
+        invalidLinesCount++;
+        continue;
+      }
+    } else if (line.includes('\t')) {
+      // B. Tab-separated (TSV)
+      const parts = line.split('\t');
+      if (index === 0 && isCsvHeaderRow(parts)) {
+        headerSkipped = true;
+        continue;
+      }
+      const candidateUser = parts[0].trim().replace(/^@+/, '').trim();
+      const candidateComment = parts.slice(1).join(' ').trim();
+      if (candidateUser && /^[a-zA-Z0-9_.-]{1,64}$/.test(candidateUser) && candidateComment) {
+        username = candidateUser;
+        commentText = candidateComment;
+      } else {
+        invalidLinesCount++;
+        continue;
+      }
+    } else {
+      // C. Line format: @usuario: comentario OR usuario: comentario OR @usuario - comentario
+      const colonOrDashMatch = line.match(/^@?([a-zA-Z0-9_.-]{1,64})\s*(?:[:：]|\s+[-–—])\s*(.+)$/);
+      if (colonOrDashMatch) {
+        const candUser = colonOrDashMatch[1].trim();
+        const candText = colonOrDashMatch[2].trim();
+        if (index === 0 && isCsvHeaderRow([candUser, candText])) {
+          headerSkipped = true;
+          continue;
+        }
+        username = candUser;
+        commentText = candText;
+      } else {
+        // D. Line starting explicitly with @username followed by space and comment
+        const atSpaceMatch = line.match(/^@([a-zA-Z0-9_.-]{1,64})\s+(.+)$/);
+        if (atSpaceMatch) {
+          username = atSpaceMatch[1].trim();
+          commentText = atSpaceMatch[2].trim();
+        } else {
+          invalidLinesCount++;
+          continue;
+        }
+      }
+    }
+
+    if (username && commentText) {
+      const cleanUser = username.replace(/^@+/, '').trim();
+      const exactKey = `${cleanUser.toLowerCase()}::${commentText.trim().toLowerCase()}`;
+      if (seenExact.has(exactKey)) {
+        continue;
+      }
+      seenExact.add(exactKey);
+
+      result.push({
+        id: `imported-${result.length + 1}-${Date.now()}`,
+        username: `@${cleanUser}`,
+        text: commentText,
+        likes: likes !== undefined ? likes : Math.floor(Math.random() * 8),
+        mentions: extractMentions(commentText),
+        timestamp: Date.now() - result.length * 60000,
+      });
+    }
+  }
+
+  if (result.length === 0) {
+    if (headerSkipped) {
+      return {
+        valid: false,
+        error: 'O arquivo CSV contém apenas o cabeçalho e nenhum participante ou comentário válido.',
+        comments: [],
+        headerSkipped: true,
+        invalidLinesCount,
+      };
+    }
+    return {
+      valid: false,
+      error:
+        'Formato inválido: nenhum comentário válido foi encontrado. Use o padrão "@usuario: comentário" (TXT) ou "usuario,comentario" (CSV).',
+      comments: [],
+      headerSkipped: false,
+      invalidLinesCount,
+    };
+  }
+
+  return {
+    valid: true,
+    comments: result,
+    headerSkipped,
+    invalidLinesCount,
+  };
+}
+
 /**
  * Parses user imported / pasted text into TikTokComment list.
  * Supports:
  * - Line format: @username: comment text
  * - Line format: username - comment text
- * - CSV format: username,text
+ * - CSV format: username,text[,likes] (with automatic header detection and RFC-4180 quotes/commas/accents)
  * - JSON format: [{ "username": "...", "text": "..." }]
  */
 export function parseImportedComments(rawInput: string): TikTokComment[] {
-  const text = rawInput.trim();
-  if (!text) return [];
+  const outcome = validateAndParseCommentsInput(rawInput);
+  return outcome.comments;
+}
 
-  // 1. Try parsing JSON
-  if (text.startsWith('[') && text.endsWith(']')) {
-    try {
-      const parsed = JSON.parse(text);
-      if (Array.isArray(parsed)) {
-        const jsonComments: TikTokComment[] = [];
-        parsed.forEach((item, idx) => {
-          if (!item || typeof item !== 'object') return;
-          const username = String(item.username || item.user || item.author || item.name || `usuario_${idx + 1}`);
-          const commentText = String(item.text || item.comment || item.message || item.content || '');
-          if (!commentText && !username) return;
+/**
+ * Merges newly imported comments with existing comments while avoiding participant duplication
+ * across repeated imports. Automatically replaces the initial demo sample comments on first import.
+ */
+export function mergeImportedCommentsWithoutDuplicates(
+  existingComments: TikTokComment[],
+  incomingComments: TikTokComment[]
+): {
+  merged: TikTokComment[];
+  addedCount: number;
+  duplicatesSkipped: number;
+  replacedSampleData: boolean;
+} {
+  const isOnlySampleData =
+    existingComments.length > 0 &&
+    existingComments.every((c) => /^tk-\d+$/.test(c.id));
 
-          jsonComments.push({
-            id: String(item.id || `cmt-import-${idx + 1}-${Date.now()}`),
-            username: username.startsWith('@') ? username : `@${username}`,
-            nickname: item.nickname ? String(item.nickname) : item.name ? String(item.name) : undefined,
-            avatarUrl: item.avatar || item.avatarUrl || undefined,
-            text: commentText,
-            likes: Number(item.likes || item.digg_count || 0),
-            mentions: extractMentions(commentText),
-            timestamp: item.timestamp ? Number(item.timestamp) : Date.now() - idx * 1000 * 60,
-          });
-        });
-        if (jsonComments.length > 0) {
-          return jsonComments;
-        }
-      }
-    } catch {
-      // not JSON, fallback to line-based parsing
+  const baseList = isOnlySampleData ? [] : [...existingComments];
+  const seenUsernames = new Set<string>(
+    baseList.map((c) => c.username.trim().replace(/^@+/, '').toLowerCase())
+  );
+  const seenExact = new Set<string>(
+    baseList.map(
+      (c) => `${c.username.trim().replace(/^@+/, '').toLowerCase()}::${c.text.trim().toLowerCase()}`
+    )
+  );
+
+  let addedCount = 0;
+  let duplicatesSkipped = 0;
+  const merged = [...baseList];
+
+  for (const item of incomingComments) {
+    const normUser = item.username.trim().replace(/^@+/, '').toLowerCase();
+    const exactKey = `${normUser}::${item.text.trim().toLowerCase()}`;
+
+    if (seenUsernames.has(normUser) || seenExact.has(exactKey)) {
+      duplicatesSkipped++;
+      continue;
     }
+
+    seenUsernames.add(normUser);
+    seenExact.add(exactKey);
+    merged.push({
+      ...item,
+      id: item.id || `imported-${merged.length + 1}-${Date.now()}`,
+      username: `@${item.username.trim().replace(/^@+/, '')}`,
+    });
+    addedCount++;
   }
 
-  // 2. Parse Line-by-line / CSV
-  const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
-  const result: TikTokComment[] = [];
-
-  lines.forEach((line, index) => {
-    let username = '';
-    let commentText = '';
-
-    // Match @user: comment
-    const colonMatch = line.match(/^@?([a-zA-Z0-9_.-]+)\s*[:：\-]\s*(.*)$/);
-    if (colonMatch) {
-      username = colonMatch[1];
-      commentText = colonMatch[2];
-    } else if (line.includes(',')) {
-      // CSV format
-      const parts = line.split(',');
-      username = parts[0].trim().replace(/^["']|["']$/g, '');
-      commentText = parts.slice(1).join(',').trim().replace(/^["']|["']$/g, '');
-    } else if (line.includes('\t')) {
-      // Tab-separated
-      const parts = line.split('\t');
-      username = parts[0].trim();
-      commentText = parts.slice(1).join(' ').trim();
-    } else {
-      // Bare text without delimiter, treat as username and placeholder or single word
-      username = `participante_${index + 1}`;
-      commentText = line.trim();
-    }
-
-    if (username || commentText) {
-      const cleanUser = username.replace(/^@/, '');
-      result.push({
-        id: `imported-${index + 1}-${Date.now()}`,
-        username: `@${cleanUser || `user_${index + 1}`}`,
-        text: commentText || 'Quero participar do sorteio!',
-        likes: Math.floor(Math.random() * 8),
-        mentions: extractMentions(commentText),
-        timestamp: Date.now() - index * 60000,
-      });
-    }
-  });
-
-  return result;
+  return {
+    merged,
+    addedCount,
+    duplicatesSkipped,
+    replacedSampleData: isOnlySampleData,
+  };
 }
 
 /**
