@@ -1,5 +1,13 @@
 import React from 'react';
-import { BarChart3, PieChart, Users, Coins, Ticket, Percent } from 'lucide-react';
+import {
+  BarChart3,
+  PieChart,
+  Users,
+  Coins,
+  Ticket,
+  Percent,
+  Award,
+} from 'lucide-react';
 import { ComputedRaffle, RaffleSettings, Winner } from '../types';
 
 interface StatsProbabilitiesProps {
@@ -17,137 +25,244 @@ export const StatsProbabilities: React.FC<StatsProbabilitiesProps> = ({
   const totalTickets = computed.usedCount;
   const capacity = settings.total;
   const remainingInPool = Math.max(0, capacity - totalTickets);
-  const capacityPercent = Math.min(100, Math.round((totalTickets / capacity) * 100));
+  const capacityPercent = capacity > 0 ? Math.min(100, Math.round((totalTickets / capacity) * 100)) : 0;
 
   const eligibleAllocations = computed.allocations.filter((a) => a.assignedTickets > 0);
-  const topContenders = [...eligibleAllocations].sort((a, b) => b.assignedTickets - a.assignedTickets).slice(0, 8);
+  const topContenders = [...eligibleAllocations].sort(
+    (a, b) => b.assignedTickets - a.assignedTickets
+  );
 
   const averageCoins =
     computed.allocations.length > 0 ? Math.round(totalCoins / computed.allocations.length) : 0;
   const totalRemainderCoins = computed.allocations.reduce((acc, a) => acc + a.remainderCoins, 0);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Top Level Metric Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg space-y-1 animate-card-enter neon-card">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold">Participantes</span>
-            <Users className="w-4 h-4 text-sky-400" />
+    <div className="w-full space-y-6 animate-fade-in">
+      {/* 1. Full-Width Metric Cards Row (4 Columns) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="gio-card p-5 flex items-start justify-between gap-3">
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8]">
+              Participantes
+            </span>
+            <div className="font-mono font-bold text-3xl text-[#F8FAFC] mt-1 tabular-nums">
+              {computed.allocations.length.toLocaleString('pt-BR')}
+            </div>
+            <div className="text-xs text-[#94A3B8] mt-1">
+              {eligibleAllocations.length} com ao menos 1 bilhete
+            </div>
           </div>
-          <div className="font-display font-black text-2xl sm:text-3xl text-white tabular-nums">
-            {computed.allocations.length}
-          </div>
-          <div className="text-[11px] text-slate-500">
-            {eligibleAllocations.length} com ao menos 1 bilhete
+          <div className="w-10 h-10 rounded-xl bg-[#0866F5]/20 border border-[#00A9FF]/35 flex items-center justify-center text-[#00A9FF] shrink-0">
+            <Users className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg space-y-1 animate-card-enter neon-card">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold">Total de Moedas</span>
-            <Coins className="w-4 h-4 text-sky-400" />
+        <div className="gio-card p-5 flex items-start justify-between gap-3">
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8]">
+              Total de Moedas
+            </span>
+            <div className="font-mono font-bold text-3xl text-[#00A9FF] mt-1 tabular-nums">
+              {totalCoins.toLocaleString('pt-BR')}
+            </div>
+            <div className="text-xs text-[#94A3B8] mt-1 font-mono tabular-nums">
+              Média de {averageCoins.toLocaleString('pt-BR')} por pessoa
+            </div>
           </div>
-          <div className="font-display font-black text-2xl sm:text-3xl text-sky-400 tabular-nums">
-            {totalCoins.toLocaleString('pt-BR')}
+          <div className="w-10 h-10 rounded-xl bg-[#00A9FF]/15 border border-[#00A9FF]/35 flex items-center justify-center text-[#00A9FF] shrink-0">
+            <Coins className="w-5 h-5" />
           </div>
-          <div className="text-[11px] text-slate-500">Média de {averageCoins} por pessoa</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg space-y-1 animate-card-enter neon-card">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold">Bilhetes Entregues</span>
-            <Ticket className="w-4 h-4 text-emerald-400" />
+        <div className="gio-card p-5 flex items-start justify-between gap-3">
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8]">
+              Bilhetes Entregues
+            </span>
+            <div className="font-mono font-bold text-3xl text-[#F8FAFC] mt-1 tabular-nums">
+              {totalTickets.toLocaleString('pt-BR')}{' '}
+              <span className="text-sm font-normal text-[#94A3B8]">
+                / {capacity.toLocaleString('pt-BR')}
+              </span>
+            </div>
+            <div className="text-xs text-[#20C997] mt-1 font-mono tabular-nums">
+              {remainingInPool.toLocaleString('pt-BR')} bilhetes disponíveis
+            </div>
           </div>
-          <div className="font-display font-black text-2xl sm:text-3xl text-white tabular-nums">
-            {totalTickets} <span className="text-sm font-normal text-slate-500">/ {capacity}</span>
+          <div className="w-10 h-10 rounded-xl bg-[#20C997]/15 border border-[#20C997]/35 flex items-center justify-center text-[#20C997] shrink-0">
+            <Ticket className="w-5 h-5" />
           </div>
-          <div className="text-[11px] text-slate-500">{remainingInPool} bilhetes disponíveis</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg space-y-1 animate-card-enter neon-card">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold">Moedas em Sobra</span>
-            <Percent className="w-4 h-4 text-blue-400" />
+        <div className="gio-card p-5 flex items-start justify-between gap-3">
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8]">
+              Moedas em Sobra
+            </span>
+            <div className="font-mono font-bold text-3xl text-[#35B9F5] mt-1 tabular-nums">
+              {totalRemainderCoins.toLocaleString('pt-BR')}
+            </div>
+            <div className="text-xs text-[#94A3B8] mt-1">
+              Abaixo de {settings.rate} moedas/bilhete
+            </div>
           </div>
-          <div className="font-display font-black text-2xl sm:text-3xl text-blue-400 tabular-nums">
-            {totalRemainderCoins}
+          <div className="w-10 h-10 rounded-xl bg-[#35B9F5]/15 border border-[#35B9F5]/35 flex items-center justify-center text-[#35B9F5] shrink-0">
+            <Percent className="w-5 h-5" />
           </div>
-          <div className="text-[11px] text-slate-500">Não formaram 1 bilhete</div>
-        </div>
-      </div>
-
-      {/* Pool Capacity Progress Bar */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-3 animate-card-enter neon-card">
-        <div className="flex items-center justify-between">
-          <span className="font-display font-bold text-sm text-white flex items-center gap-2">
-            <PieChart className="w-4 h-4 text-sky-400" />
-            <span>Ocupação da Série · GIO DA SORTE</span>
-          </span>
-          <span className="text-xs font-mono font-bold text-sky-400 tabular-nums">
-            {capacityPercent}% preenchido
-          </span>
-        </div>
-
-        <div className="w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
-          <div
-            className="h-full transition-all duration-500 rounded-full bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 shadow-sm"
-            style={{ width: `${capacityPercent}%` }}
-          />
-        </div>
-
-        <div className="flex items-center justify-between text-xs text-slate-400">
-          <span>Início: #{settings.start}</span>
-          <span>
-            {totalTickets} distribuídos · {remainingInPool} sobrando
-          </span>
-          <span>Fim da série: #{settings.start + settings.total - 1}</span>
         </div>
       </div>
 
-      {/* Probability Leaderboard */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4 animate-card-enter neon-card">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-sky-400" />
-            <h3 className="font-display font-bold text-lg text-white">Maiores Chances de Vitória</h3>
+      {/* 2. 12-Column Analytical Grid: Series Occupancy (Left 4 cols) + Probability Leaderboard (Right 8 cols) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left (4 cols): Pool Capacity & Series Metadata */}
+        <div className="lg:col-span-4 gio-card p-5 sm:p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-sm text-[#F8FAFC] flex items-center gap-2">
+              <PieChart className="w-4 h-4 text-[#00A9FF]" />
+              <span>Ocupação da Série</span>
+            </span>
+            <span className="px-2.5 py-0.5 rounded-md bg-[#0866F5]/20 border border-[#00A9FF]/35 text-xs font-mono font-bold text-[#00A9FF] tabular-nums">
+              {capacityPercent}% preenchido
+            </span>
           </div>
-          <span className="text-xs text-slate-400">Classificação por probabilidade</span>
+
+          <div className="w-full h-3.5 bg-[#050D20] rounded-full overflow-hidden border border-[#182943]">
+            <div
+              className="h-full transition-all duration-500 rounded-full bg-gradient-to-r from-[#0866F5] via-[#00A9FF] to-[#20C997]"
+              style={{ width: `${capacityPercent}%` }}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5 pt-2">
+            <div className="p-3 rounded-xl bg-[#0B1730] border border-[#182943]">
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                Início da Série
+              </span>
+              <span className="font-mono font-bold text-sm text-[#F8FAFC] tabular-nums">
+                #{settings.start}
+              </span>
+            </div>
+            <div className="p-3 rounded-xl bg-[#0B1730] border border-[#182943]">
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                Fim da Série
+              </span>
+              <span className="font-mono font-bold text-sm text-[#F8FAFC] tabular-nums">
+                #{settings.start + settings.total - 1}
+              </span>
+            </div>
+            <div className="p-3 rounded-xl bg-[#0B1730] border border-[#182943]">
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                Distribuídos
+              </span>
+              <span className="font-mono font-bold text-sm text-[#00A9FF] tabular-nums">
+                {totalTickets.toLocaleString('pt-BR')}
+              </span>
+            </div>
+            <div className="p-3 rounded-xl bg-[#0B1730] border border-[#182943]">
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                Vencedores
+              </span>
+              <span className="font-mono font-bold text-sm text-[#F5B942] tabular-nums">
+                {winners.length.toLocaleString('pt-BR')}
+              </span>
+            </div>
+          </div>
         </div>
 
-        {topContenders.length === 0 ? (
-          <div className="py-8 text-center text-xs text-slate-500">
-            Ainda não há participantes com bilhetes distribuídos.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {topContenders.map((alloc, idx) => (
-              <div key={alloc.participant.id} className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="w-5 font-mono font-bold text-slate-500 text-right">{idx + 1}.</span>
-                    <span className="font-bold text-white truncate">{alloc.participant.name}</span>
-                    <span className="text-slate-500">({alloc.participant.coins} moedas)</span>
-                  </div>
-
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-slate-300 font-medium">{alloc.assignedTickets} bilhetes</span>
-                    <span className="font-mono font-bold text-sky-400 tabular-nums w-14 text-right">
-                      {alloc.winProbability}%
-                    </span>
-                  </div>
-                </div>
-
-                <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-blue-600 to-sky-400 rounded-full"
-                    style={{ width: `${Math.min(100, alloc.winProbability * 2.5)}%` }}
-                  />
-                </div>
+        {/* Right (8 cols): Probability Leaderboard */}
+        <div className="lg:col-span-8 gio-card p-5 sm:p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#182943]">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#0866F5]/20 border border-[#00A9FF]/35 flex items-center justify-center text-[#00A9FF]">
+                <BarChart3 className="w-4 h-4" />
               </div>
-            ))}
+              <div>
+                <h3 className="font-bold text-base text-[#F8FAFC]">
+                  Ranking de Probabilidades por Participante
+                </h3>
+                <p className="text-xs text-[#94A3B8]">
+                  Classificação matemática proporcional ao número de bilhetes emitidos
+                </p>
+              </div>
+            </div>
+            <span className="text-xs font-mono text-[#94A3B8] tabular-nums">
+              {topContenders.length} elegíveis
+            </span>
           </div>
-        )}
+
+          {topContenders.length === 0 ? (
+            <div className="py-10 text-center rounded-xl bg-[#0B1730] border border-dashed border-[#182943] text-xs text-[#94A3B8]">
+              Ainda não há participantes com bilhetes distribuídos nesta sessão.
+            </div>
+          ) : (
+            <div className="space-y-2.5 max-h-[520px] overflow-y-auto pr-1 custom-scrollbar">
+              {topContenders.map((alloc, idx) => {
+                const hasWon = winners.some((w) => w.participantId === alloc.participant.id);
+                return (
+                  <div
+                    key={alloc.participant.id}
+                    className={`p-3.5 rounded-xl border transition-colors ${
+                      hasWon
+                        ? 'bg-[#0B1730] border-[#F5B942]/45'
+                        : 'bg-[#0B1730] border-[#182943] hover:border-[#00A9FF]/35'
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2 text-xs">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span
+                          className={`w-6 h-6 rounded-lg font-mono font-bold text-xs flex items-center justify-center shrink-0 tabular-nums ${
+                            idx === 0
+                              ? 'bg-[#F5B942]/20 text-[#F5B942] border border-[#F5B942]/40'
+                              : idx === 1
+                              ? 'bg-[#00A9FF]/20 text-[#00A9FF] border border-[#00A9FF]/40'
+                              : idx === 2
+                              ? 'bg-[#20C997]/20 text-[#20C997] border border-[#20C997]/40'
+                              : 'bg-[#101F3D] text-[#94A3B8] border border-[#182943]'
+                          }`}
+                        >
+                          {idx + 1}
+                        </span>
+                        <span className="font-bold text-sm text-[#F8FAFC] truncate">
+                          {alloc.participant.name}
+                        </span>
+                        <span className="font-mono text-[#94A3B8] tabular-nums">
+                          ({alloc.participant.coins.toLocaleString('pt-BR')} moedas)
+                        </span>
+                        {hasWon && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-[#F5B942]/15 text-[#F5B942] border border-[#F5B942]/35 shrink-0">
+                            <Award className="w-3 h-3" />
+                            Premiado
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0 font-mono tabular-nums">
+                        <span className="text-[#F8FAFC] font-semibold">
+                          {alloc.assignedTickets.toLocaleString('pt-BR')}{' '}
+                          {alloc.assignedTickets === 1 ? 'bilhete' : 'bilhetes'}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md bg-[#0866F5]/20 border border-[#00A9FF]/35 font-bold text-[#00A9FF] w-16 text-right">
+                          {alloc.winProbability}%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="w-full h-2 bg-[#050D20] rounded-full overflow-hidden border border-[#182943]/60">
+                      <div
+                        className={`h-full rounded-full ${
+                          hasWon
+                            ? 'bg-[#F5B942]'
+                            : 'bg-gradient-to-r from-[#0866F5] to-[#00A9FF]'
+                        }`}
+                        style={{ width: `${Math.min(100, Math.max(2, alloc.winProbability * 2))}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

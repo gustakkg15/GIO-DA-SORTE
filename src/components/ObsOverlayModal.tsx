@@ -47,28 +47,28 @@ export const ObsOverlayModal: React.FC<ObsOverlayModalProps> = ({
       ? 'bg-transparent'
       : backgroundMode === 'green'
       ? 'bg-[#00b140]'
-      : 'bg-slate-950/95';
+      : 'bg-[#050D20]/95';
 
   return (
     <div className={`fixed inset-0 z-50 flex flex-col justify-between p-3 sm:p-4 overflow-y-auto ${bgStyle} select-none animate-fade-in`}>
       {/* Streamer Controls Bar */}
       <div
-        className={`flex flex-wrap items-center justify-between max-w-4xl mx-auto w-full p-2.5 sm:p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-white backdrop-blur-md transition-opacity duration-300 gap-2 shrink-0 ${
+        className={`flex flex-wrap items-center justify-between max-w-4xl mx-auto w-full p-2.5 sm:p-3 rounded-xl bg-[#0B1730]/95 border border-[#182943] text-xs text-[#F8FAFC] backdrop-blur-md transition-opacity duration-300 gap-2 shrink-0 ${
           showControls ? 'opacity-100' : 'opacity-10 hover:opacity-100'
         }`}
       >
         <div className="flex items-center gap-2">
-          <Video className="w-4 h-4 text-sky-400 shrink-0" />
+          <Video className="w-4 h-4 text-[#00A9FF] shrink-0" />
           <span className="font-bold truncate">Overlay OBS</span>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-slate-400">Fundo:</span>
+          <span className="text-[#94A3B8]">Fundo:</span>
           <button
             type="button"
             onClick={() => setBackgroundMode('transparent')}
             className={`px-2 py-1 rounded font-semibold ${
-              backgroundMode === 'transparent' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'
+              backgroundMode === 'transparent' ? 'bg-[#0866F5] text-[#F8FAFC]' : 'bg-[#182943] text-[#94A3B8]'
             }`}
           >
             Transparente
@@ -77,7 +77,7 @@ export const ObsOverlayModal: React.FC<ObsOverlayModalProps> = ({
             type="button"
             onClick={() => setBackgroundMode('green')}
             className={`px-2 py-1 rounded font-semibold ${
-              backgroundMode === 'green' ? 'bg-emerald-400 text-slate-950' : 'bg-slate-800 text-slate-300'
+              backgroundMode === 'green' ? 'bg-[#20C997] text-[#050D20]' : 'bg-[#182943] text-[#94A3B8]'
             }`}
           >
             Chroma Verde
@@ -86,7 +86,7 @@ export const ObsOverlayModal: React.FC<ObsOverlayModalProps> = ({
             type="button"
             onClick={() => setBackgroundMode('dark')}
             className={`px-2 py-1 rounded font-semibold ${
-              backgroundMode === 'dark' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'
+              backgroundMode === 'dark' ? 'bg-[#0866F5] text-[#F8FAFC]' : 'bg-[#182943] text-[#94A3B8]'
             }`}
           >
             Escuro
@@ -95,7 +95,7 @@ export const ObsOverlayModal: React.FC<ObsOverlayModalProps> = ({
           <button
             type="button"
             onClick={() => setShowControls(!showControls)}
-            className="px-2 py-1 bg-slate-800 text-slate-400 hover:text-white rounded"
+            className="px-2 py-1 bg-[#182943] text-[#94A3B8] hover:text-[#F8FAFC] rounded"
           >
             {showControls ? 'Ocultar barra' : 'Fixar barra'}
           </button>
@@ -103,7 +103,7 @@ export const ObsOverlayModal: React.FC<ObsOverlayModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-white rounded"
+            className="p-1 text-[#94A3B8] hover:text-[#F8FAFC] rounded"
           >
             <X className="w-4 h-4" />
           </button>
@@ -112,24 +112,24 @@ export const ObsOverlayModal: React.FC<ObsOverlayModalProps> = ({
 
       {/* Floating Live Stream Card */}
       <div className="max-w-md w-full mx-auto my-auto animate-slide-up">
-        <div className="bg-slate-900/95 border-2 border-blue-500/80 rounded-2xl p-6 shadow-2xl backdrop-blur-md text-center space-y-4 shadow-blue-500/20">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2 text-xs">
-            <span className="font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
+        <div className="bg-[#101F3D]/95 border-2 border-[#0866F5] rounded-2xl p-6 shadow-2xl backdrop-blur-md text-center space-y-4">
+          <div className="flex items-center justify-between border-b border-[#182943] pb-2 text-xs">
+            <span className="font-bold text-[#00A9FF] uppercase tracking-wider flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5" />
               <span>GIO DA SORTE · Ao Vivo</span>
             </span>
-            <span className="text-slate-400 font-mono">
+            <span className="text-[#94A3B8] font-mono tabular-nums">
               {computed.eligibleTickets.length} bilhetes
             </span>
           </div>
 
           {(settings.currentPrize || settings.prizeImage) && (
-            <div className="text-xs font-bold text-white bg-blue-600/30 py-1 px-3 rounded-full border border-blue-500/40 flex items-center justify-center gap-2 mx-auto w-fit">
+            <div className="text-xs font-bold text-[#F8FAFC] bg-[#0866F5]/20 py-1 px-3 rounded-full border border-[#00A9FF]/40 flex items-center justify-center gap-2 mx-auto w-fit">
               {settings.prizeImage && (
                 <img
                   src={settings.prizeImage}
                   alt={settings.currentPrize || 'Prêmio'}
-                  className="w-5 h-5 rounded-full object-cover border border-amber-300 shrink-0"
+                  className="w-5 h-5 rounded-full object-cover border border-[#F5B942] shrink-0"
                 />
               )}
               <span>Prêmio: {settings.currentPrize || 'Sorteio Oficial'}</span>
@@ -139,12 +139,12 @@ export const ObsOverlayModal: React.FC<ObsOverlayModalProps> = ({
           {/* Large Number */}
           <div className="py-2">
             <div
-              className={`font-mono font-black tabular-nums tracking-tight select-none leading-none ${
+              className={`font-mono font-bold tabular-nums tracking-tight select-none leading-none ${
                 isDrawing
-                  ? 'text-7xl sm:text-8xl text-sky-300 scale-105 drop-shadow-md'
+                  ? 'text-7xl sm:text-8xl text-[#00A9FF] scale-105 drop-shadow-md'
                   : latestWinner
-                  ? 'text-7xl sm:text-8xl text-sky-400 drop-shadow-lg'
-                  : 'text-7xl sm:text-8xl text-slate-600'
+                  ? 'text-7xl sm:text-8xl text-[#F8FAFC] drop-shadow-lg'
+                  : 'text-7xl sm:text-8xl text-[#94A3B8]/50'
               }`}
             >
               {currentDisplayNumber}
@@ -153,20 +153,20 @@ export const ObsOverlayModal: React.FC<ObsOverlayModalProps> = ({
 
           {/* Winner Details */}
           {latestWinner && !isDrawing ? (
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-3 rounded-xl shadow-lg space-y-0.5 animate-in zoom-in-95 border border-sky-300/40">
-              <div className="text-[10px] font-extrabold uppercase tracking-widest text-sky-200 flex items-center justify-center gap-1">
-                <Trophy className="w-3.5 h-3.5 fill-sky-200 text-white" />
+            <div className="bg-[#0866F5] text-[#F8FAFC] p-3 rounded-xl shadow-lg space-y-0.5 animate-in zoom-in-95 border border-[#35B9F5]/40">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-[#F5B942] flex items-center justify-center gap-1">
+                <Trophy className="w-3.5 h-3.5 fill-[#F5B942] text-[#F5B942]" />
                 <span>Ganhador(a)</span>
               </div>
-              <div className="text-xl sm:text-2xl font-display font-black truncate">
+              <div className="text-xl sm:text-2xl font-display font-bold truncate">
                 {latestWinner.name}
               </div>
-              <div className="text-[11px] font-bold text-sky-100">
+              <div className="text-[11px] font-mono font-bold text-[#F8FAFC] tabular-nums">
                 Bilhete #{latestWinner.number}
               </div>
             </div>
           ) : (
-            <div className="text-xs text-slate-400">
+            <div className="text-xs text-[#94A3B8]">
               {isDrawing ? 'Sorteando ao vivo...' : 'Pressione Espaço ou clique abaixo'}
             </div>
           )}
@@ -178,8 +178,8 @@ export const ObsOverlayModal: React.FC<ObsOverlayModalProps> = ({
             onClick={onDraw}
             className={`w-full py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition active:scale-95 ${
               !isDrawing && computed.eligibleTickets.length > 0
-                ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/30'
-                : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                ? 'bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] shadow-md'
+                : 'bg-[#182943] text-[#94A3B8] cursor-not-allowed'
             }`}
           >
             {isDrawing ? (
@@ -189,7 +189,7 @@ export const ObsOverlayModal: React.FC<ObsOverlayModalProps> = ({
               </>
             ) : (
               <>
-                <Play className="w-4 h-4 fill-white" />
+                <Play className="w-4 h-4 fill-[#F8FAFC]" />
                 <span>SORTEAR AO VIVO</span>
               </>
             )}
@@ -197,7 +197,7 @@ export const ObsOverlayModal: React.FC<ObsOverlayModalProps> = ({
         </div>
       </div>
 
-      <div className="text-center text-[10px] text-slate-500">
+      <div className="text-center text-[10px] text-[#94A3B8]">
         Dica para o OBS: crie uma fonte de navegador com o tamanho 800x600 e ative a transparência.
       </div>
     </div>

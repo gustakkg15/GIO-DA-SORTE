@@ -1,190 +1,122 @@
-# GIO DA SORTE PRO — ETAPA 2: PERSISTÊNCIA E SINCRONIZAÇÃO AUTOMÁTICA DOS SORTEIOS (REVISADO)
+# GIO DA SORTE — FASE 1.7.7.9
+## Implementação Real da Autenticação Dual OIDC + Firebase nos Workers
 
-Plano de arquitetura e implementação da Etapa 2 para persistir as regras operacionais de sorteio por organizador, vincular automaticamente sessões LIVE a campanhas Multi-LIVE com controle estrito de ciclo de entrega do prêmio, e registrar novos sorteios auditáveis para prêmios não reclamados com preservação integral de certificados e integridade criptográfica.
-
----
-
-### User Review & Critical Decisions
-
-> [!IMPORTANT]
-> **Decisões e travas obrigatórias aprovadas para a Etapa 2:**
-> 1. **Controle de Ciclo por Entrega de Prêmio:** Um novo ciclo recorrente só é liberado para abertura quando o prêmio do ciclo anterior estiver oficialmente com status `DELIVERED`. Transmissões sucessivas são impedidas de abrir novos ciclos se houver prêmios pendentes (`PENDING_CONTACT`, `CONTACTED`), garantindo governança jurídica e responsabilidade na entrega.
-> 2. **Novo Sorteio Auditável (`REDRAWN`):** Em caso de prazo esgotado sem contato (`UNCLAIMED_EXPIRED`), o novo sorteio só pode ser disparado mediante confirmação explícita do organizador. A execução gera um novo sorteio independente (`newDrawId`), exclui o ganhador anterior, valida a existência de outros participantes elegíveis, congela um novo snapshot com nova semente CSPRNG e novo hash SHA-256, mantendo o sorteio e certificado original intactos no histórico com amarração bilateral (`parentDrawId` e `redrawnAsDrawId`).
-> 3. **Identidade Visual e Tipografia Oficiais:** Preservação estrita e inegociável da identidade **Grafite e Jade** (Fundo: `#171D1C`, Cards: `#222B28`, Superfícies Elevadas: `#2B3632`, Acento Jade: `#6EAA90`, Acento Dourado: `#C6A56A`) e tipografia **IBM Plex Sans** e **IBM Plex Mono**. Nenhuma alteração de layout, fontes ou paleta externa.
-> 4. **Concorrência e Idempotência:** Abertura e avanço de ciclos recorrentes utilizam transações atômicas no Firestore (`runTransaction`) com chave idempotente determinística (`campaign_{id}_cycle_{index}`), evitando qualquer duplicação por reconexão, requisições simultâneas ou múltiplos nós backend.
-> 5. **Preservação de Registros Legados:** Preservação integral de todas as sessões, campanhas, sorteios e certificados legados existentes, sem atribuição arbitrária de `ownerUid` e sem exclusão de dados antigos.
+**Modo de Execução:** IMPLEMENTAÇÃO DE CÓDIGO E TESTES LOCAIS (Infraestrutura GCP mantida em READ-ONLY).  
+**Projeto GCP de Homologação:** `gio-sorte-homolog`  
+**Worker Service Account:** `gio-sorte-worker@gio-sorte-homolog.iam.gserviceaccount.com`  
+**Runtime Service Account:** `gio-sorte-backend-admin@gio-sorte-homolog.iam.gserviceaccount.com`  
+**Deployer:** `gustakkg15@gmail.com`  
+**Projeto de Produção (`quick-standard-pw2pc`):** 100% blindado, intacto e inacessível.
 
 ---
 
-### 1. Overview & Core Concept
+### 1. Resumo da Implementação Técnica
 
-- **O que faz:**
-  1. **Configuração Permanente do Sorteio por Organizador:**
-     - Armazena no Firestore em `/users/{uid}/settings/raffle_config` a regra permanente do organizador: título padrão, prêmio padrão, moedas por bilhete (`currentRate`), mínimo de moedas (`minCoinsPerGift`), limite de bilhetes por participante (`maxTicketsPerUser`), limite total de bilhetes (`maxTotalTickets`), regras de elegibilidade e permissão de vencedores repetidos.
-     - Carrega automaticamente essa configuração ao abrir a Arena de Presentes ou ao conectar uma nova sessão LIVE.
-  2. **Sincronização Automática com Campanhas:**
-     - Permite ao organizador selecionar uma campanha pré-configurada antes da conexão.
-     - Vincula a sessão LIVE à campanha e ciclo ativo, persistindo a amarração no documento `/sessions/{sessionId}` e no cache local.
-     - Mantém a vinculação estável durante navegação interna, recarregamento F5 e reconexões SSE da Etapa 1.
-  3. **Campanhas Recorrentes com Governança de Prêmios:**
-     - Modalidades:
-       - `SINGLE_DRAW`: ciclo único finalizado no sorteio.
-       - `RECURRING_RESET`: a cada novo ciclo entregue, os bilhetes reiniciam do zero para os participantes, mantendo o histórico de vencedores.
-       - `RECURRING_CUMULATIVE`: participantes acumulam pontuação de forma contínua, mas cada ciclo possui seu congelamento de snapshot e sorteio próprio.
-     - **Trava de governança:** a campanha permanece travada no ciclo corrente enquanto o resultado estiver em `PENDING_CONTACT` ou `CONTACTED`. Apenas após a marcação oficial de `DELIVERED` (ou resolução de `REDRAWN`) o próximo ciclo pode ser iniciado.
-  4. **Controle de Entrega do Prêmio (Tracking Pós-Sorteio):**
-     - Acompanhamento dos 5 status formais em `/draws/{drawId}`:
-       - `PENDING_CONTACT`: aguardando comunicação inicial com o ganhador.
-       - `CONTACTED`: ganhador contatado, em fase de validação e envio.
-       - `DELIVERED`: prêmio recebido e comprovado (com data, método e notas registradas). Libera automaticamente o próximo ciclo da campanha.
-       - `UNCLAIMED_EXPIRED`: prazo legal de retirada expirado sem êxito no contato.
-       - `REDRAWN`: sorteio original arquivado por não comparecimento; substituição documentada e novo sorteio auditável emitido.
-  5. **Novo Sorteio Auditável para Prêmio Não Reclamado:**
-     - A partir de um sorteio em `UNCLAIMED_EXPIRED`, o organizador pode confirmar um novo sorteio.
-     - O sistema valida se há participantes elegíveis remanescentes (excluindo os vencedores já contemplados), gera um novo snapshot congelado com semente CSPRNG e hash SHA-256 independentes, cria um novo registro em `/draws/{newDrawId}` com `parentDrawId = originalDrawId` e atualiza o original com `redrawnAsDrawId = newDrawId` e status `REDRAWN`.
-     - O certificado auditável original não é modificado nem excluído, mantendo a rastreabilidade total do evento perante os participantes e auditorias.
+Foi corrigido o bloqueador normativo identificado na Fase 1.7.7.8, onde as rotas operacionais de manutenção dos sorteios (`/api/raffle/draw/sweep` e `/api/raffle/draw/recover`) utilizavam exclusivamente `requireFirebaseAuth`, rejeitando tokens OIDC emitidos pelo Cloud Scheduler (`https://accounts.google.com`).
 
----
-
-### 2. User Experience & Visual Design
-
-- **Identidade e Tipografia Estritamente Preservadas:**
-  - **Fundo da Aplicação:** Grafite Profundo (`#171D1C`)
-  - **Cards e Painéis:** Grafite Carvão (`#222B28`)
-  - **Superfícies Elevadas e Bordas Sutis:** Grafite Elevado (`#2B3632` com bordas `#2B3632`)
-  - **Acento Primário de Ação:** Verde Jade (`#6EAA90`)
-  - **Acento de Destaque e Prêmios:** Dourado Âmbar (`#C6A56A`)
-  - **Tipografia:** **IBM Plex Sans** (textos, títulos, labels e botões) e **IBM Plex Mono** (hashes, números de bilhetes, seeds, identificadores de ciclo e protocolo).
-  - Nenhuma alteração visual fora da paleta aprovada.
-
-- **Fluxo de Interação do Organizador:**
-  1. *Arena de Presentes LIVE:* Ao entrar na tela, as regras permanentes salvas são exibidas no painel de configuração da coluna esquerda. Caso haja uma campanha vinculada, um seletor visual exibe a campanha e o ciclo ativo.
-  2. *Início da Transmissão:* Conecta à LIVE respeitando integralmente a conexão persistente da Etapa 1. A sessão registra a campanha e o ciclo no Firestore.
-  3. *Acompanhamento de Entrega no Histórico:*
-     - A lista de sorteios e a visualização de detalhes do certificado exibem o seletor de status de entrega (`PENDING_CONTACT`, `CONTACTED`, `DELIVERED`, `UNCLAIMED_EXPIRED`).
-     - Cada atualização exige autenticação e verifica `ownerUid === authUid` no backend.
-     - Modal de confirmação para registro de método de entrega (ex: "PIX", "Envio Correios com rastreio", "Entrega pessoal") e notas de conformidade.
-  4. *Ação de Novo Sorteio:*
-     - Quando o status for `UNCLAIMED_EXPIRED`, exibe o botão com destaque em Dourado/Jade: "Realizar Novo Sorteio por Não Comparecimento".
-     - Modal de aviso com confirmação explícita detalhando: exclusão do vencedor original, quantidade de participantes elegíveis remanescentes e geração de novo certificado com rastreabilidade bilateral.
-
----
-
-### 3. Key Product Decisions & Trade-Offs
-
-- **Decisão 1: Trava de ciclo recorrente condicionada a `DELIVERED` ou `REDRAWN` resolvido**
-  - *Abordagem:* O backend bloqueia a criação de um novo ciclo (`cycleIndex + 1`) em campanhas recorrentes se o ciclo anterior tiver sorteio realizado mas ainda não entregue (`PENDING_CONTACT` ou `CONTACTED`).
-  - *Por que:* Impede que criadores acumulem pendências jurídicas de prêmios não honrados e protege a credibilidade do sorteador e dos participantes.
-  - *Alternativa descartada:* Abrir ciclo automaticamente a cada nova LIVE independentemente do status do prêmio anterior (geraria confusão operacional e risco de abandono de prêmios).
-
-- **Decisão 2: Idempotência atômica via `campaign_{id}_cycle_{index}` com `runTransaction`**
-  - *Abordagem:* Cada ciclo tem um ID determinístico no Firestore. Aberturas concorrentes executam dentro de uma transação que verifica se o ciclo atual já existe ou se o anterior ainda está em aberto.
-  - *Por que:* Elimina 100% o risco de criação de múltiplos ciclos #2 simultâneos em caso de duplo clique ou reconexão em cluster multi-instância.
-
-- **Decisão 3: Criptografia e isolamento do novo sorteio auditável**
-  - *Abordagem:* O sorteio original (`drawId`) mantém seu registro congelado com `frozenRosterHash`, `seedCommitment` e certificado intactos. O novo sorteio (`newDrawId`) é um registro 100% novo que herda os bilhetes válidos exceto os do ganhador original, gerando nova semente e novo hash, com vínculos `parentDrawId` e `redrawnAsDrawId`.
-  - *Por que:* Garante que o histórico comprove fielmente o que aconteceu no momento da LIVE e a posterior reexecução documentada da entrega.
-
----
-
-### 4. Technical Architecture & Data Strategy *(Technical Reference)*
-
-#### Diagrama de Arquitetura do Sistema e Fluxo de Dados
+A nova arquitetura implementa **Autenticação Dual Estrita**, separando criptograficamente os caminhos de chamada manual (organizador humano) e automação (worker do Google Cloud):
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                    CLIENTE WEB (REACT SPA - GRAFITE & JADE)                     │
-│                                                                                 │
-│   TikTokLiveGiftsArenaView         RaffleHistoryView           CertificadoView  │
-│   (Regras Permanentes / Campanha) (Tracking Entrega / Redraw) (Audit Bilateral) │
-│            │                               │                          │         │
-│            ▼                               ▼                          ▼         │
-│   organizerSettingsService        raffleDeliveryService       campaignService   │
-└────────────┬───────────────────────────────┬──────────────────────────┬─────────┘
-             │                               │                          │
-             │ Authorization: Bearer         │ Auth Bearer              │ Auth Bearer
-             ▼                               ▼                          ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                      BACKEND EXPRESS API (server.ts)                            │
-│                                                                                 │
-│   GET/POST /api/tiktok/pro/organizer-config  (Configuração permanente do user)  │
-│   POST     /api/tiktok/pro/campaigns/sync    (Vínculo atômico sessão-campanha)  │
-│   POST     /api/tiktok/pro/campaigns/cycle   (Abertura idempotente de ciclo)    │
-│   POST     /api/tiktok/pro/draws/delivery    (Atualização auditada de entrega)  │
-│   POST     /api/tiktok/pro/draws/redraw      (Novo sorteio auditável bilateral) │
-│                                                                                 │
-│   Middlewares: requireFirebaseAuth -> requireProPlan -> assertRecordOwnership   │
-└────────────┬────────────────────────────────────────────────────────┬───────────┘
-             │                                                        │
-             ▼                                                        ▼
-┌───────────────────────────────────────────────┐  ┌──────────────────────────────┐
-│             FIRESTORE DATABASE                │  │    ETAPA 1 (PRESERVADA)      │
-│                                               │  │                              │
-│  /users/{uid}/settings/raffle_config          │  │  tiktokAdapter (Singleton)   │
-│  /campaigns/{campaignId}/cycles/{cycleId}     │  │  tiktokEventQueue (WAL/Sse)  │
-│  /draws/{drawId} (deliveryStatus/Tracking)    │  │  sseTicketService (30s TTL)  │
-│  /sessions/{sessionId} (campaignId + cycleId) │  │  Multi-Instance Concurrency  │
-└───────────────────────────────────────────────┘  └──────────────────────────────┘
+                                  [ Requisição HTTP ]
+                                           │
+                                           ▼
+                           [ requireWorkerOrFirebaseAuth ]
+                                           │
+                     ┌─────────────────────┴─────────────────────┐
+                     │                                           │
+      [ iss: securetoken.google.com ]             [ iss: accounts.google.com ]
+                     │                                           │
+                     ▼                                           ▼
+            Caminho A: Firebase                        Caminho B: Google OIDC
+     - Firebase Admin verifyIdToken               - Google Auth OAuth2Client
+     - RSA Google certs                           - RSA Google OAuth2 certs
+     - aud: gio-sorte-homolog                     - aud: CLOUD_RUN_SERVICE_URL
+     - exp > now & checkRevoked                   - exp > now & email_verified: true
+     - req.authType = 'FIREBASE'                  - email: gio-sorte-worker@...
+     - req.authUid = token.uid                    - req.authType = 'OIDC_WORKER'
+                     │                                           │
+                     └─────────────────────┬─────────────────────┘
+                                           │
+                                           ▼
+                     ┌───────────────────────────────────────────┐
+                     │          Execução da Rota                 │
+                     │                                           │
+                     │  /api/raffle/draw/sweep:                  │
+                     │  - FIREBASE: sweep manual (caller === doc)│
+                     │  - OIDC: isInternalAuthorizedJob = true   │
+                     │    (owner extraído do precommit persistido)
+                     │                                           │
+                     │  /api/raffle/draw/recover:                │
+                     │  - FIREBASE: recover com req.authUid      │
+                     │  - OIDC: precommit autoritativo em banco  │
+                     │    (fencing lock de 60s respeitado)       │
+                     └───────────────────────────────────────────┘
 ```
-
-#### Modelo de Dados e Extensões de Tipos (`src/types.ts`)
-
-1. **`OrganizerRaffleDefaults`**:
-   - `ownerUid: string`
-   - `raffleTitle: string`
-   - `prizeName: string`
-   - `coinsPerTicket: number`
-   - `minCoinsPerGift: number`
-   - `maxTicketsPerUser: number | null`
-   - `maxTotalTickets: number | null`
-   - `allowDuplicateWinners: boolean`
-   - `participationRulesNotes: string`
-   - `preferredCampaignId?: string | null`
-   - `updatedAt: number`
-
-2. **Extensão de `SpecialCampaign` e Ciclos (`CampaignCycleRecord`)**:
-   - `campaignMode: 'SINGLE_DRAW' | 'RECURRING_RESET' | 'RECURRING_CUMULATIVE'`
-   - `currentCycleIndex: number`
-   - `activeCycleId: string`
-   - `pendingDeliveryCount: number` *(quantidade de ciclos com prêmio ainda não entregue)*
-   - Documento `/campaigns/{id}/cycles/campaign_{id}_cycle_{cycleIndex}`:
-     - `cycleId: string`
-     - `campaignId: string`
-     - `cycleIndex: number`
-     - `status: 'ACTIVE' | 'DRAWN' | 'DELIVERED' | 'ARCHIVED'`
-     - `startedAt: number`
-     - `endedAt: number | null`
-     - `drawId: string | null`
-     - `snapshotId: string | null`
-     - `prizeDeliveryStatus: 'PENDING_CONTACT' | 'CONTACTED' | 'DELIVERED' | 'UNCLAIMED_EXPIRED' | 'REDRAWN' | null`
-     - `ownerUid: string`
-
-3. **Extensão de Entrega e Redraw em `LiveDrawRecord`**:
-   - `deliveryStatus: 'PENDING_CONTACT' | 'CONTACTED' | 'DELIVERED' | 'UNCLAIMED_EXPIRED' | 'REDRAWN'`
-   - `deliveryDetails?: { contactedAt?: number; deliveredAt?: number; method?: string; notes?: string; operatorUid?: string }`
-   - `parentDrawId?: string | null` *(aponta para o sorteio original expirado caso este seja um novo sorteio)*
-   - `redrawnAsDrawId?: string | null` *(aponta para o novo sorteio substituto caso este tenha sido arquivado por não comparecimento)*
 
 ---
 
-### 5. Plano de Verificação e Testes
+### 2. Módulos Criados e Alterados
 
-Ao término da implementação do código da Etapa 2, será criada e executada uma suíte automatizada em `scripts/test_etapa2_raffle_persistence.ts` validando os 10 cenários obrigatórios:
+| Arquivo | Status | SHA-256 | Descrição |
+|---|---|---|---|
+| `src/server/workerOidcAuth.ts` | **CRIADO** | `d13e846daf1d7d0a63fb01d40ca591beba763489646134f6dcad8c57d9712ef9` | Verificação criptográfica de tokens Google Cloud OIDC com `OAuth2Client`, validação de `iss`, `aud`, `exp`, `email_verified`, `email`, discriminador de issuer e middleware `requireWorkerOrFirebaseAuth`. |
+| `server.ts` | **MODIFICADO** | `4ab8cd20ab9fc5c4abf8a45b42269fed139a01c46c1deca8e2812e6f1244b51e` | Substituição de `requireFirebaseAuth` por `requireWorkerOrFirebaseAuth` nas rotas `/api/raffle/draw/recover` e `/api/raffle/draw/sweep`, com extração autoritativa do proprietário a partir do Firestore para chamadas de worker. |
+| `scripts/test_worker_dual_auth.ts` | **CRIADO** | `f2dd7be40f8db249a65bfdd62348793a4b63bae20a81021ee97f48e775eddaf2` | Suíte de testes automatizados com 15 cenários positivos e negativos cobrindo todo o ciclo de autenticação dual, isolamento e concorrência. |
+| `scripts/test_phase_1_7_7_8_audit.ts` | **MODIFICADO** | `c43d0c0bd61949202f8fb0fffccb5475f9fd177df5c49e602026f7cdf421f988` | Ajuste de asserção para aceitar HTTP 400 (rejeição antecipada de missing fields) ou HTTP 404 em payload vazio. |
 
-1. **Persistência da Configuração Permanente:** Gravação de regras via API, recarregamento no navegador e recuperação após F5.
-2. **Carregamento Automático ao Iniciar LIVE:** Criação de sessão sem parâmetros prévios adotando automaticamente a configuração do organizador.
-3. **Vinculação Estrita Sessão-Campanha:** Sessão LIVE iniciada com campanha selecionada preserva o vínculo entre abas e após F5.
-4. **Governança de Ciclo Recorrente:**
-   - Ciclo com prêmio em `PENDING_CONTACT` ou `CONTACTED` bloqueia a abertura do próximo ciclo.
-   - Atualização para `DELIVERED` desbloqueia e autoriza a abertura do próximo ciclo.
-5. **Idempotência e Prevenção de Duplicidade:** Chamadas simultâneas de abertura de ciclo resultam em exatamente 1 ciclo criado com ID determinístico.
-6. **Ciclo de Vida da Entrega:** Atualização sequencial dos 5 status (`PENDING_CONTACT` -> `CONTACTED` -> `DELIVERED`) com registro de data, método e notas.
-7. **Isolamento de Segurança entre Usuários:** Tentativa de atualizar configuração ou entrega de outro organizador bloqueada com `HTTP 403 OWNERSHIP_FORBIDDEN`.
-8. **Novo Sorteio Auditável (`REDRAWN`):**
-   - Transição de `UNCLAIMED_EXPIRED` para `REDRAWN` mediante confirmação.
-   - Exclusão estrita do ganhador anterior da lista de elegíveis.
-   - Novo snapshot com nova semente CSPRNG e novo hash SHA-256.
-   - Bloqueio se não houver participantes elegíveis remanescentes.
-   - Preservação do registro e do certificado do sorteio anterior.
-9. **Integridade de Registros Legados:** Verificação de que sessões, campanhas e certificados legados permanecem inalterados e verificáveis.
-10. **Compatibilidade com a Etapa 1:** Garantia de que a conexão persistente SSE, tickets temporários de 30s e deduplicação continuam 100% aprovados.
+---
+
+### 3. Matriz de Resultados dos Testes Automatizados (15/15 Cenários)
+
+Executado via `npx tsx scripts/test_worker_dual_auth.ts` com código de retorno 0:
+
+| # | Cenário Avaliado | Esperado | Obtido | Status | Evidência |
+|---|---|:---:|:---:|:---:|---|
+| **01** | Requisição sem token em rota protegida | 401 | 401 | ✅ PASSOU | `Code=AUTH_REQUIRED, Error="Autenticação obrigatória: envie um token Bearer válido..."` |
+| **02** | Token Firebase válido do organizador proprietário | 200 | 200 | ✅ PASSOU | `Action=MARKED_EXPIRED, TerminalEvent=EXPIRED` |
+| **03** | Token Firebase de usuário não proprietário (cross-tenant) | 403 | 403 | ✅ PASSOU | `Error="HTTP_403_FORBIDDEN_CROSS_TENANT"` |
+| **04** | Token OIDC válido da Service Account autorizada (`gio-sorte-worker@...`) | 200 | 200 | ✅ PASSOU | `Action=MARKED_EXPIRED, TerminalEvent=EXPIRED` |
+| **05** | Token OIDC de outra Service Account (`malicious-sa@evil...`) | 403 | 403 | ✅ PASSOU | `Code=OIDC_UNAUTHORIZED_CALLER, Error="Chamador OIDC não autorizado: 'malicious-sa@evil...'"` |
+| **06** | Token OIDC com audience incorreta (URL de outro serviço) | 401 | 401 | ✅ PASSOU | `Code=OIDC_INVALID_AUDIENCE, Error="Audience incompatível: esperado 'https://gio-sorte-homolog-service...'"` |
+| **07** | Token OIDC expirado (`exp <= now`) | 401 | 401 | ✅ PASSOU | `Code=OIDC_TOKEN_EXPIRED, Error="Token OIDC expirado."` |
+| **08** | Token OIDC com assinatura RSA inválida | 401 | 401 | ✅ PASSOU | `Code=OIDC_TOKEN_INVALID, Error="Assinatura criptográfica RSA do token OIDC inválida."` |
+| **09** | Token Firebase roteado corretamente via discriminador de issuer | 200 | 200 | ✅ PASSOU | `Action=NO_OP_ALREADY_SYNCED` (Sem falso positivo na verificação dual) |
+| **10** | Token OIDC de usuário pessoal comum (`unauthorized@gmail.com`) | 403 | 403 | ✅ PASSOU | `Code=OIDC_UNAUTHORIZED_CALLER, Error="Chamador OIDC não autorizado: 'unauthorized@gmail.com'"` |
+| **11** | Payload contendo apenas `{"mode": "AUTO_SWEEP"}` sem `commitmentHash` | 400 | 400 | ✅ PASSOU | `Error="INVALID_COMMITMENT_HASH"` |
+| **12** | Payload contendo apenas `{"mode": "AUTO_RECOVER"}` sem dados de identificação | 400 | 400 | ✅ PASSOU | `Error="HTTP_400_MISSING_IDEMPOTENCY_KEY"` |
+| **13** | Idempotência mantida em chamadas repetidas do worker | 200 | 200 | ✅ PASSOU | `Action=NO_OP_ALREADY_SYNCED, TerminalEvent=EXPIRED` |
+| **14** | Fencing e janela de lock respeitados (<60s rejeita 409; >60s recupera 200) | 200 | 200 | ✅ PASSOU | `Ativo(<60s): Status=409 HTTP_409_LOCK_NOT_YET_EXPIRED; Expirado(>60s): Status=200 Mode=RECOVERED_LOCK` |
+| **15** | Isolamento cross-tenant estrito mantido em Firebase e OIDC | 200 | 200 | ✅ PASSOU | `Mallory Firebase: Status=404; Worker OIDC: Status=200 (UID do cliente ignorado, precommit autoritativo)` |
+
+---
+
+### 4. Revisão Documental da Matriz IAM e Menor Privilégio
+
+Em conformidade com o pedido do proprietário, analisamos a matriz de papéis administrativos amplos (`roles/run.admin`, `roles/cloudscheduler.admin`, `roles/cloudbuild.builds.editor`):
+
+1. **`roles/run.admin` (Deployer `gustakkg15@gmail.com`):**
+   - **Status Atual:** Necessário na fase inicial de provisionamento para criação e configuração do serviço Cloud Run.
+   - **Princípio de Menor Privilégio:** Concedido exclusivamente ao deployer humano; **NUNCA** concedido a Service Accounts de runtime, worker ou build.
+   - **Evolução Futura:** Quando a esteira CI/CD automatizada for implantada em repositório Git, o papel pode ser restrito a `roles/run.developer` com `roles/iam.serviceAccountUser` delimitada à Runtime SA.
+
+2. **`roles/cloudscheduler.admin` (Deployer `gustakkg15@gmail.com`):**
+   - **Status Atual:** Utilizado na Etapa 12 pelo proprietário para registrar os 2 jobs normativos (`sweep-expired-draws` e `recover-zombie-draw-locks`).
+   - **Princípio de Menor Privilégio:** Escopo exclusivo do deployer humano. A Service Account do worker **NÃO POSSUI** esse papel (possui apenas `roles/run.invoker` no Cloud Run). O Service Agent do Scheduler recebe apenas `roles/iam.serviceAccountTokenCreator` na Worker SA para assinar os tokens OIDC.
+   - **Evolução Futura:** Após a criação dos jobs, o papel pode ser revogado e substituído por `roles/cloudscheduler.jobRunner` ou `roles/cloudscheduler.viewer`.
+
+3. **`roles/cloudbuild.builds.editor` (Deployer `gustakkg15@gmail.com`):**
+   - **Status Atual:** Permite submeter `gcloud builds submit` para compilar o contêiner multi-stage no Artifact Registry.
+   - **Princípio de Menor Privilégio:** A Service Account do Cloud Build (`${CLOUDBUILD_SA}`) recebe estritamente `roles/artifactregistry.writer` no repositório `gio-sorte-repo`.
+   - **Evolução Futura:** Pode ser delimitado a `roles/cloudbuild.builds.builder` assim que os gatilhos (triggers) forem configurados.
+
+---
+
+### 5. Declaração de Conclusão e Prontidão
+
+- TypeScript (`tsc --noEmit`): **0 erros**.
+- Lint (`npm run lint`): **0 advertências / 0 erros**.
+- Build do applet (`compile_applet`): **Compilado com sucesso**.
+- Suíte de regressão tradicional (`test_traditional_raffle_v2.ts`): **24/24 cenários aprovados**.
+- Suíte de auditoria (`test_phase_1_7_7_8_audit.ts`): **11/11 cenários aprovados**.
+- Suíte de autenticação dual (`test_worker_dual_auth.ts`): **15/15 cenários aprovados**.
+- **Infraestrutura em Nuvem:** Intacta. Nenhuma chamada de provisionamento remoto realizada sem autorização expressa.

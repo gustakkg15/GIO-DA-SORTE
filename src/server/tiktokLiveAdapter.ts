@@ -1,14 +1,14 @@
 import { TikTokLiveConnection, ControlEvent, WebcastEvent } from 'tiktok-live-connector';
 import { collection, doc, getDoc, getDocs, limit, orderBy, query } from 'firebase/firestore';
-import { db } from '../firebase.js';
-import { tiktokDiagnosticService } from './tiktokDiagnosticService.js';
-import {
+import { db } from '../firebase.ts';
+import { tiktokDiagnosticService } from './tiktokDiagnosticService.ts';
+import type {
   TikTokConnectionState,
   TikTokConnectionStatus,
   TikTokLiveGiftEvent,
   TikTokLiveStreak,
   TikTokMemberPresenceEvent,
-} from '../types.js';
+} from '../types.ts';
 
 export interface StreakRecord {
   streakKey: string;
@@ -296,6 +296,7 @@ export class TikTokLiveAdapter {
   private connection: TikTokLiveConnection | null = null;
   private currentUsername = '';
   private currentSessionId = '';
+  private currentOwnerUid = '';
   private activeRuleId = 'rule_default_100';
   private activeRate = 100;
 
@@ -364,6 +365,14 @@ export class TikTokLiveAdapter {
 
   public getRawCurrentSessionId(): string {
     return this.currentSessionId || '';
+  }
+
+  public getCurrentOwnerUid(): string {
+    return this.currentOwnerUid || '';
+  }
+
+  public setCurrentOwnerUid(ownerUid: string): void {
+    this.currentOwnerUid = (ownerUid || '').trim();
   }
 
   public getActiveRuleId(): string {
@@ -507,6 +516,7 @@ export class TikTokLiveAdapter {
     this.state = 'DISCONNECTED';
     this.currentSessionId = '';
     this.currentUsername = '';
+    this.currentOwnerUid = '';
     this.roomId = undefined;
     this.roomTitle = undefined;
     this.connectedAt = null;
@@ -529,6 +539,7 @@ export class TikTokLiveAdapter {
     restoredStreaks: number;
     restoredEvents: number;
     sessionFound?: boolean;
+    ownerUid?: string;
     username?: string;
     activeRuleId?: string;
     currentRate?: number;
@@ -544,6 +555,9 @@ export class TikTokLiveAdapter {
         sessionFound = true;
         const sData = sessionSnap.data();
         this.currentSessionId = sessionId;
+        if (typeof sData.ownerUid === 'string' && sData.ownerUid.trim()) {
+          this.currentOwnerUid = sData.ownerUid.trim();
+        }
         if (typeof sData.username === 'string' && sData.username.trim() && !this.currentUsername) {
           this.currentUsername = sData.username.trim().replace(/^@/, '');
         }
@@ -612,6 +626,7 @@ export class TikTokLiveAdapter {
       restoredStreaks,
       restoredEvents,
       sessionFound,
+      ownerUid: this.currentOwnerUid || undefined,
       username: this.currentUsername || undefined,
       activeRuleId: this.activeRuleId || undefined,
       currentRate: this.activeRate,
@@ -1367,6 +1382,7 @@ export class TikTokLiveAdapter {
       this.totalCoinsCollected += coinsGranted;
 
       // 7. Build normalized event
+      const resolvedEventOwnerUid = String(giftData?.ownerUid || this.currentOwnerUid || '').trim();
       const normalizedEvent: TikTokLiveGiftEvent = {
         eventId,
         eventKey,
@@ -1375,6 +1391,7 @@ export class TikTokLiveAdapter {
         ...(originalTimestamp ? { originalTimestamp } : {}),
         streakKey,
         sessionId,
+        ...(resolvedEventOwnerUid ? { ownerUid: resolvedEventOwnerUid } : {}),
         tiktokUserId,
         username,
         displayHandle,
@@ -1491,6 +1508,7 @@ export class TikTokLiveAdapter {
     if (stopReconnecting) {
       this.shouldBeConnected = false;
       this.currentSessionId = '';
+      this.currentOwnerUid = '';
     }
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);

@@ -1,12 +1,12 @@
 import { collection, doc, setDoc, Timestamp, deleteDoc, getDocs, query, where, limit } from 'firebase/firestore';
-import { db } from '../firebase.js';
-import {
+import { db } from '../firebase.ts';
+import type {
   DiagnosticEventOrigin,
   DiagnosticTtlStatus,
   TikTokDiagnostic6Stages,
   TikTokDiagnosticAuditEntry,
   TikTokDiagnosticStats,
-} from '../types.js';
+} from '../types.ts';
 
 const SENSITIVE_KEYS = new Set([
   'access_token',

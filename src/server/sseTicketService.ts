@@ -1,8 +1,8 @@
 import crypto from 'crypto';
-import { getFirestore as getAdminFirestore, Firestore } from 'firebase-admin/firestore';
-import { getOrInitFirebaseAdminApp } from './firebaseAdminAuth.js';
+import { getFirestore as getAdminFirestore, type Firestore } from 'firebase-admin/firestore';
+import { getOrInitFirebaseAdminApp } from './firebaseAdminAuth.ts';
 
-import firebaseConfig from '../../firebase-applet-config.json';
+import firebaseConfig from '../../firebase-applet-config.json' with { type: 'json' };
 
 export interface SseStreamTicketDoc {
   ticketHash: string;

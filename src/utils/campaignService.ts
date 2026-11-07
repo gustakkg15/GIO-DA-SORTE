@@ -12,7 +12,7 @@ import {
   writeBatch,
   runTransaction,
 } from 'firebase/firestore';
-import { db } from '../firebase.js';
+import { db } from '../firebase.ts';
 import {
   assertProPlanActive,
   assertRecordOwnership,
@@ -20,7 +20,7 @@ import {
   recordAuditLog,
   resolveCurrentOwnerUid,
   selectUniformRandomIndex,
-} from './tiktokLiveService.js';
+} from './tiktokLiveService.ts';
 import type {
   Campaign,
   CampaignLegalStatus,
@@ -35,7 +35,7 @@ import type {
   DrawSnapshotChunk,
   LiveDrawRecord,
   SnapshotTicketEntry,
-} from '../types.js';
+} from '../types.ts';
 
 /**
  * Creates a new special multi-LIVE campaign with individual regulation & legal status (Fase 9).
@@ -69,9 +69,8 @@ export async function createCampaign(
   },
   ownerUid?: string
 ): Promise<Campaign> {
-  assertProPlanActive('Criação de Campanha Acumulada Multi-LIVE');
-
   const resolvedOwnerUid = resolveCurrentOwnerUid(ownerUid || params.ownerUid);
+  assertProPlanActive('Criação de Campanha Acumulada Multi-LIVE', resolvedOwnerUid);
   const campaignId = `camp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const now = Date.now();
   const rate = params.defaultRate && params.defaultRate > 0 ? Math.floor(params.defaultRate) : 100;
@@ -201,9 +200,10 @@ export async function updateCampaignRulesConfig(
   },
   ownerUid?: string
 ): Promise<Campaign> {
-  assertProPlanActive('Configuração de Regras da Campanha Multi-LIVE');
-
   const resolvedOwnerUid = resolveCurrentOwnerUid(ownerUid);
+  if (resolvedOwnerUid) {
+    assertProPlanActive('Configuração de Regras da Campanha Multi-LIVE', resolvedOwnerUid);
+  }
   const campRef = doc(db, 'campaigns', campaignId);
   const campSnap = await getDoc(campRef);
   if (!campSnap.exists()) {
@@ -213,6 +213,7 @@ export async function updateCampaignRulesConfig(
   if (resolvedOwnerUid) {
     assertRecordOwnership(existing.ownerUid, resolvedOwnerUid, `campanha (${campaignId})`);
   }
+  assertProPlanActive('Configuração de Regras da Campanha Multi-LIVE', resolvedOwnerUid || existing.ownerUid);
   if (existing.status === 'COMPLETED' && !config.legalStatus) {
     throw new Error('Não é possível alterar regras de uma campanha já concluída.');
   }
@@ -335,9 +336,10 @@ export async function addSessionToCampaign(
   },
   ownerUid?: string
 ): Promise<{ addedTicketsCount: number; skippedDuplicatesCount: number; totalCampaignTickets: number }> {
-  assertProPlanActive('Acumulação de LIVE em Campanha Multi-LIVE');
-
   const resolvedOwnerUid = resolveCurrentOwnerUid(ownerUid || options?.ownerUid);
+  if (resolvedOwnerUid) {
+    assertProPlanActive('Acumulação de LIVE em Campanha Multi-LIVE', resolvedOwnerUid);
+  }
   const campRef = doc(db, 'campaigns', campaignId);
   const campSnap = await getDoc(campRef);
   if (!campSnap.exists()) {
@@ -348,6 +350,7 @@ export async function addSessionToCampaign(
   if (resolvedOwnerUid) {
     assertRecordOwnership(campaign.ownerUid, resolvedOwnerUid, `campanha (${campaignId})`);
   }
+  assertProPlanActive('Acumulação de LIVE em Campanha Multi-LIVE', resolvedOwnerUid || campaign.ownerUid);
   if (campaign.status !== 'OPEN') {
     throw new Error(`A campanha não está aberta para adição de novas transmissões (Status: ${campaign.status}).`);
   }
@@ -549,8 +552,10 @@ export async function freezeCampaignSnapshot(
   campaignId: string,
   ownerUid?: string
 ): Promise<DrawSnapshot> {
-  assertProPlanActive('Congelamento de Campanha Multi-LIVE');
   const resolvedOwnerUid = resolveCurrentOwnerUid(ownerUid);
+  if (resolvedOwnerUid) {
+    assertProPlanActive('Congelamento de Campanha Multi-LIVE', resolvedOwnerUid);
+  }
   const campRef = doc(db, 'campaigns', campaignId);
   const campSnap = await getDoc(campRef);
   if (!campSnap.exists()) {
@@ -562,6 +567,7 @@ export async function freezeCampaignSnapshot(
     assertRecordOwnership(campaign.ownerUid, resolvedOwnerUid, `campanha (${campaignId})`);
   }
   const effectiveOwnerUid = resolvedOwnerUid || campaign.ownerUid;
+  assertProPlanActive('Congelamento de Campanha Multi-LIVE', effectiveOwnerUid);
   if (campaign.status === 'COMPLETED') {
     throw new Error('Campanha já concluída.');
   }
@@ -691,8 +697,10 @@ export async function executeCampaignDraw(
   prizeName: string;
   excludedPreviousWinnerUids?: string[];
 }> {
-  assertProPlanActive('Sorteio de Campanha Multi-LIVE');
   const resolvedOwnerUid = resolveCurrentOwnerUid(ownerUid);
+  if (resolvedOwnerUid) {
+    assertProPlanActive('Sorteio de Campanha Multi-LIVE', resolvedOwnerUid);
+  }
   const campRef = doc(db, 'campaigns', campaignId);
   const campSnap = await getDoc(campRef);
   if (!campSnap.exists()) {
@@ -714,6 +722,7 @@ export async function executeCampaignDraw(
     assertRecordOwnership(snapshot.ownerUid, resolvedOwnerUid, `snapshot (${snapshotId})`);
   }
   const effectiveOwnerUid = resolvedOwnerUid || snapshot.ownerUid || campaign.ownerUid;
+  assertProPlanActive('Sorteio de Campanha Multi-LIVE', effectiveOwnerUid);
   if (snapshot.totalEligibleTickets <= 0) {
     throw new Error('Nenhum bilhete elegível para sorteio neste snapshot.');
   }
@@ -869,8 +878,10 @@ export async function advanceCampaignCycle(
   campaignId: string,
   ownerUid?: string
 ): Promise<{ campaign: Campaign; newCycle: CampaignCycleRecord }> {
-  assertProPlanActive('Avanço de Ciclo Recorrente da Campanha Multi-LIVE');
   const resolvedOwnerUid = resolveCurrentOwnerUid(ownerUid);
+  if (resolvedOwnerUid) {
+    assertProPlanActive('Avanço de Ciclo Recorrente da Campanha Multi-LIVE', resolvedOwnerUid);
+  }
 
   return await runTransaction(db, async (tx) => {
     const campRef = doc(db, 'campaigns', campaignId);
@@ -883,6 +894,7 @@ export async function advanceCampaignCycle(
     if (resolvedOwnerUid) {
       assertRecordOwnership(campaign.ownerUid, resolvedOwnerUid, `campanha (${campaignId})`);
     }
+    assertProPlanActive('Avanço de Ciclo Recorrente da Campanha Multi-LIVE', resolvedOwnerUid || campaign.ownerUid);
 
     const isRecurring =
       campaign.campaignMode === 'RECURRING_RESET' || campaign.campaignMode === 'RECURRING_CUMULATIVE';
@@ -968,7 +980,6 @@ export async function updateDrawDeliveryStatus(
   },
   operatorUid: string
 ): Promise<LiveDrawRecord> {
-  assertProPlanActive('Atualização de Entrega do Prêmio');
   const cleanDrawId = (drawId || '').trim();
   const cleanOperatorUid = (operatorUid || '').trim();
   if (!cleanDrawId) {
@@ -977,6 +988,7 @@ export async function updateDrawDeliveryStatus(
   if (!cleanOperatorUid) {
     throw new Error('UID do operador é obrigatório para registrar a entrega do prêmio.');
   }
+  assertProPlanActive('Atualização de Entrega do Prêmio', cleanOperatorUid);
 
   const drawRef = doc(db, 'draws', cleanDrawId);
   const drawSnap = await getDoc(drawRef);
@@ -988,6 +1000,7 @@ export async function updateDrawDeliveryStatus(
   if (existingDraw.ownerUid && existingDraw.ownerUid !== cleanOperatorUid) {
     assertRecordOwnership(existingDraw.ownerUid, cleanOperatorUid, `sorteio (${cleanDrawId})`);
   }
+  assertProPlanActive('Atualização de Entrega do Prêmio', existingDraw.ownerUid || cleanOperatorUid);
 
   const previousStatus = existingDraw.deliveryStatus || 'PENDING_CONTACT';
   const now = Date.now();
@@ -1106,9 +1119,9 @@ export async function executeUnclaimedRedraw(
   operatorUid: string,
   reason?: string
 ): Promise<{ newDraw: LiveDrawRecord; originalDraw: LiveDrawRecord }> {
-  assertProPlanActive('Novo Sorteio Auditado por Não Comparecimento');
   const cleanOriginalId = (originalDrawId || '').trim();
   const cleanOperatorUid = (operatorUid || '').trim();
+  assertProPlanActive('Novo Sorteio Auditado por Não Comparecimento', cleanOperatorUid || undefined);
 
   if (!cleanOriginalId) {
     throw new Error('originalDrawId é obrigatório.');
@@ -1124,6 +1137,7 @@ export async function executeUnclaimedRedraw(
   if (origDraw.ownerUid && origDraw.ownerUid !== cleanOperatorUid) {
     assertRecordOwnership(origDraw.ownerUid, cleanOperatorUid, `sorteio (${cleanOriginalId})`);
   }
+  assertProPlanActive('Novo Sorteio Auditado por Não Comparecimento', origDraw.ownerUid || cleanOperatorUid || undefined);
 
   if (origDraw.deliveryStatus !== 'UNCLAIMED_EXPIRED') {
     throw new Error(

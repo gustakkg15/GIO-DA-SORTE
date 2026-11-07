@@ -44,6 +44,7 @@ import {
   fetchAllLiveSessions,
   getProPlanEntitlement,
   setProPlanTier,
+  getAuthBearerHeaders,
 } from './utils/tiktokLiveService';
 import { tiktokConnector, tiktokEventBus } from './utils/tiktokConnector';
 import { AppNavigationTab } from './components/Header';
@@ -244,12 +245,15 @@ export default function App() {
 
   const refreshPlatformStatus = useCallback(async () => {
     try {
-      const planRes = await fetch('/api/tiktok/plan/status');
+      const authHeaders = await getAuthBearerHeaders();
+      const planRes = await fetch('/api/tiktok/plan/status', {
+        headers: authHeaders,
+      });
       if (planRes.ok) {
         const planData = await planRes.json();
         if (planData && planData.tier) {
           setPlanEntitlement(planData);
-          setProPlanTier(planData.tier);
+          setProPlanTier(planData.tier, planData.statusState);
         }
       }
     } catch {
@@ -318,12 +322,13 @@ export default function App() {
     async (tier: SubscriptionPlanTier, statusState?: SubscriptionStatusState) => {
       setIsUpdatingPlan(true);
       try {
+        const authHeaders = await getAuthBearerHeaders({
+          'Content-Type': 'application/json',
+          'x-admin-authorized': 'true',
+        });
         const res = await fetch('/api/tiktok/plan/tier', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-admin-authorized': 'true',
-          },
+          headers: authHeaders,
           body: JSON.stringify({ tier, statusState }),
         });
         const data = await res.json();
@@ -430,7 +435,7 @@ export default function App() {
     setIsViewingExternalRaffle(false);
   }, [localBackupRaffle]);
 
-  // Auth state listener
+  // Auth state listener (R-03: Loads authoritative state from backend API, never clobbering governance fields)
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
@@ -453,18 +458,56 @@ export default function App() {
         }
 
         try {
-          const raffleRef = doc(db, 'users', user.uid, 'raffles', 'default');
-          const snap = await getDoc(raffleRef);
-          if (snap.exists()) {
-            const data = snap.data();
-            if (data && Array.isArray(data.participants) && data.participants.length > 0) {
-              setParticipants(data.participants);
-              if (data.settings) setSettings((s) => ({ ...s, ...data.settings }));
-              if (Array.isArray(data.winners)) setWinners(data.winners);
+          const idToken = await user.getIdToken();
+          const authHeaders = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${idToken}`,
+          };
+          const stateRes = await fetch('/api/raffle/state?raffleId=default', {
+            headers: authHeaders,
+          });
+          if (stateRes.ok) {
+            const stateData = await stateRes.json();
+            if (stateData?.ok && stateData.raffle) {
+              if (Array.isArray(stateData.raffle.participants)) {
+                setParticipants(stateData.raffle.participants);
+              }
+              if (stateData.raffle.settings) {
+                setSettings((s) => ({ ...s, ...stateData.raffle.settings }));
+              }
+              if (Array.isArray(stateData.raffle.winners)) {
+                setWinners(stateData.raffle.winners);
+              }
+              setSyncStatus('synced');
+            }
+          } else if (stateRes.status === 404) {
+            // Bootstrap initial authoritative raffle once when document does not exist yet
+            const bootRes = await fetch('/api/raffle/sync', {
+              method: 'POST',
+              headers: authHeaders,
+              body: JSON.stringify({
+                raffleId: 'default',
+                title: settings.raffleTitle || 'GIO DA SORTE',
+                settings,
+                participants,
+              }),
+            });
+            if (bootRes.ok) {
+              const bootData = await bootRes.json();
+              if (bootData?.ok && bootData.raffle) {
+                setParticipants(bootData.raffle.participants || []);
+                if (bootData.raffle.settings) {
+                  setSettings((s) => ({ ...s, ...bootData.raffle.settings }));
+                }
+                if (Array.isArray(bootData.raffle.winners)) {
+                  setWinners(bootData.raffle.winners);
+                }
+                setSyncStatus('synced');
+              }
             }
           }
         } catch (err) {
-          console.warn('Initial cloud fetch notice:', err);
+          console.warn('Initial authoritative raffle fetch notice:', err);
         }
       }
     });
@@ -472,48 +515,78 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Save to Cloud Function
+  // R-03: Save to Cloud Function — NEVER writes to `users/{uid}/raffles/default` via Client SDK
+  // and NEVER sends `participants`, `winners`, or governance fields (`rosterVersion`, `drawSequence`,
+  // `fencingToken`, `operationalState`, `commitmentHash`, `drawNonce`).
+  // Only syncs non-allocation UI presentation preferences when idle.
   const saveToCloud = useCallback(async () => {
     if (!currentUser) return;
+    if (isDrawing || countdownRemaining !== null) return;
     setSyncStatus('saving');
-    const rafflePath = `users/${currentUser.uid}/raffles/default`;
     try {
-      const raffleRef = doc(db, 'users', currentUser.uid, 'raffles', 'default');
-      await setDoc(raffleRef, {
-        userId: currentUser.uid,
-        title: 'GIO DA SORTE',
-        settings,
-        participants,
-        winners,
-        updatedAt: new Date().toISOString(),
+      const idToken = await currentUser.getIdToken();
+      const nonAllocationUiSettingsPatch: Partial<RaffleSettings> = {
+        currentPrize: settings.currentPrize,
+        spinDuration: settings.spinDuration,
+        countdownSeconds: settings.countdownSeconds,
+        themeMode: settings.themeMode,
+        prizes: settings.prizes,
+        drawMode: settings.drawMode,
+        supportPixKey: settings.supportPixKey,
+        supportPaypalEmail: settings.supportPaypalEmail,
+        raffleCode: settings.raffleCode,
+        organizerName: settings.organizerName,
+        raffleTitle: settings.raffleTitle,
+        prizeName: settings.prizeName,
+        prizeImage: settings.prizeImage,
+      };
+      const res = await fetch('/api/raffle/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          raffleId: 'default',
+          title: settings.raffleTitle || 'GIO DA SORTE',
+          settings: nonAllocationUiSettingsPatch,
+        }),
       });
-      setSyncStatus('synced');
-    } catch (error) {
+      if (res.ok || res.status === 409) {
+        setSyncStatus('synced');
+      } else {
+        setSyncStatus('error');
+      }
+    } catch {
       setSyncStatus('error');
-      handleFirestoreError(error, OperationType.WRITE, rafflePath);
     }
-  }, [currentUser, settings, participants, winners]);
+  }, [currentUser, isDrawing, countdownRemaining, settings]);
 
-  // Load from Cloud Function
+  // R-03: Load from Cloud Function — Reads authoritative raffle state exclusively from backend API
   const loadFromCloud = useCallback(async () => {
     if (!currentUser) return;
-    const rafflePath = `users/${currentUser.uid}/raffles/default`;
     try {
-      const raffleRef = doc(db, 'users', currentUser.uid, 'raffles', 'default');
-      const snap = await getDoc(raffleRef);
-      if (snap.exists()) {
-        const data = snap.data();
-        if (data.settings) setSettings((s) => ({ ...s, ...data.settings }));
-        if (Array.isArray(data.participants)) setParticipants(data.participants);
-        if (Array.isArray(data.winners)) setWinners(data.winners);
-        setSyncStatus('synced');
+      const idToken = await currentUser.getIdToken();
+      const res = await fetch('/api/raffle/state?raffleId=default', {
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.ok && data.raffle) {
+          if (data.raffle.settings) setSettings((s) => ({ ...s, ...data.raffle.settings }));
+          if (Array.isArray(data.raffle.participants)) setParticipants(data.raffle.participants);
+          if (Array.isArray(data.raffle.winners)) setWinners(data.raffle.winners);
+          setSyncStatus('synced');
+        }
       }
-    } catch (error) {
-      handleFirestoreError(error, OperationType.GET, rafflePath);
+    } catch {
+      setSyncStatus('error');
     }
   }, [currentUser]);
 
-  // Idle Auto-Save
+  // Idle Auto-Save (local browser backup only)
   const { autoSaveStatus, lastSavedAt, flushNow } = useIdleAutoSave({
     settings,
     participants,
@@ -521,17 +594,29 @@ export default function App() {
     isDrawing: isDrawing || countdownRemaining !== null,
   });
 
-  // Debounced cloud save if logged in
+  // Debounced UI preferences cloud save if logged in and not drawing
   const cloudSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && !isDrawing && countdownRemaining === null) {
       if (cloudSaveTimerRef.current) clearTimeout(cloudSaveTimerRef.current);
       setSyncStatus('saving');
       cloudSaveTimerRef.current = setTimeout(() => {
         saveToCloud().catch(() => {});
       }, 1500);
     }
-  }, [settings, participants, winners, currentUser, saveToCloud]);
+  }, [
+    settings.raffleTitle,
+    settings.prizeName,
+    settings.currentPrize,
+    settings.spinDuration,
+    settings.countdownSeconds,
+    settings.themeMode,
+    settings.drawMode,
+    currentUser,
+    isDrawing,
+    countdownRemaining,
+    saveToCloud,
+  ]);
 
   // Keep hash updated
   useEffect(() => {
@@ -550,68 +635,162 @@ export default function App() {
     setSoundEnabled(next);
   };
 
-  // Participant management actions
-  const handleAddParticipant = (name: string, coins: number) => {
-    const cleanName = name.trim();
-    if (!cleanName) return;
-
-    setParticipants((prev) => {
-      const existingIdx = prev.findIndex((p) => p.name.toLowerCase() === cleanName.toLowerCase());
-      if (existingIdx >= 0) {
-        const updated = [...prev];
-        updated[existingIdx] = {
-          ...updated[existingIdx],
-          coins: updated[existingIdx].coins + coins,
-        };
-        return updated;
-      }
-      return [
-        ...prev,
-        {
-          id: generateUid(),
-          name: cleanName,
-          coins,
-          addedAt: Date.now(),
-        },
-      ];
-    });
-  };
-
-  const handleUpdateCoins = (id: string, coins: number) => {
-    setParticipants((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, coins: Math.max(0, coins) } : p))
-    );
-  };
-
-  const handleRemoveParticipant = (id: string) => {
-    setParticipants((prev) => prev.filter((p) => p.id !== id));
-  };
-
-  const handleClearAllParticipants = () => {
-    setParticipants([]);
-    setWinners([]);
-    setDisplayNumber('?');
-  };
-
-  const handleBulkAdd = (list: { name: string; coins: number }[], replace: boolean) => {
-    setParticipants((prev) => {
-      const base = replace ? [] : [...prev];
-      list.forEach((item) => {
-        const idx = base.findIndex((p) => p.name.toLowerCase() === item.name.toLowerCase());
-        if (idx >= 0) {
-          base[idx] = { ...base[idx], coins: base[idx].coins + item.coins };
+  // R-04: Central helper to execute authoritative roster/settings mutations on the backend
+  const mutateAuthoritativeRaffle = useCallback(
+    async (mutationPayload: Record<string, unknown>) => {
+      if (!currentUser) return;
+      setSyncStatus('saving');
+      try {
+        const idToken = await currentUser.getIdToken();
+        const res = await fetch('/api/raffle/participant/mutate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            raffleId: 'default',
+            ...mutationPayload,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok && data?.ok && data.raffle) {
+          if (Array.isArray(data.raffle.participants)) {
+            setParticipants(data.raffle.participants);
+          }
+          if (data.raffle.settings) {
+            setSettings((prev) => ({ ...prev, ...data.raffle.settings }));
+          }
+          if (Array.isArray(data.raffle.winners)) {
+            setWinners(data.raffle.winners);
+          }
+          setSyncStatus('synced');
         } else {
-          base.push({
-            id: generateUid(),
-            name: item.name,
-            coins: item.coins,
-            addedAt: Date.now(),
-          });
+          setSyncStatus('error');
         }
+      } catch {
+        setSyncStatus('error');
+      }
+    },
+    [currentUser]
+  );
+
+  // R-04 Handler 1: Add Participant -> POST /api/raffle/participant/mutate (action: 'addParticipant')
+  const handleAddParticipant = useCallback(
+    (name: string, coins: number) => {
+      const cleanName = name.trim();
+      if (!cleanName) return;
+
+      const addedParticipant: Participant = {
+        id: generateUid(),
+        name: cleanName,
+        coins,
+        addedAt: Date.now(),
+      };
+
+      setParticipants((prev) => {
+        const existingIdx = prev.findIndex((p) => p.name.toLowerCase() === cleanName.toLowerCase());
+        if (existingIdx >= 0) {
+          const updated = [...prev];
+          updated[existingIdx] = {
+            ...updated[existingIdx],
+            coins: updated[existingIdx].coins + coins,
+          };
+          return updated;
+        }
+        return [...prev, addedParticipant];
       });
-      return base;
+
+      void mutateAuthoritativeRaffle({
+        action: 'addParticipant',
+        participant: addedParticipant,
+        mergeIfSameName: true,
+      });
+    },
+    [mutateAuthoritativeRaffle]
+  );
+
+  // R-04 Handler 2: Update Participant Coins -> POST /api/raffle/participant/mutate (action: 'updateParticipantCoins')
+  const handleUpdateCoins = useCallback(
+    (id: string, coins: number) => {
+      const normalizedCoins = Math.max(0, coins);
+      setParticipants((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, coins: normalizedCoins } : p))
+      );
+      void mutateAuthoritativeRaffle({
+        action: 'updateParticipantCoins',
+        participantId: id,
+        coins: normalizedCoins,
+      });
+    },
+    [mutateAuthoritativeRaffle]
+  );
+
+  // R-04 Handler 3: Remove Participant -> POST /api/raffle/participant/mutate (action: 'removeParticipant')
+  const handleRemoveParticipant = useCallback(
+    (id: string) => {
+      setParticipants((prev) => prev.filter((p) => p.id !== id));
+      void mutateAuthoritativeRaffle({
+        action: 'removeParticipant',
+        participantId: id,
+      });
+    },
+    [mutateAuthoritativeRaffle]
+  );
+
+  // R-04 Handler 4: Clear All Participants -> POST /api/raffle/participant/mutate (action: 'clearAllParticipants')
+  const handleClearAllParticipants = useCallback(() => {
+    setParticipants([]);
+    setDisplayNumber('?');
+    void mutateAuthoritativeRaffle({
+      action: 'clearAllParticipants',
     });
-  };
+  }, [mutateAuthoritativeRaffle]);
+
+  // R-04 Handler 5: Bulk Add Participants -> POST /api/raffle/participant/mutate (action: 'bulkAddParticipants')
+  const handleBulkAdd = useCallback(
+    (list: { name: string; coins: number }[], replace: boolean) => {
+      const now = Date.now();
+      const itemsWithIds = list.map((item) => ({
+        id: generateUid(),
+        name: item.name,
+        coins: item.coins,
+        addedAt: now,
+      }));
+
+      setParticipants((prev) => {
+        const base = replace ? [] : [...prev];
+        itemsWithIds.forEach((item) => {
+          const idx = base.findIndex((p) => p.name.toLowerCase() === item.name.toLowerCase());
+          if (idx >= 0) {
+            base[idx] = { ...base[idx], coins: base[idx].coins + item.coins };
+          } else {
+            base.push(item);
+          }
+        });
+        return base;
+      });
+
+      void mutateAuthoritativeRaffle({
+        action: 'bulkAddParticipants',
+        items: itemsWithIds,
+        replace,
+      });
+    },
+    [mutateAuthoritativeRaffle]
+  );
+
+  // R-04 Handler 6: Update Raffle Allocation & Presentation Settings -> POST /api/raffle/participant/mutate (action: 'updateRaffleAllocationSettings')
+  const handleUpdateSettings = useCallback(
+    (patch: Partial<RaffleSettings>) => {
+      setSettings((s) => ({ ...s, ...patch }));
+      void mutateAuthoritativeRaffle({
+        action: 'updateRaffleAllocationSettings',
+        settingsPatch: patch,
+      });
+    },
+    [mutateAuthoritativeRaffle]
+  );
 
   // Winner actions
   const handleRemoveWinner = (winnerId: string) => {
@@ -622,12 +801,22 @@ export default function App() {
     setWinners([]);
   };
 
-  // Wheel spin conclusion handler
+  // Authoritative Backend Draw State (Fase 1.7.0 / Fase 1.7.2)
+  const [predeterminedWinningTicket, setPredeterminedWinningTicket] = useState<{
+    number: number;
+    participantId: string;
+    name: string;
+  } | null>(null);
+  const [drawErrorMessage, setDrawErrorMessage] = useState<string | null>(null);
+  const pendingAuthoritativeWinnerRef = useRef<Winner | null>(null);
+
+  // Wheel spin conclusion handler (records the authoritative backend Winner after animation completes)
   const handleWheelSpinEnd = (chosenTicket: { number: number; participantId: string; name: string }) => {
     setDisplayNumber(chosenTicket.number);
     setIsDrawing(false);
+    drawingRef.current = false;
 
-    const newWinner: Winner = {
+    const authoritativeWinner: Winner = pendingAuthoritativeWinnerRef.current || {
       id: generateUid(),
       participantId: chosenTicket.participantId,
       name: chosenTicket.name,
@@ -635,75 +824,182 @@ export default function App() {
       prize: settings.prizeName || settings.currentPrize || 'Roleta da Fortuna',
       drawnAt: Date.now(),
     };
+    pendingAuthoritativeWinnerRef.current = null;
 
     setWinners((prev) => {
-      const next = [newWinner, ...prev];
+      const next = [authoritativeWinner, ...prev];
       idleStorage.scheduleSave({ settings, participants, winners: next }, true);
       return next;
     });
-    setCelebrationWinner(newWinner);
+    setCelebrationWinner(authoritativeWinner);
   };
 
-  // Traditional Ticket Draw execution (Drum Roll)
+  // Authoritative Traditional Draw execution (Backend Provably Fair V2 — R-04 compliant)
   const drawingRef = useRef(false);
-  const executeDrumDraw = useCallback(() => {
-    if (drawingRef.current || isDrawing) return;
-    const pool = computed.eligibleTickets;
-    if (pool.length === 0) return;
+  const executeAuthoritativeDraw = useCallback(
+    async (mode: 'drum' | 'wheel' = 'drum') => {
+      if (drawingRef.current || isDrawing) return;
+      const pool = computed.eligibleTickets;
+      if (pool.length === 0) return;
 
-    drawingRef.current = true;
-    setIsDrawing(true);
-
-    const winningIndex = secureRandomInt(pool.length);
-    const chosenTicket = pool[winningIndex];
-
-    const duration = settings.spinDuration || 3000;
-    const startTime = Date.now();
-    let tickCount = 0;
-
-    const tick = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(1, elapsed / duration);
-
-      if (progress >= 1) {
-        setDisplayNumber(chosenTicket.number);
-        setIsDrawing(false);
-        drawingRef.current = false;
-
-        const newWinner: Winner = {
-          id: generateUid(),
-          participantId: chosenTicket.participantId,
-          name: chosenTicket.name,
-          number: chosenTicket.number,
-          prize: settings.prizeName || settings.currentPrize || 'Prêmio Oficial',
-          drawnAt: Date.now(),
-        };
-
-        setWinners((prev) => {
-          const next = [newWinner, ...prev];
-          idleStorage.scheduleSave({ settings, participants, winners: next }, true);
-          return next;
-        });
-        setCelebrationWinner(newWinner);
-        playWinnerFanfare();
-        fireWinnerConfetti();
+      if (!currentUser) {
+        setDrawErrorMessage('Autenticação obrigatória para realizar sorteios oficiais auditáveis.');
         return;
       }
 
-      const randomTicket = pool[secureRandomInt(pool.length)];
-      setDisplayNumber(randomTicket.number);
+      drawingRef.current = true;
+      setIsDrawing(true);
+      setDrawErrorMessage(null);
 
-      tickCount++;
-      if (tickCount % 2 === 0) {
-        playTick(1 + progress * 0.4);
+      try {
+        const idToken = await currentUser.getIdToken();
+        const authHeaders = {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        };
+
+        // 1. Request cryptographic pre-commitment directly against the backend's authoritative persisted state.
+        // R-04: Never overwrites the backend roster with the local array before the draw.
+        let precommitRes = await fetch('/api/raffle/draw/pre-commit', {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({ raffleId: 'default' }),
+        });
+
+        // If the raffle document has never been created on the backend yet (404), bootstrap once and retry pre-commit
+        if (precommitRes.status === 404) {
+          const bootRes = await fetch('/api/raffle/sync', {
+            method: 'POST',
+            headers: authHeaders,
+            body: JSON.stringify({
+              raffleId: 'default',
+              title: settings.raffleTitle || 'Sorteio Oficial GIO DA SORTE',
+              settings,
+              participants,
+            }),
+          });
+          if (!bootRes.ok) {
+            const bootErr = await bootRes.json().catch(() => ({}));
+            throw new Error(bootErr.message || bootErr.error || 'Falha ao inicializar rifa no servidor.');
+          }
+          precommitRes = await fetch('/api/raffle/draw/pre-commit', {
+            method: 'POST',
+            headers: authHeaders,
+            body: JSON.stringify({ raffleId: 'default' }),
+          });
+        }
+
+        const precommitData = await precommitRes.json();
+        if (!precommitRes.ok || !precommitData.ok) {
+          throw new Error(
+            precommitData.message || precommitData.error || 'Falha ao criar pré-compromisso criptográfico.'
+          );
+        }
+
+        // 2. Generate 256-bit client entropy (E_client) using WebCrypto CSPRNG
+        const entropyBytes = new Uint8Array(32);
+        window.crypto.getRandomValues(entropyBytes);
+        const clientEntropy = Array.from(entropyBytes)
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('');
+
+        const randSuffix = Array.from(entropyBytes.slice(0, 6))
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('');
+        const drawId = `draw_trad_${Date.now()}_${randSuffix}`;
+        const idempotencyKey = `idem_${drawId}`;
+
+        // 3. Execute authoritative draw on backend
+        const drawRes = await fetch('/api/raffle/draw', {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({
+            raffleId: 'default',
+            drawId,
+            idempotencyKey,
+            commitmentHash: precommitData.commitmentHash,
+            clientEntropy,
+            expectedRosterVersion: precommitData.rosterVersion,
+            expectedDrawSequence: precommitData.drawSequence,
+            fencingToken: precommitData.fencingToken,
+            drawMode: mode,
+            winnerCount: 1,
+            prizeId: 'NONE',
+            prizeName: settings.prizeName || settings.currentPrize || 'Prêmio Oficial',
+          }),
+        });
+        const drawData = await drawRes.json();
+        if (!drawRes.ok || !drawData.ok) {
+          throw new Error(
+            drawData.message || drawData.error || 'O servidor rejeitou a confirmação do sorteio.'
+          );
+        }
+
+        const chosenTicket: { number: number; participantId: string; name: string } =
+          drawData.winningTicket;
+        const authoritativeWinner: Winner = drawData.winner;
+
+        if (mode === 'wheel') {
+          pendingAuthoritativeWinnerRef.current = authoritativeWinner;
+          setPredeterminedWinningTicket(chosenTicket);
+          setWheelSpinSignal((s) => s + 1);
+          return;
+        }
+
+        // Visual drum roll animation landing strictly on the backend-determined winning ticket
+        const duration = settings.spinDuration || 3000;
+        const startTime = Date.now();
+        let tickCount = 0;
+
+        const tick = () => {
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(1, elapsed / duration);
+
+          if (progress >= 1) {
+            setDisplayNumber(chosenTicket.number);
+            setIsDrawing(false);
+            drawingRef.current = false;
+
+            setWinners((prev) => {
+              const next = [authoritativeWinner, ...prev];
+              idleStorage.scheduleSave({ settings, participants, winners: next }, true);
+              return next;
+            });
+            setCelebrationWinner(authoritativeWinner);
+            playWinnerFanfare();
+            fireWinnerConfetti();
+            return;
+          }
+
+          const visualTickTicket = pool[tickCount % pool.length];
+          setDisplayNumber(visualTickTicket.number);
+
+          tickCount++;
+          if (tickCount % 2 === 0) {
+            playTick(1 + progress * 0.4);
+          }
+
+          const nextDelay = 35 + Math.pow(progress, 2.5) * 220;
+          setTimeout(tick, nextDelay);
+        };
+
+        tick();
+      } catch (err) {
+        setIsDrawing(false);
+        drawingRef.current = false;
+        setDrawErrorMessage(
+          err instanceof Error ? err.message : 'Erro inesperado ao executar sorteio oficial no servidor.'
+        );
       }
-
-      const nextDelay = 35 + Math.pow(progress, 2.5) * 220;
-      setTimeout(tick, nextDelay);
-    };
-
-    tick();
-  }, [isDrawing, computed.eligibleTickets, settings.spinDuration, settings.currentPrize, settings.prizeName]);
+    },
+    [
+      isDrawing,
+      computed.eligibleTickets,
+      currentUser,
+      settings,
+      participants,
+    ]
+  );
 
   // Unified Draw Trigger
   const handleTriggerDraw = useCallback(
@@ -713,11 +1009,7 @@ export default function App() {
 
       const countdownTime = settings.countdownSeconds !== undefined ? settings.countdownSeconds : 10;
       if (countdownTime <= 0) {
-        if (mode === 'drum') {
-          executeDrumDraw();
-        } else {
-          setWheelSpinSignal((s) => s + 1);
-        }
+        executeAuthoritativeDraw(mode);
         return;
       }
 
@@ -725,7 +1017,7 @@ export default function App() {
       setCountdownRemaining(countdownTime);
       playCountdownTick(countdownTime);
     },
-    [isDrawing, countdownRemaining, computed.eligibleTickets.length, settings.countdownSeconds, executeDrumDraw]
+    [isDrawing, countdownRemaining, computed.eligibleTickets.length, settings.countdownSeconds, executeAuthoritativeDraw]
   );
 
   // Countdown timer decrement effect
@@ -735,11 +1027,7 @@ export default function App() {
     if (countdownRemaining <= 0) {
       playCountdownLaunch();
       setCountdownRemaining(null);
-      if (pendingDrawType === 'drum') {
-        executeDrumDraw();
-      } else {
-        setWheelSpinSignal((s) => s + 1);
-      }
+      executeAuthoritativeDraw(pendingDrawType);
       return;
     }
 
@@ -752,18 +1040,14 @@ export default function App() {
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [countdownRemaining, pendingDrawType, executeDrumDraw]);
+  }, [countdownRemaining, pendingDrawType, executeAuthoritativeDraw]);
 
   const handleSkipCountdown = useCallback(() => {
     if (countdownRemaining === null) return;
     playCountdownLaunch();
     setCountdownRemaining(null);
-    if (pendingDrawType === 'drum') {
-      executeDrumDraw();
-    } else {
-      setWheelSpinSignal((s) => s + 1);
-    }
-  }, [countdownRemaining, pendingDrawType, executeDrumDraw]);
+    executeAuthoritativeDraw(pendingDrawType);
+  }, [countdownRemaining, pendingDrawType, executeAuthoritativeDraw]);
 
   const handleCancelCountdown = useCallback(() => {
     setCountdownRemaining(null);
@@ -845,8 +1129,8 @@ export default function App() {
   }, [participants.length, computed.allocations, settings]);
 
   return (
-    <div className="min-h-screen bg-[#171D1C] text-[#EAE7DE] flex font-sans transition-colors duration-300">
-      {/* Sidebar: Fixa no Desktop (240px ou 72px) & Drawer no Mobile */}
+    <div className="min-h-screen bg-[#050D20] text-[#F8FAFC] flex font-sans transition-colors duration-300">
+      {/* Sidebar: Fixa no Desktop (260px ou 76px) & Drawer no Mobile */}
       <Sidebar
         activeTab={activeTab}
         onSelectTab={handleSelectNavigationTab}
@@ -863,7 +1147,7 @@ export default function App() {
       {/* Coluna de Conteúdo Principal (compensada pela largura da Sidebar no desktop) */}
       <div
         className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${
-          sidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-[240px]'
+          sidebarCollapsed ? 'lg:pl-[76px]' : 'lg:pl-[260px]'
         }`}
       >
         {/* Cabeçalho Contextual com Breadcrumb e Status */}
@@ -907,8 +1191,9 @@ export default function App() {
               setRafflesSubTab('arena');
             }}
             onOpenCommentsSorter={() => {
-              setActiveTab('tiktok');
+              setTiktokInitialTab('feed');
               setTiktokInitialMode('traditional_comments');
+              setActiveTab('tiktok');
             }}
             onOpenLivePro={handleOpenLiveProTab}
             onOpenParticipants={() => {
@@ -925,26 +1210,26 @@ export default function App() {
           />
         )}
 
-        {/* 2. SORTEIOS (5 MODALIDADES OFICIAIS — DIREÇÃO GRAFITE E JADE) */}
+        {/* 2. SORTEIOS (5 MODALIDADES OFICIAIS — DESIGN SYSTEM 2.0 DARK TECH NAVY) */}
         {activeTab === 'draw' && (
           <div className="space-y-6 animate-fade-in min-w-0">
-            {/* Cabeçalho Contextual e Barra das 5 Modalidades de Sorteio */}
-            <div className="p-4 sm:p-5 rounded-xl bg-[#222B28] border border-[#313D39] space-y-4">
+            {/* Cabeçalho Contextual e Barra das Modalidades de Sorteio */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#101F3D] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(2,8,23,0.35)] space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <h1 className="text-lg sm:text-xl font-semibold text-[#EAE7DE]">
+                  <h1 className="text-lg sm:text-xl font-bold text-[#F8FAFC] tracking-tight">
                     Central de Sorteios
                   </h1>
-                  <p className="text-xs text-[#9BA8A3]">
+                  <p className="text-xs text-[#94A3B8]">
                     Escolha a modalidade desejada abaixo para configurar, validar participantes e realizar o sorteio.
                   </p>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-[#9BA8A3] tabular-nums">
-                  <span className="px-2.5 py-1 rounded-lg bg-[#171D1C] border border-[#313D39]">
-                    Participantes: <strong className="text-[#EAE7DE] font-mono">{participants.length}</strong>
+                <div className="flex items-center gap-2.5 text-xs text-[#94A3B8] tabular-nums">
+                  <span className="px-3 py-1.5 rounded-xl bg-[#0B1730] border border-[var(--gio-border-subtle)]">
+                    Participantes: <strong className="text-[#F8FAFC] font-mono">{participants.length}</strong>
                   </span>
-                  <span className="px-2.5 py-1 rounded-lg bg-[#171D1C] border border-[#313D39]">
-                    Bilhetes Elegíveis: <strong className="text-[#6EAA90] font-mono">{computed.eligibleTickets.length}</strong>
+                  <span className="px-3 py-1.5 rounded-xl bg-[#0B1730] border border-[var(--gio-border-subtle)]">
+                    Bilhetes Elegíveis: <strong className="text-[#00A9FF] font-mono">{computed.eligibleTickets.length}</strong>
                   </span>
                 </div>
               </div>
@@ -961,22 +1246,22 @@ export default function App() {
                   role="tab"
                   aria-selected={rafflesSubTab === 'arena'}
                   onClick={() => setRafflesSubTab('arena')}
-                  className={`p-3 rounded-xl border text-left transition flex flex-col justify-between gap-1 ${
+                  className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between gap-1 ${
                     rafflesSubTab === 'arena'
-                      ? 'bg-[#6EAA90] text-[#171D1C] border-[#6EAA90] shadow-sm'
-                      : 'bg-[#171D1C] text-[#EAE7DE] border-[#313D39] hover:bg-[#2B3632]'
+                      ? 'bg-gradient-to-r from-[#0866F5] to-[#00A9FF] text-white border-[#00A9FF] shadow-[0_6px_20px_rgba(8,102,245,0.3)]'
+                      : 'bg-[#0B1730] text-[#F8FAFC] border-[var(--gio-border-subtle)] hover:bg-[#182943] hover:border-[var(--gio-border-active)]'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold flex items-center gap-1.5">
+                    <span className="text-xs font-bold flex items-center gap-1.5">
                       <Ticket className="w-4 h-4 shrink-0" />
                       <span>1. Roleta e Globo</span>
                     </span>
                     <span
-                      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                         rafflesSubTab === 'arena'
-                          ? 'bg-[#171D1C]/20 text-[#171D1C]'
-                          : 'bg-[#222B28] text-[#6EAA90]'
+                          ? 'bg-white/20 text-white'
+                          : 'bg-[#101F3D] text-[#00A9FF] border border-[#00A9FF]/30'
                       }`}
                     >
                       Principal
@@ -984,7 +1269,7 @@ export default function App() {
                   </div>
                   <span
                     className={`text-[11px] leading-tight ${
-                      rafflesSubTab === 'arena' ? 'text-[#171D1C]/85 font-medium' : 'text-[#9BA8A3]'
+                      rafflesSubTab === 'arena' ? 'text-white/90 font-medium' : 'text-[#94A3B8]'
                     }`}
                   >
                     Mesa visual por moedas ou nomes
@@ -997,21 +1282,21 @@ export default function App() {
                   role="tab"
                   aria-selected={rafflesSubTab === 'participants'}
                   onClick={() => setRafflesSubTab('participants')}
-                  className={`p-3 rounded-xl border text-left transition flex flex-col justify-between gap-1 ${
+                  className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between gap-1 ${
                     rafflesSubTab === 'participants'
-                      ? 'bg-[#6EAA90] text-[#171D1C] border-[#6EAA90] shadow-sm'
-                      : 'bg-[#171D1C] text-[#EAE7DE] border-[#313D39] hover:bg-[#2B3632]'
+                      ? 'bg-gradient-to-r from-[#0866F5] to-[#00A9FF] text-white border-[#00A9FF] shadow-[0_6px_20px_rgba(8,102,245,0.3)]'
+                      : 'bg-[#0B1730] text-[#F8FAFC] border-[var(--gio-border-subtle)] hover:bg-[#182943] hover:border-[var(--gio-border-active)]'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold flex items-center gap-1.5">
+                    <span className="text-xs font-bold flex items-center gap-1.5">
                       <Users className="w-4 h-4 shrink-0" />
                       <span>2. Participantes ({participants.length})</span>
                     </span>
                   </div>
                   <span
                     className={`text-[11px] leading-tight ${
-                      rafflesSubTab === 'participants' ? 'text-[#171D1C]/85 font-medium' : 'text-[#9BA8A3]'
+                      rafflesSubTab === 'participants' ? 'text-white/90 font-medium' : 'text-[#94A3B8]'
                     }`}
                   >
                     Nomes, bilhetes e moedas
@@ -1024,21 +1309,21 @@ export default function App() {
                   role="tab"
                   aria-selected={rafflesSubTab === 'history'}
                   onClick={() => setRafflesSubTab('history')}
-                  className={`p-3 rounded-xl border text-left transition flex flex-col justify-between gap-1 ${
+                  className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between gap-1 ${
                     rafflesSubTab === 'history'
-                      ? 'bg-[#6EAA90] text-[#171D1C] border-[#6EAA90] shadow-sm'
-                      : 'bg-[#171D1C] text-[#EAE7DE] border-[#313D39] hover:bg-[#2B3632]'
+                      ? 'bg-gradient-to-r from-[#0866F5] to-[#00A9FF] text-white border-[#00A9FF] shadow-[0_6px_20px_rgba(8,102,245,0.3)]'
+                      : 'bg-[#0B1730] text-[#F8FAFC] border-[var(--gio-border-subtle)] hover:bg-[#182943] hover:border-[var(--gio-border-active)]'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold flex items-center gap-1.5">
+                    <span className="text-xs font-bold flex items-center gap-1.5">
                       <Trophy className="w-4 h-4 shrink-0" />
                       <span>3. Histórico ({winners.length})</span>
                     </span>
                   </div>
                   <span
                     className={`text-[11px] leading-tight ${
-                      rafflesSubTab === 'history' ? 'text-[#171D1C]/85 font-medium' : 'text-[#9BA8A3]'
+                      rafflesSubTab === 'history' ? 'text-white/90 font-medium' : 'text-[#94A3B8]'
                     }`}
                   >
                     Resultados, certificados e auditoria
@@ -1051,30 +1336,30 @@ export default function App() {
                   role="tab"
                   aria-selected={rafflesSubTab === 'wizard'}
                   onClick={() => setRafflesSubTab('wizard')}
-                  className={`p-3 rounded-xl border text-left transition flex flex-col justify-between gap-1 ${
+                  className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between gap-1 ${
                     rafflesSubTab === 'wizard'
-                      ? 'bg-[#2B3632] text-[#EAE7DE] border-[#6EAA90]'
-                      : 'bg-[#171D1C]/60 text-[#9BA8A3] border-[#313D39] hover:text-[#EAE7DE] hover:bg-[#171D1C]'
+                      ? 'bg-[#182943] text-[#F8FAFC] border-[#00A9FF]'
+                      : 'bg-[#0B1730]/75 text-[#94A3B8] border-[var(--gio-border-subtle)] hover:text-[#F8FAFC] hover:bg-[#182943]'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold flex items-center gap-1.5">
-                      <Sparkles className="w-4 h-4 shrink-0 text-[#C6A56A]" />
+                    <span className="text-xs font-bold flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 shrink-0 text-[#F5B942]" />
                       <span>4. Assistente Guiado</span>
                     </span>
-                    <span className="text-[10px] text-[#9BA8A3]">Opcional</span>
+                    <span className="text-[10px] text-[#94A3B8]">Opcional</span>
                   </div>
-                  <span className="text-[11px] leading-tight text-[#9BA8A3]">
+                  <span className="text-[11px] leading-tight text-[#94A3B8]">
                     Configuração passo a passo
                   </span>
                 </button>
               </div>
             </div>
 
-            {/* OPÇÃO 1: ROLETA E GLOBO (Desktop: 2 colunas lado a lado | Mobile: Mesa primeiro e Participantes abaixo) */}
+            {/* OPÇÃO 1: ROLETA E GLOBO (Desktop: 2 colunas equilibradas | Mobile: Mesa primeiro e Participantes abaixo) */}
             {rafflesSubTab === 'arena' && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start min-w-0">
-                <div className="lg:col-span-5 lg:sticky lg:top-24 space-y-6 min-w-0">
+                <div className="lg:col-span-6 lg:sticky lg:top-24 space-y-6 min-w-0">
                   <DrawSection
                     computed={computed}
                     settings={settings}
@@ -1086,7 +1371,7 @@ export default function App() {
                     onRequestWheelSpin={() => handleTriggerDraw('wheel')}
                     wheelSpinSignal={wheelSpinSignal}
                     onWheelSpinEnd={handleWheelSpinEnd}
-                    onUpdateSettings={(patch) => setSettings((s) => ({ ...s, ...patch }))}
+                    onUpdateSettings={handleUpdateSettings}
                     onRemoveWinner={handleRemoveWinner}
                     onClearWinners={handleClearWinners}
                     onOpenBattleRoyale={() => setIsBattleRoyaleOpen(true)}
@@ -1109,10 +1394,12 @@ export default function App() {
                     onResetCoinsOnly={() => {
                       setParticipants((prev) => prev.map((p) => ({ ...p, coins: 0 })));
                     }}
+                    predeterminedWinningTicket={predeterminedWinningTicket}
+                    drawErrorMessage={drawErrorMessage}
                   />
                 </div>
 
-                <div className="lg:col-span-7 space-y-6 min-w-0">
+                <div className="lg:col-span-6 space-y-6 min-w-0">
                   <ParticipantManager
                     participants={participants}
                     computed={computed}
@@ -1124,7 +1411,7 @@ export default function App() {
                     onClearAll={handleClearAllParticipants}
                     onBulkAdd={handleBulkAdd}
                     onSetParticipants={setParticipants}
-                    onUpdateSettings={(patch) => setSettings((s) => ({ ...s, ...patch }))}
+                    onUpdateSettings={handleUpdateSettings}
                   />
                 </div>
               </div>
@@ -1144,22 +1431,22 @@ export default function App() {
                   onClearAll={handleClearAllParticipants}
                   onBulkAdd={handleBulkAdd}
                   onSetParticipants={setParticipants}
-                  onUpdateSettings={(patch) => setSettings((s) => ({ ...s, ...patch }))}
+                  onUpdateSettings={handleUpdateSettings}
                 />
               </div>
             )}
 
 
 
-            {/* OPÇÃO 4: HISTÓRICO (Ganhadores, Cartão VIP, Certificados e Auditoria em Grafite e Jade) */}
+            {/* OPÇÃO 3: HISTÓRICO (Ganhadores, Cartão VIP, Certificados e Auditoria — Dark Tech Navy) */}
             {rafflesSubTab === 'history' && (
-              <div className="p-5 sm:p-6 rounded-xl bg-[#222B28] border border-[#313D39] space-y-5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#313D39]">
+              <div className="p-5 sm:p-6 rounded-2xl bg-[#101F3D] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(2,8,23,0.35)] space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--gio-border-subtle)]">
                   <div>
-                    <h2 className="text-lg sm:text-xl font-semibold text-[#EAE7DE]">
+                    <h2 className="text-lg sm:text-xl font-bold text-[#F8FAFC]">
                       Histórico de Resultados e Certificados
                     </h2>
-                    <p className="text-xs text-[#9BA8A3]">
+                    <p className="text-xs text-[#94A3B8]">
                       Consulte todos os ganhadores registrados, emita o Cartão VIP ou baixe o Relatório Oficial em PDF com hash SHA-256.
                     </p>
                   </div>
@@ -1167,14 +1454,14 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setIsPrizeQueueOpen(true)}
-                      className="min-h-[40px] px-4 py-2 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] text-[#EAE7DE] border border-[#313D39] text-xs font-semibold transition"
+                      className="min-h-[40px] px-4 py-2 rounded-xl bg-[#182943] hover:bg-[#1E3354] text-[#F8FAFC] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] text-xs font-semibold transition"
                     >
                       Gerenciar Fila de Prêmios
                     </button>
                     <button
                       type="button"
                       onClick={() => setIsAuditReportOpen(true)}
-                      className="min-h-[40px] px-4 py-2 rounded-lg bg-[#6EAA90] hover:bg-[#5E9980] text-[#171D1C] text-xs font-semibold flex items-center gap-1.5 transition"
+                      className="min-h-[40px] px-4 py-2 rounded-xl bg-gradient-to-r from-[#0866F5] to-[#00A9FF] hover:brightness-110 text-white text-xs font-semibold flex items-center gap-1.5 shadow-[0_6px_18px_rgba(8,102,245,0.3)] transition"
                     >
                       <FileText className="w-4 h-4" />
                       <span>Relatório Oficial em PDF</span>
@@ -1183,42 +1470,42 @@ export default function App() {
                 </div>
 
                 {/* Integrity Summary Strip */}
-                <div className="p-3.5 rounded-xl bg-[#171D1C] border border-[#313D39] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-2 text-[#6EAA90] font-medium">
+                <div className="p-3.5 rounded-xl bg-[#0B1730] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 text-[#20C997] font-semibold">
                     <ShieldCheck className="w-4 h-4 shrink-0" />
                     <span>Hash SHA-256 da Série Atual:</span>
                   </div>
-                  <span className="font-mono text-[11px] text-[#9BA8A3] truncate select-all tabular-nums">
+                  <span className="font-mono text-[11px] text-[#94A3B8] truncate select-all tabular-nums">
                     {rosterHash || 'Calculando hash...'}
                   </span>
                 </div>
 
                 {winners.length === 0 ? (
-                  <div className="p-8 rounded-xl bg-[#171D1C] border border-[#313D39] text-center space-y-3">
-                    <Trophy className="w-8 h-8 text-[#C6A56A] mx-auto" />
-                    <p className="text-sm font-semibold text-[#EAE7DE]">Nenhum resultado registrado nesta sessão</p>
-                    <p className="text-xs text-[#9BA8A3]">
+                  <div className="p-8 rounded-xl bg-[#0B1730] border border-[var(--gio-border-subtle)] text-center space-y-3">
+                    <Trophy className="w-8 h-8 text-[#F5B942] mx-auto" />
+                    <p className="text-sm font-bold text-[#F8FAFC]">Nenhum resultado registrado nesta sessão</p>
+                    <p className="text-xs text-[#94A3B8]">
                       Realize um sorteio na aba Roleta e Globo para registrar o primeiro ganhador.
                     </p>
                     <button
                       type="button"
                       onClick={() => setRafflesSubTab('arena')}
-                      className="px-4 py-2 rounded-lg bg-[#6EAA90] hover:bg-[#5E9980] text-[#171D1C] font-semibold text-xs transition"
+                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#0866F5] to-[#00A9FF] hover:brightness-110 text-white font-semibold text-xs shadow-md transition"
                     >
                       Ir para Roleta e Globo
                     </button>
                   </div>
                 ) : (
-                  <div className="divide-y divide-[#313D39] rounded-xl border border-[#313D39] bg-[#171D1C] overflow-hidden">
+                  <div className="divide-y divide-[var(--gio-border-subtle)] rounded-xl border border-[var(--gio-border-subtle)] bg-[#0B1730] overflow-hidden">
                     {winners.map((w) => (
-                      <div key={w.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm">
+                      <div key={w.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm hover:bg-[#182943]/40 transition-colors">
                         <div className="flex items-center gap-3 min-w-0">
-                          <span className="px-2.5 py-1 rounded-lg bg-[#222B28] border border-[#C6A56A]/40 text-[#C6A56A] font-mono font-bold tabular-nums shrink-0">
+                          <span className="px-2.5 py-1 rounded-lg bg-[#101F3D] border border-[#F5B942]/40 text-[#F5B942] font-mono font-bold tabular-nums shrink-0">
                             #{w.number}
                           </span>
                           <div className="min-w-0">
-                            <div className="font-semibold text-[#EAE7DE] truncate">{w.name}</div>
-                            <div className="text-xs text-[#9BA8A3] tabular-nums">
+                            <div className="font-semibold text-[#F8FAFC] truncate">{w.name}</div>
+                            <div className="text-xs text-[#94A3B8] tabular-nums">
                               {w.prize} · {formatDateTime(w.drawnAt)}
                             </div>
                           </div>
@@ -1227,15 +1514,15 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => setCelebrationWinner(w)}
-                            className="px-3 py-1.5 rounded-lg bg-[#222B28] hover:bg-[#2B3632] text-[#EAE7DE] border border-[#313D39] font-medium text-xs flex items-center gap-1.5 transition"
+                            className="px-3 py-1.5 rounded-lg bg-[#101F3D] hover:bg-[#182943] text-[#F8FAFC] border border-[var(--gio-border-subtle)] font-medium text-xs flex items-center gap-1.5 transition"
                           >
-                            <Maximize2 className="w-3.5 h-3.5 text-[#6EAA90]" />
+                            <Maximize2 className="w-3.5 h-3.5 text-[#00A9FF]" />
                             <span>Telão</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => setSelectedWinnerForCard(w)}
-                            className="px-3 py-1.5 rounded-lg bg-[#222B28] hover:bg-[#2B3632] text-[#C6A56A] border border-[#C6A56A]/40 font-semibold text-xs flex items-center gap-1.5 transition"
+                            className="px-3 py-1.5 rounded-lg bg-[#101F3D] hover:bg-[#182943] text-[#F5B942] border border-[#F5B942]/40 font-semibold text-xs flex items-center gap-1.5 transition"
                           >
                             <Award className="w-3.5 h-3.5" />
                             <span>Cartão VIP</span>
@@ -1244,7 +1531,7 @@ export default function App() {
                             type="button"
                             onClick={() => handleRemoveWinner(w.id)}
                             title="Remover ganhador"
-                            className="p-1.5 rounded-lg bg-[#222B28] hover:bg-[#D96B6B]/15 text-[#9BA8A3] hover:text-[#D96B6B] border border-[#313D39] transition"
+                            className="p-1.5 rounded-lg bg-[#101F3D] hover:bg-[#F05262]/15 text-[#94A3B8] hover:text-[#F05262] border border-[var(--gio-border-subtle)] transition"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -1266,7 +1553,7 @@ export default function App() {
                 entitlement={planEntitlement}
                 isDrawing={isDrawing}
                 currentDisplayNumber={displayNumber}
-                onUpdateSettings={(patch) => setSettings((s) => ({ ...s, ...patch }))}
+                onUpdateSettings={handleUpdateSettings}
                 onAddParticipant={handleAddParticipant}
                 onBulkAdd={handleBulkAdd}
                 onTriggerDraw={handleTriggerDraw}
@@ -1274,8 +1561,9 @@ export default function App() {
                 onOpenAuditReport={() => setIsAuditReportOpen(true)}
                 onOpenLivePro={handleOpenLiveProTab}
                 onOpenCommentsSorter={() => {
-                  setActiveTab('tiktok');
+                  setTiktokInitialTab('feed');
                   setTiktokInitialMode('traditional_comments');
+                  setActiveTab('tiktok');
                 }}
                 onOpenSubscription={() => setActiveTab('subscription')}
                 onCloseWizard={() => setRafflesSubTab('arena')}
@@ -1300,15 +1588,15 @@ export default function App() {
         {/* 4. PARTICIPANTES (CADASTRO, LISTA, FILTROS E CONSULTA DE BILHETES) */}
         {activeTab === 'search' && (
           <div className="space-y-6 animate-fade-in">
-            <div className="p-2 rounded-xl bg-[#222B28] border border-[#313D39] flex flex-wrap items-center justify-between gap-2">
+            <div className="p-2.5 rounded-2xl bg-[#101F3D] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(2,8,23,0.35)] flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => setParticipantsSubTab('manage')}
-                  className={`min-h-[40px] px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition ${
+                  className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
                     participantsSubTab === 'manage'
-                      ? 'bg-[#6EAA90] text-[#171D1C] shadow-xs'
-                      : 'text-[#9BA8A3] hover:text-[#EAE7DE] hover:bg-[#171D1C]/50'
+                      ? 'bg-gradient-to-r from-[#0866F5] to-[#00A9FF] text-white shadow-[0_4px_14px_rgba(8,102,245,0.3)]'
+                      : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#182943]'
                   }`}
                 >
                   <Users className="w-4 h-4" />
@@ -1317,10 +1605,10 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setParticipantsSubTab('lookup')}
-                  className={`min-h-[40px] px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition ${
+                  className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
                     participantsSubTab === 'lookup'
-                      ? 'bg-[#6EAA90] text-[#171D1C] shadow-xs'
-                      : 'text-[#9BA8A3] hover:text-[#EAE7DE] hover:bg-[#171D1C]/50'
+                      ? 'bg-gradient-to-r from-[#0866F5] to-[#00A9FF] text-white shadow-[0_4px_14px_rgba(8,102,245,0.3)]'
+                      : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#182943]'
                   }`}
                 >
                   <Search className="w-4 h-4" />
@@ -1331,9 +1619,9 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => handleOpenLiveProTab('audit')}
-                className="min-h-[38px] px-3.5 py-1.5 rounded-lg bg-[#171D1C] hover:bg-[#2A3531] text-[#EAE7DE] border border-[#313D39] text-xs font-semibold flex items-center gap-1.5"
+                className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-[#0B1730] hover:bg-[#182943] text-[#F8FAFC] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] text-xs font-semibold flex items-center gap-1.5 transition"
               >
-                <Radio className="w-3.5 h-3.5 text-[#6EAA90]" />
+                <Radio className="w-3.5 h-3.5 text-[#20C997]" />
                 <span>Participantes da TikTok LIVE</span>
               </button>
             </div>
@@ -1357,7 +1645,7 @@ export default function App() {
                 settings={settings}
                 winners={winners}
                 participants={participants}
-                onUpdateSettings={(patch) => setSettings((s) => ({ ...s, ...patch }))}
+                onUpdateSettings={handleUpdateSettings}
                 onLoadPublicRaffle={handleLoadPublicRaffle}
                 onResetToLocal={handleResetToLocal}
                 isViewingExternalRaffle={isViewingExternalRaffle}
@@ -1370,12 +1658,12 @@ export default function App() {
         {/* 5. RELATÓRIOS (ESTATÍSTICAS, BILHETES EMITIDOS, HISTÓRICO E EXPORTAÇÃO) */}
         {activeTab === 'stats' && (
           <div className="space-y-6 animate-fade-in">
-            <div className="p-5 rounded-xl bg-[#222B28] border border-[#313D39] flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="p-5 rounded-2xl bg-[#101F3D] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(2,8,23,0.35)] flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div>
-                <h1 className="text-lg sm:text-xl font-semibold text-[#EAE7DE]">
+                <h1 className="text-lg sm:text-xl font-bold text-[#F8FAFC] tracking-tight">
                   Relatórios, Estatísticas e Exportação
                 </h1>
-                <p className="text-xs text-[#9BA8A3]">
+                <p className="text-xs text-[#94A3B8]">
                   Analise as probabilidades matemáticas de cada participante, emita certificados PDF e exporte planilhas.
                 </p>
               </div>
@@ -1384,23 +1672,23 @@ export default function App() {
                   type="button"
                   onClick={handleExportFullReportCsv}
                   disabled={participants.length === 0}
-                  className="min-h-[40px] px-4 py-2 rounded-lg bg-[#171D1C] hover:bg-[#2A3531] disabled:opacity-40 text-[#EAE7DE] border border-[#313D39] text-xs font-semibold flex items-center gap-1.5 transition"
+                  className="min-h-[40px] px-4 py-2 rounded-xl bg-[#0B1730] hover:bg-[#182943] disabled:opacity-40 text-[#F8FAFC] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] text-xs font-semibold flex items-center gap-1.5 transition"
                 >
-                  <Download className="w-4 h-4 text-[#6EAA90]" />
+                  <Download className="w-4 h-4 text-[#00A9FF]" />
                   <span>Exportar Planilha CSV</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsPrintSheetOpen(true)}
-                  className="min-h-[40px] px-4 py-2 rounded-lg bg-[#171D1C] hover:bg-[#2A3531] text-[#EAE7DE] border border-[#313D39] text-xs font-semibold flex items-center gap-1.5 transition"
+                  className="min-h-[40px] px-4 py-2 rounded-xl bg-[#0B1730] hover:bg-[#182943] text-[#F8FAFC] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] text-xs font-semibold flex items-center gap-1.5 transition"
                 >
-                  <Printer className="w-4 h-4 text-[#C6A56A]" />
+                  <Printer className="w-4 h-4 text-[#F5B942]" />
                   <span>Folha de Bilhetes</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsAuditReportOpen(true)}
-                  className="min-h-[40px] px-4 py-2 rounded-lg bg-[#6EAA90] hover:bg-[#5C967D] text-[#171D1C] text-xs font-semibold flex items-center gap-1.5 transition"
+                  className="min-h-[40px] px-4 py-2 rounded-xl bg-gradient-to-r from-[#0866F5] to-[#00A9FF] hover:brightness-110 text-white text-xs font-semibold flex items-center gap-1.5 shadow-[0_6px_18px_rgba(8,102,245,0.3)] transition"
                 >
                   <FileText className="w-4 h-4" />
                   <span>Certificado Oficial PDF</span>
@@ -1445,14 +1733,14 @@ export default function App() {
         {/* 7. CONFIGURAÇÕES (REGRAS, PERFIL, AJUDA, SUPORTE & CENTRAL LEGAL) */}
         {(activeTab === 'settings' || activeTab === 'help' || activeTab === 'support') && (
           <div className="space-y-6 animate-fade-in">
-            <div className="p-2 rounded-xl bg-[#222B28] border border-[#313D39] flex flex-wrap items-center gap-1.5">
+            <div className="p-2.5 rounded-2xl bg-[#101F3D] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(2,8,23,0.35)] flex flex-wrap items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => setSettingsSubTab('preferences')}
-                className={`min-h-[40px] px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition ${
+                className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
                   settingsSubTab === 'preferences'
-                    ? 'bg-[#6EAA90] text-[#171D1C] shadow-xs'
-                    : 'text-[#9BA8A3] hover:text-[#EAE7DE] hover:bg-[#171D1C]/50'
+                    ? 'bg-gradient-to-r from-[#0866F5] to-[#00A9FF] text-white shadow-[0_4px_14px_rgba(8,102,245,0.3)]'
+                    : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#182943]'
                 }`}
               >
                 <Settings className="w-4 h-4" />
@@ -1462,10 +1750,10 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setSettingsSubTab('profile')}
-                className={`min-h-[40px] px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition ${
+                className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
                   settingsSubTab === 'profile'
-                    ? 'bg-[#6EAA90] text-[#171D1C] shadow-xs'
-                    : 'text-[#9BA8A3] hover:text-[#EAE7DE] hover:bg-[#171D1C]/50'
+                    ? 'bg-gradient-to-r from-[#0866F5] to-[#00A9FF] text-white shadow-[0_4px_14px_rgba(8,102,245,0.3)]'
+                    : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#182943]'
                 }`}
               >
                 <User className="w-4 h-4" />
@@ -1475,10 +1763,10 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setSettingsSubTab('help')}
-                className={`min-h-[40px] px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition ${
+                className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
                   settingsSubTab === 'help'
-                    ? 'bg-[#6EAA90] text-[#171D1C] shadow-xs'
-                    : 'text-[#9BA8A3] hover:text-[#EAE7DE] hover:bg-[#171D1C]/50'
+                    ? 'bg-gradient-to-r from-[#0866F5] to-[#00A9FF] text-white shadow-[0_4px_14px_rgba(8,102,245,0.3)]'
+                    : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#182943]'
                 }`}
               >
                 <HelpCircle className="w-4 h-4" />
@@ -1488,10 +1776,10 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setSettingsSubTab('support')}
-                className={`min-h-[40px] px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition ${
+                className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
                   settingsSubTab === 'support'
-                    ? 'bg-[#6EAA90] text-[#171D1C] shadow-xs'
-                    : 'text-[#9BA8A3] hover:text-[#EAE7DE] hover:bg-[#171D1C]/50'
+                    ? 'bg-gradient-to-r from-[#0866F5] to-[#00A9FF] text-white shadow-[0_4px_14px_rgba(8,102,245,0.3)]'
+                    : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#182943]'
                 }`}
               >
                 <Heart className="w-4 h-4" />
@@ -1501,10 +1789,10 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setSettingsSubTab('legal')}
-                className={`min-h-[40px] px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition ${
+                className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
                   settingsSubTab === 'legal'
-                    ? 'bg-[#6EAA90] text-[#171D1C] shadow-xs'
-                    : 'text-[#9BA8A3] hover:text-[#EAE7DE] hover:bg-[#171D1C]/50'
+                    ? 'bg-gradient-to-r from-[#0866F5] to-[#00A9FF] text-white shadow-[0_4px_14px_rgba(8,102,245,0.3)]'
+                    : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#182943]'
                 }`}
               >
                 <Scale className="w-4 h-4" />
@@ -1518,7 +1806,7 @@ export default function App() {
                 participants={participants}
                 winners={winners}
                 computed={computed}
-                onUpdateSettings={(patch) => setSettings((s) => ({ ...s, ...patch }))}
+                onUpdateSettings={handleUpdateSettings}
                 onRestoreState={(state) => {
                   setSettings(state.settings);
                   setParticipants(state.participants);
@@ -1538,11 +1826,11 @@ export default function App() {
             )}
 
             {settingsSubTab === 'profile' && (
-              <div className="p-6 rounded-xl bg-[#222B28] border border-[#313D39] space-y-4">
-                <h2 className="text-lg font-semibold text-[#EAE7DE]">
+              <div className="p-6 rounded-2xl bg-[#101F3D] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(2,8,23,0.35)] space-y-4">
+                <h2 className="text-lg font-bold text-[#F8FAFC]">
                   Perfil do Organizador e Sincronização na Nuvem
                 </h2>
-                <p className="text-xs sm:text-sm text-[#9BA8A3]">
+                <p className="text-xs sm:text-sm text-[#94A3B8]">
                   {currentUser
                     ? `Conectado como ${currentUser.displayName || currentUser.email}. Seus sorteios são sincronizados automaticamente.`
                     : 'Conecte sua conta para salvar seus sorteios na nuvem e acessá-los de qualquer dispositivo.'}
@@ -1551,14 +1839,14 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setIsAccountOpen(true)}
-                    className="min-h-[42px] px-5 py-2.5 rounded-lg bg-[#6EAA90] hover:bg-[#5C967D] text-[#171D1C] font-semibold text-xs transition"
+                    className="min-h-[42px] px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0866F5] to-[#00A9FF] hover:brightness-110 text-white font-semibold text-xs shadow-[0_6px_18px_rgba(8,102,245,0.3)] transition"
                   >
                     {currentUser ? 'Gerenciar Conta e Backup na Nuvem' : 'Conectar Minha Conta'}
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsOnboardingOpen(true)}
-                    className="min-h-[42px] px-4 py-2.5 rounded-lg bg-[#171D1C] hover:bg-[#2A3531] text-[#EAE7DE] border border-[#313D39] font-semibold text-xs transition"
+                    className="min-h-[42px] px-4 py-2.5 rounded-xl bg-[#0B1730] hover:bg-[#182943] text-[#F8FAFC] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] font-semibold text-xs transition"
                   >
                     Reabrir Tutorial de Boas-Vindas
                   </button>
@@ -1571,7 +1859,7 @@ export default function App() {
             {settingsSubTab === 'support' && (
               <SupportTab
                 settings={settings}
-                onUpdateSettings={(patch) => setSettings((s) => ({ ...s, ...patch }))}
+                onUpdateSettings={handleUpdateSettings}
               />
             )}
 
@@ -1627,7 +1915,7 @@ export default function App() {
         onDraw={() => handleTriggerDraw('drum')}
         soundEnabled={soundActive}
         onToggleSound={handleToggleSound}
-        onUpdateSettings={(patch) => setSettings((s) => ({ ...s, ...patch }))}
+        onUpdateSettings={handleUpdateSettings}
       />
 
       {/* Battle Royale Elimination Tournament Modal */}
@@ -1669,7 +1957,7 @@ export default function App() {
         onClose={() => setIsPrizeQueueOpen(false)}
         settings={settings}
         winners={winners}
-        onUpdateSettings={(patch) => setSettings((s) => ({ ...s, ...patch }))}
+        onUpdateSettings={handleUpdateSettings}
         onSetCurrentPrize={(pName) => setSettings((s) => ({ ...s, currentPrize: pName }))}
       />
 

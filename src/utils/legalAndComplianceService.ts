@@ -1,4 +1,5 @@
-import { db } from '../firebase';
+import { db } from '../firebase.ts';
+import { getAuthBearerHeaders } from './tiktokLiveService.ts';
 import {
   collection,
   doc,
@@ -9,7 +10,7 @@ import {
   orderBy,
   limit,
 } from 'firebase/firestore';
-import {
+import type {
   LegalDocument,
   LegalDocumentSlug,
   LegalDocumentVersion,
@@ -25,7 +26,7 @@ import {
   CompanyLegalSettings,
   CommercialSubscriptionConfig,
   SubscriptionStatusState,
-} from '../types';
+} from '../types.ts';
 
 export const CURRENT_COOKIE_NOTICE_VERSION = '2025.1';
 
@@ -46,7 +47,7 @@ const BASE_TIMESTAMP = 1740787200000; // Initial publication reference
 
 export const DEFAULT_COMPANY_SETTINGS: CompanyLegalSettings = {
   razaoSocial: '',
-  nomeFantasia: 'GIO DA SORTE PRO',
+  nomeFantasia: 'GIO DA SORTE',
   cnpj: '',
   vatOrTaxId: '',
   enderecoEmpresarial: '',
@@ -63,21 +64,21 @@ export const DEFAULT_COMPANY_SETTINGS: CompanyLegalSettings = {
 export const DEFAULT_COMMERCIAL_CONFIG: CommercialSubscriptionConfig = {
   planName: 'GIO DA SORTE PRO (Mensal e Anual)',
   billingCycle: 'Mensal (1 mês) ou Anual (12 meses)',
-  priceDisplay: 'R$ 29,90/mês ou R$ 199,90/ano (7 dias grátis)',
+  priceDisplay: 'R$ 29,90/mês ou R$ 199,90/ano (3 dias grátis)',
   currency: 'BRL',
   paymentMethodsInfo: 'Mercado Pago — Assinatura Recorrente',
   renewalPolicy:
-    'Ambos os planos incluem 7 dias de teste gratuito para contas elegíveis (1 teste por UID). Após o término dos 7 dias, a assinatura é renovada automaticamente (R$ 29,90 a cada 1 mês no plano Mensal ou R$ 199,90 integral a cada 12 meses no plano Anual) até que seja cancelada.',
+    'Ambos os planos incluem 3 dias de teste gratuito para contas elegíveis (1 teste por UID). Após o término dos 3 dias, a assinatura é renovada automaticamente (R$ 29,90 a cada 1 mês no plano Mensal ou R$ 199,90 integral a cada 12 meses no plano Anual) até que seja cancelada.',
   cancellationPolicy:
-    'O cancelamento pode ser feito a qualquer momento pelo próprio usuário, inclusive durante os 7 dias de teste. O envio do status "canceled" ao Mercado Pago interrompe todas as cobranças futuras, e o backend mantém o acesso PRO ativo até o término do período já concedido (trialEndDate ou currentPeriodEnd).',
+    'O cancelamento pode ser feito a qualquer momento pelo próprio usuário, inclusive durante os 3 dias de teste. O envio do status "canceled" ao Mercado Pago interrompe todas as cobranças futuras, e o backend mantém o acesso PRO ativo até o término do período já concedido (trialEndDate ou currentPeriodEnd).',
   refundPolicySummary:
-    'Nenhuma cobrança é realizada se o cancelamento ocorrer antes do fim dos 7 dias de teste gratuito. Solicitações de reembolso seguem o Código de Defesa do Consumidor e os termos vigentes.',
+    'Nenhuma cobrança é realizada se o cancelamento ocorrer antes do fim dos 3 dias de teste gratuito. Solicitações de reembolso seguem o Código de Defesa do Consumidor e os termos vigentes.',
   delinquencyGracePeriodDays: 0,
   configuredByAdmin: true,
   updatedAt: BASE_TIMESTAMP,
   monthlyPrice: 29.90,
   annualPrice: 199.90,
-  freeTrialDays: 7,
+  freeTrialDays: 3,
   trialOfferEnabled: true,
   priceVersion: 'v1.0.0',
   mpMonthlyPlanId: '',
@@ -94,7 +95,7 @@ export const INITIAL_LEGAL_DOCUMENTS: LegalDocument[] = [
     id: 'sobre-nos',
     slug: 'sobre-nos',
     title: 'Sobre Nós',
-    subtitle: 'Conheça a missão, arquitetura de transparência e tecnologia do GIO DA SORTE PRO',
+    subtitle: 'Conheça a missão, arquitetura de transparência e tecnologia do GIO DA SORTE',
     category: 'PLATAFORMA',
     version: '1.0.0',
     publishedAt: BASE_TIMESTAMP,
@@ -103,20 +104,20 @@ export const INITIAL_LEGAL_DOCUMENTS: LegalDocument[] = [
     isMandatoryAcceptance: false,
     status: 'PUBLISHED',
     summary:
-      'O GIO DA SORTE PRO é uma plataforma tecnológica SaaS voltada à organização, contabilização proporcional por moedas, emissão auditável de bilhetes e realização de sorteios com verificação criptográfica SHA-256.',
+      'O GIO DA SORTE é uma plataforma tecnológica SaaS voltada à organização, contabilização proporcional por moedas, emissão auditável de bilhetes e realização de sorteios com verificação criptográfica SHA-256.',
     relatedSlugs: ['termos-de-uso', 'aviso-de-independencia-do-tiktok', 'politica-de-seguranca'],
     sections: [
       {
         id: 'missao',
         title: '1. Nossa Missão e Propósito',
         content:
-          'O GIO DA SORTE PRO foi desenvolvido para eliminar o trabalho manual, erros de planilha e incertezas na condução de sorteios interativos e transmissões ao vivo. Oferecemos ferramentas de contabilização automatizada, geração determinística e auditável de bilhetes e sorteio com prova criptográfica SHA-256.',
+          'O GIO DA SORTE foi desenvolvido para eliminar o trabalho manual, erros de planilha e incertezas na condução de sorteios interativos e transmissões ao vivo. Oferecemos ferramentas de contabilização automatizada, geração determinística e auditável de bilhetes e sorteio com prova criptográfica SHA-256.',
       },
       {
         id: 'funcionamento',
         title: '2. Como a Plataforma Funciona',
         content:
-          'A plataforma disponibiliza motores dedicados para sorteios tradicionais (por moedas ou comentários) e o módulo avançado TIKTOK LIVE PRO, capaz de acompanhar eventos públicos de presentes em tempo real, converter moedas enviadas em bilhetes numerados individualmente e congelar listas imutáveis antes de cada apuração.',
+          'A plataforma disponibiliza motores dedicados para sorteios tradicionais (por moedas e bilhetes) e os módulos exclusivos do plano PRO (TIKTOK LIVE PRO e Sorteador de Comentários do TikTok), capazes de acompanhar eventos públicos de presentes em tempo real, converter moedas enviadas em bilhetes numerados individualmente, extrair comentários e congelar listas imutáveis antes de cada apuração.',
       },
       {
         id: 'compromisso',
@@ -130,7 +131,7 @@ export const INITIAL_LEGAL_DOCUMENTS: LegalDocument[] = [
     id: 'termos-de-uso',
     slug: 'termos-de-uso',
     title: 'Termos de Uso',
-    subtitle: 'Regras contratuais de utilização da plataforma GIO DA SORTE PRO',
+    subtitle: 'Regras contratuais de utilização da plataforma GIO DA SORTE',
     category: 'LEGAL',
     version: '1.0.0',
     publishedAt: BASE_TIMESTAMP,
@@ -150,13 +151,13 @@ export const INITIAL_LEGAL_DOCUMENTS: LegalDocument[] = [
         id: 'objeto',
         title: '1. Objeto e Aceitação',
         content:
-          'Estes Termos de Uso regulam o acesso e a utilização da plataforma GIO DA SORTE PRO. Ao criar uma conta, conectar integrações ou utilizar qualquer funcionalidade, o usuário declara ter lido, compreendido e aceitado integralmente este instrumento.',
+          'Estes Termos de Uso regulam o acesso e a utilização da plataforma GIO DA SORTE. Ao criar uma conta, conectar integrações ou utilizar qualquer funcionalidade, o usuário declara ter lido, compreendido e aceitado integralmente este instrumento.',
       },
       {
         id: 'responsabilidade-organizador',
         title: '2. Responsabilidade Exclusiva do Organizador',
         content:
-          'O GIO DA SORTE PRO fornece exclusivamente infraestrutura tecnológica de processamento e sorteio. O organizador da campanha ou transmissão é o único e exclusivo responsável pela definição das regras promocionais, obtenção de eventuais autorizações governamentais ou regulatórias exigidas em sua jurisdição, cumprimento da legislação aplicável e entrega efetiva dos prêmios prometidos aos participantes.',
+          'O GIO DA SORTE fornece exclusivamente infraestrutura tecnológica de processamento e sorteio. O organizador da campanha ou transmissão é o único e exclusivo responsável pela definição das regras promocionais, obtenção de eventuais autorizações governamentais ou regulatórias exigidas em sua jurisdição, cumprimento da legislação aplicável e entrega efetiva dos prêmios prometidos aos participantes.',
       },
       {
         id: 'contas-e-seguranca',
@@ -185,7 +186,7 @@ export const INITIAL_LEGAL_DOCUMENTS: LegalDocument[] = [
     isMandatoryAcceptance: true,
     status: 'PUBLISHED',
     summary:
-      'Detalha quais dados pessoais são tratados pelo GIO DA SORTE PRO, as finalidades operacionais e de auditoria, o tratamento de dados oriundos do TikTok e como exercer os direitos previstos na LGPD (Lei nº 13.709/2018).',
+      'Detalha quais dados pessoais são tratados pelo GIO DA SORTE, as finalidades operacionais e de auditoria, o tratamento de dados oriundos do TikTok e como exercer os direitos previstos na LGPD (Lei nº 13.709/2018).',
     relatedSlugs: [
       'politica-de-cookies',
       'politica-de-exclusao-de-conta-e-dados',
@@ -429,14 +430,14 @@ export const INITIAL_LEGAL_DOCUMENTS: LegalDocument[] = [
     isMandatoryAcceptance: false,
     status: 'PUBLISHED',
     summary:
-      'Esclarece que o GIO DA SORTE PRO é uma plataforma independente, não afiliada nem endossada pelo TikTok / ByteDance, e detalha a separação técnica entre Login Kit OAuth 2.0 e captura Webcast.',
+      'Esclarece que o GIO DA SORTE é uma plataforma independente, não afiliada nem endossada pelo TikTok / ByteDance, e detalha a separação técnica entre Login Kit OAuth 2.0 e captura Webcast.',
     relatedSlugs: ['sobre-nos', 'termos-de-uso', 'aviso-legal-e-isencao-de-responsabilidade'],
     sections: [
       {
         id: 'independencia-institucional',
         title: '1. Plataforma Independente',
         content:
-          'O GIO DA SORTE PRO é um software independente e não é afiliado, patrocinado, administrado ou endossado pelo TikTok Inc., ByteDance Ltd. ou qualquer uma de suas subsidiárias. A marca TikTok é propriedade exclusiva de seus respectivos titulares.',
+          'O GIO DA SORTE é um software independente e não é afiliado, patrocinado, administrado ou endossado pelo TikTok Inc., ByteDance Ltd. ou qualquer uma de suas subsidiárias. A marca TikTok é propriedade exclusiva de seus respectivos titulares.',
       },
       {
         id: 'separacao-oauth-webcast',
@@ -459,14 +460,14 @@ export const INITIAL_LEGAL_DOCUMENTS: LegalDocument[] = [
     isMandatoryAcceptance: false,
     status: 'PUBLISHED',
     summary:
-      'Delimita a atuação do GIO DA SORTE PRO como provedor de tecnologia e reforça as obrigações legais e promocionais cabíveis a cada organizador.',
+      'Delimita a atuação do GIO DA SORTE como provedor de tecnologia e reforça as obrigações legais e promocionais cabíveis a cada organizador.',
     relatedSlugs: ['termos-de-uso', 'regulamento-de-sorteios-e-campanhas'],
     sections: [
       {
         id: 'natureza-tecnologica',
         title: '1. Natureza Estritamente Tecnológica do Serviço',
         content:
-          'O GIO DA SORTE PRO atua exclusivamente como ferramenta de software para contabilização e sorteio. A plataforma não promove, patrocina, arrecada valores de participantes nem realiza a entrega de prêmios em nome dos organizadores.',
+          'O GIO DA SORTE atua exclusivamente como ferramenta de software para contabilização e sorteio. A plataforma não promove, patrocina, arrecada valores de participantes nem realiza a entrega de prêmios em nome dos organizadores.',
       },
       {
         id: 'conformidade-regulatoria',
@@ -489,7 +490,7 @@ export const INITIAL_LEGAL_DOCUMENTS: LegalDocument[] = [
     isMandatoryAcceptance: false,
     status: 'PUBLISHED',
     summary:
-      'Estabelece as regras de conduta ética e técnica para utilização dos motores de sorteio, APIs e integrações do GIO DA SORTE PRO.',
+      'Estabelece as regras de conduta ética e técnica para utilização dos motores de sorteio, APIs e integrações do GIO DA SORTE.',
     relatedSlugs: ['termos-de-uso', 'politica-antifraude'],
     sections: [
       {
@@ -519,7 +520,7 @@ export const INITIAL_LEGAL_DOCUMENTS: LegalDocument[] = [
     isMandatoryAcceptance: false,
     status: 'PUBLISHED',
     summary:
-      'Descreve a arquitetura de segurança aplicada no GIO DA SORTE PRO, incluindo AES-256-GCM para tokens OAuth, validação de origem CSRF, isolamento de coleções no Firestore e fila durável WAL.',
+      'Descreve a arquitetura de segurança aplicada no GIO DA SORTE, incluindo AES-256-GCM para tokens OAuth, validação de origem CSRF, isolamento de coleções no Firestore e fila durável WAL.',
     relatedSlugs: ['politica-de-privacidade', 'politica-antifraude'],
     sections: [
       {
@@ -546,7 +547,7 @@ export const INITIAL_LEGAL_DOCUMENTS: LegalDocument[] = [
     id: 'central-de-ajuda',
     slug: 'central-de-ajuda',
     title: 'Central de Ajuda e Tutoriais',
-    subtitle: 'Guias passo a passo e respostas rápidas para operar o GIO DA SORTE PRO sem dificuldades',
+    subtitle: 'Guias passo a passo e respostas rápidas para operar o GIO DA SORTE sem dificuldades',
     category: 'SUPORTE',
     version: '1.0.0',
     publishedAt: BASE_TIMESTAMP,
@@ -629,7 +630,7 @@ export const HELP_FAQ_ITEMS: HelpFaqItem[] = [
     category: 'TikTok LIVE & Presentes',
     question: 'Por que o mesmo participante pode enviar vários presentes seguidos e todos são contabilizados?',
     answer:
-      'Porque o GIO DA SORTE PRO utiliza identificação individual por evento (eventId/msgId original ou assinatura técnica de alta precisão com delta de combo). A deduplicação bloqueia apenas retransmissões técnicas idênticas da rede, garantindo que cada Rosa, Leão ou combo legítimo enviado pelo mesmo usuário seja exibido no feed e gere moedas/bilhetes normalmente.',
+      'Porque o GIO DA SORTE utiliza identificação individual por evento (eventId/msgId original ou assinatura técnica de alta precisão com delta de combo). A deduplicação bloqueia apenas retransmissões técnicas idênticas da rede, garantindo que cada Rosa, Leão ou combo legítimo enviado pelo mesmo usuário seja exibido no feed e gere moedas/bilhetes normalmente.',
   },
   {
     id: 'faq-2',
@@ -778,9 +779,13 @@ export async function saveLegalDocumentDraft(
 
   if (isBrowserRuntime && updated.draftContent) {
     try {
+      const authHeaders = await getAuthBearerHeaders({
+        'Content-Type': 'application/json',
+        'x-gio-admin-access': 'authorized',
+      });
       await fetch('/api/legal/documents/draft', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-gio-admin-access': 'authorized' },
+        headers: authHeaders,
         body: JSON.stringify({
           slug,
           draftVersion: updated.draftContent.version,
@@ -866,9 +871,13 @@ export async function publishLegalDocumentVersion(
 
   if (isBrowserRuntime) {
     try {
+      const authHeaders = await getAuthBearerHeaders({
+        'Content-Type': 'application/json',
+        'x-gio-admin-access': 'authorized',
+      });
       await fetch('/api/legal/documents/publish', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-gio-admin-access': 'authorized' },
+        headers: authHeaders,
         body: JSON.stringify({
           slug,
           newVersion: updatedDoc.version,
@@ -1188,9 +1197,13 @@ export async function updateLgpdRequestStatusAdmin(
 
   if (isBrowserRuntime) {
     try {
+      const authHeaders = await getAuthBearerHeaders({
+        'Content-Type': 'application/json',
+        'x-gio-admin-access': 'authorized',
+      });
       await fetch(`/api/lgpd/requests/${encodeURIComponent(requestId)}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-gio-admin-access': 'authorized' },
+        headers: authHeaders,
         body: JSON.stringify({ status, adminResponse, handledBy }),
       });
     } catch {}
@@ -1313,9 +1326,13 @@ export async function updateSupportTicketAdmin(
 
   if (isBrowserRuntime) {
     try {
+      const authHeaders = await getAuthBearerHeaders({
+        'Content-Type': 'application/json',
+        'x-gio-admin-access': 'authorized',
+      });
       await fetch(`/api/support/tickets/${encodeURIComponent(ticketId)}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-gio-admin-access': 'authorized' },
+        headers: authHeaders,
         body: JSON.stringify({ status, adminReply }),
       });
     } catch {}
@@ -1377,9 +1394,13 @@ export async function saveCompanyLegalSettings(
 
   if (isBrowserRuntime) {
     try {
+      const authHeaders = await getAuthBearerHeaders({
+        'Content-Type': 'application/json',
+        'x-gio-admin-access': 'authorized',
+      });
       await fetch('/api/admin/company-settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-gio-admin-access': 'authorized' },
+        headers: authHeaders,
         body: JSON.stringify(updated),
       });
     } catch {}
@@ -1456,9 +1477,13 @@ export async function saveCommercialSubscriptionConfig(
 
   if (isBrowserRuntime) {
     try {
+      const authHeaders = await getAuthBearerHeaders({
+        'Content-Type': 'application/json',
+        'x-gio-admin-access': 'authorized',
+      });
       await fetch('/api/admin/subscription-settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-gio-admin-access': 'authorized' },
+        headers: authHeaders,
         body: JSON.stringify(updated),
       });
     } catch {}

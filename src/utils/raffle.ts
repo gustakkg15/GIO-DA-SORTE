@@ -1,5 +1,12 @@
 import * as XLSX from 'xlsx';
-import { Participant, RaffleSettings, ComputedRaffle, Winner } from '../types';
+import {
+  Participant,
+  RaffleSettings,
+  ComputedRaffle,
+  Winner,
+  CanonicalTicketEntry,
+  TraditionalDrawProofV2,
+} from '../types';
 
 export const STORAGE_KEY = 'sorteio-moedas-v2';
 
@@ -428,3 +435,248 @@ export function generateRaffleCode(): string {
   return `GIO-${rand}`;
 }
 
+/**
+ * Byte-by-byte UTF-8 comparator (isomorphic across Node.js and browsers).
+ */
+export function compareUtf8Bytes(a: string, b: string): number {
+  const encoder = new TextEncoder();
+  const bufA = encoder.encode(a);
+  const bufB = encoder.encode(b);
+  const minLen = Math.min(bufA.length, bufB.length);
+  for (let i = 0; i < minLen; i++) {
+    if (bufA[i] !== bufB[i]) {
+      return bufA[i] - bufB[i];
+    }
+  }
+  return bufA.length - bufB.length;
+}
+
+/**
+ * Frozen Normative Specification (Phases 1.5.10 / 1.5.11 / 1.6.8):
+ * Deterministically normalizes, validates, sorts, and serializes the eligible ticket roster.
+ * Also returns the sorted array of canonical tickets so that `winningIndex` maps 1:1 to `sortedTickets[winningIndex]`.
+ */
+export function canonicalizeRosterStrictWithTickets(rawTickets: CanonicalTicketEntry[]): {
+  canonicalString: string;
+  sortedTickets: CanonicalTicketEntry[];
+} {
+  if (!Array.isArray(rawTickets) || rawTickets.length === 0) {
+    throw new Error('EMPTY_ROSTER_NOT_ALLOWED');
+  }
+
+  const normalized: CanonicalTicketEntry[] = rawTickets.map((t, idx) => {
+    if (!t || typeof t !== 'object') {
+      throw new Error(`INVALID_TICKET_AT_INDEX_${idx}`);
+    }
+    if (typeof t.participantId !== 'string' || typeof t.name !== 'string') {
+      throw new Error(`INVALID_TICKET_TYPES_AT_INDEX_${idx}`);
+    }
+    if (!Number.isSafeInteger(t.number) || t.number < 0) {
+      throw new Error(`INVALID_TICKET_NUMBER_AT_INDEX_${idx}`);
+    }
+
+    const cleanId = t.participantId
+      .normalize('NFC')
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+      .trim();
+    const cleanName = t.name
+      .normalize('NFC')
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+      .trim();
+
+    if (!cleanId || !cleanName) {
+      throw new Error(`EMPTY_TICKET_FIELD_AT_INDEX_${idx}`);
+    }
+
+    return {
+      participantId: cleanId,
+      number: t.number,
+      name: cleanName,
+    };
+  });
+
+  normalized.sort((a, b) => {
+    if (a.number !== b.number) {
+      return a.number - b.number;
+    }
+    return compareUtf8Bytes(a.participantId, b.participantId);
+  });
+
+  const canonicalString = normalized
+    .map((t) => `${t.participantId}:${t.number}:${t.name}`)
+    .join('\n');
+
+  return {
+    canonicalString,
+    sortedTickets: normalized,
+  };
+}
+
+/**
+ * Frozen Normative Specification: returns the exact canonical roster string (`participantId:number:name` joined by `\n`).
+ */
+export function canonicalizeRosterStrict(rawTickets: CanonicalTicketEntry[]): string {
+  return canonicalizeRosterStrictWithTickets(rawTickets).canonicalString;
+}
+
+/**
+ * RFC 8785 (JCS) deterministic JSON canonicalization.
+ */
+export function canonicalizeJSON(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return '[' + value.map((item) => canonicalizeJSON(item === undefined ? null : item)).join(',') + ']';
+  }
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj)
+    .filter((k) => obj[k] !== undefined)
+    .sort();
+  const entries = keys.map((k) => `${JSON.stringify(k)}:${canonicalizeJSON(obj[k])}`);
+  return '{' + entries.join(',') + '}';
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  if (typeof hex !== 'string' || hex.length % 2 !== 0 || !/^[0-9a-fA-F]+$/.test(hex)) {
+    throw new Error('INVALID_HEX_STRING');
+  }
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i++) {
+    out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  }
+  return out;
+}
+
+/**
+ * Isomorphic (WebCrypto / Node 22) client & third-party auditor verification of a `TraditionalDrawProofV2`.
+ * Verifies:
+ * 1. `C_server = SHA256(utf8(S_server || ":" || Salt))`
+ * 2. Optional `H_roster = SHA256(utf8(canonicalizeRosterStrict(rawTickets)))`
+ * 3. `M_base = "GIO_PF_V2:" || H_roster || ":" || E_client || ":" || drawNonce || ":" || drawId || ":" || fencingToken || ":" || rosterVersion || ":" || drawSequence`
+ * 4. `HMAC-SHA256(Buffer.from(S_server, "hex"), utf8(M_base || ":" || i))` with 8 uint32BE words and Rejection Sampling (`Limit_N = floor(2^32 / N) * N`).
+ */
+export async function verifyTraditionalDrawProofWeb(
+  proof: TraditionalDrawProofV2,
+  rawTickets?: CanonicalTicketEntry[]
+): Promise<{
+  valid: boolean;
+  reason?: string;
+  computedCommitmentHash?: string;
+  computedRosterHash?: string;
+  computedWinningIndex?: number;
+}> {
+  try {
+    const encoder = new TextEncoder();
+    const commitmentInput = encoder.encode(`${proof.serverSeed}:${proof.salt}`);
+    const commitmentDigest = await crypto.subtle.digest('SHA-256', commitmentInput);
+    const computedCommitmentHash = bytesToHex(new Uint8Array(commitmentDigest));
+
+    if (computedCommitmentHash !== proof.commitmentHash) {
+      return {
+        valid: false,
+        reason: 'COMMITMENT_HASH_MISMATCH',
+        computedCommitmentHash,
+      };
+    }
+
+    let sortedTickets: CanonicalTicketEntry[] | undefined;
+    if (rawTickets && rawTickets.length > 0) {
+      const canonical = canonicalizeRosterStrictWithTickets(rawTickets);
+      const rosterDigest = await crypto.subtle.digest('SHA-256', encoder.encode(canonical.canonicalString));
+      const computedRosterHash = bytesToHex(new Uint8Array(rosterDigest));
+      if (computedRosterHash !== proof.rosterSha256Hash) {
+        return {
+          valid: false,
+          reason: 'ROSTER_HASH_MISMATCH',
+          computedCommitmentHash,
+          computedRosterHash,
+        };
+      }
+      sortedTickets = canonical.sortedTickets;
+    }
+
+    const totalTickets = proof.totalEligibleTickets;
+    if (!Number.isSafeInteger(totalTickets) || totalTickets <= 0) {
+      return { valid: false, reason: 'INVALID_TOTAL_ELIGIBLE_TICKETS' };
+    }
+    if (!Number.isSafeInteger(proof.fencingToken) || proof.fencingToken <= 0) {
+      return { valid: false, reason: 'INVALID_FENCING_TOKEN' };
+    }
+
+    const mBase = [
+      'GIO_PF_V2',
+      proof.rosterSha256Hash,
+      proof.clientEntropy,
+      proof.drawNonce,
+      proof.drawId,
+      String(proof.fencingToken),
+      String(proof.rosterVersion),
+      String(proof.drawSequence),
+    ].join(':');
+
+    const keyBytes = hexToBytes(proof.serverSeed);
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw',
+      keyBytes as unknown as BufferSource,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+
+    const TWO_POW_32 = 4294967296;
+    const limitN = Math.floor(TWO_POW_32 / totalTickets) * totalTickets;
+
+    for (let blockIdx = 0; blockIdx < 100; blockIdx++) {
+      const blockMessage = encoder.encode(`${mBase}:${blockIdx}`);
+      const sigBuffer = await crypto.subtle.sign('HMAC', cryptoKey, blockMessage);
+      const view = new DataView(sigBuffer);
+
+      for (let wordOffset = 0; wordOffset < 32; wordOffset += 4) {
+        const u = view.getUint32(wordOffset, false); // big-endian
+        if (u < limitN) {
+          const computedWinningIndex = u % totalTickets;
+          if (computedWinningIndex !== proof.winningIndex) {
+            return {
+              valid: false,
+              reason: 'WINNING_INDEX_MISMATCH',
+              computedCommitmentHash,
+              computedWinningIndex,
+            };
+          }
+          if (sortedTickets) {
+            const expectedTicket = sortedTickets[computedWinningIndex];
+            if (
+              !expectedTicket ||
+              expectedTicket.number !== proof.winningNumber ||
+              expectedTicket.participantId !== proof.winnerParticipantId
+            ) {
+              return {
+                valid: false,
+                reason: 'WINNING_TICKET_MISMATCH',
+                computedCommitmentHash,
+                computedWinningIndex,
+              };
+            }
+          }
+          return {
+            valid: true,
+            computedCommitmentHash,
+            computedRosterHash: proof.rosterSha256Hash,
+            computedWinningIndex,
+          };
+        }
+      }
+    }
+
+    return { valid: false, reason: 'REJECTION_SAMPLING_EXHAUSTED' };
+  } catch (err) {
+    return { valid: false, reason: (err as Error).message };
+  }
+}

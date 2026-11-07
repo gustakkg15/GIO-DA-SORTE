@@ -1,4 +1,4 @@
-import { TikTokComment, TikTokFilterSettings, TikTokVideoInfo } from '../types';
+import type { TikTokComment, TikTokFilterSettings, TikTokVideoInfo } from '../types.ts';
 
 /**
  * Validates and parses TikTok video URLs

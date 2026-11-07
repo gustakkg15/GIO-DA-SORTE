@@ -1,15 +1,19 @@
-import express, { Request, Response } from 'express';
+import 'dotenv/config';
+import express, { type Request, type Response } from 'express';
+import fs from 'fs';
 import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { doc, getDoc, setDoc, runTransaction } from 'firebase/firestore';
-import { db } from './src/firebase.js';
-import { tiktokAdapter } from './src/server/tiktokLiveAdapter.js';
-import { tiktokEventQueue, SequencedSseFrame } from './src/server/tiktokEventQueue.js';
-import { tiktokDiagnosticService } from './src/server/tiktokDiagnosticService.js';
+import { db } from './src/firebase.ts';
+import { tiktokAdapter } from './src/server/tiktokLiveAdapter.ts';
+import { tiktokEventQueue, type SequencedSseFrame } from './src/server/tiktokEventQueue.ts';
+import { tiktokDiagnosticService } from './src/server/tiktokDiagnosticService.ts';
 import {
   getProPlanEntitlement,
   setProPlanTier,
+  registerSessionOwner,
+  getRegisteredSessionOwner,
   getOrCreateLiveSession,
   getOrganizerRaffleDefaults,
   saveOrganizerRaffleDefaults,
@@ -27,7 +31,7 @@ import {
   selectUniformRandomIndex,
   recordAuditLog,
   previewLegacyOwnershipMigration,
-} from './src/utils/tiktokLiveService.js';
+} from './src/utils/tiktokLiveService.ts';
 import {
   createCampaign,
   updateCampaignRulesConfig,
@@ -40,12 +44,12 @@ import {
   advanceCampaignCycle,
   updateDrawDeliveryStatus,
   executeUnclaimedRedraw,
-} from './src/utils/campaignService.js';
+} from './src/utils/campaignService.ts';
 import {
   loadTikTokComments,
   parseImportedComments,
   filterComments,
-} from './src/utils/tiktok.js';
+} from './src/utils/tiktok.ts';
 import {
   fetchAllLegalDocuments,
   saveLegalDocumentDraft,
@@ -65,19 +69,20 @@ import {
   getPendingCompanyFields,
   fetchCommercialSubscriptionConfig,
   saveCommercialSubscriptionConfig,
-} from './src/utils/legalAndComplianceService.js';
-import {
+} from './src/utils/legalAndComplianceService.ts';
+import type {
   SubscriptionStatusState,
   LegalDocumentSlug,
   CommercialPlanId,
   TikTokComment,
   TikTokFilterSettings,
   TikTokWinner,
-} from './src/types.js';
+  TraditionalDrawPrecommitRecord,
+} from './src/types.ts';
 import {
   mercadoPagoSubscriptionService,
   redactSensitiveMpData,
-} from './src/server/mercadoPagoSubscriptionService.js';
+} from './src/server/mercadoPagoSubscriptionService.ts';
 import {
   requireFirebaseAuth,
   requireProPlan,
@@ -86,11 +91,11 @@ import {
   verifyFirestoreResourceOwnership,
   buildEntitlementFromSubscriptionRecord,
   setCustomTokenVerifierForTests,
-} from './src/server/firebaseAdminAuth.js';
+} from './src/server/firebaseAdminAuth.ts';
 import {
   issueSseStreamTicket,
   consumeSseStreamTicket,
-} from './src/server/sseTicketService.js';
+} from './src/server/sseTicketService.ts';
 import {
   tiktokOAuthService,
   DEV_APP_ORIGIN,
@@ -105,14 +110,21 @@ import {
   diagnoseOAuthConfiguration,
   parseCookies,
   OAuthSecurityError,
-} from './src/server/tiktokOAuthService.js';
+} from './src/server/tiktokOAuthService.ts';
+import {
+  traditionalRaffleService,
+  TraditionalRaffleError,
+} from './src/server/traditionalRaffleService.ts';
+import { requireWorkerOrFirebaseAuth } from './src/server/workerOidcAuth.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const httpServer = http.createServer(app);
-const PORT = 3000;
+const parsedPort = Number.parseInt(process.env.PORT || '3000', 10);
+const PORT = Number.isFinite(parsedPort) && parsedPort > 0 ? parsedPort : 3000;
+const HOST = '0.0.0.0';
 
 app.use(express.json());
 
@@ -123,13 +135,21 @@ const activeSseConnections = new Map<
 >();
 
 // Wire TikTokLiveAdapter directly into the non-blocking Durable Event Queue (WAL + Micro-Batch Firestore Persistence)
-// Enforces PRO plan entitlement on the backend before accepting gift accounting or ticket issuance.
+// Enforces PRO plan entitlement per session ownerUid on the backend before accepting gift accounting or ticket issuance.
 tiktokAdapter.onGift((event, _streak, capturePerfStart) => {
-  const plan = getProPlanEntitlement();
+  const eventOwnerUid =
+    event.ownerUid ||
+    getRegisteredSessionOwner(event.sessionId) ||
+    tiktokAdapter.getCurrentOwnerUid() ||
+    activeLiveConnectionOwnerUid ||
+    undefined;
+  const plan = getProPlanEntitlement(eventOwnerUid);
   if (!plan.active) {
     return;
   }
-  tiktokEventQueue.enqueueGiftEvent(event, capturePerfStart);
+  const enrichedEvent =
+    eventOwnerUid && !event.ownerUid ? { ...event, ownerUid: eventOwnerUid } : event;
+  tiktokEventQueue.enqueueGiftEvent(enrichedEvent, capturePerfStart);
 });
 
 // ==========================================
@@ -310,11 +330,11 @@ async function handleTikTokOAuthCallback(req: Request, res: Response) {
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
-    <title>Autenticação TikTok — GIO DA SORTE PRO</title>
+    <title>Autenticação TikTok — GIO DA SORTE</title>
   </head>
   <body style="background:#080B11;color:#F8FAFC;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;padding:24px;text-align:center;">
     <div style="max-width:420px;padding:24px;border-radius:16px;background:rgba(15,23,42,0.9);border:1px solid rgba(255,255,255,0.1);">
-      <h2 style="margin:0 0 8px 0;font-size:16px;color:#00F2FE;">GIO DA SORTE PRO</h2>
+      <h2 style="margin:0 0 8px 0;font-size:16px;color:#00F2FE;">GIO DA SORTE</h2>
       <p style="margin:0;font-size:13px;color:#CBD5E1;line-height:1.5;">${messageText}</p>
     </div>
     <script>
@@ -442,12 +462,13 @@ app.post('/api/tiktok/auth/logout', async (req: Request, res: Response) => {
 // TIKTOK LIVE PRO — PLAN VALIDATION & SOURCE TRANSPARENCY
 // ==========================================
 
-// Track active LIVE room ownerUid to enforce ownership on disconnect and stream operations
+// Track active LIVE room ownerUid, sessionId, and fencingToken to enforce ownership and prevent stale lease commits
 let activeLiveConnectionOwnerUid: string | null = null;
 let activeLiveConnectionSessionId: string | null = null;
+let activeLiveConnectionFencingToken = 0;
 let serverInstanceId = `srv_${process.pid}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-interface PersistedWebcastRuntimeState {
+export interface PersistedWebcastRuntimeState {
   instanceId: string;
   ownerUid: string;
   sessionId: string;
@@ -460,13 +481,65 @@ interface PersistedWebcastRuntimeState {
   lastKnownState: string;
   updatedAt: number;
   expiresAt: number;
+  fencingToken: number;
+}
+
+export interface WebcastLockTxContext {
+  get: () => Promise<PersistedWebcastRuntimeState | null>;
+  set: (nextState: PersistedWebcastRuntimeState) => Promise<void> | void;
+}
+
+export interface ServerRuntimeTestHooks {
+  bypassConnectRouteMutex?: boolean;
+  customLockTxRunner?: (<T>(fn: (tx: WebcastLockTxContext) => Promise<T>) => Promise<T>) | null;
+  customLockReader?: (() => Promise<PersistedWebcastRuntimeState | null>) | null;
+  customLockWriter?: ((state: PersistedWebcastRuntimeState) => Promise<void>) | null;
+  customRenewLeaseRunner?: ((params: any) => Promise<any>) | null;
+  customGetOrCreateLiveSession?: typeof getOrCreateLiveSession | null;
+  customRestoreSessionFromFirestore?: ((sessionId: string) => Promise<{
+    restoredStreaks: number;
+    restoredEvents: number;
+    sessionFound?: boolean;
+    ownerUid?: string;
+    username?: string;
+    activeRuleId?: string;
+    currentRate?: number;
+  }>) | null;
+  customAdapterConnect?: typeof tiktokAdapter.connect | null;
+}
+
+let serverTestHooks: ServerRuntimeTestHooks = {};
+
+export function setServerRuntimeTestHooks(hooks: ServerRuntimeTestHooks | null): void {
+  serverTestHooks = hooks || {};
+}
+
+export function getServerRuntimeTestState() {
+  return {
+    activeLiveConnectionOwnerUid,
+    activeLiveConnectionSessionId,
+    activeLiveConnectionFencingToken,
+    serverInstanceId,
+    cachedRuntimeLockState,
+    adapterCurrentSessionId: tiktokAdapter.getRawCurrentSessionId(),
+    adapterCurrentOwnerUid: tiktokAdapter.getCurrentOwnerUid(),
+    adapterState: tiktokAdapter.getStatus().state,
+  };
+}
+
+export function resetServerRuntimeStateForTests(): void {
+  activeLiveConnectionOwnerUid = null;
+  activeLiveConnectionSessionId = null;
+  activeLiveConnectionFencingToken = 0;
+  cachedRuntimeLockState = null;
+  tiktokAdapter.resetMemoryStateForSimulatedRestart();
 }
 
 const WEBCAST_LOCK_LEASE_MS = 45_000;
 let cachedRuntimeLockState: PersistedWebcastRuntimeState | null = null;
 let connectRouteMutexChain: Promise<unknown> = Promise.resolve();
 
-function withConnectRouteMutex<T>(task: () => Promise<T>): Promise<T> {
+export function withConnectRouteMutex<T>(task: () => Promise<T>): Promise<T> {
   const next = connectRouteMutexChain.then(task, task);
   connectRouteMutexChain = next.catch(() => {});
   return next;
@@ -476,7 +549,34 @@ function getGlobalWebcastLockRef() {
   return doc(db, 'sessions', '_system_runtime_lock', 'locks', 'global_webcast_lock');
 }
 
-async function readPersistedWebcastRuntimeState(): Promise<PersistedWebcastRuntimeState | null> {
+async function runWebcastLockTransaction<T>(
+  fn: (txCtx: WebcastLockTxContext) => Promise<T>
+): Promise<T> {
+  if (serverTestHooks.customLockTxRunner) {
+    return await serverTestHooks.customLockTxRunner(fn);
+  }
+  const lockRef = getGlobalWebcastLockRef();
+  return await runTransaction(db, async (tx) => {
+    return await fn({
+      get: async () => {
+        const snap = await tx.get(lockRef);
+        return snap.exists() ? (snap.data() as PersistedWebcastRuntimeState) : null;
+      },
+      set: (nextState: PersistedWebcastRuntimeState) => {
+        tx.set(lockRef, nextState, { merge: true });
+      },
+    });
+  });
+}
+
+export async function readPersistedWebcastRuntimeState(): Promise<PersistedWebcastRuntimeState | null> {
+  if (serverTestHooks.customLockReader) {
+    const customState = await serverTestHooks.customLockReader();
+    if (customState) {
+      cachedRuntimeLockState = customState;
+    }
+    return customState;
+  }
   try {
     const snap = await getDoc(getGlobalWebcastLockRef());
     if (snap.exists()) {
@@ -490,8 +590,12 @@ async function readPersistedWebcastRuntimeState(): Promise<PersistedWebcastRunti
   return cachedRuntimeLockState;
 }
 
-async function persistWebcastRuntimeState(state: PersistedWebcastRuntimeState): Promise<void> {
+export async function persistWebcastRuntimeState(state: PersistedWebcastRuntimeState): Promise<void> {
   cachedRuntimeLockState = state;
+  if (serverTestHooks.customLockWriter) {
+    await serverTestHooks.customLockWriter(state);
+    return;
+  }
   try {
     await setDoc(getGlobalWebcastLockRef(), state, { merge: true });
   } catch {
@@ -499,7 +603,71 @@ async function persistWebcastRuntimeState(state: PersistedWebcastRuntimeState): 
   }
 }
 
-async function acquireOrCoalesceWebcastLock(params: {
+export async function verifyActiveLeaseFencingToken(
+  expectedOwnerUid: string,
+  expectedSessionId: string,
+  expectedFencingToken: number
+): Promise<{
+  valid: boolean;
+  reason?: string;
+  currentLockState?: PersistedWebcastRuntimeState | null;
+}> {
+  const persisted = await readPersistedWebcastRuntimeState();
+  const now = Date.now();
+  if (persisted) {
+    if ((persisted.fencingToken || 0) > expectedFencingToken) {
+      return {
+        valid: false,
+        reason: `Fencing token obsoleto (esperado=${expectedFencingToken}, atual=${persisted.fencingToken}). Operação descartada após perda do lease.`,
+        currentLockState: persisted,
+      };
+    }
+    if (
+      persisted.shouldBeConnected &&
+      persisted.expiresAt > now &&
+      persisted.ownerUid &&
+      persisted.ownerUid !== expectedOwnerUid
+    ) {
+      return {
+        valid: false,
+        reason: 'Lease adquirido por outro organizador durante a execução.',
+        currentLockState: persisted,
+      };
+    }
+    if (
+      persisted.shouldBeConnected &&
+      persisted.expiresAt > now &&
+      persisted.sessionId &&
+      expectedSessionId &&
+      persisted.sessionId !== expectedSessionId
+    ) {
+      return {
+        valid: false,
+        reason: 'Lease transferido para outra sessão durante a execução.',
+        currentLockState: persisted,
+      };
+    }
+  }
+
+  if (activeLiveConnectionFencingToken > expectedFencingToken) {
+    return {
+      valid: false,
+      reason: `Fencing token em memória (${activeLiveConnectionFencingToken}) é superior ao token da operação (${expectedFencingToken}).`,
+      currentLockState: persisted,
+    };
+  }
+  if (activeLiveConnectionOwnerUid && activeLiveConnectionOwnerUid !== expectedOwnerUid) {
+    return {
+      valid: false,
+      reason: 'A conexão ativa em memória pertence a outro organizador.',
+      currentLockState: persisted,
+    };
+  }
+
+  return { valid: true, currentLockState: persisted };
+}
+
+export async function acquireOrCoalesceWebcastLock(params: {
   ownerUid: string;
   sessionId: string;
   roomUsername: string;
@@ -508,6 +676,7 @@ async function acquireOrCoalesceWebcastLock(params: {
   campaignId?: string;
   cycleId?: string;
   requestedInstanceId?: string;
+  isRestoreOperation?: boolean;
 }): Promise<{
   allowed: boolean;
   status: number;
@@ -515,16 +684,15 @@ async function acquireOrCoalesceWebcastLock(params: {
   reason?: string;
   coalescedCrossInstance?: boolean;
   effectiveSessionId: string;
+  fencingToken: number;
   lockState?: PersistedWebcastRuntimeState;
 }> {
   const now = Date.now();
   const callerInstanceId = params.requestedInstanceId || serverInstanceId;
-  const lockRef = getGlobalWebcastLockRef();
 
   try {
-    return await runTransaction(db, async (tx) => {
-      const snap = await tx.get(lockRef);
-      const existing = snap.exists() ? (snap.data() as PersistedWebcastRuntimeState) : null;
+    return await runWebcastLockTransaction(async (tx) => {
+      const existing = await tx.get();
 
       if (existing && existing.shouldBeConnected && existing.expiresAt > now) {
         if (existing.ownerUid && existing.ownerUid !== params.ownerUid) {
@@ -535,14 +703,17 @@ async function acquireOrCoalesceWebcastLock(params: {
             reason:
               'Acesso negado: já existe uma conexão LIVE ativa pertencente a outro organizador autenticado.',
             effectiveSessionId: existing.sessionId,
+            fencingToken: existing.fencingToken || 0,
             lockState: existing,
           };
         }
 
         // Same owner: check if another backend instance actively holds the Webcast connection
         const sameRoom =
+          !params.roomUsername ||
+          !existing.roomUsername ||
           String(existing.roomUsername || '').toLowerCase() ===
-          String(params.roomUsername || '').toLowerCase();
+            String(params.roomUsername || '').toLowerCase();
         const sameOrUnspecifiedSession =
           !params.sessionId ||
           !existing.sessionId ||
@@ -550,6 +721,7 @@ async function acquireOrCoalesceWebcastLock(params: {
           Boolean(params.requestedInstanceId);
 
         if (
+          !params.isRestoreOperation &&
           sameRoom &&
           sameOrUnspecifiedSession &&
           existing.instanceId &&
@@ -560,6 +732,7 @@ async function acquireOrCoalesceWebcastLock(params: {
             status: 200,
             coalescedCrossInstance: true,
             effectiveSessionId: existing.sessionId || params.sessionId,
+            fencingToken: existing.fencingToken || 1,
             lockState: existing,
           };
         }
@@ -576,21 +749,37 @@ async function acquireOrCoalesceWebcastLock(params: {
           ? existing.sessionId
           : params.sessionId;
 
+      const isSameActiveLease =
+        Boolean(existing) &&
+        existing!.shouldBeConnected &&
+        existing!.expiresAt > now &&
+        existing!.ownerUid === params.ownerUid &&
+        existing!.sessionId === resolvedSid &&
+        existing!.instanceId === callerInstanceId;
+
+      const nextFencingToken = isSameActiveLease
+        ? (existing!.fencingToken || 1)
+        : (existing?.fencingToken || 0) + 1;
       const nextLock: PersistedWebcastRuntimeState = {
         instanceId: callerInstanceId,
         ownerUid: params.ownerUid,
         sessionId: resolvedSid,
-        roomUsername: params.roomUsername,
-        activeRuleId: params.activeRuleId,
-        currentRate: params.currentRate,
-        ...(params.campaignId || existing?.campaignId ? { campaignId: params.campaignId || existing?.campaignId } : {}),
-        ...(params.cycleId || existing?.cycleId ? { cycleId: params.cycleId || existing?.cycleId } : {}),
+        roomUsername: params.roomUsername || existing?.roomUsername || '',
+        activeRuleId: params.activeRuleId || existing?.activeRuleId || 'rule_default_100',
+        currentRate: params.currentRate || existing?.currentRate || 100,
+        ...(params.campaignId || existing?.campaignId
+          ? { campaignId: params.campaignId || existing?.campaignId }
+          : {}),
+        ...(params.cycleId || existing?.cycleId
+          ? { cycleId: params.cycleId || existing?.cycleId }
+          : {}),
         shouldBeConnected: true,
         lastKnownState: tiktokAdapter.getStatus().state || 'CONNECTING',
         updatedAt: now,
         expiresAt: now + WEBCAST_LOCK_LEASE_MS,
+        fencingToken: nextFencingToken,
       };
-      tx.set(lockRef, nextLock, { merge: true });
+      await tx.set(nextLock);
       cachedRuntimeLockState = nextLock;
 
       return {
@@ -598,77 +787,327 @@ async function acquireOrCoalesceWebcastLock(params: {
         status: 200,
         coalescedCrossInstance: false,
         effectiveSessionId: resolvedSid,
+        fencingToken: nextFencingToken,
         lockState: nextLock,
       };
     });
-  } catch {
-    // Fallback when transaction fails transiently
-    const nextLock: PersistedWebcastRuntimeState = {
-      instanceId: callerInstanceId,
-      ownerUid: params.ownerUid,
-      sessionId: params.sessionId,
-      roomUsername: params.roomUsername,
-      activeRuleId: params.activeRuleId,
-      currentRate: params.currentRate,
-      ...(params.campaignId ? { campaignId: params.campaignId } : {}),
-      ...(params.cycleId ? { cycleId: params.cycleId } : {}),
-      shouldBeConnected: true,
-      lastKnownState: tiktokAdapter.getStatus().state || 'CONNECTING',
-      updatedAt: now,
-      expiresAt: now + WEBCAST_LOCK_LEASE_MS,
-    };
-    cachedRuntimeLockState = nextLock;
+  } catch (err) {
+    // P1-LOCK-B4: Fail-closed when Firestore transaction fails (never grant connection locally)
+    const message = err instanceof Error ? err.message : String(err);
     return {
-      allowed: true,
-      status: 200,
-      coalescedCrossInstance: false,
+      allowed: false,
+      status: 503,
+      code: 'LOCK_UNAVAILABLE',
+      reason: `Não foi possível verificar ou adquirir o lock distribuído no Firestore: ${message}`,
       effectiveSessionId: params.sessionId,
-      lockState: nextLock,
+      fencingToken: 0,
     };
   }
 }
 
-async function releaseWebcastLock(ownerUid: string): Promise<void> {
+export async function releaseWebcastLock(
+  ownerUid: string,
+  options?: {
+    sessionId?: string;
+    expectedFencingToken?: number;
+  }
+): Promise<{
+  released: boolean;
+  idempotent: boolean;
+  status: number;
+  code?: string;
+  reason?: string;
+  lockState?: PersistedWebcastRuntimeState | null;
+}> {
+  const cleanOwnerUid = String(ownerUid || '').trim();
   const now = Date.now();
-  const nextLock: PersistedWebcastRuntimeState = {
-    instanceId: serverInstanceId,
-    ownerUid,
-    sessionId: '',
-    roomUsername: '',
-    activeRuleId: 'rule_default_100',
-    currentRate: 100,
-    shouldBeConnected: false,
-    lastKnownState: 'DISCONNECTED',
-    updatedAt: now,
-    expiresAt: 0,
-  };
-  await persistWebcastRuntimeState(nextLock);
+
+  try {
+    return await runWebcastLockTransaction(async (tx) => {
+      const existing = await tx.get();
+
+      if (!existing) {
+        return {
+          released: true,
+          idempotent: true,
+          status: 200,
+          lockState: null,
+        };
+      }
+
+      // Never overwrite a lock belonging to another organizer
+      if (existing.ownerUid && existing.ownerUid !== cleanOwnerUid) {
+        return {
+          released: false,
+          idempotent: false,
+          status: 403,
+          code: 'OWNERSHIP_FORBIDDEN',
+          reason:
+            'Acesso negado: o lock distribuído pertence a outro organizador e não pode ser liberado por esta conta.',
+          lockState: existing,
+        };
+      }
+
+      // Validate expectedFencingToken when provided: never release a newer lease
+      if (
+        options?.expectedFencingToken !== undefined &&
+        (existing.fencingToken || 0) > options.expectedFencingToken
+      ) {
+        return {
+          released: false,
+          idempotent: true,
+          status: 409,
+          code: 'STALE_FENCING_TOKEN',
+          reason:
+            'Não foi possível liberar o lock: um lease mais recente (fencingToken superior) já está ativo.',
+          lockState: existing,
+        };
+      }
+
+      // Validate sessionId when provided and lock is active on a different session
+      if (
+        options?.sessionId &&
+        existing.shouldBeConnected &&
+        existing.sessionId &&
+        existing.sessionId !== options.sessionId
+      ) {
+        return {
+          released: false,
+          idempotent: true,
+          status: 409,
+          code: 'SESSION_MISMATCH',
+          reason: 'Não foi possível liberar o lock: o lease ativo pertence a outra sessão.',
+          lockState: existing,
+        };
+      }
+
+      // Idempotent when already released/disconnected for the same owner
+      if (!existing.shouldBeConnected && existing.lastKnownState === 'DISCONNECTED' && existing.expiresAt === 0) {
+        return {
+          released: true,
+          idempotent: true,
+          status: 200,
+          lockState: existing,
+        };
+      }
+
+      const nextFencingToken = (existing.fencingToken || 0) + 1;
+      const nextLock: PersistedWebcastRuntimeState = {
+        instanceId: serverInstanceId,
+        ownerUid: cleanOwnerUid,
+        sessionId: '',
+        roomUsername: '',
+        activeRuleId: 'rule_default_100',
+        currentRate: 100,
+        shouldBeConnected: false,
+        lastKnownState: 'DISCONNECTED',
+        updatedAt: now,
+        expiresAt: 0,
+        fencingToken: nextFencingToken,
+      };
+      await tx.set(nextLock);
+      cachedRuntimeLockState = nextLock;
+
+      return {
+        released: true,
+        idempotent: false,
+        status: 200,
+        lockState: nextLock,
+      };
+    });
+  } catch (err) {
+    // P1-LOCK-B4: Fail-closed on release failure
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      released: false,
+      idempotent: false,
+      status: 503,
+      code: 'LOCK_UNAVAILABLE',
+      reason: `Não foi possível liberar o lock distribuído no Firestore: ${message}`,
+    };
+  }
 }
 
-// Keep lease alive while adapter has an active or standby session on this instance
-setInterval(() => {
-  const status = tiktokAdapter.getStatus();
-  const rawSid = tiktokAdapter.getRawCurrentSessionId();
-  if (
-    rawSid &&
-    activeLiveConnectionOwnerUid &&
-    (status.state === 'CONNECTED' || status.state === 'CONNECTING' || status.state === 'RECONNECTING')
-  ) {
-    const now = Date.now();
-    void persistWebcastRuntimeState({
-      instanceId: serverInstanceId,
-      ownerUid: activeLiveConnectionOwnerUid,
-      sessionId: rawSid,
-      roomUsername: status.roomUsername || '',
-      activeRuleId: tiktokAdapter.getActiveRuleId(),
-      currentRate: tiktokAdapter.getActiveRate(),
-      shouldBeConnected: true,
-      lastKnownState: status.state,
-      updatedAt: now,
-      expiresAt: now + WEBCAST_LOCK_LEASE_MS,
-    });
+/**
+ * P1-LOCK-B3: Transactional lease renewal for the active session (Heartbeat).
+ * Validates instanceId, ownerUid, sessionId, and fencingToken before extending expiresAt.
+ * Preserves fencingToken on renewal and rejects expired or hijacked leases.
+ */
+export async function renewWebcastLeaseTransaction(params: {
+  instanceId: string;
+  ownerUid: string;
+  sessionId: string;
+  fencingToken: number;
+  lastKnownState?: string;
+  roomUsername?: string;
+  activeRuleId?: string;
+  currentRate?: number;
+  campaignId?: string;
+  cycleId?: string;
+}): Promise<{
+  renewed: boolean;
+  status: number;
+  code?: string;
+  reason?: string;
+  lockState?: PersistedWebcastRuntimeState | null;
+}> {
+  if (serverTestHooks.customRenewLeaseRunner) {
+    return await serverTestHooks.customRenewLeaseRunner(params);
   }
-}, 10_000);
+  const now = Date.now();
+  try {
+    return await runWebcastLockTransaction(async (tx) => {
+      const existing = await tx.get();
+      if (!existing) {
+        return {
+          renewed: false,
+          status: 404,
+          code: 'LEASE_NOT_FOUND',
+          reason: 'Documento de lock não existe no Firestore.',
+        };
+      }
+
+      if (existing.ownerUid !== params.ownerUid) {
+        return {
+          renewed: false,
+          status: 403,
+          code: 'OWNERSHIP_FORBIDDEN',
+          reason: 'O lease pertence a outro organizador.',
+          lockState: existing,
+        };
+      }
+
+      if ((existing.fencingToken || 0) !== params.fencingToken) {
+        return {
+          renewed: false,
+          status: 409,
+          code: 'STALE_FENCING_TOKEN',
+          reason: `Fencing token divergente (esperado=${params.fencingToken}, atual=${existing.fencingToken}).`,
+          lockState: existing,
+        };
+      }
+
+      if (existing.sessionId && params.sessionId && existing.sessionId !== params.sessionId) {
+        return {
+          renewed: false,
+          status: 409,
+          code: 'SESSION_MISMATCH',
+          reason: 'O lease está associado a outra sessão.',
+          lockState: existing,
+        };
+      }
+
+      if (existing.expiresAt <= now) {
+        return {
+          renewed: false,
+          status: 410,
+          code: 'LEASE_EXPIRED',
+          reason: 'O lease expirou no Firestore e não pode ser renovado sem reaquisição.',
+          lockState: existing,
+        };
+      }
+
+      if (existing.instanceId && existing.instanceId !== params.instanceId) {
+        return {
+          renewed: false,
+          status: 409,
+          code: 'INSTANCE_MISMATCH',
+          reason: 'O lease está registrado para outra instância.',
+          lockState: existing,
+        };
+      }
+
+      if (!existing.shouldBeConnected) {
+        return {
+          renewed: false,
+          status: 409,
+          code: 'LEASE_DISCONNECTED',
+          reason: 'O lease já foi marcado como desconectado.',
+          lockState: existing,
+        };
+      }
+
+      const updatedLock: PersistedWebcastRuntimeState = {
+        ...existing,
+        instanceId: params.instanceId,
+        ownerUid: params.ownerUid,
+        sessionId: params.sessionId || existing.sessionId,
+        roomUsername: params.roomUsername || existing.roomUsername,
+        activeRuleId: params.activeRuleId || existing.activeRuleId,
+        currentRate: params.currentRate || existing.currentRate,
+        ...(params.campaignId ? { campaignId: params.campaignId } : {}),
+        ...(params.cycleId ? { cycleId: params.cycleId } : {}),
+        shouldBeConnected: true,
+        lastKnownState: params.lastKnownState || existing.lastKnownState,
+        updatedAt: now,
+        expiresAt: now + WEBCAST_LOCK_LEASE_MS,
+        fencingToken: existing.fencingToken,
+      };
+
+      await tx.set(updatedLock);
+      cachedRuntimeLockState = updatedLock;
+
+      return {
+        renewed: true,
+        status: 200,
+        lockState: updatedLock,
+      };
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      renewed: false,
+      status: 503,
+      code: 'LOCK_UNAVAILABLE',
+      reason: `Falha ao renovar lease no Firestore: ${message}`,
+    };
+  }
+}
+
+const isDirectServerEntry =
+  process.env.GIO_TEST_MODE !== 'true' &&
+  Boolean(process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename));
+
+// P1-LOCK-B3: Transactional heartbeat lease renewal (never blind setDoc)
+if (isDirectServerEntry) {
+  setInterval(async () => {
+    const status = tiktokAdapter.getStatus();
+    const rawSid = tiktokAdapter.getRawCurrentSessionId();
+    const currentOwnerUid = activeLiveConnectionOwnerUid;
+    const currentToken = activeLiveConnectionFencingToken;
+    if (
+      rawSid &&
+      currentOwnerUid &&
+      currentToken > 0 &&
+      (status.state === 'CONNECTED' || status.state === 'CONNECTING' || status.state === 'RECONNECTING')
+    ) {
+      const outcome = await renewWebcastLeaseTransaction({
+        instanceId: serverInstanceId,
+        ownerUid: currentOwnerUid,
+        sessionId: rawSid,
+        fencingToken: currentToken,
+        roomUsername: status.roomUsername || '',
+        activeRuleId: tiktokAdapter.getActiveRuleId(),
+        currentRate: tiktokAdapter.getActiveRate(),
+        lastKnownState: status.state,
+      });
+
+      if (!outcome.renewed) {
+        if (
+          activeLiveConnectionOwnerUid === currentOwnerUid &&
+          activeLiveConnectionFencingToken === currentToken
+        ) {
+          activeLiveConnectionOwnerUid = null;
+          activeLiveConnectionSessionId = null;
+          activeLiveConnectionFencingToken = 0;
+          if (tiktokAdapter.getCurrentOwnerUid() === currentOwnerUid) {
+            void tiktokAdapter.disconnect(true).catch(() => {});
+          }
+        }
+      }
+    }
+  }, 10_000);
+}
 
 let restartRecoveryInFlight: Promise<void> | null = null;
 
@@ -805,9 +1244,9 @@ app.get('/api/tiktok/plan/status', async (req: Request, res: Response) => {
  * or backed by a verified Mercado Pago subscription record.
  */
 app.post('/api/tiktok/plan/tier', async (req: Request, res: Response) => {
-  const authCheck = verifyAdminRequest(req);
+  const authCheck = await verifyAdminRequest(req);
   if (!authCheck.authorized) {
-    return res.status(403).json({ error: authCheck.reason });
+    return res.status(authCheck.status || 401).json({ success: false, error: authCheck.reason });
   }
   const validStates: SubscriptionStatusState[] = [
     'FREE',
@@ -822,44 +1261,19 @@ app.post('/api/tiktok/plan/tier', async (req: Request, res: Response) => {
     ? requestedStatusStateRaw
     : undefined;
   const requestedTier = String(req.body?.tier || 'PRO').toUpperCase() === 'FREE' ? 'FREE' : 'PRO';
-
-  const hasExplicitAdminHeader =
-    req.headers['x-gio-admin-access'] === 'authorized' ||
-    req.headers['x-admin-authorized'] === 'true' ||
-    Boolean(req.headers['x-gio-admin-uid']);
-
-  // Prevent unprivileged frontend self-activation of PRO / ACTIVE without verified subscription or explicit admin override
-  if (
-    requestedTier === 'PRO' &&
-    (!requestedStatusState || requestedStatusState === 'ACTIVE') &&
-    !hasExplicitAdminHeader
-  ) {
-    const firebaseAuth = await verifyAuthenticatedFirebaseUser(req);
-    if (!firebaseAuth.authenticated || !firebaseAuth.uid) {
-      return res.status(401).json({
-        success: false,
-        code: firebaseAuth.code || 'FIREBASE_AUTH_REQUIRED',
-        error:
-          'Ativação direta do plano PRO bloqueada no servidor: envie um Firebase ID Token válido (Authorization: Bearer <token>).',
-      });
-    }
-    const subRecord = await mercadoPagoSubscriptionService.getUserSubscriptionRecord(
-      firebaseAuth.uid,
-      firebaseAuth.email || ''
-    );
-    const evaluatedEntitlement = buildEntitlementFromSubscriptionRecord(subRecord);
-    if (!evaluatedEntitlement.active) {
-      return res.status(403).json({
-        success: false,
-        code: 'PRO_SUBSCRIPTION_NOT_ACTIVE',
-        error: `Acesso PRO negado pelo backend: a conta '${firebaseAuth.uid}' possui status '${subRecord.statusState}' (${subRecord.billingSubStatus}) e não possui assinatura ativa ou período de teste válido.`,
-      });
-    }
+  const targetOwnerUid =
+    typeof req.body?.uid === 'string' && req.body.uid.trim() ? req.body.uid.trim() : undefined;
+  if (!targetOwnerUid) {
+    return res.status(400).json({
+      success: false,
+      code: 'INVALID_OWNER_UID',
+      error: 'Parâmetro uid é obrigatório para modificar o plano de um organizador.',
+    });
   }
 
-  const updated = setProPlanTier(requestedTier, requestedStatusState);
-  if (!updated.active) {
-    // Immediately disconnect active LIVE capture if downgraded or suspended
+  const updated = setProPlanTier(requestedTier, requestedStatusState, targetOwnerUid);
+  if (!updated.active && activeLiveConnectionOwnerUid === targetOwnerUid) {
+    // Immediately disconnect active LIVE capture if the active owner is downgraded or suspended
     tiktokAdapter.disconnect(true).catch(() => {});
   }
   res.json({
@@ -2112,28 +2526,70 @@ app.get(
 );
 
 /**
- * Helper to verify administrative authorization on protected monitor endpoints.
- * Checks for authorized organizer header (`x-gio-admin-access`), active OAuth session cookie,
- * or Firebase Admin UID header.
+ * Helper to cryptographically verify administrative authorization on protected endpoints.
+ * Requires a valid Firebase ID Token in `Authorization: Bearer <token>`.
+ * Validates either:
+ * 1. Firebase Custom Claim `admin === true` or `role === 'admin'`.
+ * 2. Authenticated UID presence in the server-side environment variable `ADMIN_UIDS`.
+ *
+ * Strictly eliminates all client-controlled bypasses: Accept, Referer, ?admin=1,
+ * x-gio-admin-access, x-gio-admin-uid, unauthenticated cookies, or local IP alone.
  */
-function verifyAdminRequest(req: Request): { authorized: boolean; reason?: string } {
+async function verifyAdminRequest(req: Request): Promise<{
+  authorized: boolean;
+  status: 401 | 403 | 200;
+  uid?: string;
+  email?: string;
+  reason?: string;
+}> {
   if (req.headers['x-gio-unauthorized-test'] === 'true') {
-    return { authorized: false, reason: 'Acesso administrativo negado: credencial de administrador ausente ou inválida.' };
+    return {
+      authorized: false,
+      status: 401,
+      reason: 'Acesso administrativo negado: credencial de administrador ausente ou inválida.',
+    };
   }
-  const adminHeader = req.headers['x-gio-admin-access'];
-  const adminUid = req.headers['x-gio-admin-uid'];
-  const cookies = parseCookies(req);
-  const hasSessionCookie = Boolean(cookies[SESSION_COOKIE_NAME]);
-  if (adminHeader === 'authorized' || Boolean(adminUid) || hasSessionCookie || req.query.admin === '1') {
-    return { authorized: true };
+
+  const authResult = await verifyAuthenticatedFirebaseUser(req);
+  if (!authResult.authenticated || !authResult.uid) {
+    return {
+      authorized: false,
+      status: 401,
+      reason:
+        authResult.reason ||
+        'Acesso administrativo negado: autenticação obrigatória via Firebase ID Token no cabeçalho Authorization: Bearer <token>.',
+    };
   }
-  // Allow same-origin internal dashboard requests unless explicitly restricted
-  const referer = String(req.headers.referer || '');
-  const accept = String(req.headers.accept || '');
-  if (referer || accept.includes('application/json') || req.ip === '127.0.0.1' || req.ip === '::1') {
-    return { authorized: true };
+
+  const verifiedUid = authResult.uid;
+  const decodedToken = authResult.decodedToken;
+
+  const hasAdminClaim = Boolean(
+    decodedToken?.admin === true || (decodedToken as any)?.role === 'admin'
+  );
+
+  const configuredAdminUids = (process.env.ADMIN_UIDS || '')
+    .split(',')
+    .map((uid) => uid.trim())
+    .filter(Boolean);
+  const isServerConfiguredAdmin = configuredAdminUids.includes(verifiedUid);
+
+  if (!hasAdminClaim && !isServerConfiguredAdmin) {
+    return {
+      authorized: false,
+      status: 403,
+      uid: verifiedUid,
+      email: authResult.email,
+      reason: `Acesso negado: o usuário '${verifiedUid}' está autenticado, mas não possui privilégios administrativos.`,
+    };
   }
-  return { authorized: false, reason: 'Acesso restrito a administradores autorizados.' };
+
+  return {
+    authorized: true,
+    status: 200,
+    uid: verifiedUid,
+    email: authResult.email,
+  };
 }
 
 /**
@@ -2149,10 +2605,10 @@ app.get('/api/tiktok/status', async (req: Request, res: Response) => {
 /**
  * Real-time Performance & Queue Diagnostics Endpoint (Admin Panel)
  */
-app.get('/api/tiktok/diagnostics', (req: Request, res: Response) => {
-  const authCheck = verifyAdminRequest(req);
+app.get('/api/tiktok/diagnostics', async (req: Request, res: Response) => {
+  const authCheck = await verifyAdminRequest(req);
   if (!authCheck.authorized) {
-    return res.status(403).json({ error: authCheck.reason });
+    return res.status(authCheck.status || 401).json({ success: false, error: authCheck.reason });
   }
 
   const status = tiktokAdapter.getStatus();
@@ -2179,10 +2635,10 @@ app.get('/api/tiktok/diagnostics', (req: Request, res: Response) => {
  * Protected endpoint returning the 9-component health verification, 6-stage event loss classification,
  * monotonic latency percentiles (p50, p95, p99), 4 EPS rates, 4 milestone events, and SSE outbox state.
  */
-app.get('/api/tiktok/monitor/snapshot', (req: Request, res: Response) => {
-  const authCheck = verifyAdminRequest(req);
+app.get('/api/tiktok/monitor/snapshot', async (req: Request, res: Response) => {
+  const authCheck = await verifyAdminRequest(req);
   if (!authCheck.authorized) {
-    return res.status(403).json({ error: authCheck.reason });
+    return res.status(authCheck.status || 401).json({ success: false, error: authCheck.reason });
   }
 
   const status = tiktokAdapter.getStatus();
@@ -2210,10 +2666,10 @@ app.get('/api/tiktok/monitor/snapshot', (req: Request, res: Response) => {
 /**
  * Update SSE Retention Configuration (Admin Only)
  */
-app.post('/api/tiktok/monitor/config', (req: Request, res: Response) => {
-  const authCheck = verifyAdminRequest(req);
+app.post('/api/tiktok/monitor/config', async (req: Request, res: Response) => {
+  const authCheck = await verifyAdminRequest(req);
   if (!authCheck.authorized) {
-    return res.status(403).json({ error: authCheck.reason });
+    return res.status(authCheck.status || 401).json({ success: false, error: authCheck.reason });
   }
 
   const { maxEventsPerSession, retentionWindowMs } = req.body || {};
@@ -2236,9 +2692,9 @@ app.post(
   requireFirebaseAuth,
   requireProPlan,
   async (req: Request, res: Response) => {
-    const authCheck = verifyAdminRequest(req);
+    const authCheck = await verifyAdminRequest(req);
     if (!authCheck.authorized) {
-      return res.status(403).json({ error: authCheck.reason });
+      return res.status(authCheck.status || 401).json({ success: false, error: authCheck.reason });
     }
 
     const authUid = req.authUid!;
@@ -2481,89 +2937,211 @@ app.post(
       }
 
       const sid = lockCheck.effectiveSessionId || requestedSid;
+      const acquiredFencingToken = lockCheck.fencingToken;
 
-      // Persist or validate session ownership in Firestore before opening connection
-      // Automatically loads organizer defaults and binds campaignId / cycleId
-      const liveSession = await getOrCreateLiveSession(
-        sid,
-        targetUser,
-        requestedRate,
-        requestedRuleId,
-        authUid,
-        {
-          campaignId: campaignId ? String(campaignId).trim() : undefined,
-          cycleId: cycleId ? String(cycleId).trim() : undefined,
-          raffleTitle: raffleTitle ? String(raffleTitle).trim() : undefined,
-          prizeName: prizeName ? String(prizeName).trim() : undefined,
-          minCoinsPerGift: minCoinsPerGift !== undefined ? Number(minCoinsPerGift) : undefined,
-          maxTicketsPerUser:
-            maxTicketsPerUser !== undefined && maxTicketsPerUser !== null
-              ? Number(maxTicketsPerUser)
-              : undefined,
-          maxTotalTickets:
-            maxTotalTickets !== undefined && maxTotalTickets !== null
-              ? Number(maxTotalTickets)
-              : undefined,
-          allowDuplicateWinners:
-            allowDuplicateWinners !== undefined ? Boolean(allowDuplicateWinners) : undefined,
+      try {
+        // Persist or validate session ownership in Firestore before opening connection
+        // Automatically loads organizer defaults and binds campaignId / cycleId
+        const createSessionFn = serverTestHooks.customGetOrCreateLiveSession || getOrCreateLiveSession;
+        const liveSession = await createSessionFn(
+          sid,
+          targetUser,
+          requestedRate,
+          requestedRuleId,
+          authUid,
+          {
+            campaignId: campaignId ? String(campaignId).trim() : undefined,
+            cycleId: cycleId ? String(cycleId).trim() : undefined,
+            raffleTitle: raffleTitle ? String(raffleTitle).trim() : undefined,
+            prizeName: prizeName ? String(prizeName).trim() : undefined,
+            minCoinsPerGift: minCoinsPerGift !== undefined ? Number(minCoinsPerGift) : undefined,
+            maxTicketsPerUser:
+              maxTicketsPerUser !== undefined && maxTicketsPerUser !== null
+                ? Number(maxTicketsPerUser)
+                : undefined,
+            maxTotalTickets:
+              maxTotalTickets !== undefined && maxTotalTickets !== null
+                ? Number(maxTotalTickets)
+                : undefined,
+            allowDuplicateWinners:
+              allowDuplicateWinners !== undefined ? Boolean(allowDuplicateWinners) : undefined,
+          }
+        );
+
+        const leaseCheckBeforeCommit = await verifyActiveLeaseFencingToken(
+          authUid,
+          sid,
+          acquiredFencingToken
+        );
+        if (!leaseCheckBeforeCommit.valid) {
+          return {
+            httpStatus: 409,
+            payload: {
+              success: false,
+              code: 'STALE_FENCING_TOKEN',
+              error: leaseCheckBeforeCommit.reason,
+            },
+          };
         }
-      );
 
-      activeLiveConnectionOwnerUid = authUid;
-      activeLiveConnectionSessionId = sid;
-      setProPlanTier('PRO', 'ACTIVE');
+        // If another backend instance already owns the active Webcast stream for this user & room,
+        // do NOT open a duplicate Webcast connection on this instance; return the shared session state
+        if (lockCheck.coalescedCrossInstance) {
+          const restoreFn =
+            serverTestHooks.customRestoreSessionFromFirestore ||
+            ((s: string) => tiktokAdapter.restoreSessionFromFirestore(s));
+          await restoreFn(sid);
+          activeLiveConnectionOwnerUid = authUid;
+          activeLiveConnectionSessionId = sid;
+          activeLiveConnectionFencingToken = acquiredFencingToken;
+          tiktokAdapter.setCurrentOwnerUid(authUid);
+          registerSessionOwner(sid, authUid);
 
-      // If another backend instance already owns the active Webcast stream for this user & room,
-      // do NOT open a duplicate Webcast connection on this instance; return the shared session state
-      if (lockCheck.coalescedCrossInstance) {
-        await tiktokAdapter.restoreSessionFromFirestore(sid);
+          const enrichedStatus = await buildEnrichedTikTokStatus();
+          return {
+            httpStatus: 200,
+            payload: {
+              success: enrichedStatus.state === 'CONNECTED',
+              coalesced: true,
+              coalescedCrossInstance: true,
+              ownerUid: authUid,
+              sessionId: sid,
+              fencingToken: acquiredFencingToken,
+              activeRuleId: requestedRuleId,
+              campaignId: liveSession.campaignId,
+              cycleId: liveSession.cycleId,
+              status: enrichedStatus,
+            },
+          };
+        }
+
+        const connectFn =
+          serverTestHooks.customAdapterConnect ||
+          ((u: string, s: string, r: string, rt: number) => tiktokAdapter.connect(u, s, r, rt));
+        const result = await connectFn(targetUser, sid, requestedRuleId, requestedRate);
+
+        const leaseCheckAfterConnect = await verifyActiveLeaseFencingToken(
+          authUid,
+          sid,
+          acquiredFencingToken
+        );
+        if (!leaseCheckAfterConnect.valid) {
+          // P1-LOCK-B1: Safe rollback if lease lost during async connection
+          if (
+            tiktokAdapter.getCurrentOwnerUid() === authUid &&
+            tiktokAdapter.getRawCurrentSessionId() === sid
+          ) {
+            await tiktokAdapter.disconnect(true).catch(() => {});
+            tiktokAdapter.resetMemoryStateForSimulatedRestart();
+          }
+          if (
+            activeLiveConnectionOwnerUid === authUid &&
+            activeLiveConnectionFencingToken === acquiredFencingToken
+          ) {
+            activeLiveConnectionOwnerUid = null;
+            activeLiveConnectionSessionId = null;
+            activeLiveConnectionFencingToken = 0;
+          }
+          return {
+            httpStatus: 409,
+            payload: {
+              success: false,
+              code: 'STALE_FENCING_TOKEN',
+              error: leaseCheckAfterConnect.reason,
+            },
+          };
+        }
+
+        // P1-LOCK-B3: Confirm lease renewal transactionally (never blind setDoc)
+        const renewOutcome = await renewWebcastLeaseTransaction({
+          instanceId: serverInstanceId,
+          ownerUid: authUid,
+          sessionId: sid,
+          fencingToken: acquiredFencingToken,
+          roomUsername: targetUser,
+          activeRuleId: requestedRuleId,
+          currentRate: requestedRate,
+          campaignId: liveSession.campaignId,
+          cycleId: liveSession.cycleId,
+          lastKnownState: result.status.state,
+        });
+
+        if (!renewOutcome.renewed) {
+          if (
+            tiktokAdapter.getCurrentOwnerUid() === authUid &&
+            tiktokAdapter.getRawCurrentSessionId() === sid
+          ) {
+            await tiktokAdapter.disconnect(true).catch(() => {});
+            tiktokAdapter.resetMemoryStateForSimulatedRestart();
+          }
+          if (
+            activeLiveConnectionOwnerUid === authUid &&
+            activeLiveConnectionFencingToken === acquiredFencingToken
+          ) {
+            activeLiveConnectionOwnerUid = null;
+            activeLiveConnectionSessionId = null;
+            activeLiveConnectionFencingToken = 0;
+          }
+          return {
+            httpStatus: renewOutcome.status === 403 ? 403 : 409,
+            payload: {
+              success: false,
+              code: renewOutcome.code || 'STALE_FENCING_TOKEN',
+              error: renewOutcome.reason || 'Falha ao confirmar o lease no Firestore após conexão.',
+            },
+          };
+        }
+
+        activeLiveConnectionOwnerUid = authUid;
+        activeLiveConnectionSessionId = sid;
+        activeLiveConnectionFencingToken = acquiredFencingToken;
+        tiktokAdapter.setCurrentOwnerUid(authUid);
+        registerSessionOwner(sid, authUid);
+
         const enrichedStatus = await buildEnrichedTikTokStatus();
         return {
           httpStatus: 200,
           payload: {
-            success: enrichedStatus.state === 'CONNECTED',
-            coalesced: true,
-            coalescedCrossInstance: true,
+            ...result,
+            status: enrichedStatus,
             ownerUid: authUid,
             sessionId: sid,
+            fencingToken: acquiredFencingToken,
             activeRuleId: requestedRuleId,
             campaignId: liveSession.campaignId,
             cycleId: liveSession.cycleId,
-            status: enrichedStatus,
+          },
+        };
+      } catch (err: unknown) {
+        await releaseWebcastLock(authUid, {
+          sessionId: sid,
+          expectedFencingToken: acquiredFencingToken,
+        }).catch(() => {});
+        if (
+          activeLiveConnectionOwnerUid === authUid &&
+          activeLiveConnectionFencingToken === acquiredFencingToken
+        ) {
+          activeLiveConnectionOwnerUid = null;
+          activeLiveConnectionSessionId = null;
+          activeLiveConnectionFencingToken = 0;
+        }
+        if (
+          tiktokAdapter.getCurrentOwnerUid() === authUid &&
+          tiktokAdapter.getRawCurrentSessionId() === sid
+        ) {
+          await tiktokAdapter.disconnect(true).catch(() => {});
+          tiktokAdapter.resetMemoryStateForSimulatedRestart();
+        }
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          httpStatus: 500,
+          payload: {
+            success: false,
+            code: 'CONNECT_SESSION_FAILED',
+            error: `Falha ao conectar sessão LIVE: ${message}`,
           },
         };
       }
-
-      const result = await tiktokAdapter.connect(targetUser, sid, requestedRuleId, requestedRate);
-      const now = Date.now();
-      await persistWebcastRuntimeState({
-        instanceId: serverInstanceId,
-        ownerUid: authUid,
-        sessionId: sid,
-        roomUsername: targetUser,
-        activeRuleId: requestedRuleId,
-        currentRate: requestedRate,
-        campaignId: liveSession.campaignId,
-        cycleId: liveSession.cycleId,
-        shouldBeConnected: true,
-        lastKnownState: result.status.state,
-        updatedAt: now,
-        expiresAt: now + WEBCAST_LOCK_LEASE_MS,
-      });
-
-      const enrichedStatus = await buildEnrichedTikTokStatus();
-      return {
-        httpStatus: 200,
-        payload: {
-          ...result,
-          status: enrichedStatus,
-          ownerUid: authUid,
-          sessionId: sid,
-          activeRuleId: requestedRuleId,
-          campaignId: liveSession.campaignId,
-          cycleId: liveSession.cycleId,
-        },
-      };
     });
 
     return res.status(outcome.httpStatus).json(outcome.payload);
@@ -2573,6 +3151,7 @@ app.post(
 /**
  * Disconnect from TikTok LIVE (Requires Firebase Auth + Ownership of Active Connection/Session;
  * does NOT require active PRO plan so expired/canceled users can always disconnect their own broadcast)
+ * P1-LOCK-B2: Fully serialized under withConnectRouteMutex with transactional lease release and ownership check.
  */
 app.post(
   '/api/tiktok/disconnect',
@@ -2582,39 +3161,85 @@ app.post(
     const requestedSessionId = req.body?.sessionId
       ? String(req.body.sessionId).trim()
       : activeLiveConnectionSessionId || '';
+    const rawFencingToken = req.body?.expectedFencingToken ?? req.body?.fencingToken;
+    const expectedFencingToken =
+      rawFencingToken !== undefined && Number.isFinite(Number(rawFencingToken))
+        ? Number(rawFencingToken)
+        : undefined;
 
-    if (activeLiveConnectionOwnerUid && activeLiveConnectionOwnerUid !== authUid) {
-      return res.status(403).json({
-        success: false,
-        code: 'OWNERSHIP_FORBIDDEN',
-        error:
-          'Acesso negado: você não pode desconectar uma transmissão LIVE iniciada por outra conta.',
-      });
-    }
-
-    if (requestedSessionId) {
-      const ownership = await verifyFirestoreResourceOwnership({
-        collectionName: 'sessions',
-        docId: requestedSessionId,
-        authUid,
-        allowIfNotExists: true,
-        requireExplicitOwner: true,
-      });
-      if (!ownership.allowed) {
-        return res.status(ownership.status).json({
-          success: false,
-          code: ownership.code || 'OWNERSHIP_FORBIDDEN',
-          error: ownership.reason,
-        });
+    const outcome = await withConnectRouteMutex(async () => {
+      if (activeLiveConnectionOwnerUid && activeLiveConnectionOwnerUid !== authUid) {
+        return {
+          status: 403,
+          payload: {
+            success: false,
+            code: 'OWNERSHIP_FORBIDDEN',
+            error:
+              'Acesso negado: você não pode desconectar uma transmissão LIVE iniciada por outra conta.',
+          },
+        };
       }
-    }
 
-    await tiktokAdapter.disconnect(true);
-    await releaseWebcastLock(authUid);
-    activeLiveConnectionOwnerUid = null;
-    activeLiveConnectionSessionId = null;
-    const enrichedStatus = await buildEnrichedTikTokStatus();
-    res.json({ success: true, ownerUid: authUid, status: enrichedStatus });
+      if (requestedSessionId) {
+        const ownership = await verifyFirestoreResourceOwnership({
+          collectionName: 'sessions',
+          docId: requestedSessionId,
+          authUid,
+          allowIfNotExists: true,
+          requireExplicitOwner: true,
+        });
+        if (!ownership.allowed) {
+          return {
+            status: ownership.status,
+            payload: {
+              success: false,
+              code: ownership.code || 'OWNERSHIP_FORBIDDEN',
+              error: ownership.reason,
+            },
+          };
+        }
+      }
+
+      const lockRelease = await releaseWebcastLock(authUid, {
+        sessionId: requestedSessionId || undefined,
+        expectedFencingToken,
+      });
+
+      if (!lockRelease.released) {
+        return {
+          status: lockRelease.status || 403,
+          payload: {
+            success: false,
+            code: lockRelease.code || 'OWNERSHIP_FORBIDDEN',
+            error: lockRelease.reason || 'Não foi possível liberar o lease.',
+          },
+        };
+      }
+
+      // Safe disconnect: only disconnect adapter if it belongs to this owner and session
+      const currentAdapterOwner = tiktokAdapter.getCurrentOwnerUid();
+      const currentAdapterSid = tiktokAdapter.getRawCurrentSessionId();
+      if (
+        (!currentAdapterOwner || currentAdapterOwner === authUid) &&
+        (!requestedSessionId || !currentAdapterSid || currentAdapterSid === requestedSessionId)
+      ) {
+        await tiktokAdapter.disconnect(true);
+      }
+
+      if (!activeLiveConnectionOwnerUid || activeLiveConnectionOwnerUid === authUid) {
+        activeLiveConnectionOwnerUid = null;
+        activeLiveConnectionSessionId = null;
+        activeLiveConnectionFencingToken = 0;
+      }
+
+      const enrichedStatus = await buildEnrichedTikTokStatus();
+      return {
+        status: 200,
+        payload: { success: true, ownerUid: authUid, status: enrichedStatus },
+      };
+    });
+
+    return res.status(outcome.status).json(outcome.payload);
   }
 );
 
@@ -3038,7 +3663,7 @@ app.get(
 
 /**
  * Restore session combo streaks and processed event IDs from Firestore on server restart (PRO Only + Ownership)
- * Also supports `simulateServerRestart: true` for deterministic verification of cold-boot recovery.
+ * Also supports `simulateServerRestart: true` (Admin Only) for deterministic verification of cold-boot recovery.
  */
 app.post(
   '/api/tiktok/restore-session',
@@ -3046,14 +3671,331 @@ app.post(
   requireProPlan,
   async (req: Request, res: Response) => {
     const authUid = req.authUid!;
-    const { sessionId, simulateServerRestart, reconnectWebcast } = req.body || {};
-    if (!sessionId) {
-      return res.status(400).json({ error: 'sessionId é obrigatório.' });
+    const { sessionId, simulateServerRestart, reconnectWebcast, instanceId } = req.body || {};
+    if (
+      typeof sessionId !== 'string' ||
+      !sessionId.trim() ||
+      sessionId.trim().length > 128 ||
+      !/^[a-zA-Z0-9_-]+$/.test(sessionId.trim())
+    ) {
+      return res.status(400).json({
+        success: false,
+        code: 'INVALID_SESSION_ID',
+        error: 'sessionId é obrigatório e deve ser um identificador válido.',
+      });
     }
-    const targetSessionId = String(sessionId).trim();
+    const targetSessionId = sessionId.trim();
+
+    // ISO-02 (6): Require real administrative authorization when simulateServerRestart is requested
+    if (simulateServerRestart === true || Boolean(simulateServerRestart)) {
+      const adminCheck = await verifyAdminRequest(req);
+      if (!adminCheck.authorized) {
+        return res.status(adminCheck.status || 403).json({
+          success: false,
+          code: adminCheck.status === 401 ? 'FIREBASE_AUTH_REQUIRED' : 'ADMIN_FORBIDDEN',
+          error:
+            adminCheck.reason ||
+            'Acesso negado: o parâmetro simulateServerRestart exige privilégios administrativos.',
+        });
+      }
+    }
+
+    const executeRestoreAtomically = async () => {
+      // ISO-02 (1): Validate explicit ownership of the target session in Firestore before any state change
+      const ownership = await verifyFirestoreResourceOwnership({
+        collectionName: 'sessions',
+        docId: targetSessionId,
+        authUid,
+        allowIfNotExists: false,
+        requireExplicitOwner: true,
+      });
+      if (!ownership.allowed) {
+        return {
+          httpStatus: ownership.status,
+          payload: {
+            success: false,
+            code: ownership.code || 'OWNERSHIP_FORBIDDEN',
+            error: ownership.reason,
+          },
+        };
+      }
+
+      // ISO-02 (2, 4, 5): Block if in-memory singleton is currently assigned to another organizer
+      if (activeLiveConnectionOwnerUid && activeLiveConnectionOwnerUid !== authUid) {
+        return {
+          httpStatus: 403,
+          payload: {
+            success: false,
+            code: 'OWNERSHIP_FORBIDDEN',
+            error:
+              'Acesso negado: a instância global está operando uma sessão LIVE pertencente a outro organizador autenticado.',
+          },
+        };
+      }
+
+      // ISO-02 (2, 4, 5): Prevent replacing currentSessionId or disconnecting if adapter holds another organizer's session
+      const currentAdapterSessionId = tiktokAdapter.getRawCurrentSessionId();
+      const currentAdapterStatus = tiktokAdapter.getStatus();
+      const isAdapterBusy =
+        currentAdapterStatus.state === 'CONNECTED' ||
+        currentAdapterStatus.state === 'CONNECTING' ||
+        currentAdapterStatus.state === 'RECONNECTING' ||
+        tiktokAdapter.isWebcastGenuinelyActive();
+
+      if (currentAdapterSessionId && currentAdapterSessionId !== targetSessionId) {
+        const currentSessionOwnership = await verifyFirestoreResourceOwnership({
+          collectionName: 'sessions',
+          docId: currentAdapterSessionId,
+          authUid,
+          allowIfNotExists: true,
+          requireExplicitOwner: true,
+        });
+        if (!currentSessionOwnership.allowed || (isAdapterBusy && activeLiveConnectionOwnerUid !== authUid)) {
+          return {
+            httpStatus: 403,
+            payload: {
+              success: false,
+              code: 'OWNERSHIP_FORBIDDEN',
+              error:
+                'Acesso negado: não é permitido substituir ou desconectar a sessão LIVE ativa de outro organizador.',
+            },
+          };
+        }
+      }
+
+      // R-1.3.1-B: Atomically validate and acquire distributed lock via Firestore transaction with fencingToken
+      const sessionDocData = ownership.data || {};
+      const lockCheck = await acquireOrCoalesceWebcastLock({
+        ownerUid: authUid,
+        sessionId: targetSessionId,
+        roomUsername: String(
+          sessionDocData.username || tiktokAdapter.getStatus().roomUsername || ''
+        ).replace(/^@/, ''),
+        activeRuleId: String(
+          sessionDocData.currentRuleId || tiktokAdapter.getActiveRuleId() || 'rule_default_100'
+        ),
+        currentRate: Number(sessionDocData.currentRate || tiktokAdapter.getActiveRate() || 100),
+        requestedInstanceId:
+          typeof instanceId === 'string' && instanceId.trim() ? instanceId.trim() : undefined,
+        isRestoreOperation: true,
+      });
+
+      if (!lockCheck.allowed) {
+        return {
+          httpStatus: lockCheck.status || 403,
+          payload: {
+            success: false,
+            code: lockCheck.code || 'OWNERSHIP_FORBIDDEN',
+            error:
+              lockCheck.reason ||
+              'Acesso negado: existe um lock de transmissão LIVE ativo pertencente a outro organizador autenticado.',
+          },
+        };
+      }
+
+      const acquiredFencingToken = lockCheck.fencingToken;
+
+      try {
+        const preCheckLease = await verifyActiveLeaseFencingToken(
+          authUid,
+          targetSessionId,
+          acquiredFencingToken
+        );
+        if (!preCheckLease.valid) {
+          return {
+            httpStatus: 409,
+            payload: {
+              success: false,
+              code: 'STALE_FENCING_TOKEN',
+              error: preCheckLease.reason,
+            },
+          };
+        }
+
+        if (simulateServerRestart === true || Boolean(simulateServerRestart)) {
+          // Wipe in-memory adapter state and rotate serverInstanceId to simulate a fresh server process boot
+          tiktokAdapter.resetMemoryStateForSimulatedRestart();
+          activeLiveConnectionOwnerUid = null;
+          activeLiveConnectionSessionId = null;
+          serverInstanceId = `srv_${process.pid}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        }
+
+        const walRecovered = tiktokEventQueue.loadWalFromDisk();
+        const restoreFn =
+          serverTestHooks.customRestoreSessionFromFirestore ||
+          ((s: string) => tiktokAdapter.restoreSessionFromFirestore(s));
+        const restored = await restoreFn(targetSessionId);
+
+        // R-1.3.1-B & P1-LOCK-B1: Verify fencingToken after async restoration before committing state
+        const postRestoreLease = await verifyActiveLeaseFencingToken(
+          authUid,
+          targetSessionId,
+          acquiredFencingToken
+        );
+        if (!postRestoreLease.valid) {
+          if (
+            tiktokAdapter.getCurrentOwnerUid() === authUid &&
+            tiktokAdapter.getRawCurrentSessionId() === targetSessionId
+          ) {
+            tiktokAdapter.resetMemoryStateForSimulatedRestart();
+          }
+          return {
+            httpStatus: 409,
+            payload: {
+              success: false,
+              code: 'STALE_FENCING_TOKEN',
+              error: postRestoreLease.reason,
+            },
+          };
+        }
+
+        if (reconnectWebcast && restored.username) {
+          const connectFn =
+            serverTestHooks.customAdapterConnect ||
+            ((u: string, s: string, r: string, rt: number, retry?: boolean) =>
+              tiktokAdapter.connect(u, s, r, rt, retry));
+          await connectFn(
+            restored.username,
+            targetSessionId,
+            restored.activeRuleId || 'rule_default_100',
+            restored.currentRate || 100,
+            true
+          );
+
+          const postConnectLease = await verifyActiveLeaseFencingToken(
+            authUid,
+            targetSessionId,
+            acquiredFencingToken
+          );
+          if (!postConnectLease.valid) {
+            if (
+              tiktokAdapter.getCurrentOwnerUid() === authUid &&
+              tiktokAdapter.getRawCurrentSessionId() === targetSessionId
+            ) {
+              await tiktokAdapter.disconnect(true).catch(() => {});
+              tiktokAdapter.resetMemoryStateForSimulatedRestart();
+            }
+            return {
+              httpStatus: 409,
+              payload: {
+                success: false,
+                code: 'STALE_FENCING_TOKEN',
+                error: postConnectLease.reason,
+              },
+            };
+          }
+        }
+
+        activeLiveConnectionOwnerUid = authUid;
+        activeLiveConnectionSessionId = targetSessionId;
+        activeLiveConnectionFencingToken = acquiredFencingToken;
+        tiktokAdapter.setCurrentOwnerUid(authUid);
+        registerSessionOwner(targetSessionId, authUid);
+
+        const enrichedStatus = await buildEnrichedTikTokStatus();
+        return {
+          httpStatus: 200,
+          payload: {
+            ok: true,
+            success: true,
+            sessionId: targetSessionId,
+            ownerUid: authUid,
+            fencingToken: acquiredFencingToken,
+            webcastActive: Boolean(enrichedStatus.webcastActive),
+            walRecovered,
+            ...restored,
+            status: enrichedStatus,
+          },
+        };
+      } catch (err: unknown) {
+        // R-1.3.1-B & R-1.3.1-C: Release lease safely if restoration or reconnection fails so lock never stays stuck
+        await releaseWebcastLock(authUid, {
+          sessionId: targetSessionId,
+          expectedFencingToken: acquiredFencingToken,
+        }).catch(() => {});
+        if (
+          activeLiveConnectionOwnerUid === authUid &&
+          activeLiveConnectionFencingToken === acquiredFencingToken
+        ) {
+          activeLiveConnectionOwnerUid = null;
+          activeLiveConnectionSessionId = null;
+          activeLiveConnectionFencingToken = 0;
+        }
+        if (
+          tiktokAdapter.getCurrentOwnerUid() === authUid &&
+          tiktokAdapter.getRawCurrentSessionId() === targetSessionId
+        ) {
+          await tiktokAdapter.disconnect(true).catch(() => {});
+          tiktokAdapter.resetMemoryStateForSimulatedRestart();
+        }
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          httpStatus: 500,
+          payload: {
+            success: false,
+            code: 'RESTORE_SESSION_FAILED',
+            error: `Falha durante restauração da sessão LIVE: ${message}`,
+          },
+        };
+      }
+    };
+
+    const outcome =
+      process.env.GIO_TEST_MODE === 'true' && serverTestHooks.bypassConnectRouteMutex === true
+        ? await executeRestoreAtomically()
+        : await withConnectRouteMutex(executeRestoreAtomically);
+
+    return res.status(outcome.httpStatus).json(outcome.payload);
+  }
+);
+
+/**
+ * Automated Integration Test / Diagnostic Ingestion Endpoint (Admin + PRO Only + Explicit Session Ownership)
+ * Isolated for automated verification scripts & LIVE SYSTEM MONITOR diagnostics.
+ */
+app.post(
+  '/api/tiktok/test-event',
+  requireFirebaseAuth,
+  async (req: Request, res: Response, next) => {
+    // ISO-03 (1, 2, 8): Require real administrative authorization before any processing
+    const adminCheck = await verifyAdminRequest(req);
+    if (!adminCheck.authorized) {
+      return res.status(adminCheck.status || 403).json({
+        success: false,
+        code: adminCheck.status === 401 ? 'FIREBASE_AUTH_REQUIRED' : 'ADMIN_FORBIDDEN',
+        error:
+          adminCheck.reason ||
+          'Acesso negado: este endpoint de teste é restrito a administradores autorizados.',
+      });
+    }
+    return next();
+  },
+  requireProPlan,
+  async (req: Request, res: Response) => {
+    const authUid = req.authUid!;
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+
+    // ISO-03 (3, 6, 9): Require explicit, valid sessionId in request body; forbid fallback to tiktokAdapter.getCurrentSessionId()
+    const rawSessionId = body.sessionId;
+    if (
+      typeof rawSessionId !== 'string' ||
+      !rawSessionId.trim() ||
+      rawSessionId.trim().length > 128 ||
+      !/^[a-zA-Z0-9_-]+$/.test(rawSessionId.trim())
+    ) {
+      return res.status(400).json({
+        success: false,
+        code: 'INVALID_SESSION_ID',
+        error:
+          'Parâmetro sessionId explícito e válido é obrigatório no corpo da requisição (fallback implícito desativado por segurança).',
+      });
+    }
+    const requestedSessionId = rawSessionId.trim();
+
+    // ISO-03 (4, 5, 7): Reject non-existent sessions and validate explicit ownership (allowIfNotExists: false)
     const ownership = await verifyFirestoreResourceOwnership({
       collectionName: 'sessions',
-      docId: targetSessionId,
+      docId: requestedSessionId,
       authUid,
       allowIfNotExists: false,
       requireExplicitOwner: true,
@@ -3061,80 +4003,53 @@ app.post(
     if (!ownership.allowed) {
       return res.status(ownership.status).json({
         success: false,
-        code: ownership.code || 'OWNERSHIP_FORBIDDEN',
+        code: ownership.code || (ownership.status === 404 ? 'RESOURCE_NOT_FOUND' : 'OWNERSHIP_FORBIDDEN'),
         error: ownership.reason,
       });
     }
 
-    if (simulateServerRestart) {
-      // Wipe in-memory adapter state and rotate serverInstanceId to simulate a fresh server process boot
-      tiktokAdapter.resetMemoryStateForSimulatedRestart();
-      activeLiveConnectionOwnerUid = null;
-      activeLiveConnectionSessionId = null;
-      serverInstanceId = `srv_${process.pid}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    // Prevent cross-session interference if the singleton is currently operating another organizer's LIVE session
+    if (activeLiveConnectionOwnerUid && activeLiveConnectionOwnerUid !== authUid) {
+      return res.status(403).json({
+        success: false,
+        code: 'OWNERSHIP_FORBIDDEN',
+        error:
+          'Acesso negado: a instância global está operando uma sessão LIVE pertencente a outro organizador.',
+      });
     }
 
-    const walRecovered = tiktokEventQueue.loadWalFromDisk();
-    const restored = await tiktokAdapter.restoreSessionFromFirestore(targetSessionId);
-    activeLiveConnectionOwnerUid = authUid;
-    activeLiveConnectionSessionId = targetSessionId;
-
-    if (reconnectWebcast && restored.username) {
-      await tiktokAdapter.connect(
-        restored.username,
-        targetSessionId,
-        restored.activeRuleId || 'rule_default_100',
-        restored.currentRate || 100,
-        true
-      );
-    }
-
-    const enrichedStatus = await buildEnrichedTikTokStatus();
-    res.json({
-      ok: true,
-      success: true,
-      sessionId: targetSessionId,
-      webcastActive: Boolean(enrichedStatus.webcastActive),
-      walRecovered,
-      ...restored,
-      status: enrichedStatus,
-    });
-  }
-);
-
-/**
- * Automated Integration Test / Diagnostic Ingestion Endpoint (Admin + PRO Only + Ownership)
- * Isolated for automated verification scripts & LIVE SYSTEM MONITOR diagnostics.
- */
-app.post(
-  '/api/tiktok/test-event',
-  requireFirebaseAuth,
-  requireProPlan,
-  async (req: Request, res: Response) => {
-    const authUid = req.authUid!;
-    const body = req.body || {};
-    const requestedSessionId = body.sessionId ? String(body.sessionId).trim() : '';
-
-    if (requestedSessionId) {
-      const ownership = await verifyFirestoreResourceOwnership({
+    const currentAdapterSessionId = tiktokAdapter.getRawCurrentSessionId();
+    if (currentAdapterSessionId && currentAdapterSessionId !== requestedSessionId) {
+      const currentSessionOwnership = await verifyFirestoreResourceOwnership({
         collectionName: 'sessions',
-        docId: requestedSessionId,
+        docId: currentAdapterSessionId,
         authUid,
         allowIfNotExists: true,
         requireExplicitOwner: true,
       });
-      if (!ownership.allowed) {
-        return res.status(ownership.status).json({
+      if (!currentSessionOwnership.allowed) {
+        return res.status(403).json({
           success: false,
-          code: ownership.code || 'OWNERSHIP_FORBIDDEN',
-          error: ownership.reason,
+          code: 'OWNERSHIP_FORBIDDEN',
+          error:
+            'Acesso negado: a instância global contém uma sessão ativa pertencente a outro organizador.',
         });
       }
     }
 
-    setProPlanTier('PRO', 'ACTIVE');
+    // R-1.3.1-A: Do NOT call setProPlanTier('PRO', 'ACTIVE') globally; bind session ownerUid instead
+    const sessionOwnerUid = ownership.data?.ownerUid
+      ? String(ownership.data.ownerUid).trim()
+      : authUid;
+    registerSessionOwner(requestedSessionId, sessionOwnerUid);
+
     const origin = body._diagnosticOrigin === 'LIVE_REAL' ? 'LIVE_REAL' : 'SIMULATED_TEST';
-    const outcome = tiktokAdapter.handleIncomingGift(body, origin);
+    const explicitGiftPayload = {
+      ...body,
+      sessionId: requestedSessionId,
+      ownerUid: sessionOwnerUid,
+    };
+    const outcome = tiktokAdapter.handleIncomingGift(explicitGiftPayload, origin);
 
     res.json({
       success: true,
@@ -3159,20 +4074,20 @@ app.post(
 // TIKTOK LIVE ADVANCED DIAGNOSTICS & EVENT DEBUGGER ADMIN ENDPOINTS
 // ==========================================
 
-function requireAdminDiagnosticAuth(req: Request, res: Response, next: () => void) {
+async function requireAdminDiagnosticAuth(req: Request, res: Response, next: () => void) {
   if (req.headers['x-gio-unauthorized-test'] === 'true') {
-    return res.status(403).json({
+    return res.status(401).json({
       success: false,
       error: 'Acesso negado: Credencial administrativa ausente ou inválida.',
-      status: 403,
+      status: 401,
     });
   }
-  const check = verifyAdminRequest(req);
+  const check = await verifyAdminRequest(req);
   if (!check.authorized) {
-    return res.status(403).json({
+    return res.status(check.status || 401).json({
       success: false,
       error: check.reason || 'Acesso negado: Endpoint restrito a administradores autorizados.',
-      status: 403,
+      status: check.status || 401,
     });
   }
   next();
@@ -3208,11 +4123,11 @@ app.get('/api/tiktok/diagnostic/events', requireAdminDiagnosticAuth, (req: Reque
     offset: offset ? Number(offset) : 0,
   });
 
-  const adminUid = String(req.headers['x-gio-admin-uid'] || 'admin_user');
+  const adminUid = String(req.authUid || 'admin_user');
   tiktokDiagnosticService.recordAudit({
     action: 'QUERY_EVENTS',
     adminUid,
-    adminEmail: 'gustakkg15@gmail.com',
+    adminEmail: req.authEmail || 'admin@local',
     details: `Consulta de eventos diagnósticos (${result.total} encontrados, página ${result.events.length}).`,
   });
 
@@ -3246,8 +4161,8 @@ app.get('/api/tiktok/diagnostic/events/:traceId', requireAdminDiagnosticAuth, (r
  */
 app.post('/api/tiktok/diagnostic/toggle', requireAdminDiagnosticAuth, (req: Request, res: Response) => {
   const { active } = req.body || {};
-  const adminUid = String(req.headers['x-gio-admin-uid'] || 'admin_user');
-  const adminEmail = String(req.headers['x-gio-admin-email'] || 'gustakkg15@gmail.com');
+  const adminUid = String(req.authUid || 'admin_user');
+  const adminEmail = String(req.authEmail || 'admin@local');
 
   const outcome = tiktokDiagnosticService.setRuntimeDebugActive(Boolean(active), {
     uid: adminUid,
@@ -3275,8 +4190,8 @@ app.post('/api/tiktok/diagnostic/toggle', requireAdminDiagnosticAuth, (req: Requ
  * Clear In-Memory Diagnostic Ring Buffer (Admin Only)
  */
 app.post('/api/tiktok/diagnostic/clear', requireAdminDiagnosticAuth, (req: Request, res: Response) => {
-  const adminUid = String(req.headers['x-gio-admin-uid'] || 'admin_user');
-  const adminEmail = String(req.headers['x-gio-admin-email'] || 'gustakkg15@gmail.com');
+  const adminUid = String(req.authUid || 'admin_user');
+  const adminEmail = String(req.authEmail || 'admin@local');
 
   tiktokDiagnosticService.clearBuffer({ uid: adminUid, email: adminEmail });
   res.json({
@@ -3321,9 +4236,9 @@ app.get('/api/legal/documents/:slug/versions', async (req: Request, res: Respons
 });
 
 app.post('/api/legal/documents/draft', async (req: Request, res: Response) => {
-  const authCheck = verifyAdminRequest(req);
+  const authCheck = await verifyAdminRequest(req);
   if (!authCheck.authorized) {
-    return res.status(403).json({ error: authCheck.reason });
+    return res.status(authCheck.status || 401).json({ success: false, error: authCheck.reason });
   }
   try {
     const body = req.body || {};
@@ -3347,9 +4262,9 @@ app.post('/api/legal/documents/draft', async (req: Request, res: Response) => {
 });
 
 app.post('/api/legal/documents/publish', async (req: Request, res: Response) => {
-  const authCheck = verifyAdminRequest(req);
+  const authCheck = await verifyAdminRequest(req);
   if (!authCheck.authorized) {
-    return res.status(403).json({ error: authCheck.reason });
+    return res.status(authCheck.status || 401).json({ success: false, error: authCheck.reason });
   }
   try {
     const body = req.body || {};
@@ -3497,9 +4412,9 @@ app.post('/api/lgpd/requests', async (req: Request, res: Response) => {
 });
 
 app.patch('/api/lgpd/requests/:requestId', async (req: Request, res: Response) => {
-  const authCheck = verifyAdminRequest(req);
+  const authCheck = await verifyAdminRequest(req);
   if (!authCheck.authorized) {
-    return res.status(403).json({ error: authCheck.reason });
+    return res.status(authCheck.status || 401).json({ success: false, error: authCheck.reason });
   }
   try {
     const requestId = String(req.params.requestId || '');
@@ -3508,7 +4423,7 @@ app.patch('/api/lgpd/requests/:requestId', async (req: Request, res: Response) =
       requestId,
       body.status || 'CONCLUIDA',
       String(body.adminResponse || body.adminResponseNote || 'Solicitação analisada pela administração.'),
-      String(body.handledBy || 'gustakkg15@gmail.com')
+      String(body.handledBy || authCheck.email || 'admin@local')
     );
     res.json({ success: true, request: updated });
   } catch (err: unknown) {
@@ -3550,9 +4465,9 @@ app.post('/api/support/tickets', async (req: Request, res: Response) => {
 });
 
 app.patch('/api/support/tickets/:ticketId', async (req: Request, res: Response) => {
-  const authCheck = verifyAdminRequest(req);
+  const authCheck = await verifyAdminRequest(req);
   if (!authCheck.authorized) {
-    return res.status(403).json({ error: authCheck.reason });
+    return res.status(authCheck.status || 401).json({ success: false, error: authCheck.reason });
   }
   try {
     const ticketId = String(req.params.ticketId || '');
@@ -3581,14 +4496,14 @@ app.get('/api/admin/company-settings', async (_req: Request, res: Response) => {
 });
 
 app.post('/api/admin/company-settings', async (req: Request, res: Response) => {
-  const authCheck = verifyAdminRequest(req);
+  const authCheck = await verifyAdminRequest(req);
   if (!authCheck.authorized) {
-    return res.status(403).json({ error: authCheck.reason });
+    return res.status(authCheck.status || 401).json({ success: false, error: authCheck.reason });
   }
   try {
     const updated = await saveCompanyLegalSettings(
       req.body || {},
-      req.body?.updatedBy || 'gustakkg15@gmail.com'
+      authCheck.email || 'admin@local'
     );
     const pendingFields = getPendingCompanyFields(updated);
     res.json({ success: true, settings: updated, pendingFields });
@@ -3609,9 +4524,9 @@ app.get('/api/admin/subscription-settings', async (_req: Request, res: Response)
 });
 
 app.post('/api/admin/subscription-settings', async (req: Request, res: Response) => {
-  const authCheck = verifyAdminRequest(req);
+  const authCheck = await verifyAdminRequest(req);
   if (!authCheck.authorized) {
-    return res.status(403).json({ error: authCheck.reason });
+    return res.status(authCheck.status || 401).json({ success: false, error: authCheck.reason });
   }
   try {
     const updated = await saveCommercialSubscriptionConfig(req.body || {});
@@ -3630,9 +4545,14 @@ app.post('/api/admin/subscription-settings', async (req: Request, res: Response)
  * Helper to resolve and validate UID on subscription endpoints:
  * - If Authorization: Bearer <idToken> is present, cryptographically verifies the token and extracts decodedToken.uid.
  * - Rejects with 401 if a provided Bearer token is invalid, expired, or revoked.
- * - Rejects with 403 OWNERSHIP_FORBIDDEN if a client attempts to pass a conflicting uid in body/query/header.
+ * - Rejects with 403 OWNERSHIP_FORBIDDEN if a client attempts to pass a conflicting uid or email in body/query/header.
+ * - For private endpoints (requireAuth: true), returns 401 if no Bearer token is provided.
+ * - For public/catalog endpoints (requireAuth: false), returns empty UID if no token is provided, never trusting spoofed parameters.
  */
-async function resolveSubscriptionRequestUser(req: Request): Promise<{
+async function resolveSubscriptionRequestUser(
+  req: Request,
+  options: { requireAuth?: boolean } = { requireAuth: true }
+): Promise<{
   ok: boolean;
   status: number;
   code?: string;
@@ -3642,6 +4562,7 @@ async function resolveSubscriptionRequestUser(req: Request): Promise<{
   emailVerified: boolean;
   verifiedByToken: boolean;
 }> {
+  const requireAuth = options.requireAuth !== false;
   const hasBearerOrToken =
     (typeof req.headers.authorization === 'string' &&
       req.headers.authorization.trim().toLowerCase().startsWith('bearer ')) ||
@@ -3663,7 +4584,7 @@ async function resolveSubscriptionRequestUser(req: Request): Promise<{
     if (!authResult.authenticated || !authResult.uid) {
       return {
         ok: false,
-        status: authResult.status,
+        status: authResult.status || 401,
         code: authResult.code || 'FIREBASE_TOKEN_INVALID',
         error: authResult.reason || 'Firebase ID Token inválido, expirado ou revogado.',
         uid: '',
@@ -3679,8 +4600,24 @@ async function resolveSubscriptionRequestUser(req: Request): Promise<{
         code: 'OWNERSHIP_FORBIDDEN',
         error: `Acesso negado: o token autenticado pertence a '${authResult.uid}', não sendo permitido operar sobre a conta '${clientSuppliedUid}'.`,
         uid: authResult.uid,
-        email: authResult.email || clientSuppliedEmail,
-        emailVerified: authResult.emailVerified ?? clientSuppliedEmailVerified,
+        email: authResult.email || '',
+        emailVerified: authResult.emailVerified ?? false,
+        verifiedByToken: true,
+      };
+    }
+    if (
+      clientSuppliedEmail &&
+      authResult.email &&
+      clientSuppliedEmail.toLowerCase() !== authResult.email.toLowerCase()
+    ) {
+      return {
+        ok: false,
+        status: 403,
+        code: 'OWNERSHIP_FORBIDDEN',
+        error: `Acesso negado: o e-mail informado ('${clientSuppliedEmail}') não corresponde à conta autenticada ('${authResult.email}').`,
+        uid: authResult.uid,
+        email: authResult.email,
+        emailVerified: authResult.emailVerified ?? false,
         verifiedByToken: true,
       };
     }
@@ -3694,12 +4631,28 @@ async function resolveSubscriptionRequestUser(req: Request): Promise<{
     };
   }
 
+  if (requireAuth) {
+    return {
+      ok: false,
+      status: 401,
+      code: 'FIREBASE_AUTH_REQUIRED',
+      error:
+        'Autenticação obrigatória: envie um Firebase ID Token válido no cabeçalho Authorization: Bearer <token>.',
+      uid: '',
+      email: '',
+      emailVerified: false,
+      verifiedByToken: false,
+    };
+  }
+
+  // Anonymous request allowed (e.g. GET /api/subscriptions/plans)
+  // CRITICAL SEC-02: Never trust clientSuppliedUid or clientSuppliedEmail without cryptographic verification!
   return {
     ok: true,
     status: 200,
-    uid: clientSuppliedUid,
-    email: clientSuppliedEmail,
-    emailVerified: clientSuppliedEmailVerified,
+    uid: '',
+    email: '',
+    emailVerified: false,
     verifiedByToken: false,
   };
 }
@@ -3711,7 +4664,7 @@ async function resolveSubscriptionRequestUser(req: Request): Promise<{
  */
 app.get('/api/subscriptions/plans', async (req: Request, res: Response) => {
   try {
-    const resolvedUser = await resolveSubscriptionRequestUser(req);
+    const resolvedUser = await resolveSubscriptionRequestUser(req, { requireAuth: false });
     if (!resolvedUser.ok) {
       return res.status(resolvedUser.status).json({
         success: false,
@@ -3749,7 +4702,7 @@ app.get('/api/subscriptions/plans', async (req: Request, res: Response) => {
           cardCollection:
             'Ambiente hospedado seguro do Mercado Pago (sem tráfego de cartão no site)',
           homologationRequirement:
-            'Exige validação real na API de homologação de que free_trial (7 days) é aceito e aplicado em POST /preapproval sem preapproval_plan_id.',
+            'Exige validação real na API de homologação de que free_trial (3 days) é aceito e aplicado em POST /preapproval sem preapproval_plan_id.',
         },
         alternativeAAssociatedPlanTokenization: {
           mode: 'ASSOCIATED_PLAN_TRANSPARENT_TOKEN',
@@ -3762,7 +4715,7 @@ app.get('/api/subscriptions/plans', async (req: Request, res: Response) => {
           cardCollection:
             'Formulário seguro no site gerando card_token_id descartável (sem redirecionamento init_point)',
           homologationRequirement:
-            'Herda free_trial do plano (POST /preapproval_plan), mas altera a experiência de checkout hospedado para tokenização transparente e exige validação de next_payment_date >= +7 dias.',
+            'Herda free_trial do plano (POST /preapproval_plan), mas altera a experiência de checkout hospedado para tokenização transparente e exige validação de next_payment_date >= +3 dias.',
         },
       },
       userSubscription,
@@ -3779,7 +4732,7 @@ app.get('/api/subscriptions/plans', async (req: Request, res: Response) => {
  */
 app.get('/api/subscriptions/me', async (req: Request, res: Response) => {
   try {
-    const resolvedUser = await resolveSubscriptionRequestUser(req);
+    const resolvedUser = await resolveSubscriptionRequestUser(req, { requireAuth: true });
     if (!resolvedUser.ok) {
       return res.status(resolvedUser.status).json({
         success: false,
@@ -3820,7 +4773,7 @@ app.get('/api/subscriptions/me', async (req: Request, res: Response) => {
  */
 app.post('/api/subscriptions/checkout', async (req: Request, res: Response) => {
   try {
-    const resolvedUser = await resolveSubscriptionRequestUser(req);
+    const resolvedUser = await resolveSubscriptionRequestUser(req, { requireAuth: true });
     if (!resolvedUser.ok) {
       return res.status(resolvedUser.status).json({
         success: false,
@@ -3890,11 +4843,11 @@ app.post('/api/subscriptions/checkout', async (req: Request, res: Response) => {
  * POST /api/subscriptions/verify
  * Verifies a Mercado Pago preapproval_id on the backend via GET /preapproval/{id},
  * enforces 1:1 bilateral UID ownership (external_reference === uid && user.mpPreapprovalId === id),
- * and validates the 7-day free trial and next_payment_date before granting PRO access.
+ * and validates the 3-day free trial and next_payment_date before granting PRO access.
  */
 app.post('/api/subscriptions/verify', async (req: Request, res: Response) => {
   try {
-    const resolvedUser = await resolveSubscriptionRequestUser(req);
+    const resolvedUser = await resolveSubscriptionRequestUser(req, { requireAuth: true });
     if (!resolvedUser.ok) {
       return res.status(resolvedUser.status).json({
         success: false,
@@ -3936,7 +4889,7 @@ app.post('/api/subscriptions/verify', async (req: Request, res: Response) => {
       subscription: outcome.subscription,
       entitlement: outcome.subscription
         ? buildEntitlementFromSubscriptionRecord(outcome.subscription)
-        : getProPlanEntitlement(),
+        : getProPlanEntitlement(uid),
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
@@ -3951,7 +4904,7 @@ app.post('/api/subscriptions/verify', async (req: Request, res: Response) => {
  */
 app.post('/api/subscriptions/cancel', async (req: Request, res: Response) => {
   try {
-    const resolvedUser = await resolveSubscriptionRequestUser(req);
+    const resolvedUser = await resolveSubscriptionRequestUser(req, { requireAuth: true });
     if (!resolvedUser.ok) {
       return res.status(resolvedUser.status).json({
         success: false,
@@ -3993,7 +4946,7 @@ app.post('/api/subscriptions/cancel', async (req: Request, res: Response) => {
       subscription: outcome.subscription,
       entitlement: outcome.subscription
         ? buildEntitlementFromSubscriptionRecord(outcome.subscription)
-        : getProPlanEntitlement(),
+        : getProPlanEntitlement(uid),
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
@@ -4040,9 +4993,9 @@ app.post('/api/subscriptions/webhook/mercadopago', async (req: Request, res: Res
  * Protected administrative dashboard summary for Plans & Subscription and Legal Trust Center.
  */
 app.get('/api/subscriptions/admin/summary', async (req: Request, res: Response) => {
-  const authCheck = verifyAdminRequest(req);
+  const authCheck = await verifyAdminRequest(req);
   if (!authCheck.authorized) {
-    return res.status(403).json({ error: authCheck.reason });
+    return res.status(authCheck.status || 401).json({ success: false, error: authCheck.reason });
   }
   try {
     const summary = await mercadoPagoSubscriptionService.getAdminDashboardSummary();
@@ -4062,9 +5015,9 @@ app.get('/api/subscriptions/admin/summary', async (req: Request, res: Response) 
  * and toggle the 7-day free trial offer for new subscriptions.
  */
 app.post('/api/subscriptions/admin/plans', async (req: Request, res: Response) => {
-  const authCheck = verifyAdminRequest(req);
+  const authCheck = await verifyAdminRequest(req);
   if (!authCheck.authorized) {
-    return res.status(403).json({ error: authCheck.reason });
+    return res.status(authCheck.status || 401).json({ success: false, error: authCheck.reason });
   }
   try {
     const body = req.body || {};
@@ -4091,7 +5044,7 @@ app.post('/api/subscriptions/admin/plans', async (req: Request, res: Response) =
       monthlyPrice,
       annualPrice,
       trialOfferEnabled,
-      adminEmail: String(body.adminEmail || 'gustakkg15@gmail.com'),
+      adminEmail: String(body.adminEmail || authCheck.email || 'admin@local'),
     });
     const summary = await mercadoPagoSubscriptionService.getAdminDashboardSummary();
     res.json({
@@ -4112,9 +5065,9 @@ app.post('/api/subscriptions/admin/plans', async (req: Request, res: Response) =
  * or returns the fail-closed PENDING_CREDENTIALS report.
  */
 app.post('/api/subscriptions/admin/homologation/verify', async (req: Request, res: Response) => {
-  const authCheck = verifyAdminRequest(req);
+  const authCheck = await verifyAdminRequest(req);
   if (!authCheck.authorized) {
-    return res.status(403).json({ error: authCheck.reason });
+    return res.status(authCheck.status || 401).json({ success: false, error: authCheck.reason });
   }
   try {
     const report = await mercadoPagoSubscriptionService.executeTenStepHomologationVerification();
@@ -4128,37 +5081,567 @@ app.post('/api/subscriptions/admin/homologation/verify', async (req: Request, re
   }
 });
 
+// ============================================================================
+// SORTEADOR TRADICIONAL BACKEND AUTORITATIVO V2.0 (FASE 1.7.0)
+// ============================================================================
+
+function handleTraditionalRaffleError(res: Response, err: unknown): void {
+  if (err instanceof TraditionalRaffleError) {
+    res.status(err.statusCode).json({
+      ok: false,
+      error: err.errorCode,
+      message: err.message,
+      details: err.details,
+    });
+    return;
+  }
+  const message = err instanceof Error ? err.message : String(err);
+  res.status(500).json({
+    ok: false,
+    error: 'INTERNAL_SERVER_ERROR',
+    message,
+  });
+}
+
+/**
+ * POST /api/raffle/sync
+ * Bootstraps an uninitialized raffle or updates non-authoritative UI metadata for `req.authUid`.
+ * R-03 & R-04: Rejects protected governance fields (`rosterVersion`, `drawSequence`, `fencingToken`, etc.),
+ * blocks sync during active `COMMITTED` state, and forbids direct roster overwrite after initialization.
+ */
+app.post('/api/raffle/sync', requireFirebaseAuth, async (req: Request, res: Response) => {
+  try {
+    const authenticatedUid = req.authUid!;
+    const { ownerUid: requestedOwnerUid, raffleId, title, settings, participants, winners } =
+      req.body || {};
+
+    traditionalRaffleService.assertAuthenticatedOwner(authenticatedUid, requestedOwnerUid);
+
+    const synced = await traditionalRaffleService.syncOrInitRaffleState({
+      authenticatedUid,
+      raffleId: typeof raffleId === 'string' && raffleId.trim() ? raffleId.trim() : 'default',
+      title,
+      settings,
+      participants,
+      winners,
+      strictClientGovernance: true,
+      rawClientBody: req.body || {},
+    });
+
+    res.status(200).json({
+      ok: true,
+      raffle: synced,
+    });
+  } catch (err) {
+    handleTraditionalRaffleError(res, err);
+  }
+});
+
+/**
+ * GET /api/raffle/state
+ * Fetches the authoritative raffle state for the authenticated owner.
+ */
+app.get('/api/raffle/state', requireFirebaseAuth, async (req: Request, res: Response) => {
+  try {
+    const authenticatedUid = req.authUid!;
+    const raffleId =
+      typeof req.query.raffleId === 'string' && req.query.raffleId.trim()
+        ? req.query.raffleId.trim()
+        : 'default';
+    const requestedOwnerUid =
+      typeof req.query.ownerUid === 'string' ? req.query.ownerUid : undefined;
+
+    const state = await traditionalRaffleService.getRaffleStateForOwner(
+      authenticatedUid,
+      raffleId,
+      requestedOwnerUid
+    );
+
+    res.status(200).json({
+      ok: true,
+      raffle: state,
+    });
+  } catch (err) {
+    handleTraditionalRaffleError(res, err);
+  }
+});
+
+/**
+ * GET /api/raffle/draws
+ * R-02: Lists permanent traditional draw records from `users/{ownerUid}/raffles/{raffleId}/draws`.
+ */
+app.get('/api/raffle/draws', requireFirebaseAuth, async (req: Request, res: Response) => {
+  try {
+    const authenticatedUid = req.authUid!;
+    const raffleId =
+      typeof req.query.raffleId === 'string' && req.query.raffleId.trim()
+        ? req.query.raffleId.trim()
+        : 'default';
+    const requestedOwnerUid =
+      typeof req.query.ownerUid === 'string' ? req.query.ownerUid : undefined;
+
+    const draws = await traditionalRaffleService.listRaffleDrawsForOwner(
+      authenticatedUid,
+      raffleId,
+      requestedOwnerUid
+    );
+
+    res.status(200).json({
+      ok: true,
+      draws,
+    });
+  } catch (err) {
+    handleTraditionalRaffleError(res, err);
+  }
+});
+
+/**
+ * POST /api/raffle/participant/mutate
+ * R-04: Central authoritative roster & allocation settings mutations that atomically increment `rosterVersion`.
+ * Supports all 6 frontend handlers (`addParticipant`, `updateParticipantCoins`, `removeParticipant`,
+ * `clearAllParticipants`, `bulkAddParticipants`, `updateRaffleAllocationSettings`) plus eligibility & canonical name updates.
+ */
+app.post('/api/raffle/participant/mutate', requireFirebaseAuth, async (req: Request, res: Response) => {
+  try {
+    const authenticatedUid = req.authUid!;
+    const {
+      ownerUid: requestedOwnerUid,
+      raffleId = 'default',
+      action,
+      participant,
+      participantId,
+      eligible,
+      coins,
+      name,
+      items,
+      replace,
+      mergeIfSameName,
+      settingsPatch,
+    } = req.body || {};
+
+    traditionalRaffleService.assertAuthenticatedOwner(authenticatedUid, requestedOwnerUid);
+    traditionalRaffleService.assertNoProtectedGovernanceFieldsInClientPayload(req.body || {}, {
+      forbidClientWinners: true,
+    });
+
+    let updated;
+    if (action === 'addParticipant') {
+      updated = await traditionalRaffleService.addParticipant({
+        authenticatedUid,
+        raffleId,
+        participant,
+        mergeIfSameName: Boolean(mergeIfSameName),
+        autoCreateIfMissing: true,
+      });
+    } else if (action === 'removeParticipant') {
+      updated = await traditionalRaffleService.removeParticipant({
+        authenticatedUid,
+        raffleId,
+        participantId,
+      });
+    } else if (action === 'clearAllParticipants') {
+      updated = await traditionalRaffleService.clearAllParticipants({
+        authenticatedUid,
+        raffleId,
+        autoCreateIfMissing: true,
+      });
+    } else if (action === 'bulkAddParticipants') {
+      updated = await traditionalRaffleService.bulkAddParticipants({
+        authenticatedUid,
+        raffleId,
+        items: Array.isArray(items) ? items : [],
+        replace: Boolean(replace),
+        autoCreateIfMissing: true,
+      });
+    } else if (action === 'updateParticipantEligibility') {
+      updated = await traditionalRaffleService.updateParticipantEligibility({
+        authenticatedUid,
+        raffleId,
+        participantId,
+        eligible: Boolean(eligible),
+      });
+    } else if (action === 'updateParticipantCoins') {
+      updated = await traditionalRaffleService.updateParticipantCoins({
+        authenticatedUid,
+        raffleId,
+        participantId,
+        coins: Number(coins),
+      });
+    } else if (action === 'updateParticipantCanonicalDetails') {
+      updated = await traditionalRaffleService.updateParticipantCanonicalDetails({
+        authenticatedUid,
+        raffleId,
+        participantId,
+        name: String(name || ''),
+      });
+    } else if (action === 'updateRaffleAllocationSettings') {
+      updated = await traditionalRaffleService.updateRaffleAllocationSettings({
+        authenticatedUid,
+        raffleId,
+        settingsPatch: settingsPatch || {},
+        autoCreateIfMissing: true,
+      });
+    } else {
+      throw new TraditionalRaffleError(400, 'INVALID_MUTATION_ACTION');
+    }
+
+    res.status(200).json({
+      ok: true,
+      raffle: updated,
+    });
+  } catch (err) {
+    handleTraditionalRaffleError(res, err);
+  }
+});
+
+/**
+ * POST /api/raffle/draw/pre-commit
+ * Generates a cryptographic pre-commitment (`C_server`, `drawNonce`, `fencingToken`) for the authenticated owner's raffle.
+ */
+app.post('/api/raffle/draw/pre-commit', requireFirebaseAuth, async (req: Request, res: Response) => {
+  try {
+    const authenticatedUid = req.authUid!;
+    const { ownerUid: requestedOwnerUid, raffleId = 'default' } = req.body || {};
+
+    const result = await traditionalRaffleService.createDrawPrecommit({
+      authenticatedUid,
+      requestedOwnerUid,
+      raffleId,
+    });
+
+    res.status(200).json({
+      ok: true,
+      ...result,
+    });
+  } catch (err) {
+    handleTraditionalRaffleError(res, err);
+  }
+});
+
+/**
+ * POST /api/raffle/draw
+ * Executes the authoritative Provably Fair V2 draw on the backend.
+ * Never trusts client-provided winner, roster, or ownerUid.
+ */
+app.post('/api/raffle/draw', requireFirebaseAuth, async (req: Request, res: Response) => {
+  try {
+    const authenticatedUid = req.authUid!;
+    const {
+      ownerUid: requestedOwnerUid,
+      raffleId = 'default',
+      drawId,
+      idempotencyKey,
+      commitmentHash,
+      clientEntropy,
+      expectedRosterVersion,
+      expectedDrawSequence,
+      fencingToken,
+      drawMode = 'drum',
+      winnerCount = 1,
+      prizeId = 'NONE',
+      prizeName,
+      drawNonce: clientSuppliedDrawNonce,
+    } = req.body || {};
+
+    const outcome = await traditionalRaffleService.executeOfficialDraw({
+      authenticatedUid,
+      requestedOwnerUid,
+      raffleId,
+      drawId: String(drawId || ''),
+      idempotencyKey: String(idempotencyKey || ''),
+      commitmentHash: String(commitmentHash || ''),
+      clientEntropy: String(clientEntropy || ''),
+      expectedRosterVersion: Number(expectedRosterVersion),
+      expectedDrawSequence: Number(expectedDrawSequence),
+      fencingToken: Number(fencingToken),
+      drawMode,
+      winnerCount: Number(winnerCount),
+      prizeId: prizeId ? String(prizeId) : 'NONE',
+      prizeName: typeof prizeName === 'string' ? prizeName : undefined,
+      clientSuppliedDrawNonce:
+        typeof clientSuppliedDrawNonce === 'string' ? clientSuppliedDrawNonce : undefined,
+    });
+
+    res.status(outcome.statusCode).json(outcome.body);
+  } catch (err) {
+    handleTraditionalRaffleError(res, err);
+  }
+});
+
+/**
+ * POST /api/raffle/draw/recover
+ * R-06: Recovers an abandoned `IN_PROGRESS` draw lock (> 60s).
+ * Dual Auth: Accepts Organizer Firebase ID Token OR Authorized Worker Google OIDC Token.
+ */
+app.post('/api/raffle/draw/recover', requireWorkerOrFirebaseAuth, async (req: Request, res: Response) => {
+  try {
+    const {
+      raffleId = 'default',
+      idempotencyKey,
+      drawId,
+      commitmentHash,
+      requestFingerprint,
+    } = req.body || {};
+
+    if (!idempotencyKey || typeof idempotencyKey !== 'string') {
+      throw new TraditionalRaffleError(
+        400,
+        'HTTP_400_MISSING_IDEMPOTENCY_KEY',
+        'Parâmetro idempotencyKey é obrigatório.'
+      );
+    }
+
+    if (!drawId || typeof drawId !== 'string') {
+      throw new TraditionalRaffleError(
+        400,
+        'HTTP_400_MISSING_DRAW_ID',
+        'Parâmetro drawId é obrigatório.'
+      );
+    }
+
+    let authenticatedUid: string;
+    let targetRaffleId = String(raffleId || 'default').trim();
+
+    if (req.authType === 'OIDC_WORKER') {
+      // Path B: Automated Worker via Cloud Scheduler OIDC
+      // Must supply commitmentHash to locate precommit and derive authentic ownerUid
+      if (!commitmentHash || typeof commitmentHash !== 'string' || !commitmentHash.trim()) {
+        throw new TraditionalRaffleError(
+          400,
+          'INVALID_COMMITMENT_HASH',
+          'Parâmetro commitmentHash é obrigatório para recuperação automatizada por worker.'
+        );
+      }
+
+      const precommitPath = traditionalRaffleService.privatePrecommitPath(commitmentHash.trim());
+      const precommitSnap = await traditionalRaffleService
+        .getStore()
+        .getDocDirect<TraditionalDrawPrecommitRecord>(precommitPath);
+
+      if (!precommitSnap.exists) {
+        throw new TraditionalRaffleError(
+          404,
+          'HTTP_404_PRECOMMIT_NOT_FOUND',
+          'Pré-compromisso não encontrado para recuperação.'
+        );
+      }
+      const precommit = precommitSnap.data()!;
+      authenticatedUid = precommit.ownerUid;
+      if (precommit.raffleId) {
+        targetRaffleId = precommit.raffleId;
+      }
+    } else {
+      // Path A: Human Organizer via Firebase ID Token
+      authenticatedUid = req.authUid!;
+    }
+
+    const recovered = await traditionalRaffleService.recoverAbandonedDraw({
+      authenticatedUid,
+      raffleId: targetRaffleId,
+      idempotencyKey: String(idempotencyKey || ''),
+      drawId: String(drawId || ''),
+      commitmentHash: typeof commitmentHash === 'string' ? commitmentHash : undefined,
+      requestFingerprint: String(requestFingerprint || ''),
+    });
+
+    res.status(200).json({
+      ok: true,
+      ...recovered,
+    });
+  } catch (err) {
+    handleTraditionalRaffleError(res, err);
+  }
+});
+
+/**
+ * POST /api/raffle/draw/sweep
+ * R-07: Executes the normative Sweeper & Reconciliation for a commitmentHash.
+ * Dual Auth: Accepts Organizer Firebase ID Token OR Authorized Worker Google OIDC Token.
+ */
+app.post('/api/raffle/draw/sweep', requireWorkerOrFirebaseAuth, async (req: Request, res: Response) => {
+  try {
+    const { commitmentHash } = req.body || {};
+    if (!commitmentHash || typeof commitmentHash !== 'string' || !commitmentHash.trim()) {
+      throw new TraditionalRaffleError(
+        400,
+        'INVALID_COMMITMENT_HASH',
+        'Parâmetro commitmentHash é obrigatório.'
+      );
+    }
+
+    let result;
+    if (req.authType === 'OIDC_WORKER') {
+      // Path B: Automated Worker via Cloud Scheduler OIDC (isInternalAuthorizedJob: true)
+      result = await traditionalRaffleService.sweepExpiredPrecommit({
+        isInternalAuthorizedJob: true,
+        commitmentHash: commitmentHash.trim(),
+      });
+    } else {
+      // Path A: Human Organizer via Firebase ID Token (enforces authenticatedUid === precommit.ownerUid)
+      result = await traditionalRaffleService.sweepExpiredPrecommit({
+        authenticatedUid: req.authUid!,
+        commitmentHash: commitmentHash.trim(),
+      });
+    }
+
+    res.status(200).json({
+      ok: true,
+      ...result,
+    });
+  } catch (err) {
+    handleTraditionalRaffleError(res, err);
+  }
+});
+
+/**
+ * GET /api/raffle/ledger/:commitmentHash
+ * Public cryptographic verification endpoint for the Hash Chain ledger of a draw.
+ */
+app.get('/api/raffle/ledger/:commitmentHash', async (req: Request, res: Response) => {
+  try {
+    const commitmentHash = String(req.params.commitmentHash || '').trim();
+    const bundle = await traditionalRaffleService.getVerifiedLedgerBundle(commitmentHash);
+    res.status(200).json({
+      ok: true,
+      ...bundle,
+    });
+  } catch (err) {
+    handleTraditionalRaffleError(res, err);
+  }
+});
+
 // ==========================================
 // VITE DEV SERVER / PRODUCTION STATIC SERVER
 // ==========================================
 
 async function startServer() {
-  const isProd = process.env.NODE_ENV === 'production';
+  const distPath = path.resolve(__dirname, 'dist');
+  const distIndexPath = path.resolve(distPath, 'index.html');
+  const isRunningUnderTsx =
+    process.execArgv.some((arg) => arg.includes('tsx')) ||
+    Boolean(process.env.npm_lifecycle_event === 'dev');
+  const hasBuiltDist = fs.existsSync(distIndexPath);
+  const isProd =
+    hasBuiltDist &&
+    (process.env.NODE_ENV === 'production' || !isRunningUnderTsx);
 
   if (!isProd) {
+    // Dev-only Service Worker & Workbox cache cleanup routes (prevents text/html MIME errors and evicts stale precached bundles in Preview)
+    const devCleanupSwScript = [
+      "self.addEventListener('install', function() { self.skipWaiting(); });",
+      "self.addEventListener('activate', function(event) {",
+      "  event.waitUntil(",
+      "    caches.keys().then(function(keys) {",
+      "      return Promise.all(keys.map(function(key) { return caches.delete(key); }));",
+      "    }).then(function() {",
+      "      return self.registration.unregister();",
+      "    }).then(function() {",
+      "      return self.clients.matchAll({ type: 'window' });",
+      "    }).then(function(clients) {",
+      "      clients.forEach(function(client) {",
+      "        if ('navigate' in client) { client.navigate(client.url); }",
+      "      });",
+      "    })",
+      "  );",
+      "});",
+    ].join('\n');
+
+    const devRegisterSwCleanupScript = [
+      "if ('serviceWorker' in navigator) {",
+      "  navigator.serviceWorker.getRegistrations().then(function(regs) {",
+      "    regs.forEach(function(r) { r.unregister(); });",
+      "  }).catch(function() {});",
+      "}",
+      "if ('caches' in window) {",
+      "  caches.keys().then(function(keys) {",
+      "    keys.forEach(function(k) { caches.delete(k); });",
+      "  }).catch(function() {});",
+      "}",
+    ].join('\n');
+
+    app.get(['/sw.js', '/dev-sw.js'], (_req: Request, res: Response) => {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Service-Worker-Allowed', '/');
+      res.status(200).send(devCleanupSwScript);
+    });
+
+    app.get('/registerSW.js', (_req: Request, res: Response) => {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.status(200).send(devRegisterSwCleanupScript);
+    });
+
+    app.get('/manifest.webmanifest', (_req: Request, res: Response) => {
+      const distManifest = path.resolve(distPath, 'manifest.webmanifest');
+      res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache');
+      if (fs.existsSync(distManifest)) {
+        res.sendFile(distManifest);
+      } else {
+        res.status(200).json({
+          id: './',
+          name: 'GIO DA SORTE',
+          short_name: 'GIODASORTE',
+          start_url: './',
+          display: 'standalone',
+          background_color: '#050D20',
+          theme_color: '#050D20',
+        });
+      }
+    });
+
+    app.use((req: Request, res: Response, next) => {
+      if (
+        req.path === '/' ||
+        req.path === '/index.html' ||
+        req.path.startsWith('/src/')
+      ) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      }
+      next();
+    });
+
     const { createServer: createViteServer } = await import('vite');
     const isHmrDisabled = process.env.DISABLE_HMR === 'true';
     const vite = await createViteServer({
       server: {
         middlewareMode: true,
         hmr: isHmrDisabled ? false : { server: httpServer },
+        watch: {
+          ignored: ['**/node_modules/**', '**/dist/**', '**/.backups/**', '**/.git/**'],
+        },
       },
       appType: 'spa',
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.resolve(__dirname, 'dist');
     app.use(express.static(distPath));
     app.get('*', (_req, res) => {
-      res.sendFile(path.resolve(distPath, 'index.html'));
+      if (fs.existsSync(distIndexPath)) {
+        res.sendFile(distIndexPath);
+      } else {
+        res.status(503).send('Build artifact dist/index.html not found.');
+      }
     });
   }
 
-  httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`[GIO DA SORTE Server] Rodando na porta ${PORT} (${isProd ? 'produção' : 'desenvolvimento'})`);
+  httpServer.on('error', (err) => {
+    console.error(`[GIO DA SORTE Server] Erro ao vincular servidor HTTP em ${HOST}:${PORT}:`, err);
+  });
+
+  httpServer.listen(PORT, HOST, () => {
+    console.log(
+      `[GIO DA SORTE Server] Rodando em http://${HOST}:${PORT} (${isProd ? 'produção' : 'desenvolvimento'})`
+    );
   });
 }
 
-startServer().catch((err) => {
-  console.error('[GIO DA SORTE Server] Erro fatal ao iniciar:', err);
-});
+export { app, httpServer };
+
+if (isDirectServerEntry) {
+  startServer().catch((err) => {
+    console.error('[GIO DA SORTE Server] Erro fatal ao iniciar:', err);
+    process.exitCode = 1;
+  });
+}

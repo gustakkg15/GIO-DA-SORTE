@@ -1,0 +1,1171 @@
+import React, { useState } from 'react';
+import {
+  RefreshCw,
+  Play,
+  Users,
+  Gift,
+  Trophy,
+  AlertTriangle,
+  RotateCw,
+  Clock,
+  ArrowRight,
+  X,
+  FileText,
+  Search,
+  FileSpreadsheet,
+  Pause,
+  Square,
+  Plus,
+  Settings,
+  Layers,
+} from 'lucide-react';
+import {
+  TikTokLiveSession,
+  TikTokLiveParticipant,
+  LiveDrawRecord,
+  Campaign,
+  RaffleSettings,
+  DeliveryStatus,
+} from '../types.js';
+import { getAuthBearerHeaders } from '../utils/tiktokLiveService.js';
+import {
+  mapTikTokConnectionState,
+  mapLiveSessionCommercialStatus,
+} from '../utils/tiktokStatusMapper.js';
+
+export interface TikTokLiveGiftsArenaViewProps {
+  liveConnectionState: string;
+  liveConnectedUsername: string;
+  refreshPlatformStatus: () => void;
+  isLoadingLiveDetails: boolean;
+  onOpenManageConnection?: () => void;
+  liveDrawFeedback: { type: 'success' | 'error'; text: string } | null;
+  liveDrawTargetMode: 'SESSION' | 'CAMPAIGN';
+  setLiveDrawTargetMode: (mode: 'SESSION' | 'CAMPAIGN') => void;
+  liveSessionsSummary: TikTokLiveSession[];
+  activeLiveSession: TikTokLiveSession | null;
+  setSelectedLiveSessionId: (id: string) => void;
+  liveCampaigns: Campaign[];
+  activeLiveCampaign: Campaign | null;
+  setSelectedCampaignId: (id: string) => void;
+  settings: RaffleSettings;
+  livePrizeInput: string;
+  setLivePrizeInput: (prize: string) => void;
+  isFreezingLiveSnapshot: boolean;
+  handlePrepareLiveGiftsDraw: () => void;
+  selectedLiveDraws: LiveDrawRecord[];
+  selectedLiveParticipants: TikTokLiveParticipant[];
+  onDrawsUpdated?: () => void;
+  // Consolidated Arena Props (Search, CSV Export, Ticket Map, Session Commercial Controls & Campaign Sync)
+  participantSearchQuery?: string;
+  setParticipantSearchQuery?: (query: string) => void;
+  totalParticipantsCount?: number;
+  ticketsByParticipantMap?: Map<string, number[]>;
+  onExportCsv?: () => void;
+  onInspectParticipant?: (tiktokUserId: string) => void;
+  onPauseCollection?: () => void;
+  onResumeCollection?: () => void;
+  onEndCollection?: () => void;
+  onStartNewSession?: () => void;
+  onToggleSessionRules?: () => void;
+  isEditingSessionRules?: boolean;
+  missingLinkedCampaignWarning?: string | null;
+}
+
+export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> = ({
+  liveConnectionState,
+  liveConnectedUsername,
+  refreshPlatformStatus,
+  isLoadingLiveDetails,
+  onOpenManageConnection,
+  liveDrawFeedback,
+  liveDrawTargetMode,
+  setLiveDrawTargetMode,
+  liveSessionsSummary,
+  activeLiveSession,
+  setSelectedLiveSessionId,
+  liveCampaigns,
+  activeLiveCampaign,
+  setSelectedCampaignId,
+  settings,
+  livePrizeInput,
+  setLivePrizeInput,
+  isFreezingLiveSnapshot,
+  handlePrepareLiveGiftsDraw,
+  selectedLiveDraws,
+  selectedLiveParticipants,
+  onDrawsUpdated,
+  participantSearchQuery = '',
+  setParticipantSearchQuery,
+  totalParticipantsCount,
+  ticketsByParticipantMap,
+  onExportCsv,
+  onInspectParticipant,
+  onPauseCollection,
+  onResumeCollection,
+  onEndCollection,
+  onStartNewSession,
+  onToggleSessionRules,
+  isEditingSessionRules,
+  missingLinkedCampaignWarning,
+}) => {
+  // Modal states for Etapa 2 Delivery and Redraw
+  const [statusModalDraw, setStatusModalDraw] = useState<LiveDrawRecord | null>(null);
+  const [auditModalDraw, setAuditModalDraw] = useState<LiveDrawRecord | null>(null);
+  const [redrawModalDraw, setRedrawModalDraw] = useState<LiveDrawRecord | null>(null);
+
+  // Form states
+  const [selectedNewStatus, setSelectedNewStatus] = useState<DeliveryStatus>('CONTACTED');
+  const [deliveryNotes, setDeliveryNotes] = useState('');
+  const [contactMethod, setContactMethod] = useState('Chat TikTok LIVE / Direct');
+  const [trackingCode, setTrackingCode] = useState('');
+  const [redrawReason, setRedrawReason] = useState('Prazo regulamentar de comparecimento expirou sem manifestação do ganhador original.');
+
+  // Loading & feedback
+  const [isSubmittingDelivery, setIsSubmittingDelivery] = useState(false);
+  const [isSubmittingRedraw, setIsSubmittingRedraw] = useState(false);
+  const [isAdvancingCycle, setIsAdvancingCycle] = useState(false);
+  const [modalFeedback, setModalFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const connMeta = mapTikTokConnectionState(
+    liveConnectionState,
+    false,
+    liveConnectedUsername
+  );
+  const sessionCommercialMeta = mapLiveSessionCommercialStatus(activeLiveSession?.status);
+
+  const linkedCampaignObj = activeLiveSession?.campaignId
+    ? liveCampaigns.find((c) => c.campaignId === activeLiveSession.campaignId) || null
+    : null;
+  const resolvedCycleId =
+    activeLiveSession?.cycleId ||
+    activeLiveCampaign?.activeCycleId ||
+    linkedCampaignObj?.activeCycleId ||
+    null;
+
+  const getDeliveryStatusMeta = (status?: DeliveryStatus) => {
+    switch (status) {
+      case 'DELIVERED':
+        return { label: 'Prêmio Entregue', badgeClass: 'bg-[#20C997]/20 text-[#20C997] border-[#20C997]/40' };
+      case 'CONTACTED':
+        return { label: 'Contatado', badgeClass: 'bg-[#00A9FF]/20 text-[#00A9FF] border-[#00A9FF]/40' };
+      case 'UNCLAIMED_EXPIRED':
+        return { label: 'Não Reclamado / Expirado', badgeClass: 'bg-[#F05262]/20 text-[#F05262] border-[#F05262]/40' };
+      case 'REDRAWN':
+        return { label: 'Resorteado (Substituído)', badgeClass: 'bg-[#35B9F5]/20 text-[#35B9F5] border-[#35B9F5]/40' };
+      case 'PENDING_CONTACT':
+      default:
+        return { label: 'Pendente Contato', badgeClass: 'bg-[#F5B942]/20 text-[#F5B942] border-[#F5B942]/40' };
+    }
+  };
+
+  const handleUpdateDeliveryStatus = async () => {
+    if (!statusModalDraw) return;
+    setIsSubmittingDelivery(true);
+    setModalFeedback(null);
+    try {
+      const authHeaders = await getAuthBearerHeaders();
+      const res = await fetch('/api/tiktok/pro/draws/delivery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({
+          drawId: statusModalDraw.drawId,
+          status: selectedNewStatus,
+          details: {
+            notes: deliveryNotes.trim() || undefined,
+            contactMethod: contactMethod.trim() || undefined,
+            trackingCode: trackingCode.trim() || undefined,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Falha ao atualizar status de entrega.');
+      }
+      setStatusModalDraw(null);
+      setDeliveryNotes('');
+      setTrackingCode('');
+      refreshPlatformStatus();
+      if (onDrawsUpdated) onDrawsUpdated();
+    } catch (err) {
+      setModalFeedback({ type: 'error', text: (err as Error).message });
+    } finally {
+      setIsSubmittingDelivery(false);
+    }
+  };
+
+  const handleExecuteRedraw = async () => {
+    if (!redrawModalDraw) return;
+    if (!redrawReason.trim()) {
+      setModalFeedback({ type: 'error', text: 'Informe a justificativa do novo sorteio.' });
+      return;
+    }
+    setIsSubmittingRedraw(true);
+    setModalFeedback(null);
+    try {
+      const authHeaders = await getAuthBearerHeaders();
+      const res = await fetch('/api/tiktok/pro/draws/redraw', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({
+          drawId: redrawModalDraw.drawId,
+          reason: redrawReason.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Falha ao realizar novo sorteio por não comparecimento.');
+      }
+      setRedrawModalDraw(null);
+      refreshPlatformStatus();
+      if (onDrawsUpdated) onDrawsUpdated();
+    } catch (err) {
+      setModalFeedback({ type: 'error', text: (err as Error).message });
+    } finally {
+      setIsSubmittingRedraw(false);
+    }
+  };
+
+  const handleAdvanceCampaignCycle = async (campaignId: string) => {
+    setIsAdvancingCycle(true);
+    try {
+      const authHeaders = await getAuthBearerHeaders();
+      const res = await fetch('/api/tiktok/pro/campaigns/cycle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({ campaignId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Falha ao avançar ciclo da campanha.');
+      }
+      refreshPlatformStatus();
+      if (onDrawsUpdated) onDrawsUpdated();
+    } catch (err) {
+      setModalFeedback({ type: 'error', text: `Não foi possível avançar o ciclo: ${(err as Error).message}` });
+    } finally {
+      setIsAdvancingCycle(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 min-w-0">
+      <div className="p-5 sm:p-6 rounded-xl bg-[#101F3D] border border-[#182943] space-y-5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[#182943]">
+          <div className="space-y-1.5">
+            <h2 className="text-lg sm:text-xl font-semibold text-[#F8FAFC] flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-[#F5B942] shrink-0" />
+              <span>Mesa Oficial de Sorteio — Presentes LIVE</span>
+            </h2>
+            <p className="text-xs text-[#94A3B8]">
+              Selecione abaixo a sessão da transmissão ou a campanha vinculada para auditar bilhetes e realizar o sorteio com snapshot SHA-256 certificado.
+            </p>
+          </div>
+
+          {/* Separar visualmente o estado de conexão (Webcast) do estado comercial da sessão */}
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            {/* 1. Indicador Oficial de Conexão Webcast */}
+            <div
+              title={connMeta.titleHint}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border ${connMeta.badgeClass}`}
+            >
+              <span className={`w-2 h-2 rounded-full ${connMeta.dotClass}`} />
+              <span>{connMeta.label}</span>
+              {connMeta.state === 'CONNECTED' && liveConnectedUsername && (
+                <span className="font-mono text-[#F8FAFC]">
+                  · @{liveConnectedUsername.replace(/^@+/, '')}
+                </span>
+              )}
+            </div>
+
+            {/* 2. Indicador do Estado Comercial da Sessão */}
+            <div
+              title="Estado comercial da sessão para contabilização de presentes em bilhetes"
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border ${sessionCommercialMeta.badgeClass}`}
+            >
+              <span className={`w-2 h-2 rounded-full ${sessionCommercialMeta.dotClass}`} />
+              <span>{sessionCommercialMeta.label}</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => refreshPlatformStatus()}
+              className="min-h-[34px] px-3 py-1.5 rounded-lg bg-[#0B1730] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] text-xs font-medium flex items-center gap-1.5 transition"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-[#00A9FF] ${isLoadingLiveDetails ? 'animate-spin' : ''}`} />
+              <span>Atualizar</span>
+            </button>
+
+            {onToggleSessionRules && (
+              <button
+                type="button"
+                onClick={onToggleSessionRules}
+                className="min-h-[34px] px-3 py-1.5 rounded-lg bg-[#0B1730] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] text-xs font-medium flex items-center gap-1.5 transition"
+              >
+                <Settings className="w-3.5 h-3.5 text-[#F5B942]" />
+                <span>{isEditingSessionRules ? 'Fechar Regras da Sessão' : 'Regras da Sessão'}</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Warning when activeSession.campaignId is not found in loaded campaigns */}
+        {missingLinkedCampaignWarning && (
+          <div className="p-3.5 rounded-xl bg-[#F5B942]/15 border border-[#F5B942]/40 text-xs text-[#F8FAFC] flex items-start gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-[#F5B942] shrink-0 mt-0.5" />
+            <div>
+              <strong className="font-semibold text-[#F5B942] block">
+                Vínculo de Campanha Não Localizado
+              </strong>
+              <span>{missingLinkedCampaignWarning}</span>
+            </div>
+          </div>
+        )}
+
+        {liveDrawFeedback && (
+          <div
+            className={`p-3.5 rounded-xl border text-xs font-medium ${
+              liveDrawFeedback.type === 'error'
+                ? 'bg-[#F05262]/10 border-[#F05262]/40 text-[#F05262]'
+                : 'bg-[#20C997]/15 border-[#20C997]/40 text-[#20C997]'
+            }`}
+          >
+            {liveDrawFeedback.text}
+          </div>
+        )}
+
+        {/* Seletor de Origem Real: Sessão Individual vs Campanha Acumulada */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Coluna Esquerda: Configuração e Botão Sortear Agora */}
+          <div className="lg:col-span-5 space-y-4 bg-[#0B1730] border border-[#182943] rounded-xl p-5">
+            <div className="flex items-center bg-[#050D20] p-1 rounded-lg border border-[#182943]">
+              <button
+                type="button"
+                onClick={() => setLiveDrawTargetMode('SESSION')}
+                className={`flex-1 min-h-[34px] px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+                  liveDrawTargetMode === 'SESSION'
+                    ? 'bg-[#0866F5] text-[#F8FAFC]'
+                    : 'text-[#94A3B8] hover:text-[#F8FAFC]'
+                }`}
+              >
+                Sessão da LIVE ({liveSessionsSummary.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setLiveDrawTargetMode('CAMPAIGN')}
+                className={`flex-1 min-h-[34px] px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+                  liveDrawTargetMode === 'CAMPAIGN'
+                    ? 'bg-[#0866F5] text-[#F8FAFC]'
+                    : 'text-[#94A3B8] hover:text-[#F8FAFC]'
+                }`}
+              >
+                Campanha Multi-LIVE ({liveCampaigns.length})
+              </button>
+            </div>
+
+            {liveDrawTargetMode === 'SESSION' ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-[#94A3B8] mb-1.5">
+                    Sessão LIVE Real
+                  </label>
+                  {liveSessionsSummary.length === 0 ? (
+                    <div className="p-3.5 rounded-lg bg-[#050D20] border border-[#182943] text-xs text-[#94A3B8]">
+                      Nenhuma sessão registrada ainda. Conecte uma transmissão acima para contabilizar presentes e bilhetes.
+                    </div>
+                  ) : (
+                    <select
+                      value={activeLiveSession?.sessionId || ''}
+                      onChange={(e) => setSelectedLiveSessionId(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#050D20] border border-[#182943] text-xs sm:text-sm text-[#F8FAFC] focus:border-[#00A9FF] focus:outline-none"
+                    >
+                      {liveSessionsSummary.map((sess) => {
+                        const sMeta = mapLiveSessionCommercialStatus(sess.status);
+                        return (
+                          <option key={sess.sessionId} value={sess.sessionId}>
+                            @{sess.username} · {sess.raffleTitle || sess.roomTitle || 'Sessão LIVE'} ({sess.currentTicketCounter || 0} bilhetes · {sMeta.label})
+                          </option>
+                        );
+                      })}
+                    </select>
+                  )}
+                </div>
+
+                {activeLiveSession && (
+                  <div className="grid grid-cols-3 gap-2.5 text-center tabular-nums">
+                    <div className="p-3 rounded-lg bg-[#050D20] border border-[#182943]">
+                      <span className="text-[11px] text-[#94A3B8] block">Participantes</span>
+                      <strong className="text-base font-mono text-[#F8FAFC]">
+                        {totalParticipantsCount !== undefined
+                          ? totalParticipantsCount
+                          : activeLiveSession.uniqueSupportersCount || 0}
+                      </strong>
+                    </div>
+                    <div className="p-3 rounded-lg bg-[#050D20] border border-[#182943]">
+                      <span className="text-[11px] text-[#94A3B8] block">Moedas LIVE</span>
+                      <strong className="text-base font-mono text-[#F5B942]">
+                        {(activeLiveSession.totalCoins || 0).toLocaleString('pt-BR')}
+                      </strong>
+                    </div>
+                    <div className="p-3 rounded-lg bg-[#050D20] border border-[#182943]">
+                      <span className="text-[11px] text-[#94A3B8] block">Bilhetes Reais</span>
+                      <strong className="text-base font-mono text-[#20C997]">
+                        {(activeLiveSession.currentTicketCounter || 0).toLocaleString('pt-BR')}
+                      </strong>
+                    </div>
+                  </div>
+                )}
+
+                {activeLiveSession && (
+                  <div className="p-3 rounded-lg bg-[#050D20] border border-[#182943] space-y-2 text-xs tabular-nums">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#94A3B8]">Taxa persistida na sessão:</span>
+                      <strong className="text-[#F8FAFC] font-mono">
+                        {activeLiveSession.currentRate} moedas = 1 bilhete
+                      </strong>
+                    </div>
+
+                    {activeLiveSession.campaignId && (
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#182943]">
+                        <span className="text-[#94A3B8] flex items-center gap-1">
+                          <Layers className="w-3.5 h-3.5 text-[#00A9FF]" />
+                          <span>Campanha vinculada:</span>
+                        </span>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-semibold text-[#F8FAFC]">
+                            {linkedCampaignObj ? linkedCampaignObj.title : activeLiveSession.campaignId}
+                          </span>
+                          {(activeLiveSession.cycleId || linkedCampaignObj?.currentCycleIndex) && (
+                            <span className="px-2 py-0.5 rounded bg-[#0B1730] border border-[#00A9FF]/40 text-[#00A9FF] font-mono text-[11px] font-bold">
+                              {linkedCampaignObj?.currentCycleIndex
+                                ? `Ciclo #${linkedCampaignObj.currentCycleIndex}`
+                                : activeLiveSession.cycleId}
+                              {activeLiveSession.cycleId && linkedCampaignObj?.currentCycleIndex
+                                ? ` (${activeLiveSession.cycleId})`
+                                : ''}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Controles Comerciais da Sessão (Ingressão de Presentes) */}
+                {activeLiveSession && (onPauseCollection || onResumeCollection || onEndCollection || onStartNewSession) && (
+                  <div className="pt-2 border-t border-[#182943] flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {activeLiveSession.status === 'active' && onPauseCollection && (
+                        <button
+                          type="button"
+                          onClick={onPauseCollection}
+                          className="px-2.5 py-1.5 rounded-lg bg-[#050D20] hover:bg-[#182943] text-[#F5B942] border border-[#182943] text-xs font-medium transition flex items-center gap-1.5"
+                        >
+                          <Pause className="w-3 h-3" />
+                          <span>Pausar Ingressão</span>
+                        </button>
+                      )}
+                      {activeLiveSession.status === 'paused' && onResumeCollection && (
+                        <button
+                          type="button"
+                          onClick={onResumeCollection}
+                          className="px-2.5 py-1.5 rounded-lg bg-[#20C997]/15 hover:bg-[#20C997]/25 text-[#20C997] border border-[#20C997]/40 text-xs font-medium transition flex items-center gap-1.5"
+                        >
+                          <Play className="w-3 h-3" />
+                          <span>Retomar Ingressão</span>
+                        </button>
+                      )}
+                      {activeLiveSession.status !== 'ended' && onEndCollection && (
+                        <button
+                          type="button"
+                          onClick={onEndCollection}
+                          className="px-2.5 py-1.5 rounded-lg bg-[#050D20] hover:bg-[#182943] text-[#F05262] border border-[#182943] text-xs font-medium transition flex items-center gap-1.5"
+                        >
+                          <Square className="w-3 h-3" />
+                          <span>Encerrar Ingressão</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {onStartNewSession && (
+                      <button
+                        type="button"
+                        onClick={onStartNewSession}
+                        className="px-2.5 py-1.5 rounded-lg bg-[#050D20] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] text-xs font-medium transition flex items-center gap-1.5"
+                      >
+                        <Plus className="w-3 h-3 text-[#00A9FF]" />
+                        <span>Nova Sessão</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-[#94A3B8] mb-1.5">
+                    Campanha Acumulada Real
+                  </label>
+                  {liveCampaigns.length === 0 ? (
+                    <div className="p-3.5 rounded-lg bg-[#050D20] border border-[#182943] text-xs text-[#94A3B8]">
+                      Nenhuma campanha acumulada encontrada. Crie ou vincule sessões em Recursos Avançados (Multi-LIVE).
+                    </div>
+                  ) : (
+                    <select
+                      value={activeLiveCampaign?.campaignId || ''}
+                      onChange={(e) => setSelectedCampaignId(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#050D20] border border-[#182943] text-xs sm:text-sm text-[#F8FAFC] focus:border-[#00A9FF] focus:outline-none"
+                    >
+                      {!activeLiveCampaign && (
+                        <option value="">Selecione uma campanha...</option>
+                      )}
+                      {liveCampaigns.map((camp) => (
+                        <option key={camp.campaignId} value={camp.campaignId}>
+                          {camp.title} ({camp.totalAccumulatedTickets || 0} bilhetes · {camp.defaultRate || settings.rate} moedas/bil.)
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                {activeLiveCampaign && (
+                  <div className="grid grid-cols-3 gap-2.5 text-center tabular-nums">
+                    <div className="p-3 rounded-lg bg-[#050D20] border border-[#182943]">
+                      <span className="text-[11px] text-[#94A3B8] block">LIVEs</span>
+                      <strong className="text-base font-mono text-[#F8FAFC]">
+                        {activeLiveCampaign.participatingSessionIds?.length || 0}
+                      </strong>
+                    </div>
+                    <div className="p-3 rounded-lg bg-[#050D20] border border-[#182943]">
+                      <span className="text-[11px] text-[#94A3B8] block">Status</span>
+                      <strong className="text-sm font-mono text-[#F5B942]">
+                        {activeLiveCampaign.status}
+                      </strong>
+                    </div>
+                    <div className="p-3 rounded-lg bg-[#050D20] border border-[#182943]">
+                      <span className="text-[11px] text-[#94A3B8] block">Bilhetes</span>
+                      <strong className="text-base font-mono text-[#20C997]">
+                        {activeLiveCampaign.totalAccumulatedTickets || 0}
+                      </strong>
+                    </div>
+                  </div>
+                )}
+
+                {activeLiveCampaign && (
+                  <div className="p-3 rounded-lg bg-[#050D20] border border-[#182943] space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#94A3B8]">Modalidade:</span>
+                      <span className="font-mono text-[#F8FAFC] font-semibold">
+                        {activeLiveCampaign.campaignMode === 'RECURRING_CUMULATIVE'
+                          ? 'Recorrente Acumulativa'
+                          : activeLiveCampaign.campaignMode === 'RECURRING_RESET'
+                          ? 'Recorrente com Reset'
+                          : 'Sorteio Único'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-[#182943]">
+                      <span className="text-[#94A3B8]">Ciclo Ativo:</span>
+                      <span className="px-2 py-0.5 rounded bg-[#0B1730] border border-[#00A9FF]/40 text-[#00A9FF] font-mono font-bold">
+                        Ciclo #{activeLiveCampaign.currentCycleIndex || 1}
+                        {resolvedCycleId ? ` · ${resolvedCycleId}` : ''}
+                      </span>
+                    </div>
+
+                    {(activeLiveCampaign.campaignMode === 'RECURRING_RESET' ||
+                      activeLiveCampaign.campaignMode === 'RECURRING_CUMULATIVE') && (
+                      <div className="pt-2">
+                        {Boolean(activeLiveCampaign.pendingDeliveryCount && activeLiveCampaign.pendingDeliveryCount > 0) ? (
+                          <div className="p-2.5 rounded bg-[#F05262]/15 border border-[#F05262]/40 text-[11px] text-[#F05262] space-y-1">
+                            <div className="font-semibold flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3 shrink-0" />
+                              <span>Próximo Ciclo Bloqueado</span>
+                            </div>
+                            <p>
+                              Existe 1 ou mais prêmios com entrega pendente ({activeLiveCampaign.pendingDeliveryCount}).
+                              Confirme a entrega (DELIVERED) ou declare o prêmio como Não Reclamado/Novo Sorteio para liberar o próximo ciclo.
+                            </p>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={isAdvancingCycle}
+                            onClick={() => handleAdvanceCampaignCycle(activeLiveCampaign.campaignId)}
+                            className="w-full py-1.5 px-3 rounded-lg bg-[#101F3D] hover:bg-[#182943] border border-[#182943] text-xs font-semibold text-[#00A9FF] flex items-center justify-center gap-1.5 transition"
+                          >
+                            <RotateCw className={`w-3.5 h-3.5 ${isAdvancingCycle ? 'animate-spin' : ''}`} />
+                            <span>Abrir Novo Ciclo da Campanha</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-[#182943]">
+                      <span className="text-[#94A3B8]">Taxa persistida:</span>
+                      <strong className="text-[#F8FAFC] font-mono">
+                        {activeLiveCampaign.defaultRate || settings.rate} moedas = 1 bilhete
+                      </strong>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-medium text-[#94A3B8] mb-1.5">
+                Prêmio deste Sorteio LIVE
+              </label>
+              <input
+                type="text"
+                value={livePrizeInput}
+                onChange={(e) => setLivePrizeInput(e.target.value)}
+                placeholder={
+                  liveDrawTargetMode === 'SESSION'
+                    ? activeLiveSession?.prizeName || settings.prizeName || 'Prêmio Especial da LIVE'
+                    : activeLiveCampaign?.prizeName || 'Prêmio Acumulado da Campanha'
+                }
+                className="w-full px-3.5 py-2.5 rounded-lg bg-[#050D20] border border-[#182943] text-xs sm:text-sm text-[#F8FAFC] focus:border-[#00A9FF] focus:outline-none"
+              />
+            </div>
+
+            <button
+              type="button"
+              disabled={
+                isFreezingLiveSnapshot ||
+                (liveDrawTargetMode === 'SESSION'
+                  ? !activeLiveSession || (activeLiveSession.currentTicketCounter || 0) <= 0
+                  : !activeLiveCampaign || (activeLiveCampaign.totalAccumulatedTickets || 0) <= 0)
+              }
+              onClick={handlePrepareLiveGiftsDraw}
+              className="w-full min-h-[48px] py-3.5 px-5 rounded-xl bg-[#0866F5] hover:bg-[#00A9FF] disabled:bg-[#101F3D] disabled:text-[#94A3B8] disabled:border disabled:border-[#182943] disabled:opacity-60 disabled:cursor-not-allowed text-[#F8FAFC] font-semibold text-sm sm:text-base flex items-center justify-center gap-2 transition shadow-lg shadow-[#0866F5]/20"
+            >
+              <Play className="w-4 h-4 fill-current" />
+              <span>
+                {isFreezingLiveSnapshot
+                  ? 'Congelando Snapshot SHA-256...'
+                  : 'Sortear Agora com Bilhetes LIVE'}
+              </span>
+            </button>
+
+            {((liveDrawTargetMode === 'SESSION' && (!activeLiveSession || (activeLiveSession.currentTicketCounter || 0) <= 0)) ||
+              (liveDrawTargetMode === 'CAMPAIGN' && (!activeLiveCampaign || (activeLiveCampaign.totalAccumulatedTickets || 0) <= 0))) && (
+              <p className="text-xs text-[#F05262] text-center">
+                O botão Sortear Agora requer pelo menos 1 bilhete elegível emitido na sessão/campanha selecionada.
+              </p>
+            )}
+          </div>
+
+          {/* Coluna Direita: Participantes e Bilhetes Reais da Sessão Selecionada (com Busca e Exportação Oficial) */}
+          <div className="lg:col-span-7 space-y-4 bg-[#0B1730] border border-[#182943] rounded-xl p-5 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#182943]">
+              <div>
+                <h3 className="text-sm sm:text-base font-semibold text-[#F8FAFC] flex items-center gap-2">
+                  <Users className="w-4 h-4 text-[#00A9FF]" />
+                  <span>
+                    {liveDrawTargetMode === 'SESSION' && activeLiveSession
+                      ? `Participantes e Bilhetes da Sessão @${activeLiveSession.username}`
+                      : 'Participantes e Bilhetes Contabilizados'}
+                  </span>
+                </h3>
+                <p className="text-xs text-[#94A3B8]">
+                  Dados reais sincronizados do motor TikTok LIVE no Firestore
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {selectedLiveDraws.length > 0 && (
+                  <span className="px-2.5 py-1 rounded bg-[#050D20] border border-[#F5B942]/40 text-xs font-mono text-[#F5B942] tabular-nums">
+                    {selectedLiveDraws.length} {selectedLiveDraws.length === 1 ? 'sorteio certificado' : 'sorteios certificados'}
+                  </span>
+                )}
+                {onExportCsv && (
+                  <button
+                    type="button"
+                    onClick={onExportCsv}
+                    className="px-3 py-1.5 rounded-lg bg-[#050D20] hover:bg-[#182943] border border-[#182943] text-xs font-medium text-[#F8FAFC] transition flex items-center gap-1.5 shrink-0"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-[#20C997]" />
+                    <span>Exportar CSV</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Busca Oficial de Participantes e Bilhetes (Exclusiva na Arena Oficial) */}
+            {setParticipantSearchQuery && (
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-[#94A3B8] absolute left-3.5 top-2.5" />
+                <input
+                  type="text"
+                  value={participantSearchQuery}
+                  onChange={(e) => setParticipantSearchQuery(e.target.value)}
+                  placeholder="Buscar participante por @usuário, nome ou #bilhete..."
+                  aria-label="Buscar participante na Arena Oficial"
+                  className="w-full pl-9 pr-3.5 py-2 rounded-lg bg-[#050D20] border border-[#182943] text-xs text-[#F8FAFC] placeholder-[#94A3B8]/60 focus:outline-none focus:border-[#00A9FF]"
+                />
+              </div>
+            )}
+
+            {selectedLiveParticipants.length === 0 ? (
+              <div className="py-10 text-center space-y-2 border border-dashed border-[#182943] rounded-xl">
+                <Gift className="w-7 h-7 text-[#94A3B8] mx-auto" />
+                <p className="text-sm font-semibold text-[#F8FAFC]">
+                  {participantSearchQuery
+                    ? `Nenhum participante ou bilhete encontrado para "${participantSearchQuery}"`
+                    : 'Nenhum participante com presentes nesta sessão'}
+                </p>
+                <p className="text-xs text-[#94A3B8] max-w-md mx-auto">
+                  {participantSearchQuery
+                    ? 'Tente buscar outro @usuário, apelido ou número de bilhete.'
+                    : 'Assim que sua transmissão receber presentes no TikTok LIVE, os participantes e seus bilhetes aparecerão aqui automaticamente.'}
+                </p>
+              </div>
+            ) : (
+              <div className="max-h-[420px] overflow-y-auto divide-y divide-[#182943] rounded-xl border border-[#182943] bg-[#050D20]">
+                {selectedLiveParticipants.map((part) => {
+                  const pTickets = ticketsByParticipantMap?.get(part.tiktokUserId) || [];
+                  const hasHandle =
+                    part.handleAvailable !== false &&
+                    part.username &&
+                    part.username !== 'arroba_indisponivel';
+                  const displayUser = hasHandle ? `@${part.username.replace(/^@+/, '')}` : 'Arroba indisponível';
+
+                  return (
+                    <div
+                      key={part.tiktokUserId}
+                      onClick={() => onInspectParticipant && onInspectParticipant(part.tiktokUserId)}
+                      className={`p-3.5 flex items-center justify-between gap-3 text-xs ${
+                        onInspectParticipant ? 'hover:bg-[#101F3D]/80 cursor-pointer transition' : ''
+                      }`}
+                    >
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="font-semibold text-[#F8FAFC] truncate">
+                          {displayUser}
+                          {part.nickname && part.nickname !== part.username ? (
+                            <span className="text-[#94A3B8] font-normal ml-1.5">({part.nickname})</span>
+                          ) : null}
+                        </div>
+                        <div className="text-[11px] text-[#94A3B8] tabular-nums flex flex-wrap items-center gap-2">
+                          <span>Sobras acumuladas: {part.carryoverCoins || 0} moedas</span>
+                          {pTickets.length > 0 && (
+                            <span className="font-mono text-[#20C997] truncate max-w-xs">
+                              · #{pTickets.slice(0, 6).join(', #')}
+                              {pTickets.length > 6 ? ` (+${pTickets.length - 6})` : ''}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0 font-mono tabular-nums">
+                        <span className="px-2 py-1 rounded bg-[#0B1730] border border-[#182943] text-[#F5B942]">
+                          {part.coinsInSession.toLocaleString('pt-BR')} moedas
+                        </span>
+                        <span className="px-2.5 py-1 rounded bg-[#20C997]/15 border border-[#20C997]/40 text-[#20C997] font-bold">
+                          {part.ticketsInSession} bilhete(s)
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Bloco de Sorteios Certificados e Auditoria de Entrega */}
+        {selectedLiveDraws.length > 0 && (
+          <div className="p-5 sm:p-6 rounded-xl bg-[#0B1730] border border-[#182943] space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#182943]">
+              <div className="space-y-0.5">
+                <h3 className="text-sm sm:text-base font-semibold text-[#F8FAFC] flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-[#F5B942]" />
+                  <span>Sorteios Certificados e Gestão de Entrega ({selectedLiveDraws.length})</span>
+                </h3>
+                <p className="text-xs text-[#94A3B8]">
+                  Acompanhe o status formal de entrega de prêmios, auditoria imutável e resolução de não comparecimento.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {selectedLiveDraws.map((d) => {
+                const statusMeta = getDeliveryStatusMeta(d.deliveryStatus);
+                return (
+                  <div
+                    key={d.drawId}
+                    className="p-4 rounded-xl bg-[#050D20] border border-[#182943] space-y-3"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#182943]">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono font-bold text-sm text-[#20C997] px-2 py-0.5 rounded bg-[#20C997]/15 border border-[#20C997]/40">
+                          Bilhete #{d.winningTicketNumber}
+                        </span>
+                        <span className="font-semibold text-sm text-[#F8FAFC]">
+                          @{d.winnerName}
+                        </span>
+                        <span className="text-xs text-[#F5B942] font-medium">
+                          · {d.prizeName}
+                        </span>
+                        {d.cycleId && (
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#0B1730] text-[#94A3B8] border border-[#182943]">
+                            {d.cycleId}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`px-2.5 py-1 rounded text-xs font-semibold border ${statusMeta.badgeClass}`}
+                        >
+                          {statusMeta.label}
+                        </span>
+                        <span className="text-[11px] font-mono text-[#94A3B8]">
+                          {new Date(d.drawnAt).toLocaleDateString('pt-BR')} às {new Date(d.drawnAt).toLocaleTimeString('pt-BR')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+                      <div className="space-y-1 font-mono text-[11px] text-[#94A3B8] truncate max-w-xl">
+                        <div>
+                          Hash Roster SHA-256: <span className="text-[#F8FAFC]">{d.frozenRosterHash?.slice(0, 24)}...</span>
+                        </div>
+                        {d.parentDrawId && (
+                          <div className="text-[#35B9F5]">
+                            ↳ Substituto do sorteio original: <span className="underline">{d.parentDrawId}</span>
+                          </div>
+                        )}
+                        {d.redrawnAsDrawId && (
+                          <div className="text-[#F05262]">
+                            ↳ Sorteio original anulado. Substituído por: <span className="underline">{d.redrawnAsDrawId}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAuditModalDraw(d);
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg bg-[#0B1730] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] text-xs font-medium flex items-center gap-1.5 transition"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-[#00A9FF]" />
+                          <span>Ver Auditoria</span>
+                        </button>
+
+                        {d.deliveryStatus !== 'DELIVERED' && d.deliveryStatus !== 'REDRAWN' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setStatusModalDraw(d);
+                              setSelectedNewStatus(
+                                d.deliveryStatus === 'PENDING_CONTACT'
+                                  ? 'CONTACTED'
+                                  : 'DELIVERED'
+                              );
+                              setDeliveryNotes('');
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg bg-[#101F3D] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] text-xs font-medium flex items-center gap-1.5 transition"
+                          >
+                            <Clock className="w-3.5 h-3.5 text-[#F5B942]" />
+                            <span>Atualizar Entrega</span>
+                          </button>
+                        )}
+
+                        {d.deliveryStatus === 'UNCLAIMED_EXPIRED' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRedrawModalDraw(d);
+                              setRedrawReason('Prazo regulamentar de 48h expirou sem manifestação do ganhador original.');
+                            }}
+                            className="px-3 py-1.5 rounded-lg bg-[#F05262] hover:bg-[#F05262]/90 text-[#F8FAFC] text-xs font-bold flex items-center gap-1.5 transition shadow"
+                          >
+                            <RotateCw className="w-3.5 h-3.5" />
+                            <span>Realizar Novo Sorteio</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Modal 1: Alterar Status de Entrega */}
+      {statusModalDraw && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#050D20]/85 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-[#101F3D] border border-[#182943] rounded-xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#182943]">
+              <div>
+                <h3 className="text-sm font-semibold text-[#F8FAFC]">
+                  Atualizar Status de Entrega do Prêmio
+                </h3>
+                <p className="text-xs text-[#94A3B8]">
+                  Ganhador(a): @{statusModalDraw.winnerName} · Bilhete #{statusModalDraw.winningTicketNumber}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStatusModalDraw(null)}
+                className="text-[#94A3B8] hover:text-[#F8FAFC] p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {modalFeedback && (
+              <div
+                className={`p-3 rounded-lg text-xs font-medium ${
+                  modalFeedback.type === 'error'
+                    ? 'bg-[#F05262]/15 text-[#F05262] border border-[#F05262]/40'
+                    : 'bg-[#20C997]/15 text-[#20C997] border border-[#20C997]/40'
+                }`}
+              >
+                {modalFeedback.text}
+              </div>
+            )}
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-xs font-medium text-[#F8FAFC] mb-1.5">
+                  Novo Status Formal
+                </label>
+                <select
+                  value={selectedNewStatus}
+                  onChange={(e) => setSelectedNewStatus(e.target.value as DeliveryStatus)}
+                  className="w-full px-3 py-2 rounded-lg bg-[#0B1730] border border-[#182943] text-[#F8FAFC] font-medium focus:outline-none focus:border-[#00A9FF]"
+                >
+                  <option value="CONTACTED">Contatado (Tentativa de contato realizada)</option>
+                  <option value="DELIVERED">Prêmio Entregue (Comprovado e concluído)</option>
+                  <option value="UNCLAIMED_EXPIRED">Não Reclamado / Expirado (Permite novo sorteio)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[#F8FAFC] mb-1.5">
+                  Canal / Método de Contato
+                </label>
+                <input
+                  type="text"
+                  value={contactMethod}
+                  onChange={(e) => setContactMethod(e.target.value)}
+                  placeholder="Ex: Chat TikTok LIVE / Direct / WhatsApp / Email"
+                  className="w-full px-3 py-2 rounded-lg bg-[#0B1730] border border-[#182943] text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[#F8FAFC] mb-1.5">
+                  Código de Rastreio / Comprovante (opcional)
+                </label>
+                <input
+                  type="text"
+                  value={trackingCode}
+                  onChange={(e) => setTrackingCode(e.target.value)}
+                  placeholder="Ex: Correios BR123456789BR ou link de comprovante"
+                  className="w-full px-3 py-2 rounded-lg bg-[#0B1730] border border-[#182943] text-[#F8FAFC] font-mono focus:outline-none focus:border-[#00A9FF]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[#F8FAFC] mb-1.5">
+                  Observações / Justificativa da Transição
+                </label>
+                <textarea
+                  rows={3}
+                  value={deliveryNotes}
+                  onChange={(e) => setDeliveryNotes(e.target.value)}
+                  placeholder="Registre os detalhes deste contato ou confirmação de entrega para auditoria imutável..."
+                  className="w-full px-3 py-2 rounded-lg bg-[#0B1730] border border-[#182943] text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#182943]">
+              <button
+                type="button"
+                onClick={() => setStatusModalDraw(null)}
+                className="px-4 py-2 rounded-lg bg-[#0B1730] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] text-xs font-medium transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isSubmittingDelivery}
+                onClick={handleUpdateDeliveryStatus}
+                className="px-4 py-2 rounded-lg bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-50"
+              >
+                {isSubmittingDelivery ? 'Registrando...' : 'Confirmar e Gravar Auditoria'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 2: Trilha Imutável de Auditoria de Entrega */}
+      {auditModalDraw && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#050D20]/85 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-2xl bg-[#101F3D] border border-[#182943] rounded-xl shadow-2xl p-6 space-y-4 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-[#182943]">
+              <div>
+                <h3 className="text-sm font-semibold text-[#F8FAFC] flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-[#00A9FF]" />
+                  <span>Trilha de Auditoria Imutável de Entrega</span>
+                </h3>
+                <p className="text-xs text-[#94A3B8]">
+                  Sorteio #{auditModalDraw.winningTicketNumber} · Ganhador(a): @{auditModalDraw.winnerName} · {auditModalDraw.prizeName}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAuditModalDraw(null)}
+                className="text-[#94A3B8] hover:text-[#F8FAFC] p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1 text-xs">
+              {(!auditModalDraw.deliveryAuditTrail || auditModalDraw.deliveryAuditTrail.length === 0) ? (
+                <p className="text-xs text-[#94A3B8] py-6 text-center">
+                  Nenhuma transição de status registrada até o momento. O sorteio iniciou como Pendente de Contato.
+                </p>
+              ) : (
+                auditModalDraw.deliveryAuditTrail.map((entry, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3.5 rounded-lg bg-[#0B1730] border border-[#182943] space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between text-[11px]">
+                      <div className="flex items-center gap-1.5 font-mono">
+                        <span className="text-[#94A3B8]">#{idx + 1}</span>
+                        <span className="text-[#F8FAFC] font-semibold">{entry.previousStatus}</span>
+                        <ArrowRight className="w-3 h-3 text-[#00A9FF]" />
+                        <span className="text-[#20C997] font-bold">{entry.newStatus}</span>
+                      </div>
+                      <span className="text-[#94A3B8] font-mono">
+                        {new Date(entry.timestamp).toLocaleString('pt-BR')}
+                      </span>
+                    </div>
+
+                    {entry.reason && (
+                      <p className="text-xs text-[#F8FAFC]">
+                        <strong className="text-[#94A3B8]">Justificativa:</strong> {entry.reason}
+                      </p>
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] font-mono text-[#94A3B8] border-t border-[#182943]/50">
+                      <span>Operador: {entry.operatorUid}</span>
+                      {entry.method && <span>Método: {entry.method}</span>}
+                      {entry.referenceDrawId && (
+                        <span className="text-[#F5B942]">Ref: {entry.referenceDrawId}</span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-[#182943] flex justify-end">
+              <button
+                type="button"
+                onClick={() => setAuditModalDraw(null)}
+                className="px-4 py-2 rounded-lg bg-[#0B1730] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] text-xs font-medium transition"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 3: Confirmação de Novo Sorteio por Não Comparecimento */}
+      {redrawModalDraw && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#050D20]/85 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-[#101F3D] border border-[#182943] rounded-xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#182943]">
+              <div>
+                <h3 className="text-sm font-semibold text-[#F8FAFC] flex items-center gap-2">
+                  <RotateCw className="w-4 h-4 text-[#F05262]" />
+                  <span>Novo Sorteio por Não Comparecimento</span>
+                </h3>
+                <p className="text-xs text-[#94A3B8]">
+                  Substituição oficial auditada com exclusão do vencedor original
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRedrawModalDraw(null)}
+                className="text-[#94A3B8] hover:text-[#F8FAFC] p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {modalFeedback && (
+              <div
+                className={`p-3 rounded-lg text-xs font-medium ${
+                  modalFeedback.type === 'error'
+                    ? 'bg-[#F05262]/15 text-[#F05262] border border-[#F05262]/40'
+                    : 'bg-[#20C997]/15 text-[#20C997] border border-[#20C997]/40'
+                }`}
+              >
+                {modalFeedback.text}
+              </div>
+            )}
+
+            <div className="p-3.5 rounded-lg bg-[#F05262]/15 border border-[#F05262]/40 text-xs space-y-1 text-[#F8FAFC]">
+              <strong className="block text-[#F05262] font-semibold">Regras Mandatórias de Redraw:</strong>
+              <p>
+                1. O vencedor original <strong>@{redrawModalDraw.winnerName}</strong> (UID: {redrawModalDraw.winnerTiktokUserId}) será permanentemente excluído dos bilhetes elegíveis deste novo sorteio.
+              </p>
+              <p>
+                2. Um novo snapshot com hash SHA-256 e semente CSPRNG independente será congelado e auditado.
+              </p>
+              <p>
+                3. O sorteio original será marcado como <strong>REDRAWN</strong> e referenciará bilateralmente o novo sorteio substituto.
+              </p>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <label className="block text-xs font-medium text-[#F8FAFC]">
+                Justificativa Formal / Motivo do Novo Sorteio *
+              </label>
+              <textarea
+                rows={3}
+                required
+                value={redrawReason}
+                onChange={(e) => setRedrawReason(e.target.value)}
+                placeholder="Informe o motivo formal do novo sorteio (ex: não respondeu às tentativas de contato no prazo regulamentar)..."
+                className="w-full px-3 py-2 rounded-lg bg-[#0B1730] border border-[#182943] text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#182943]">
+              <button
+                type="button"
+                onClick={() => setRedrawModalDraw(null)}
+                className="px-4 py-2 rounded-lg bg-[#0B1730] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] text-xs font-medium transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isSubmittingRedraw}
+                onClick={handleExecuteRedraw}
+                className="px-4 py-2 rounded-lg bg-[#F05262] hover:bg-[#F05262]/90 text-[#F8FAFC] text-xs font-bold flex items-center gap-1.5 transition disabled:opacity-50"
+              >
+                {isSubmittingRedraw ? 'Executando Sorteio CSPRNG...' : 'Executar Novo Sorteio Certificado'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Search,
   Hash,
@@ -7,17 +7,12 @@ import {
   Trophy,
   Copy,
   CheckCircle2,
-  Share2,
   RefreshCw,
   QrCode,
-  Radio,
-  ExternalLink,
   Users,
   ShieldCheck,
   Edit2,
   MessageCircle,
-  Clock,
-  ChevronDown,
 } from 'lucide-react';
 import { ComputedRaffle, RaffleSettings, Winner, Participant, PublicRaffle } from '../types';
 import { normalizeSearch } from '../utils/raffle';
@@ -47,7 +42,6 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
   settings,
   winners,
   participants,
-  onUpdateSettings,
   onLoadPublicRaffle,
   currentUser,
   onResetToLocal,
@@ -200,7 +194,7 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       {/* Modals */}
       <RaffleFinderModal
         isOpen={isFinderOpen}
@@ -222,42 +216,42 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
       />
 
       {/* TOP BAR: Current Connected Sorteador & Raffle */}
-      <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 border-2 border-blue-600/50 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 animate-card-enter neon-card">
+      <div className="bg-[#101F3D] border border-[#182943] rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-display font-black text-xl text-white shadow-lg shadow-blue-600/40 ring-2 ring-sky-300/40">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0866F5] to-[#00A9FF] flex items-center justify-center font-display font-bold text-xl text-[#F8FAFC] shadow-md ring-1 ring-[#35B9F5]/40">
               {organizerName.charAt(0).toUpperCase()}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-sky-400">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#00A9FF]">
                   Sorteador Verificado
                 </span>
-                <span className="flex items-center gap-0.5 text-[10px] font-semibold bg-emerald-950 border border-emerald-500/50 text-emerald-300 px-2 py-0.5 rounded-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="flex items-center gap-1 text-[10px] font-semibold bg-[#20C997]/15 border border-[#20C997]/40 text-[#20C997] px-2 py-0.5 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#20C997] animate-pulse"></span>
                   <span>Ao Vivo</span>
                 </span>
               </div>
-              <h2 className="font-display font-black text-xl sm:text-2xl text-white flex items-center gap-2">
+              <h2 className="font-display font-bold text-xl sm:text-2xl text-[#F8FAFC] flex items-center gap-2">
                 <span>{organizerName}</span>
-                <ShieldCheck className="w-4 h-4 text-sky-400 shrink-0" />
+                <ShieldCheck className="w-4 h-4 text-[#00A9FF] shrink-0" />
               </h2>
-              <p className="text-xs text-slate-300 mt-0.5">
-                {raffleTitle} · <span className="text-sky-300 font-semibold">{computed.usedCount} de {settings.total} bilhetes alocados</span>
+              <p className="text-xs text-[#94A3B8] mt-0.5 font-mono tabular-nums">
+                {raffleTitle} · <span className="text-[#35B9F5] font-semibold">{computed.usedCount} de {settings.total} bilhetes alocados</span>
               </p>
               {(settings.prizeName || settings.currentPrize || settings.prizeImage) && (
-                <div className="flex items-center gap-2 mt-2 px-3 py-1 rounded-xl bg-slate-950/80 border border-amber-500/30 w-fit">
+                <div className="flex items-center gap-2 mt-2 px-3 py-1 rounded-xl bg-[#0B1730] border border-[#F5B942]/40 w-fit">
                   {settings.prizeImage ? (
                     <img
                       src={settings.prizeImage}
                       alt={settings.prizeName || settings.currentPrize || 'Prêmio'}
-                      className="w-5 h-5 rounded-full object-cover border border-amber-300/80 shrink-0"
+                      className="w-5 h-5 rounded-full object-cover border border-[#F5B942] shrink-0"
                     />
                   ) : (
-                    <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <Trophy className="w-3.5 h-3.5 text-[#F5B942] shrink-0" />
                   )}
-                  <span className="text-xs text-slate-300">
-                    Prêmio: <b className="text-amber-300">{settings.prizeName || settings.currentPrize || 'Prêmio Principal'}</b>
+                  <span className="text-xs text-[#94A3B8]">
+                    Prêmio: <b className="text-[#F5B942]">{settings.prizeName || settings.currentPrize || 'Prêmio Principal'}</b>
                   </span>
                 </div>
               )}
@@ -271,14 +265,14 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
               type="button"
               onClick={handleCopyRaffleCode}
               title="Copiar código do sorteio"
-              className="flex items-center gap-1.5 px-3 py-2 bg-slate-950/80 hover:bg-slate-900 border border-blue-500/40 rounded-xl text-xs font-mono font-bold text-sky-300 transition active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-2 bg-[#0B1730] hover:bg-[#182943] border border-[#00A9FF]/40 rounded-xl text-xs font-mono font-bold text-[#35B9F5] transition active:scale-95"
             >
-              <Hash className="w-3.5 h-3.5 text-sky-400" />
+              <Hash className="w-3.5 h-3.5 text-[#00A9FF]" />
               <span>#{raffleCode}</span>
               {copiedCode ? (
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 ml-1" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#20C997] ml-1" />
               ) : (
-                <Copy className="w-3.5 h-3.5 text-slate-400 ml-1" />
+                <Copy className="w-3.5 h-3.5 text-[#94A3B8] ml-1" />
               )}
             </button>
 
@@ -286,7 +280,7 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
             <button
               type="button"
               onClick={() => setIsFinderOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-blue-600/30 active:scale-95"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] rounded-xl text-xs font-bold transition shadow-md active:scale-95"
             >
               <Search className="w-3.5 h-3.5" />
               <span>Trocar Sorteio</span>
@@ -298,16 +292,16 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
               onClick={handleSyncLive}
               disabled={isSyncingLive}
               title="Atualizar bilhetes agora"
-              className="p-2 bg-slate-950/80 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white rounded-xl text-xs transition"
+              className="p-2 bg-[#0B1730] hover:bg-[#182943] border border-[#182943] text-[#94A3B8] hover:text-[#F8FAFC] rounded-xl text-xs transition"
             >
-              <RefreshCw className={`w-4 h-4 ${isSyncingLive ? 'animate-spin text-sky-400' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${isSyncingLive ? 'animate-spin text-[#00A9FF]' : ''}`} />
             </button>
           </div>
         </div>
 
         {/* ORGANIZER TOOLKIT BANNER (For Hosts) */}
-        <div className="pt-3 border-t border-blue-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-          <span className="text-slate-400">
+        <div className="pt-3 border-t border-[#182943] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <span className="text-[#94A3B8]">
             É o sorteador? Compartilhe este sorteio para os participantes consultarem de graça:
           </span>
           <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
@@ -315,16 +309,16 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
               type="button"
               onClick={handleCopyDirectLink}
               aria-label="Copiar link direto do sorteio"
-              className="min-h-[40px] px-3 py-2 bg-slate-950/90 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+              className="min-h-[40px] px-3 py-2 bg-[#0B1730] hover:bg-[#182943] border border-[#182943] text-[#F8FAFC] rounded-xl font-semibold flex items-center justify-center gap-1.5 transition text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00A9FF]"
             >
               {copiedLink ? (
                 <>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-emerald-400">Copiado!</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[#20C997]" />
+                  <span className="text-[#20C997]">Copiado!</span>
                 </>
               ) : (
                 <>
-                  <Copy className="w-3.5 h-3.5 text-sky-400" />
+                  <Copy className="w-3.5 h-3.5 text-[#00A9FF]" />
                   <span>Copiar Link</span>
                 </>
               )}
@@ -334,9 +328,9 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
               type="button"
               onClick={() => setIsQrOpen(true)}
               aria-label="Visualizar QR code do sorteio"
-              className="min-h-[40px] px-3 py-2 bg-slate-950/90 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+              className="min-h-[40px] px-3 py-2 bg-[#0B1730] hover:bg-[#182943] border border-[#182943] text-[#F8FAFC] rounded-xl font-semibold flex items-center justify-center gap-1.5 transition text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00A9FF]"
             >
-              <QrCode className="w-3.5 h-3.5 text-amber-400" />
+              <QrCode className="w-3.5 h-3.5 text-[#F5B942]" />
               <span>QR Code</span>
             </button>
 
@@ -344,9 +338,9 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
               type="button"
               onClick={handleShareWhatsApp}
               aria-label="Compartilhar sorteio via WhatsApp"
-              className="min-h-[40px] px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+              className="min-h-[40px] px-3 py-2 bg-[#20C997]/15 hover:bg-[#20C997]/25 border border-[#20C997]/40 text-[#20C997] rounded-xl font-semibold flex items-center justify-center gap-1.5 transition text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20C997]"
             >
-              <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+              <MessageCircle className="w-3.5 h-3.5 text-[#20C997]" />
               <span>WhatsApp</span>
             </button>
 
@@ -355,12 +349,12 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
               onClick={handlePublishToCloud}
               disabled={isPublishing}
               aria-label="Sincronizar dados do sorteio na nuvem"
-              className="min-h-[40px] px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-sky-300 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+              className="min-h-[40px] px-3 py-2 bg-[#0866F5]/20 hover:bg-[#0866F5]/30 border border-[#00A9FF]/40 text-[#35B9F5] rounded-xl font-semibold flex items-center justify-center gap-1.5 transition text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00A9FF]"
             >
               {isPublishing ? (
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+                <Sparkles className="w-3.5 h-3.5 text-[#00A9FF]" />
               )}
               <span>Sincronizar</span>
             </button>
@@ -368,8 +362,8 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
         </div>
 
         {publishFeedback && (
-          <div className="p-2.5 bg-blue-950/80 border border-blue-500/50 rounded-xl text-sky-200 text-xs flex items-center gap-2 animate-fade-in">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <div className="p-2.5 bg-[#0B1730] border border-[#00A9FF]/40 rounded-xl text-[#F8FAFC] text-xs flex items-center gap-2 animate-fade-in">
+            <CheckCircle2 className="w-4 h-4 text-[#20C997] shrink-0" />
             <span>{publishFeedback}</span>
           </div>
         )}
@@ -377,21 +371,21 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
 
       {/* PARTICIPANT VIP CARD ("Lembrar Meu Nome") */}
       {savedName ? (
-        <div className="bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-950 border-2 border-sky-400/50 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 animate-card-enter neon-card">
+        <div className="bg-[#101F3D] border border-[#00A9FF]/50 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400">
+              <div className="w-10 h-10 rounded-xl bg-[#F5B942]/15 border border-[#F5B942]/40 flex items-center justify-center text-[#F5B942]">
                 <Sparkles className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 block">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#F5B942] block">
                   Meu Acesso Rápido de Participante
                 </span>
-                <h3 className="font-display font-black text-xl text-white flex items-center gap-2">
+                <h3 className="font-display font-bold text-xl text-[#F8FAFC] flex items-center gap-2">
                   <span>Olá, {savedName}!</span>
                   {myAllocation && wonIds.has(myAllocation.participant.id) && (
-                    <span className="text-xs bg-amber-500/20 text-amber-300 border border-amber-400/50 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                      <Trophy className="w-3 h-3 text-amber-400" />
+                    <span className="text-xs bg-[#F5B942]/20 text-[#F5B942] border border-[#F5B942]/50 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                      <Trophy className="w-3 h-3 text-[#F5B942]" />
                       <span>Você Ganhou!</span>
                     </span>
                   )}
@@ -403,7 +397,7 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
               <button
                 type="button"
                 onClick={() => setEditingName(true)}
-                className="text-xs text-slate-400 hover:text-white flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-slate-800 transition"
+                className="text-xs text-[#94A3B8] hover:text-[#F8FAFC] flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-[#182943] transition"
               >
                 <Edit2 className="w-3 h-3" />
                 <span>Trocar Nome</span>
@@ -418,7 +412,7 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
                 autoFocus
                 defaultValue={savedName}
                 placeholder="Seu nome ou apelido..."
-                className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-400"
+                className="flex-1 bg-[#0B1730] border border-[#182943] rounded-xl px-3 py-2 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleSaveName((e.target as HTMLInputElement).value);
                 }}
@@ -430,14 +424,14 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
                   const el = document.getElementById('edit-name-input') as HTMLInputElement;
                   if (el) handleSaveName(el.value);
                 }}
-                className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl"
+                className="px-3 py-2 bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-bold text-xs rounded-xl"
               >
                 Salvar
               </button>
               <button
                 type="button"
                 onClick={() => setEditingName(false)}
-                className="px-3 py-2 bg-slate-800 text-slate-300 text-xs rounded-xl"
+                className="px-3 py-2 bg-[#182943] text-[#94A3B8] text-xs rounded-xl"
               >
                 Cancelar
               </button>
@@ -446,27 +440,27 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
             <div className="space-y-3">
               {/* Stats badges */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-                <div className="bg-slate-950/70 p-3 rounded-2xl border border-slate-800">
-                  <span className="text-[11px] text-slate-400 block">Seus Bilhetes:</span>
-                  <span className="text-xl font-mono font-black text-sky-400 tabular-nums">
+                <div className="bg-[#0B1730] p-3 rounded-xl border border-[#182943]">
+                  <span className="text-[11px] text-[#94A3B8] block">Seus Bilhetes:</span>
+                  <span className="text-xl font-mono font-bold text-[#00A9FF] tabular-nums">
                     {myAllocation.assignedTickets}
                   </span>
                 </div>
-                <div className="bg-slate-950/70 p-3 rounded-2xl border border-slate-800">
-                  <span className="text-[11px] text-slate-400 block">Suas Moedas:</span>
-                  <span className="text-xl font-mono font-black text-white tabular-nums">
+                <div className="bg-[#0B1730] p-3 rounded-xl border border-[#182943]">
+                  <span className="text-[11px] text-[#94A3B8] block">Suas Moedas:</span>
+                  <span className="text-xl font-mono font-bold text-[#F8FAFC] tabular-nums">
                     {myAllocation.participant.coins}
                   </span>
                 </div>
-                <div className="bg-slate-950/70 p-3 rounded-2xl border border-slate-800">
-                  <span className="text-[11px] text-slate-400 block">Chance de Ganhar:</span>
-                  <span className="text-xl font-mono font-black text-emerald-400 tabular-nums">
+                <div className="bg-[#0B1730] p-3 rounded-xl border border-[#182943]">
+                  <span className="text-[11px] text-[#94A3B8] block">Chance de Ganhar:</span>
+                  <span className="text-xl font-mono font-bold text-[#20C997] tabular-nums">
                     {myAllocation.winProbability}%
                   </span>
                 </div>
-                <div className="bg-slate-950/70 p-3 rounded-2xl border border-slate-800">
-                  <span className="text-[11px] text-slate-400 block">Para +1 Bilhete:</span>
-                  <span className="text-xs font-semibold text-amber-300 block mt-1">
+                <div className="bg-[#0B1730] p-3 rounded-xl border border-[#182943]">
+                  <span className="text-[11px] text-[#94A3B8] block">Para +1 Bilhete:</span>
+                  <span className="text-xs font-semibold text-[#F5B942] block mt-1">
                     {myAllocation.remainderCoins === 0
                       ? 'Nenhuma sobra'
                       : `Faltam ${settings.rate - myAllocation.remainderCoins} moedas`}
@@ -477,17 +471,17 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
               {/* Ticket numbers grid */}
               {myAllocation.tickets.length > 0 && (
                 <div className="pt-2">
-                  <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-                    <span className="font-bold text-slate-200">Seus Números da Sorte Concorrendo:</span>
+                  <div className="flex items-center justify-between text-xs text-[#94A3B8] mb-2">
+                    <span className="font-bold text-[#F8FAFC]">Seus Números da Sorte Concorrendo:</span>
                     <button
                       type="button"
                       onClick={handleCopyMyTickets}
-                      className="flex items-center gap-1 text-sky-400 hover:text-sky-300 font-semibold"
+                      className="flex items-center gap-1 text-[#00A9FF] hover:text-[#35B9F5] font-semibold"
                     >
                       {copiedId === 'my-tickets' ? (
                         <>
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                          <span className="text-emerald-400">Cartela Copiada!</span>
+                          <CheckCircle2 className="w-3.5 h-3.5 text-[#20C997]" />
+                          <span className="text-[#20C997]">Cartela Copiada!</span>
                         </>
                       ) : (
                         <>
@@ -501,7 +495,7 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
                     {myAllocation.tickets.map((num) => (
                       <span
                         key={num}
-                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:scale-105 text-white font-mono font-black text-sm px-3 py-1.5 rounded-xl shadow-md shadow-blue-900/40 border border-sky-300/30 tabular-nums transition"
+                        className="bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-mono font-bold text-sm px-3 py-1.5 rounded-xl shadow-sm border border-[#35B9F5]/30 tabular-nums transition"
                       >
                         #{num}
                       </span>
@@ -511,21 +505,21 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
               )}
             </div>
           ) : (
-            <div className="p-4 bg-slate-950/80 rounded-2xl border border-slate-800 text-xs text-slate-400">
-              Não encontramos o nome <b className="text-white">"{savedName}"</b> na lista de participantes deste sorteio.
+            <div className="p-4 bg-[#0B1730] rounded-xl border border-[#182943] text-xs text-[#94A3B8]">
+              Não encontramos o nome <b className="text-[#F8FAFC]">"{savedName}"</b> na lista de participantes deste sorteio.
               Você pode trocar o nome no botão acima ou procurar na busca abaixo.
             </div>
           )}
         </div>
       ) : (
         /* Prompt to save name */
-        <div className="bg-slate-900/80 border border-dashed border-slate-700 rounded-3xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-[#101F3D] border border-dashed border-[#182943] rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-0.5">
-            <h4 className="font-bold text-sm text-white flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-sky-400" />
+            <h4 className="font-bold text-sm text-[#F8FAFC] flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-[#00A9FF]" />
               <span>Participa deste sorteio?</span>
             </h4>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[#94A3B8]">
               Digite seu nome para salvar seu acesso rápido e ver seus bilhetes destacados em 1 toque neste aparelho.
             </p>
           </div>
@@ -535,14 +529,14 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
               value={tempNameInput}
               onChange={(e) => setTempNameInput(e.target.value)}
               placeholder="Digite seu nome..."
-              className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-400"
+              className="bg-[#0B1730] border border-[#182943] rounded-xl px-3 py-2 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
               onKeyDown={(e) => e.key === 'Enter' && tempNameInput.trim() && handleSaveName(tempNameInput)}
             />
             <button
               type="button"
               disabled={!tempNameInput.trim()}
               onClick={() => handleSaveName(tempNameInput)}
-              className="px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition"
+              className="px-3 py-2 bg-[#0866F5] hover:bg-[#00A9FF] disabled:opacity-50 text-[#F8FAFC] font-bold text-xs rounded-xl transition"
             >
               Salvar
             </button>
@@ -551,27 +545,27 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
       )}
 
       {/* SEARCH SECTION */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5 animate-card-enter neon-card">
+      <div className="bg-[#101F3D] border border-[#182943] rounded-2xl p-6 shadow-xl space-y-5">
         <div className="text-center space-y-1">
-          <h3 className="font-display font-black text-2xl text-white">Consultar Bilhetes da Sorte</h3>
-          <p className="text-xs sm:text-sm text-slate-400">
+          <h3 className="font-display font-bold text-2xl text-[#F8FAFC]">Consultar Bilhetes da Sorte</h3>
+          <p className="text-xs sm:text-sm text-[#94A3B8]">
             Encontre participantes pelo nome, confira números de bilhetes sorteados ou veja a lista completa.
           </p>
         </div>
 
         {/* Mode Selector Tabs */}
         <div className="flex items-center justify-center">
-          <div className="inline-flex p-1 bg-slate-950 border border-slate-800 rounded-2xl flex-wrap justify-center">
+          <div className="inline-flex p-1 bg-[#0B1730] border border-[#182943] rounded-xl flex-wrap justify-center">
             <button
               type="button"
               onClick={() => {
                 setSearchMode('name');
                 setQuery('');
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition ${
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition ${
                 searchMode === 'name'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-bold'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#0866F5] text-[#F8FAFC] shadow-sm font-bold'
+                  : 'text-[#94A3B8] hover:text-[#F8FAFC]'
               }`}
             >
               <User className="w-4 h-4" />
@@ -584,10 +578,10 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
                 setSearchMode('number');
                 setQuery('');
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition ${
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition ${
                 searchMode === 'number'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-bold'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#0866F5] text-[#F8FAFC] shadow-sm font-bold'
+                  : 'text-[#94A3B8] hover:text-[#F8FAFC]'
               }`}
             >
               <Hash className="w-4 h-4" />
@@ -600,10 +594,10 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
                 setSearchMode('all');
                 setQuery('');
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition ${
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition ${
                 searchMode === 'all'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-bold'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#0866F5] text-[#F8FAFC] shadow-sm font-bold'
+                  : 'text-[#94A3B8] hover:text-[#F8FAFC]'
               }`}
             >
               <Users className="w-4 h-4" />
@@ -616,13 +610,13 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
                 setSearchMode('winners');
                 setQuery('');
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition ${
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition ${
                 searchMode === 'winners'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-bold'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#0866F5] text-[#F8FAFC] shadow-sm font-bold'
+                  : 'text-[#94A3B8] hover:text-[#F8FAFC]'
               }`}
             >
-              <Trophy className="w-4 h-4 text-amber-400" />
+              <Trophy className="w-4 h-4 text-[#F5B942]" />
               <span>Ganhadores ({winners.length})</span>
             </button>
           </div>
@@ -641,9 +635,9 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
                   ? 'Digite seu nome ou apelido (ex: Ana, Carlos...)'
                   : `Digite o número do bilhete (${settings.start} a ${settings.start + settings.total - 1})...`
               }
-              className="w-full bg-slate-950 border-2 border-slate-700 focus:border-blue-400 rounded-2xl pl-11 pr-4 py-3.5 text-base text-white placeholder:text-slate-500 focus:outline-none transition shadow-inner"
+              className="w-full bg-[#0B1730] border border-[#182943] focus:border-[#00A9FF] rounded-xl pl-11 pr-4 py-3.5 text-base text-[#F8FAFC] placeholder:text-[#94A3B8]/60 focus:outline-none transition"
             />
-            <div className="absolute left-3.5 top-3.5 text-sky-400 pointer-events-none">
+            <div className="absolute left-3.5 top-3.5 text-[#00A9FF] pointer-events-none">
               {searchMode === 'name' ? <Search className="w-5 h-5" /> : <Hash className="w-5 h-5" />}
             </div>
           </div>
@@ -656,23 +650,23 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
         {searchMode === 'name' && (
           <>
             {!query.trim() ? (
-              <div className="bg-slate-900/50 border border-dashed border-slate-800 rounded-3xl p-8 text-center space-y-2">
-                <Sparkles className="w-8 h-8 text-sky-400/50 mx-auto" />
-                <p className="text-sm font-medium text-slate-300">Digite seu nome acima para ver seus bilhetes</p>
-                <p className="text-xs text-slate-500">
+              <div className="bg-[#101F3D]/80 border border-dashed border-[#182943] rounded-2xl p-8 text-center space-y-2">
+                <Sparkles className="w-8 h-8 text-[#00A9FF]/60 mx-auto" />
+                <p className="text-sm font-medium text-[#F8FAFC]">Digite seu nome acima para ver seus bilhetes</p>
+                <p className="text-xs text-[#94A3B8]">
                   A busca aceita apelidos, primeiro nome ou sobrenome sem se preocupar com maiúsculas ou acentos.
                 </p>
               </div>
             ) : nameResults.length === 0 ? (
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center space-y-2">
-                <p className="text-sm font-bold text-slate-300">Nenhum participante encontrado</p>
-                <p className="text-xs text-slate-400">
+              <div className="bg-[#101F3D] border border-[#182943] rounded-2xl p-8 text-center space-y-2">
+                <p className="text-sm font-bold text-[#F8FAFC]">Nenhum participante encontrado</p>
+                <p className="text-xs text-[#94A3B8]">
                   Não encontramos ninguém cadastrado com "{query}" no sorteio de {organizerName}.
                 </p>
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="text-xs font-semibold text-slate-400 px-1">
+                <div className="text-xs font-semibold text-[#94A3B8] px-1">
                   Encontrado(s) {nameResults.length} participante(s):
                 </div>
 
@@ -683,21 +677,21 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
                   return (
                     <div
                       key={p.id}
-                      className="bg-slate-900 border border-slate-800 hover:border-blue-600/70 rounded-3xl p-5 shadow-lg space-y-3 transition"
+                      className="bg-[#101F3D] border border-[#182943] hover:border-[#00A9FF]/50 rounded-2xl p-5 shadow-lg space-y-3 transition"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="flex items-center gap-2">
-                            <h3 className="font-display font-black text-xl text-white">{p.name}</h3>
+                            <h3 className="font-display font-bold text-xl text-[#F8FAFC]">{p.name}</h3>
                             {hasWon && (
-                              <span className="flex items-center gap-1 text-[11px] font-bold bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-400/40">
-                                <Trophy className="w-3 h-3 text-amber-400" />
+                              <span className="flex items-center gap-1 text-[11px] font-bold bg-[#F5B942]/20 text-[#F5B942] px-2 py-0.5 rounded-full border border-[#F5B942]/40">
+                                <Trophy className="w-3 h-3 text-[#F5B942]" />
                                 <span>Ganhador</span>
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-400 mt-1">
-                            Saldo: <b className="text-sky-400 font-semibold">{p.coins} moedas</b>
+                          <p className="text-xs text-[#94A3B8] mt-1 font-mono tabular-nums">
+                            Saldo: <b className="text-[#00A9FF] font-semibold">{p.coins} moedas</b>
                             {alloc.assignedTickets === 0 ? (
                               <span> · Faltam {settings.rate - alloc.remainderCoins} moedas para o 1º bilhete</span>
                             ) : (
@@ -707,10 +701,10 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
                         </div>
 
                         <div className="text-right shrink-0">
-                          <div className="font-display font-black text-2xl text-sky-400 tabular-nums">
+                          <div className="font-mono font-bold text-2xl text-[#00A9FF] tabular-nums">
                             {alloc.assignedTickets}
                           </div>
-                          <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                          <div className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
                             {alloc.assignedTickets === 1 ? 'Bilhete' : 'Bilhetes'}
                           </div>
                         </div>
@@ -718,18 +712,18 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
 
                       {/* Bilhetes Chips */}
                       {alloc.tickets.length > 0 ? (
-                        <div className="pt-3 border-t border-slate-800/80">
-                          <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-                            <span className="font-semibold text-slate-300">Números Concorrendo:</span>
+                        <div className="pt-3 border-t border-[#182943]">
+                          <div className="flex items-center justify-between text-xs text-[#94A3B8] mb-2">
+                            <span className="font-semibold text-[#F8FAFC]">Números Concorrendo:</span>
                             <button
                               type="button"
                               onClick={() => handleCopyUserSummary(p.name, alloc.tickets)}
-                              className="flex items-center gap-1 text-slate-400 hover:text-white transition"
+                              className="flex items-center gap-1 text-[#94A3B8] hover:text-[#F8FAFC] transition"
                             >
                               {copiedId === p.name ? (
                                 <>
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                                  <span className="text-emerald-400">Copiado</span>
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-[#20C997]" />
+                                  <span className="text-[#20C997]">Copiado</span>
                                 </>
                               ) : (
                                 <>
@@ -744,7 +738,7 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
                             {alloc.tickets.map((num) => (
                               <span
                                 key={num}
-                                className="bg-blue-600 hover:bg-blue-500 text-white font-mono font-extrabold text-sm px-2.5 py-1 rounded-lg tabular-nums shadow-sm transition"
+                                className="bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-mono font-bold text-sm px-2.5 py-1 rounded-lg tabular-nums shadow-sm transition"
                               >
                                 #{num}
                               </span>
@@ -752,7 +746,7 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
                           </div>
                         </div>
                       ) : (
-                        <div className="pt-2 border-t border-slate-800/80 text-xs text-slate-400 bg-slate-950/40 p-2.5 rounded-xl">
+                        <div className="pt-2 border-t border-[#182943] text-xs text-[#94A3B8] bg-[#0B1730] p-2.5 rounded-xl">
                           Esta pessoa precisa de pelo menos <b>{settings.rate} moedas</b> para receber seu primeiro bilhete.
                         </div>
                       )}
@@ -768,75 +762,75 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
         {searchMode === 'number' && (
           <>
             {!query.trim() ? (
-              <div className="bg-slate-900/50 border border-dashed border-slate-800 rounded-3xl p-8 text-center space-y-2">
-                <Hash className="w-8 h-8 text-sky-400/50 mx-auto" />
-                <p className="text-sm font-medium text-slate-300">Digite um número de bilhete acima</p>
-                <p className="text-xs text-slate-500">
+              <div className="bg-[#101F3D]/80 border border-dashed border-[#182943] rounded-2xl p-8 text-center space-y-2">
+                <Hash className="w-8 h-8 text-[#00A9FF]/60 mx-auto" />
+                <p className="text-sm font-medium text-[#F8FAFC]">Digite um número de bilhete acima</p>
+                <p className="text-xs text-[#94A3B8]">
                   Ideal para quando um número for sorteado e você quiser confirmar imediatamente o participante.
                 </p>
               </div>
             ) : isNaN(parsedNumber) ? (
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 text-center text-xs text-slate-400">
+              <div className="bg-[#101F3D] border border-[#182943] rounded-2xl p-6 text-center text-xs text-[#94A3B8]">
                 Por favor, digite um número inteiro válido.
               </div>
             ) : numberResult ? (
-              <div className="bg-slate-900 border-2 border-blue-500/80 rounded-3xl p-6 shadow-2xl space-y-4">
+              <div className="bg-[#101F3D] border-2 border-[#0866F5] rounded-2xl p-6 shadow-2xl space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-mono font-black text-2xl flex items-center justify-center shadow-lg shadow-blue-600/30 ring-1 ring-sky-300/40">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#0866F5] to-[#00A9FF] text-[#F8FAFC] font-mono font-bold text-2xl flex items-center justify-center shadow-lg">
                       #{parsedNumber}
                     </div>
                     <div>
-                      <span className="text-xs text-sky-400 font-bold uppercase tracking-wider">
+                      <span className="text-xs text-[#00A9FF] font-bold uppercase tracking-wider">
                         Dono do Bilhete Encontrado
                       </span>
-                      <h3 className="font-display font-black text-2xl text-white">
+                      <h3 className="font-display font-bold text-2xl text-[#F8FAFC]">
                         {numberResult.participant.name}
                       </h3>
                     </div>
                   </div>
 
                   {wonIds.has(numberResult.participant.id) && (
-                    <span className="bg-amber-500/20 text-amber-300 border border-amber-400/40 text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
-                      <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="bg-[#F5B942]/20 text-[#F5B942] border border-[#F5B942]/40 text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+                      <Trophy className="w-3.5 h-3.5 text-[#F5B942]" />
                       <span>Já Premiado</span>
                     </span>
                   )}
                 </div>
 
-                <div className="pt-3 border-t border-slate-800 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                  <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
-                    <span className="text-slate-400 block">Total de moedas:</span>
-                    <span className="text-base font-bold text-white tabular-nums">
+                <div className="pt-3 border-t border-[#182943] grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="bg-[#0B1730] p-3 rounded-xl border border-[#182943]">
+                    <span className="text-[#94A3B8] block">Total de moedas:</span>
+                    <span className="text-base font-mono font-bold text-[#F8FAFC] tabular-nums">
                       {numberResult.participant.coins}
                     </span>
                   </div>
-                  <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800">
-                    <span className="text-slate-400 block">Total de bilhetes:</span>
-                    <span className="text-base font-bold text-sky-400 tabular-nums">
+                  <div className="bg-[#0B1730] p-3 rounded-xl border border-[#182943]">
+                    <span className="text-[#94A3B8] block">Total de bilhetes:</span>
+                    <span className="text-base font-mono font-bold text-[#00A9FF] tabular-nums">
                       {numberResult.assignedTickets} bilhetes
                     </span>
                   </div>
-                  <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 col-span-2 sm:col-span-1">
-                    <span className="text-slate-400 block">Chance de vitória:</span>
-                    <span className="text-base font-bold text-emerald-400 tabular-nums">
+                  <div className="bg-[#0B1730] p-3 rounded-xl border border-[#182943] col-span-2 sm:col-span-1">
+                    <span className="text-[#94A3B8] block">Chance de vitória:</span>
+                    <span className="text-base font-mono font-bold text-[#20C997] tabular-nums">
                       {numberResult.winProbability}%
                     </span>
                   </div>
                 </div>
 
                 <div className="pt-2">
-                  <span className="text-xs font-semibold text-slate-400 block mb-2">
+                  <span className="text-xs font-semibold text-[#94A3B8] block mb-2">
                     Todos os bilhetes de {numberResult.participant.name}:
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {numberResult.tickets.map((num) => (
                       <span
                         key={num}
-                        className={`font-mono font-bold text-xs px-2.5 py-1 rounded-lg ${
+                        className={`font-mono font-bold text-xs px-2.5 py-1 rounded-lg tabular-nums ${
                           num === parsedNumber
-                            ? 'bg-blue-600 text-white ring-2 ring-sky-300'
-                            : 'bg-slate-800 text-slate-300'
+                            ? 'bg-[#0866F5] text-[#F8FAFC] ring-2 ring-[#35B9F5]'
+                            : 'bg-[#182943] text-[#F8FAFC]'
                         }`}
                       >
                         #{num}
@@ -846,9 +840,9 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center space-y-2">
-                <p className="text-sm font-bold text-slate-300">Bilhete #{parsedNumber} não foi distribuído</p>
-                <p className="text-xs text-slate-500">
+              <div className="bg-[#101F3D] border border-[#182943] rounded-2xl p-8 text-center space-y-2">
+                <p className="text-sm font-bold text-[#F8FAFC]">Bilhete #{parsedNumber} não foi distribuído</p>
+                <p className="text-xs text-[#94A3B8]">
                   Esse número ainda não pertence a ninguém ou está fora da faixa configurada do sorteio de {organizerName}.
                 </p>
               </div>
@@ -859,7 +853,7 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
         {/* MODE: ALL PARTICIPANTS */}
         {searchMode === 'all' && (
           <div className="space-y-3">
-            <div className="text-xs font-semibold text-slate-400 px-1">
+            <div className="text-xs font-semibold text-[#94A3B8] px-1">
               Todos os {computed.allocations.length} participantes deste sorteio:
             </div>
 
@@ -867,19 +861,19 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
               {computed.allocations.map((alloc) => (
                 <div
                   key={alloc.participant.id}
-                  className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between gap-3 hover:border-slate-700 transition"
+                  className="bg-[#101F3D] border border-[#182943] rounded-xl p-4 flex items-center justify-between gap-3 hover:border-[#00A9FF]/40 transition"
                 >
                   <div>
-                    <h4 className="font-bold text-sm text-white">{alloc.participant.name}</h4>
-                    <span className="text-xs text-slate-400">
+                    <h4 className="font-bold text-sm text-[#F8FAFC]">{alloc.participant.name}</h4>
+                    <span className="text-xs text-[#94A3B8] font-mono tabular-nums">
                       {alloc.participant.coins} moedas · {alloc.winProbability}% chance
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="font-mono font-black text-base text-sky-400 tabular-nums">
+                    <span className="font-mono font-bold text-base text-[#00A9FF] tabular-nums">
                       {alloc.assignedTickets}
                     </span>
-                    <span className="block text-[10px] text-slate-500 uppercase">bilhetes</span>
+                    <span className="block text-[10px] text-[#94A3B8] uppercase">bilhetes</span>
                   </div>
                 </div>
               ))}
@@ -894,30 +888,30 @@ export const TicketSearch: React.FC<TicketSearchProps> = ({
               winners.map((w, index) => (
                 <div
                   key={w.id}
-                  className="bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-900 border border-amber-500/40 rounded-3xl p-5 flex items-center justify-between gap-4"
+                  className="bg-[#101F3D] border border-[#F5B942]/40 rounded-2xl p-5 flex items-center justify-between gap-4"
                 >
                   <div className="flex items-center gap-3.5">
-                    <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400 font-mono font-black text-lg">
+                    <div className="w-12 h-12 rounded-xl bg-[#F5B942]/15 border border-[#F5B942]/40 flex items-center justify-center text-[#F5B942] font-mono font-bold text-lg tabular-nums">
                       #{index + 1}
                     </div>
                     <div>
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 block">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-[#F5B942] block">
                         {w.prize}
                       </span>
-                      <h4 className="font-display font-black text-lg text-white">{w.name}</h4>
-                      <span className="text-xs text-slate-400">
-                        Bilhete sorteado: <b className="text-white font-mono">#{w.number}</b>
+                      <h4 className="font-display font-bold text-lg text-[#F8FAFC]">{w.name}</h4>
+                      <span className="text-xs text-[#94A3B8]">
+                        Bilhete sorteado: <b className="text-[#F8FAFC] font-mono tabular-nums">#{w.number}</b>
                       </span>
                     </div>
                   </div>
-                  <Trophy className="w-6 h-6 text-amber-400 shrink-0" />
+                  <Trophy className="w-6 h-6 text-[#F5B942] shrink-0" />
                 </div>
               ))
             ) : (
-              <div className="bg-slate-900/50 border border-dashed border-slate-800 rounded-3xl p-8 text-center space-y-2">
-                <Trophy className="w-8 h-8 text-amber-400/50 mx-auto" />
-                <p className="text-sm font-bold text-slate-300">Nenhum ganhador sorteado ainda</p>
-                <p className="text-xs text-slate-500">
+              <div className="bg-[#101F3D]/80 border border-dashed border-[#182943] rounded-2xl p-8 text-center space-y-2">
+                <Trophy className="w-8 h-8 text-[#F5B942]/50 mx-auto" />
+                <p className="text-sm font-bold text-[#F8FAFC]">Nenhum ganhador sorteado ainda</p>
+                <p className="text-xs text-[#94A3B8]">
                   Os vencedores aparecerão aqui assim que o sorteador realizar a rodada!
                 </p>
               </div>

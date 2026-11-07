@@ -1,0 +1,111 @@
+# Load copied Nginx modules, which include Lua script & caching support.
+include /etc/nginx/modules-enabled/10-mod-http-ndk.conf;
+include /etc/nginx/modules-enabled/50-mod-http-lua.conf;
+
+env APPLET_ID;
+env DISABLE_AUTH_BRIDGE;
+
+worker_processes auto;
+
+events {
+    # We can most likely reduce this, but this is a good starting point.
+    worker_connections 512;
+}
+
+http {
+    # Auth token cache for the AI Studio auth bridge. Note 1m is the cache size,
+    # not the TTL.
+    lua_shared_dict auth_token_cache 1m;
+    resolver 8.8.8.8;
+
+    server {
+        listen 8080;
+        proxy_http_version 1.1;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+        client_max_body_size 32M;
+
+        # Include shared auth bridge proxy and forbidden locations.
+        include /etc/nginx/nginx_auth.conf.include;
+
+        # Control plane API owned path prefix.
+        location /__aistudio_internal_control_plane/ {
+            # Strip the prefix so that the control plane receives
+            # just the suffix path.
+            proxy_pass http://localhost:8000/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            # Settings for Server-Sent Events (SSE) endpoints like /dev/logs
+            proxy_set_header Connection '';
+            proxy_http_version 1.1;
+            proxy_buffering off;
+            proxy_cache off;
+            proxy_set_header X-Accel-Buffering no;
+        }
+
+        # Serve the app for all other paths.
+        location / {
+            # DANGER - THIS SCRIPT IS STRICTLY NECESSARY, NEVER REMOVE.
+            access_by_lua_file /etc/nginx/user_auth_verification.lua;
+
+            # Dev server might send gzipped HTML, so sub_filter cannot process it.
+            # Prevent compression by clearing the Accept-Encoding header.
+            proxy_set_header Accept-Encoding "";
+
+            sub_filter '</head>' '<script src="/_aistudio-iframe.js?v=1f94f900"></script></head>';
+            sub_filter_once on;
+            sub_filter_types text/html;
+
+            # Enable gzip compression after removing the accept-encoding header.
+            gzip on;
+            gzip_vary on;
+            gzip_proxied any;
+            gzip_comp_level 4;
+            gzip_types text/plain text/css application/json application/javascript text/javascript image/svg+xml;
+
+            proxy_pass http://localhost:3000;
+            # Override Host header to bypass dev server host checks
+            # (e.g., Vite) behind Cloud Run
+            proxy_set_header Host localhost:3000;
+            # Preserve original host for application logic if needed
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            # Enable WebSocket upgrades for HMR and DWDS
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            # If the dev server isn't ready yet, show a
+            # warmup page instead of 502
+            proxy_intercept_errors on;
+            error_page 403 = /forbidden.html;
+            error_page 502 503 504 = /warmup.html;
+
+            # Nginx skips the header if empty.
+            add_header Content-Security-Policy "frame-ancestors 'self' https://*.google.com https://localhost.corp.google.com:26001;";
+        }
+
+        location /_aistudio-iframe.js {
+            alias /var/www/assets/_aistudio-iframe.js;
+            default_type application/javascript;
+            # Cache aggressively — the query string ?v=IFRAME_SCRIPT_VERSION changes
+            # with every Docker image build, so stale versions are never served.
+            expires 1y;
+            add_header Cache-Control "public, no-transform, immutable";
+        }
+
+        location /warmup.html {
+            internal;
+            alias /var/www/assets/warmup.html;
+            default_type text/html;
+            # Ensure the warmup page is never cached.
+            add_header Cache-Control "no-cache, no-store, must-revalidate, max-age=0";
+            add_header Pragma "no-cache";
+            expires 0;
+        }
+    }
+}

@@ -1,0 +1,1365 @@
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  writeBatch,
+  runTransaction,
+} from 'firebase/firestore';
+import { db } from '../firebase.js';
+import {
+  assertProPlanActive,
+  assertRecordOwnership,
+  computeSha256,
+  recordAuditLog,
+  resolveCurrentOwnerUid,
+  selectUniformRandomIndex,
+} from './tiktokLiveService.js';
+import type {
+  Campaign,
+  CampaignLegalStatus,
+  CampaignMode,
+  CampaignCycleRecord,
+  DeliveryStatus,
+  DeliveryAuditEntry,
+  DeliveryDetails,
+  CampaignSession,
+  CampaignTicket,
+  DrawSnapshot,
+  DrawSnapshotChunk,
+  LiveDrawRecord,
+  SnapshotTicketEntry,
+} from '../types.js';
+
+/**
+ * Creates a new special multi-LIVE campaign with individual regulation & legal status (Fase 9).
+ * Supports recurring modes (RECURRING_RESET and RECURRING_CUMULATIVE) with deterministic cycles.
+ */
+export async function createCampaign(
+  params: {
+    title: string;
+    description: string;
+    prizeName: string;
+    ownerUid?: string;
+    campaignMode?: CampaignMode;
+    allowDuplicateWinners?: boolean;
+    startDate?: number;
+    cutoffDate?: number;
+    defaultRate?: number;
+    maxTicketsPerUser?: number | null;
+    maxTotalTickets?: number | null;
+    eligibilityRuleDefault?: 'ALL_TICKETS' | 'CUTOFF_TIMESTAMP' | 'CAMPAIGN_WINDOW';
+    rulesSummary?: string;
+    legalStatus?: CampaignLegalStatus;
+    organizerName?: string;
+    modality?: string;
+    eligibilityRules?: string;
+    ticketEmissionCriteria?: string;
+    drawMethodDescription?: string;
+    resultsDisclosureChannel?: string;
+    contestationProcedure?: string;
+    authorizationDocumentation?: string;
+    regulationVersion?: string;
+  },
+  ownerUid?: string
+): Promise<Campaign> {
+  assertProPlanActive('Criação de Campanha Acumulada Multi-LIVE');
+
+  const resolvedOwnerUid = resolveCurrentOwnerUid(ownerUid || params.ownerUid);
+  const campaignId = `camp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const now = Date.now();
+  const rate = params.defaultRate && params.defaultRate > 0 ? Math.floor(params.defaultRate) : 100;
+  const campaignMode: CampaignMode = params.campaignMode || 'SINGLE_DRAW';
+  const isRecurring = campaignMode === 'RECURRING_RESET' || campaignMode === 'RECURRING_CUMULATIVE';
+  const activeCycleId = isRecurring ? `campaign_${campaignId}_cycle_1` : undefined;
+
+  const campaign: Campaign = {
+    campaignId,
+    ...(resolvedOwnerUid ? { ownerUid: resolvedOwnerUid } : {}),
+    title: (params.title || '').trim(),
+    description: (params.description || '').trim(),
+    status: 'OPEN',
+    campaignMode,
+    ...(isRecurring
+      ? {
+          currentCycleIndex: 1,
+          activeCycleId,
+          pendingDeliveryCount: 0,
+          allowDuplicateWinners: params.allowDuplicateWinners !== undefined ? Boolean(params.allowDuplicateWinners) : true,
+        }
+      : {}),
+    startDate: params.startDate || now,
+    cutoffDate: params.cutoffDate || now + 7 * 24 * 60 * 60 * 1000,
+    prizeName: params.prizeName.trim() || 'Prêmio Especial da Campanha',
+    defaultRate: rate,
+    maxTicketsPerUser:
+      params.maxTicketsPerUser && params.maxTicketsPerUser > 0 ? Math.floor(params.maxTicketsPerUser) : null,
+    maxTotalTickets:
+      params.maxTotalTickets && params.maxTotalTickets > 0 ? Math.floor(params.maxTotalTickets) : null,
+    eligibilityRuleDefault: params.eligibilityRuleDefault || 'ALL_TICKETS',
+    rulesSummary:
+      params.rulesSummary?.trim() ||
+      'Bilhetes emitidos nas transmissões participantes acumulam sem duplicidade para o sorteio especial.',
+    totalAccumulatedTickets: 0,
+    participatingSessionIds: [],
+    createdAt: now,
+    updatedAt: now,
+    legalStatus: params.legalStatus || 'Pendente de análise',
+    organizerName: params.organizerName?.trim() || '',
+    modality: params.modality?.trim() || 'Campanha Acumulada Multi-LIVE por Moedas Enviadas',
+    eligibilityRules:
+      params.eligibilityRules?.trim() ||
+      'Participam os usuários identificados que enviarem presentes durante as sessões LIVE vinculadas no período de vigência.',
+    ticketEmissionCriteria:
+      params.ticketEmissionCriteria?.trim() ||
+      `1 bilhete numerado sequencial a cada ${rate} moedas enviadas em presentes, com preservação de saldo residual (carryover).`,
+    drawMethodDescription:
+      params.drawMethodDescription?.trim() ||
+      'Congelamento imutável da lista com hash SHA-256 seguido de apuração eletrônica com entropia CSPRNG auditável.',
+    resultsDisclosureChannel:
+      params.resultsDisclosureChannel?.trim() ||
+      'Divulgação ao vivo durante a transmissão oficial e certificado público SHA-256 no painel.',
+    contestationProcedure:
+      params.contestationProcedure?.trim() ||
+      'Solicitações de verificação podem ser protocoladas na Central de Suporte informando o ID da campanha e o hash SHA-256.',
+    authorizationDocumentation: params.authorizationDocumentation?.trim() || '',
+    regulationVersion: params.regulationVersion?.trim() || '1.0',
+  };
+
+  await setDoc(doc(db, 'campaigns', campaignId), campaign);
+
+  // If recurring, initialize deterministic cycle 1 record
+  if (isRecurring && activeCycleId) {
+    const cycle1: CampaignCycleRecord = {
+      cycleId: activeCycleId,
+      campaignId,
+      cycleIndex: 1,
+      status: 'OPEN',
+      startDate: now,
+      prizeName: campaign.prizeName,
+      deliveryStatus: 'PENDING_CONTACT',
+      ticketsCount: 0,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await setDoc(doc(db, 'campaigns', campaignId, 'cycles', activeCycleId), cycle1);
+  }
+
+  await recordAuditLog(
+    'CAMPAIGN',
+    'CAMPAIGN_CREATED',
+    {
+      campaignId,
+      ownerUid: resolvedOwnerUid || null,
+      title: campaign.title,
+      prizeName: campaign.prizeName,
+      campaignMode,
+      activeCycleId: activeCycleId || null,
+      startDate: campaign.startDate,
+      cutoffDate: campaign.cutoffDate,
+      maxTicketsPerUser: campaign.maxTicketsPerUser,
+      maxTotalTickets: campaign.maxTotalTickets,
+      legalStatus: campaign.legalStatus,
+    },
+    resolvedOwnerUid || 'SYSTEM'
+  );
+  return campaign;
+}
+
+/**
+ * Updates the configuration, prize, dates, regulation fields, and legalStatus of a campaign.
+ */
+export async function updateCampaignRulesConfig(
+  campaignId: string,
+  config: {
+    title?: string;
+    description?: string;
+    prizeName?: string;
+    startDate?: number;
+    cutoffDate?: number;
+    defaultRate?: number;
+    maxTicketsPerUser?: number | null;
+    maxTotalTickets?: number | null;
+    eligibilityRuleDefault?: 'ALL_TICKETS' | 'CUTOFF_TIMESTAMP' | 'CAMPAIGN_WINDOW';
+    rulesSummary?: string;
+    legalStatus?: CampaignLegalStatus;
+    organizerName?: string;
+    modality?: string;
+    eligibilityRules?: string;
+    ticketEmissionCriteria?: string;
+    drawMethodDescription?: string;
+    resultsDisclosureChannel?: string;
+    contestationProcedure?: string;
+    authorizationDocumentation?: string;
+    regulationVersion?: string;
+  },
+  ownerUid?: string
+): Promise<Campaign> {
+  assertProPlanActive('Configuração de Regras da Campanha Multi-LIVE');
+
+  const resolvedOwnerUid = resolveCurrentOwnerUid(ownerUid);
+  const campRef = doc(db, 'campaigns', campaignId);
+  const campSnap = await getDoc(campRef);
+  if (!campSnap.exists()) {
+    throw new Error(`Campanha ${campaignId} não encontrada.`);
+  }
+  const existing = campSnap.data() as Campaign;
+  if (resolvedOwnerUid) {
+    assertRecordOwnership(existing.ownerUid, resolvedOwnerUid, `campanha (${campaignId})`);
+  }
+  if (existing.status === 'COMPLETED' && !config.legalStatus) {
+    throw new Error('Não é possível alterar regras de uma campanha já concluída.');
+  }
+
+  const patch: Partial<Campaign> = {
+    title: config.title !== undefined ? config.title.trim() : existing.title,
+    description: config.description !== undefined ? config.description.trim() : existing.description,
+    prizeName: config.prizeName !== undefined ? config.prizeName.trim() : existing.prizeName,
+    startDate: config.startDate !== undefined ? config.startDate : existing.startDate,
+    cutoffDate: config.cutoffDate !== undefined ? config.cutoffDate : existing.cutoffDate,
+    defaultRate:
+      config.defaultRate !== undefined && config.defaultRate > 0
+        ? Math.floor(config.defaultRate)
+        : existing.defaultRate || 100,
+    maxTicketsPerUser:
+      config.maxTicketsPerUser !== undefined
+        ? config.maxTicketsPerUser && config.maxTicketsPerUser > 0
+          ? Math.floor(config.maxTicketsPerUser)
+          : null
+        : existing.maxTicketsPerUser ?? null,
+    maxTotalTickets:
+      config.maxTotalTickets !== undefined
+        ? config.maxTotalTickets && config.maxTotalTickets > 0
+          ? Math.floor(config.maxTotalTickets)
+          : null
+        : existing.maxTotalTickets ?? null,
+    eligibilityRuleDefault: config.eligibilityRuleDefault || existing.eligibilityRuleDefault || 'ALL_TICKETS',
+    rulesSummary: config.rulesSummary !== undefined ? config.rulesSummary.trim() : existing.rulesSummary || '',
+    legalStatus: config.legalStatus !== undefined ? config.legalStatus : existing.legalStatus || 'Pendente de análise',
+    organizerName: config.organizerName !== undefined ? config.organizerName.trim() : existing.organizerName || '',
+    modality: config.modality !== undefined ? config.modality.trim() : existing.modality || '',
+    eligibilityRules:
+      config.eligibilityRules !== undefined ? config.eligibilityRules.trim() : existing.eligibilityRules || '',
+    ticketEmissionCriteria:
+      config.ticketEmissionCriteria !== undefined
+        ? config.ticketEmissionCriteria.trim()
+        : existing.ticketEmissionCriteria || '',
+    drawMethodDescription:
+      config.drawMethodDescription !== undefined
+        ? config.drawMethodDescription.trim()
+        : existing.drawMethodDescription || '',
+    resultsDisclosureChannel:
+      config.resultsDisclosureChannel !== undefined
+        ? config.resultsDisclosureChannel.trim()
+        : existing.resultsDisclosureChannel || '',
+    contestationProcedure:
+      config.contestationProcedure !== undefined
+        ? config.contestationProcedure.trim()
+        : existing.contestationProcedure || '',
+    authorizationDocumentation:
+      config.authorizationDocumentation !== undefined
+        ? config.authorizationDocumentation.trim()
+        : existing.authorizationDocumentation || '',
+    regulationVersion:
+      config.regulationVersion !== undefined ? config.regulationVersion.trim() : existing.regulationVersion || '1.0',
+    updatedAt: Date.now(),
+  };
+
+  await updateDoc(campRef, patch as Record<string, unknown>);
+  await recordAuditLog(
+    'CAMPAIGN',
+    'CAMPAIGN_RULES_UPDATED',
+    {
+      campaignId,
+      ownerUid: resolvedOwnerUid || existing.ownerUid || null,
+      ...patch,
+    },
+    resolvedOwnerUid || existing.ownerUid || 'SYSTEM'
+  );
+
+  const updated = await getDoc(campRef);
+  return updated.data() as Campaign;
+}
+
+/**
+ * Fetches all campaigns ordered by creation date descending.
+ */
+export async function fetchCampaigns(ownerUid?: string): Promise<Campaign[]> {
+  const resolvedOwnerUid = resolveCurrentOwnerUid(ownerUid);
+  const collRef = collection(db, 'campaigns');
+  const q = query(collRef, orderBy('createdAt', 'desc'), limit(50));
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => d.data() as Campaign)
+    .filter((c) => {
+      if (!resolvedOwnerUid) return true;
+      if (c.ownerUid && c.ownerUid !== resolvedOwnerUid) return false;
+      if (ownerUid && c.ownerUid !== resolvedOwnerUid) return false;
+      return true;
+    });
+}
+
+/**
+ * Fetches a single campaign by ID.
+ */
+export async function fetchCampaignById(campaignId: string, ownerUid?: string): Promise<Campaign | null> {
+  const resolvedOwnerUid = resolveCurrentOwnerUid(ownerUid);
+  const docRef = doc(db, 'campaigns', campaignId);
+  const snap = await getDoc(docRef);
+  if (!snap.exists()) return null;
+  const campaign = snap.data() as Campaign;
+  if (resolvedOwnerUid) {
+    assertRecordOwnership(campaign.ownerUid, resolvedOwnerUid, `campanha (${campaignId})`);
+  }
+  return campaign;
+}
+
+/**
+ * Associates a live broadcast session into an open campaign.
+ * Indexes all eligible tickets deduplicated into `campaigns/{campaignId}/tickets/{campaignTicketId}`.
+ * Strictly guarantees idempotency: never counts the same ticket or event twice.
+ */
+export async function addSessionToCampaign(
+  campaignId: string,
+  sessionId: string,
+  options?: {
+    eligibilityRule?: 'ALL_TICKETS' | 'CUTOFF_TIMESTAMP' | 'CAMPAIGN_WINDOW';
+    cutoffTimestamp?: number;
+    ownerUid?: string;
+  },
+  ownerUid?: string
+): Promise<{ addedTicketsCount: number; skippedDuplicatesCount: number; totalCampaignTickets: number }> {
+  assertProPlanActive('Acumulação de LIVE em Campanha Multi-LIVE');
+
+  const resolvedOwnerUid = resolveCurrentOwnerUid(ownerUid || options?.ownerUid);
+  const campRef = doc(db, 'campaigns', campaignId);
+  const campSnap = await getDoc(campRef);
+  if (!campSnap.exists()) {
+    throw new Error(`Campanha ${campaignId} não encontrada.`);
+  }
+
+  const campaign = campSnap.data() as Campaign;
+  if (resolvedOwnerUid) {
+    assertRecordOwnership(campaign.ownerUid, resolvedOwnerUid, `campanha (${campaignId})`);
+  }
+  if (campaign.status !== 'OPEN') {
+    throw new Error(`A campanha não está aberta para adição de novas transmissões (Status: ${campaign.status}).`);
+  }
+
+  const rule = options?.eligibilityRule || campaign.eligibilityRuleDefault || 'ALL_TICKETS';
+  const cutoff = options?.cutoffTimestamp || campaign.cutoffDate;
+  const maxPerUser =
+    campaign.maxTicketsPerUser && campaign.maxTicketsPerUser > 0 ? Number(campaign.maxTicketsPerUser) : null;
+  const maxTotal =
+    campaign.maxTotalTickets && campaign.maxTotalTickets > 0 ? Number(campaign.maxTotalTickets) : null;
+
+  // Fetch session doc
+  const sessionRef = doc(db, 'sessions', sessionId);
+  const sessionSnap = await getDoc(sessionRef);
+  const sessionData = sessionSnap.data();
+  if (resolvedOwnerUid && sessionData?.ownerUid) {
+    assertRecordOwnership(sessionData.ownerUid, resolvedOwnerUid, `sessão LIVE (${sessionId})`);
+  }
+  const sessionTitle = sessionData?.roomTitle || `LIVE @${sessionData?.username || sessionId}`;
+
+  // Fetch existing campaign tickets to guarantee strict deduplication and enforce user/campaign limits
+  const existingCampTicketsSnap = await getDocs(collection(db, 'campaigns', campaignId, 'tickets'));
+  const existingTicketIds = new Set<string>();
+  const userTicketCounts = new Map<string, number>();
+  existingCampTicketsSnap.forEach((d) => {
+    existingTicketIds.add(d.id);
+    const data = d.data() as CampaignTicket;
+    if (data.originalTicketId) {
+      existingTicketIds.add(`${campaignId}_${data.originalTicketId}`);
+    }
+    if (data.tiktokUserId) {
+      userTicketCounts.set(data.tiktokUserId, (userTicketCounts.get(data.tiktokUserId) || 0) + 1);
+    }
+  });
+
+  // Fetch all tickets of this session
+  const ticketsColl = collection(db, 'sessions', sessionId, 'tickets');
+  const ticketsSnap = await getDocs(ticketsColl);
+
+  // Filter according to eligibility rule
+  const eligibleTickets = ticketsSnap.docs
+    .map((d) => d.data())
+    .sort((a, b) => (a.ticketNumber || 0) - (b.ticketNumber || 0))
+    .filter((t) => {
+      const issuedAt = t.issuedAt || 0;
+      if (rule === 'CUTOFF_TIMESTAMP' && cutoff) {
+        return issuedAt <= cutoff;
+      }
+      if (rule === 'CAMPAIGN_WINDOW') {
+        const afterStart = campaign.startDate ? issuedAt >= campaign.startDate : true;
+        const beforeCutoff = cutoff ? issuedAt <= cutoff : true;
+        return afterStart && beforeCutoff;
+      }
+      return true;
+    });
+
+  // Separate strictly new tickets from already-indexed tickets while respecting optional limits
+  let newlyAdded = 0;
+  let skippedDuplicatesCount = 0;
+  const ticketsToInsert: CampaignTicket[] = [];
+  let runningTotalCampaignTickets = existingCampTicketsSnap.size;
+
+  for (const ticket of eligibleTickets) {
+    const origTicketId = ticket.ticketId || `${sessionId}_t_${ticket.ticketNumber}`;
+    const campaignTicketId = `${campaignId}_${origTicketId}`;
+
+    if (existingTicketIds.has(campaignTicketId)) {
+      skippedDuplicatesCount++;
+      continue;
+    }
+
+    if (maxTotal !== null && runningTotalCampaignTickets >= maxTotal) {
+      continue;
+    }
+
+    const currentUserTickets = userTicketCounts.get(ticket.tiktokUserId) || 0;
+    if (maxPerUser !== null && currentUserTickets >= maxPerUser) {
+      continue;
+    }
+
+    existingTicketIds.add(campaignTicketId);
+    userTicketCounts.set(ticket.tiktokUserId, currentUserTickets + 1);
+    runningTotalCampaignTickets += 1;
+
+    ticketsToInsert.push({
+      campaignTicketId,
+      campaignId,
+      originalTicketId: origTicketId,
+      originalSessionId: sessionId,
+      originalTicketNumber: ticket.ticketNumber,
+      tiktokUserId: ticket.tiktokUserId,
+      username: ticket.username,
+      nickname: ticket.nickname,
+      indexedAt: Date.now(),
+    });
+  }
+
+  // Batch insert in chunks of 400 (well under Firestore 500 writes/batch limit)
+  const chunkSize = 400;
+  for (let i = 0; i < ticketsToInsert.length; i += chunkSize) {
+    const chunk = ticketsToInsert.slice(i, i + chunkSize);
+    const batch = writeBatch(db);
+    for (const campaignTicket of chunk) {
+      const campTicketRef = doc(db, 'campaigns', campaignId, 'tickets', campaignTicket.campaignTicketId);
+      batch.set(campTicketRef, campaignTicket);
+      newlyAdded++;
+    }
+    await batch.commit();
+  }
+
+  // Record session info in campaign subcollection
+  const campSessionRef = doc(db, 'campaigns', campaignId, 'sessions', sessionId);
+  const campSessionData: CampaignSession = {
+    sessionId,
+    sessionTitle,
+    addedAt: Date.now(),
+    eligibilityRule: rule,
+    cutoffTimestamp: rule === 'CUTOFF_TIMESTAMP' || rule === 'CAMPAIGN_WINDOW' ? cutoff : null,
+    indexedTicketsCount: eligibleTickets.length,
+  };
+  await setDoc(campSessionRef, campSessionData);
+
+  // Read all distinct tickets to update total
+  const allCampTicketsSnap = await getDocs(collection(db, 'campaigns', campaignId, 'tickets'));
+  const totalCount = allCampTicketsSnap.size;
+
+  const currentSessions = new Set(campaign.participatingSessionIds || []);
+  currentSessions.add(sessionId);
+
+  await updateDoc(campRef, {
+    participatingSessionIds: Array.from(currentSessions),
+    totalAccumulatedTickets: totalCount,
+  });
+
+  await recordAuditLog('CAMPAIGN', 'SESSION_LINKED_TO_CAMPAIGN', {
+    campaignId,
+    sessionId,
+    addedTicketsCount: newlyAdded,
+    skippedDuplicatesCount,
+    totalCampaignTickets: totalCount,
+  });
+
+  return {
+    addedTicketsCount: newlyAdded,
+    skippedDuplicatesCount,
+    totalCampaignTickets: totalCount,
+  };
+}
+
+/**
+ * Fetches tickets belonging to a campaign.
+ */
+export async function fetchCampaignTickets(
+  campaignId: string,
+  maxLimit: number = 2000
+): Promise<CampaignTicket[]> {
+  const collRef = collection(db, 'campaigns', campaignId, 'tickets');
+  const q = query(collRef, limit(maxLimit));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => d.data() as CampaignTicket);
+}
+
+/**
+ * Fetches participating sessions linked to a campaign.
+ */
+export async function fetchCampaignSessions(campaignId: string): Promise<CampaignSession[]> {
+  const collRef = collection(db, 'campaigns', campaignId, 'sessions');
+  const snap = await getDocs(collRef);
+  return snap.docs.map((d) => d.data() as CampaignSession).sort((a, b) => b.addedAt - a.addedAt);
+}
+
+/**
+ * Fetches completed draws for a campaign.
+ */
+export async function fetchCampaignDraws(
+  campaignId: string,
+  ownerUid?: string
+): Promise<LiveDrawRecord[]> {
+  const resolvedOwnerUid = resolveCurrentOwnerUid(ownerUid);
+  if (resolvedOwnerUid) {
+    const campSnap = await getDoc(doc(db, 'campaigns', campaignId));
+    if (campSnap.exists()) {
+      const cData = campSnap.data() as Campaign;
+      assertRecordOwnership(cData.ownerUid, resolvedOwnerUid, `campanha (${campaignId})`);
+    }
+  }
+  const collRef = collection(db, 'campaigns', campaignId, 'draws');
+  const snap = await getDocs(collRef);
+  return snap.docs
+    .map((d) => d.data() as LiveDrawRecord)
+    .filter((rec) => !resolvedOwnerUid || !rec.ownerUid || rec.ownerUid === resolvedOwnerUid)
+    .sort((a, b) => b.drawnAt - a.drawnAt);
+}
+
+/**
+ * Freezes the campaign roster into an immutable, partitioned snapshot with SHA-256 integrity hash.
+ */
+export async function freezeCampaignSnapshot(
+  campaignId: string,
+  ownerUid?: string
+): Promise<DrawSnapshot> {
+  assertProPlanActive('Congelamento de Campanha Multi-LIVE');
+  const resolvedOwnerUid = resolveCurrentOwnerUid(ownerUid);
+  const campRef = doc(db, 'campaigns', campaignId);
+  const campSnap = await getDoc(campRef);
+  if (!campSnap.exists()) {
+    throw new Error(`Campanha ${campaignId} não encontrada.`);
+  }
+
+  const campaign = campSnap.data() as Campaign;
+  if (resolvedOwnerUid) {
+    assertRecordOwnership(campaign.ownerUid, resolvedOwnerUid, `campanha (${campaignId})`);
+  }
+  const effectiveOwnerUid = resolvedOwnerUid || campaign.ownerUid;
+  if (campaign.status === 'COMPLETED') {
+    throw new Error('Campanha já concluída.');
+  }
+
+  const ticketsSnap = await getDocs(collection(db, 'campaigns', campaignId, 'tickets'));
+  if (ticketsSnap.empty) {
+    throw new Error('Não há bilhetes acumulados na campanha para congelar.');
+  }
+
+  // If campaign does not allow duplicate winners, gather previous winners
+  const excludedWinnerUids: string[] = [];
+  if (campaign.allowDuplicateWinners === false) {
+    const drawsSnap = await getDocs(collection(db, 'campaigns', campaignId, 'draws'));
+    drawsSnap.forEach((d) => {
+      const draw = d.data() as LiveDrawRecord;
+      if (draw.winnerTiktokUserId && !excludedWinnerUids.includes(draw.winnerTiktokUserId)) {
+        excludedWinnerUids.push(draw.winnerTiktokUserId);
+      }
+    });
+  }
+
+  // Canonical sort: session ID then ticket number (filtering out previous winners if allowDuplicateWinners === false)
+  const sortedTickets: SnapshotTicketEntry[] = ticketsSnap.docs
+    .map((d) => {
+      const t = d.data() as CampaignTicket;
+      return {
+        ticketNumber: t.originalTicketNumber,
+        ticketId: t.campaignTicketId,
+        tiktokUserId: t.tiktokUserId,
+        username: t.username,
+        sessionId: t.originalSessionId,
+        issuedAt: t.indexedAt,
+      };
+    })
+    .filter((t) => {
+      if (campaign.allowDuplicateWinners === false && excludedWinnerUids.includes(t.tiktokUserId)) {
+        return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (a.sessionId !== b.sessionId) return a.sessionId.localeCompare(b.sessionId);
+      return a.ticketNumber - b.ticketNumber;
+    });
+
+  if (sortedTickets.length === 0) {
+    throw new Error('Não há bilhetes elegíveis acumulados na campanha para congelar.');
+  }
+
+  // Calculate canonical SHA-256 hash of ordered roster
+  const canonicalString = sortedTickets
+    .map((t, idx) => `${idx + 1}:${t.sessionId}:${t.ticketId}:${t.tiktokUserId}`)
+    .join('|');
+  const rosterSha256Hash = await computeSha256(canonicalString);
+
+  const snapshotId = `snap_camp_${campaignId}_${Date.now()}`;
+  const CHUNK_SIZE = 500;
+  const totalChunks = Math.ceil(sortedTickets.length / CHUNK_SIZE);
+
+  // Write chunks partition to avoid 1MB document limit
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * CHUNK_SIZE;
+    const end = Math.min(start + CHUNK_SIZE, sortedTickets.length);
+    const chunkTickets = sortedTickets.slice(start, end);
+
+    const chunkDoc: DrawSnapshotChunk = {
+      chunkIndex: i,
+      startIndex: start,
+      endIndex: end,
+      tickets: chunkTickets,
+    };
+
+    await setDoc(doc(db, 'draw_snapshots', snapshotId, 'chunks', String(i)), chunkDoc);
+  }
+
+  // Save parent snapshot metadata
+  const snapshotData: DrawSnapshot = {
+    snapshotId,
+    ...(effectiveOwnerUid ? { ownerUid: effectiveOwnerUid } : {}),
+    targetType: 'CAMPAIGN',
+    targetId: campaignId,
+    totalEligibleTickets: sortedTickets.length,
+    frozenAt: Date.now(),
+    rosterSha256Hash,
+    maxTicketNumberFrozen: sortedTickets.length,
+    totalChunks,
+  };
+
+  await setDoc(doc(db, 'draw_snapshots', snapshotId), snapshotData);
+
+  // Update campaign
+  await updateDoc(campRef, {
+    status: 'FROZEN',
+    latestSnapshotId: snapshotId,
+  });
+
+  await recordAuditLog(
+    'CAMPAIGN',
+    'CAMPAIGN_SNAPSHOT_FROZEN',
+    {
+      campaignId,
+      snapshotId,
+      ownerUid: effectiveOwnerUid || null,
+      totalEligibleTickets: sortedTickets.length,
+      rosterSha256Hash,
+    },
+    effectiveOwnerUid || 'SYSTEM'
+  );
+
+  return snapshotData;
+}
+
+/**
+ * Executes the accumulated draw for a special campaign using unbiased CSPRNG and verifiable seed commitment.
+ */
+export async function executeCampaignDraw(
+  campaignId: string,
+  snapshotId: string,
+  prizeName?: string,
+  ownerUid?: string
+): Promise<{
+  drawId: string;
+  winningTicket: SnapshotTicketEntry;
+  seedCommitment: string;
+  seedRevealed: string;
+  drawnAt: number;
+  prizeName: string;
+  excludedPreviousWinnerUids?: string[];
+}> {
+  assertProPlanActive('Sorteio de Campanha Multi-LIVE');
+  const resolvedOwnerUid = resolveCurrentOwnerUid(ownerUid);
+  const campRef = doc(db, 'campaigns', campaignId);
+  const campSnap = await getDoc(campRef);
+  if (!campSnap.exists()) {
+    throw new Error(`Campanha ${campaignId} não encontrada.`);
+  }
+  const campaign = campSnap.data() as Campaign;
+  if (resolvedOwnerUid) {
+    assertRecordOwnership(campaign.ownerUid, resolvedOwnerUid, `campanha (${campaignId})`);
+  }
+
+  const snapRef = doc(db, 'draw_snapshots', snapshotId);
+  const snapDoc = await getDoc(snapRef);
+  if (!snapDoc.exists()) {
+    throw new Error(`Snapshot ${snapshotId} não encontrado.`);
+  }
+
+  const snapshot = snapDoc.data() as DrawSnapshot;
+  if (resolvedOwnerUid) {
+    assertRecordOwnership(snapshot.ownerUid, resolvedOwnerUid, `snapshot (${snapshotId})`);
+  }
+  const effectiveOwnerUid = resolvedOwnerUid || snapshot.ownerUid || campaign.ownerUid;
+  if (snapshot.totalEligibleTickets <= 0) {
+    throw new Error('Nenhum bilhete elegível para sorteio neste snapshot.');
+  }
+
+  // Unbiased CSPRNG selection using rejection sampling
+  const { index: winningIndex, rawEntropyHex } = selectUniformRandomIndex(snapshot.totalEligibleTickets);
+
+  // Locate the partition chunk containing winningIndex
+  const CHUNK_SIZE = 500;
+  const chunkIndex = Math.floor(winningIndex / CHUNK_SIZE);
+  const localIndex = winningIndex % CHUNK_SIZE;
+
+  const chunkSnap = await getDoc(doc(db, 'draw_snapshots', snapshotId, 'chunks', String(chunkIndex)));
+  if (!chunkSnap.exists()) {
+    throw new Error(`Chunk ${chunkIndex} do snapshot não encontrado.`);
+  }
+
+  const chunkData = chunkSnap.data() as DrawSnapshotChunk;
+  const winningTicket = chunkData.tickets[localIndex];
+
+  // Generate verifiable seed pair
+  const seedRevealed = `csprng_camp_v1_${Date.now()}_${rawEntropyHex}`;
+  const seedCommitment = await computeSha256(seedRevealed);
+
+  const drawId = `draw_camp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const prize = prizeName || campaign.prizeName || 'Prêmio Especial da Campanha';
+  const drawnAt = Date.now();
+
+  const initialAudit: DeliveryAuditEntry = {
+    drawId,
+    previousStatus: 'PENDING_CONTACT',
+    newStatus: 'PENDING_CONTACT',
+    timestamp: drawnAt,
+    operatorUid: effectiveOwnerUid || 'SYSTEM',
+    reason: 'Sorteio de campanha multi-LIVE realizado com sucesso via CSPRNG.',
+  };
+
+  // If campaign.allowDuplicateWinners === false, gather excluded previous winners
+  const excludedWinnerUids: string[] = [];
+  if (campaign.allowDuplicateWinners === false) {
+    const pastDrawsSnap = await getDocs(collection(db, 'campaigns', campaignId, 'draws'));
+    pastDrawsSnap.forEach((d) => {
+      const draw = d.data() as LiveDrawRecord;
+      if (draw.winnerTiktokUserId && !excludedWinnerUids.includes(draw.winnerTiktokUserId)) {
+        excludedWinnerUids.push(draw.winnerTiktokUserId);
+      }
+    });
+  }
+
+  const drawRecord: LiveDrawRecord = {
+    drawId,
+    ...(effectiveOwnerUid ? { ownerUid: effectiveOwnerUid } : {}),
+    drawType: 'CAMPAIGN',
+    targetId: campaignId,
+    campaignId,
+    ...(campaign.activeCycleId ? { cycleId: campaign.activeCycleId } : {}),
+    snapshotId,
+    frozenRosterHash: snapshot.rosterSha256Hash,
+    seedCommitment,
+    seedRevealed,
+    winningTicketNumber: winningTicket.ticketNumber,
+    winningTicketId: winningTicket.ticketId,
+    winnerTiktokUserId: winningTicket.tiktokUserId,
+    winnerName: winningTicket.username,
+    winnerSessionId: winningTicket.sessionId,
+    prizeName: prize,
+    drawnAt,
+    deliveryStatus: 'PENDING_CONTACT',
+    deliveryAuditTrail: [initialAudit],
+    ...(excludedWinnerUids.length > 0 ? { excludedPreviousWinnerUids: excludedWinnerUids } : {}),
+  };
+
+  // Record globally and in campaign subcollection
+  await setDoc(doc(db, 'draws', drawId), drawRecord);
+  await setDoc(doc(db, 'campaigns', campaignId, 'draws', drawRecord.drawId), drawRecord);
+
+  // Update campaign status
+  const isRecurring =
+    campaign.campaignMode === 'RECURRING_RESET' || campaign.campaignMode === 'RECURRING_CUMULATIVE';
+  await updateDoc(campRef, {
+    status: isRecurring ? 'OPEN' : 'COMPLETED',
+    closedAt: isRecurring ? null : drawnAt,
+    pendingDeliveryCount: (campaign.pendingDeliveryCount || 0) + 1,
+    updatedAt: drawnAt,
+  });
+
+  // If campaign has an active cycle, update that cycle with winner and pending delivery
+  if (campaign.activeCycleId) {
+    const cycleRef = doc(db, 'campaigns', campaignId, 'cycles', campaign.activeCycleId);
+    await updateDoc(cycleRef, {
+      status: 'DRAWN',
+      drawId,
+      winnerUsername: winningTicket.username,
+      winnerTiktokUserId: winningTicket.tiktokUserId,
+      winningTicketNumber: winningTicket.ticketNumber,
+      deliveryStatus: 'PENDING_CONTACT',
+      closedAt: drawnAt,
+      updatedAt: drawnAt,
+    }).catch((err) => console.warn('[executeCampaignDraw] Erro ao atualizar ciclo ativo:', err));
+  }
+
+  await recordAuditLog(
+    'DRAW',
+    'CAMPAIGN_DRAW_COMPLETED',
+    {
+      drawId,
+      campaignId,
+      cycleId: campaign.activeCycleId || null,
+      snapshotId,
+      ownerUid: effectiveOwnerUid || null,
+      winningTicketNumber: winningTicket.ticketNumber,
+      winner: winningTicket.username,
+      winnerSessionId: winningTicket.sessionId,
+      prizeName: prize,
+      seedCommitment,
+      deliveryStatus: 'PENDING_CONTACT',
+    },
+    effectiveOwnerUid || 'SYSTEM'
+  );
+
+  return {
+    drawId,
+    winningTicket,
+    seedCommitment,
+    seedRevealed,
+    drawnAt,
+    prizeName: prize,
+    excludedPreviousWinnerUids: excludedWinnerUids.length > 0 ? excludedWinnerUids : undefined,
+  };
+}
+
+/**
+ * Fetches all cycles of a campaign ordered by cycleIndex ascending.
+ */
+export async function fetchCampaignCycles(campaignId: string): Promise<CampaignCycleRecord[]> {
+  const cyclesCol = collection(db, 'campaigns', campaignId, 'cycles');
+  const q = query(cyclesCol, orderBy('cycleIndex', 'asc'));
+  const snap = await getDocs(q);
+  const list: CampaignCycleRecord[] = [];
+  snap.forEach((d) => list.push(d.data() as CampaignCycleRecord));
+  return list;
+}
+
+/**
+ * Advances a recurring campaign to the next cycle using an idempotent Firestore transaction.
+ *
+ * MANDATORY BUSINESS RULE:
+ * An active recurring cycle CANNOT advance to a new cycle while ANY previous cycle's prize is in
+ * `PENDING_CONTACT` or `CONTACTED` or `pendingDeliveryCount > 0`!
+ * Only `DELIVERED` unblocks the opening of the next recurring cycle.
+ */
+export async function advanceCampaignCycle(
+  campaignId: string,
+  ownerUid?: string
+): Promise<{ campaign: Campaign; newCycle: CampaignCycleRecord }> {
+  assertProPlanActive('Avanço de Ciclo Recorrente da Campanha Multi-LIVE');
+  const resolvedOwnerUid = resolveCurrentOwnerUid(ownerUid);
+
+  return await runTransaction(db, async (tx) => {
+    const campRef = doc(db, 'campaigns', campaignId);
+    const campSnap = await tx.get(campRef);
+    if (!campSnap.exists()) {
+      throw new Error(`Campanha ${campaignId} não encontrada.`);
+    }
+
+    const campaign = campSnap.data() as Campaign;
+    if (resolvedOwnerUid) {
+      assertRecordOwnership(campaign.ownerUid, resolvedOwnerUid, `campanha (${campaignId})`);
+    }
+
+    const isRecurring =
+      campaign.campaignMode === 'RECURRING_RESET' || campaign.campaignMode === 'RECURRING_CUMULATIVE';
+    if (!isRecurring) {
+      throw new Error(
+        `A campanha '${campaign.title}' está no modo '${campaign.campaignMode || 'SINGLE_DRAW'}' e não suporta ciclos múltiplos.`
+      );
+    }
+
+    // Check if previous cycle's prize is still pending delivery
+    if ((campaign.pendingDeliveryCount || 0) > 0 && campaign.activeCycleId) {
+      const activeCycleRef = doc(db, 'campaigns', campaignId, 'cycles', campaign.activeCycleId);
+      const activeCycleSnap = await tx.get(activeCycleRef);
+      if (activeCycleSnap.exists()) {
+        const cData = activeCycleSnap.data() as CampaignCycleRecord;
+        if (cData.deliveryStatus === 'PENDING_CONTACT' || cData.deliveryStatus === 'CONTACTED') {
+          throw new Error(
+            `BLOQUEIO DE CICLO: O prêmio do ciclo atual (#${cData.cycleIndex}) ainda está em status '${cData.deliveryStatus}'. Apenas o status DELIVERED (ou resolução auditada de novo sorteio) libera a abertura do próximo ciclo.`
+          );
+        }
+      }
+    }
+
+    const nextCycleIndex = (campaign.currentCycleIndex || 1) + 1;
+    // Deterministic, idempotent cycle ID: campaign_{campaignId}_cycle_{cycleIndex}
+    const nextCycleId = `campaign_${campaignId}_cycle_${nextCycleIndex}`;
+    const nextCycleRef = doc(db, 'campaigns', campaignId, 'cycles', nextCycleId);
+
+    const now = Date.now();
+    const newCycle: CampaignCycleRecord = {
+      cycleId: nextCycleId,
+      campaignId,
+      cycleIndex: nextCycleIndex,
+      status: 'OPEN',
+      startDate: now,
+      prizeName: `${campaign.prizeName} (Ciclo ${nextCycleIndex})`,
+      deliveryStatus: 'PENDING_CONTACT',
+      ticketsCount: campaign.campaignMode === 'RECURRING_CUMULATIVE' ? campaign.totalAccumulatedTickets : 0,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    tx.set(nextCycleRef, newCycle);
+
+    const campPatch: Partial<Campaign> = {
+      currentCycleIndex: nextCycleIndex,
+      activeCycleId: nextCycleId,
+      status: 'OPEN',
+      latestSnapshotId: null,
+      updatedAt: now,
+      ...(campaign.campaignMode === 'RECURRING_RESET'
+        ? { totalAccumulatedTickets: 0, participatingSessionIds: [] }
+        : {}),
+    };
+
+    tx.update(campRef, campPatch as Record<string, unknown>);
+
+    return {
+      campaign: { ...campaign, ...campPatch },
+      newCycle,
+    };
+  });
+}
+
+/**
+ * Updates prize delivery status with an append-only, immutable audit trail.
+ *
+ * Requirements:
+ * - Never overwrites or erases previous status transitions.
+ * - Stores { drawId, previousStatus, newStatus, timestamp, operatorUid, reason, method, referenceDrawId }.
+ * - When DELIVERED: decrements campaign pendingDeliveryCount and marks cycle DELIVERED.
+ */
+export async function updateDrawDeliveryStatus(
+  drawId: string,
+  params: {
+    status: DeliveryStatus;
+    reason: string;
+    method?: string;
+    notes?: string;
+    trackingCode?: string;
+    deliveryProofUrl?: string;
+    referenceDrawId?: string;
+  },
+  operatorUid: string
+): Promise<LiveDrawRecord> {
+  assertProPlanActive('Atualização de Entrega do Prêmio');
+  const cleanDrawId = (drawId || '').trim();
+  const cleanOperatorUid = (operatorUid || '').trim();
+  if (!cleanDrawId) {
+    throw new Error('drawId é obrigatório.');
+  }
+  if (!cleanOperatorUid) {
+    throw new Error('UID do operador é obrigatório para registrar a entrega do prêmio.');
+  }
+
+  const drawRef = doc(db, 'draws', cleanDrawId);
+  const drawSnap = await getDoc(drawRef);
+  if (!drawSnap.exists()) {
+    throw new Error(`Sorteio ${cleanDrawId} não encontrado.`);
+  }
+
+  const existingDraw = drawSnap.data() as LiveDrawRecord;
+  if (existingDraw.ownerUid && existingDraw.ownerUid !== cleanOperatorUid) {
+    assertRecordOwnership(existingDraw.ownerUid, cleanOperatorUid, `sorteio (${cleanDrawId})`);
+  }
+
+  const previousStatus = existingDraw.deliveryStatus || 'PENDING_CONTACT';
+  const now = Date.now();
+
+  const auditEntry: DeliveryAuditEntry = {
+    drawId: cleanDrawId,
+    previousStatus,
+    newStatus: params.status,
+    timestamp: now,
+    operatorUid: cleanOperatorUid,
+    reason: params.reason?.trim() || `Transição de status de ${previousStatus} para ${params.status}.`,
+    ...(params.method?.trim() ? { method: params.method.trim() } : {}),
+    ...(params.referenceDrawId ? { referenceDrawId: params.referenceDrawId } : {}),
+  };
+
+  const deliveryDetails: DeliveryDetails = {
+    updatedAt: now,
+    updatedByUid: cleanOperatorUid,
+    ...(params.method?.trim() || existingDraw.deliveryDetails?.contactMethod
+      ? { contactMethod: (params.method?.trim() || existingDraw.deliveryDetails?.contactMethod)! }
+      : {}),
+    ...(params.notes?.trim() || params.reason?.trim() || existingDraw.deliveryDetails?.notes
+      ? { notes: (params.notes?.trim() || params.reason?.trim() || existingDraw.deliveryDetails?.notes)! }
+      : {}),
+    ...(params.trackingCode?.trim() || existingDraw.deliveryDetails?.trackingCode
+      ? { trackingCode: (params.trackingCode?.trim() || existingDraw.deliveryDetails?.trackingCode)! }
+      : {}),
+    ...(params.deliveryProofUrl?.trim() || existingDraw.deliveryDetails?.deliveryProofUrl
+      ? { deliveryProofUrl: (params.deliveryProofUrl?.trim() || existingDraw.deliveryDetails?.deliveryProofUrl)! }
+      : {}),
+    ...((params.status === 'DELIVERED' ? now : existingDraw.deliveryDetails?.recipientConfirmedAt)
+      ? { recipientConfirmedAt: (params.status === 'DELIVERED' ? now : existingDraw.deliveryDetails?.recipientConfirmedAt)! }
+      : {}),
+  };
+
+  const updatedAuditTrail: DeliveryAuditEntry[] = [
+    ...(existingDraw.deliveryAuditTrail || []),
+    auditEntry,
+  ];
+
+  const patch: Partial<LiveDrawRecord> = {
+    deliveryStatus: params.status,
+    deliveryDetails,
+    deliveryAuditTrail: updatedAuditTrail,
+  };
+
+  await updateDoc(drawRef, patch as Record<string, unknown>);
+
+  // Update session subcollection if exists
+  if (existingDraw.targetSessionId) {
+    const sessDrawRef = doc(db, 'sessions', existingDraw.targetSessionId, 'draws', cleanDrawId);
+    await updateDoc(sessDrawRef, patch as Record<string, unknown>).catch(() => {});
+  }
+
+  // Update campaign subcollection and campaign cycle if exists
+  if (existingDraw.campaignId) {
+    const campDrawRef = doc(db, 'campaigns', existingDraw.campaignId, 'draws', cleanDrawId);
+    await updateDoc(campDrawRef, patch as Record<string, unknown>).catch(() => {});
+
+    if (existingDraw.cycleId) {
+      const cycleRef = doc(db, 'campaigns', existingDraw.campaignId, 'cycles', existingDraw.cycleId);
+      await updateDoc(cycleRef, {
+        deliveryStatus: params.status,
+        ...(params.status === 'DELIVERED' ? { status: 'COMPLETED' } : {}),
+        updatedAt: now,
+      }).catch(() => {});
+    }
+
+    if (params.status === 'DELIVERED') {
+      const campRef = doc(db, 'campaigns', existingDraw.campaignId);
+      const campSnap = await getDoc(campRef);
+      if (campSnap.exists()) {
+        const camp = campSnap.data() as Campaign;
+        const currentPending = camp.pendingDeliveryCount || 1;
+        await updateDoc(campRef, {
+          pendingDeliveryCount: Math.max(0, currentPending - 1),
+          updatedAt: now,
+        }).catch(() => {});
+      }
+    }
+  }
+
+  await recordAuditLog(
+    'DRAW',
+    'DRAW_DELIVERY_STATUS_UPDATED',
+    {
+      drawId: cleanDrawId,
+      previousStatus,
+      newStatus: params.status,
+      operatorUid: cleanOperatorUid,
+      reason: auditEntry.reason,
+      ...(auditEntry.method ? { method: auditEntry.method } : {}),
+    },
+    cleanOperatorUid
+  );
+
+  return { ...existingDraw, ...patch };
+}
+
+/**
+ * Executes a cryptographically secure, auditable redraw for an unclaimed expired prize (UNCLAIMED_EXPIRED).
+ *
+ * User requirements:
+ * 1. Only permitted when previous deliveryStatus === 'UNCLAIMED_EXPIRED'.
+ * 2. Strictly excludes the previous winner (and all previous winners in the chain).
+ * 3. In RECURRING_CUMULATIVE campaigns when allowDuplicateWinners === false, excludes all previous winners of the campaign.
+ * 4. Verifies remaining eligible participants > 0.
+ * 5. Freezes new independent snapshot with new SHA-256 hash.
+ * 6. Executes CSPRNG selection with new seed commitment.
+ * 7. Links new draw with parentDrawId = originalDrawId and original draw with redrawnAsDrawId = newDrawId.
+ * 8. Substituted draw enters PENDING_CONTACT and must be tracked to DELIVERED before campaign is unlocked.
+ * 9. Preserves original draw document and certificate intact.
+ */
+export async function executeUnclaimedRedraw(
+  originalDrawId: string,
+  operatorUid: string,
+  reason?: string
+): Promise<{ newDraw: LiveDrawRecord; originalDraw: LiveDrawRecord }> {
+  assertProPlanActive('Novo Sorteio Auditado por Não Comparecimento');
+  const cleanOriginalId = (originalDrawId || '').trim();
+  const cleanOperatorUid = (operatorUid || '').trim();
+
+  if (!cleanOriginalId) {
+    throw new Error('originalDrawId é obrigatório.');
+  }
+
+  const origRef = doc(db, 'draws', cleanOriginalId);
+  const origSnap = await getDoc(origRef);
+  if (!origSnap.exists()) {
+    throw new Error(`Sorteio original ${cleanOriginalId} não encontrado.`);
+  }
+
+  const origDraw = origSnap.data() as LiveDrawRecord;
+  if (origDraw.ownerUid && origDraw.ownerUid !== cleanOperatorUid) {
+    assertRecordOwnership(origDraw.ownerUid, cleanOperatorUid, `sorteio (${cleanOriginalId})`);
+  }
+
+  if (origDraw.deliveryStatus !== 'UNCLAIMED_EXPIRED') {
+    throw new Error(
+      `Novo sorteio não autorizado: o sorteio original possui status '${origDraw.deliveryStatus}'. Somente status UNCLAIMED_EXPIRED permite realizar novo sorteio por não comparecimento.`
+    );
+  }
+
+  // 1. Gather all excluded winners across the chain
+  const excludedUserIds = new Set<string>();
+  const excludedUsernames = new Set<string>();
+
+  if (origDraw.winnerTiktokUserId) excludedUserIds.add(origDraw.winnerTiktokUserId);
+  if (origDraw.winnerName) excludedUsernames.add(origDraw.winnerName.toLowerCase());
+  if (Array.isArray(origDraw.excludedPreviousWinnerUids)) {
+    origDraw.excludedPreviousWinnerUids.forEach((id) => excludedUserIds.add(id));
+  }
+
+  // Follow parentDrawId chain upwards
+  let currentParentId = origDraw.parentDrawId;
+  while (currentParentId) {
+    const parentSnap = await getDoc(doc(db, 'draws', currentParentId));
+    if (!parentSnap.exists()) break;
+    const parentDraw = parentSnap.data() as LiveDrawRecord;
+    if (parentDraw.winnerTiktokUserId) excludedUserIds.add(parentDraw.winnerTiktokUserId);
+    if (parentDraw.winnerName) excludedUsernames.add(parentDraw.winnerName.toLowerCase());
+    currentParentId = parentDraw.parentDrawId;
+  }
+
+  // Check cumulative campaign constraint (allowDuplicateWinners === false)
+  if (origDraw.campaignId) {
+    const campSnap = await getDoc(doc(db, 'campaigns', origDraw.campaignId));
+    if (campSnap.exists()) {
+      const camp = campSnap.data() as Campaign;
+      if (camp.allowDuplicateWinners === false) {
+        const allCampDrawsSnap = await getDocs(
+          collection(db, 'campaigns', origDraw.campaignId, 'draws')
+        );
+        allCampDrawsSnap.forEach((d) => {
+          const cd = d.data() as LiveDrawRecord;
+          if (cd.winnerTiktokUserId) excludedUserIds.add(cd.winnerTiktokUserId);
+          if (cd.winnerName) excludedUsernames.add(cd.winnerName.toLowerCase());
+        });
+      }
+    }
+  }
+
+  // 2. Load all tickets from original snapshot
+  const snapRef = doc(db, 'draw_snapshots', origDraw.snapshotId);
+  const snapDoc = await getDoc(snapRef);
+  if (!snapDoc.exists()) {
+    throw new Error(`Snapshot original ${origDraw.snapshotId} não encontrado.`);
+  }
+  const snapshotData = snapDoc.data() as DrawSnapshot;
+
+  const allOriginalTickets: SnapshotTicketEntry[] = [];
+  for (let c = 0; c < snapshotData.totalChunks; c++) {
+    const chunkSnap = await getDoc(
+      doc(db, 'draw_snapshots', origDraw.snapshotId, 'chunks', String(c))
+    );
+    if (chunkSnap.exists()) {
+      const cd = chunkSnap.data() as DrawSnapshotChunk;
+      allOriginalTickets.push(...cd.tickets);
+    }
+  }
+
+  // 3. Filter strictly out the excluded previous winners
+  const filteredTickets = allOriginalTickets.filter((t) => {
+    if (excludedUserIds.has(t.tiktokUserId)) return false;
+    if (excludedUsernames.has(t.username.toLowerCase())) return false;
+    return true;
+  });
+
+  if (filteredTickets.length === 0) {
+    throw new Error(
+      'Nenhum participante elegível restante após a exclusão dos vencedores anteriores para o novo sorteio.'
+    );
+  }
+
+  // Sort canonically
+  filteredTickets.sort((a, b) => a.ticketNumber - b.ticketNumber);
+
+  // 4. Freeze new independent snapshot with new SHA-256 hash
+  const canonicalString = filteredTickets
+    .map((t, idx) => `${idx + 1}:${t.sessionId}:${t.ticketId}:${t.tiktokUserId}`)
+    .join('|');
+  const rosterSha256Hash = await computeSha256(canonicalString);
+
+  const newSnapshotId = `snap_redraw_${origDraw.drawId}_${Date.now()}`;
+  const CHUNK_SIZE = 500;
+  const totalChunks = Math.ceil(filteredTickets.length / CHUNK_SIZE);
+
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * CHUNK_SIZE;
+    const end = Math.min(start + CHUNK_SIZE, filteredTickets.length);
+    const chunkTickets = filteredTickets.slice(start, end);
+    const chunkDoc: DrawSnapshotChunk = {
+      chunkIndex: i,
+      startIndex: start,
+      endIndex: end,
+      tickets: chunkTickets,
+    };
+    await setDoc(doc(db, 'draw_snapshots', newSnapshotId, 'chunks', String(i)), chunkDoc);
+  }
+
+  const newSnapshotMeta: DrawSnapshot = {
+    snapshotId: newSnapshotId,
+    ...(origDraw.ownerUid ? { ownerUid: origDraw.ownerUid } : {}),
+    targetType: origDraw.drawType === 'CAMPAIGN' ? 'CAMPAIGN' : 'SESSION',
+    targetId: (origDraw.targetId || origDraw.targetSessionId || '') as string,
+    totalEligibleTickets: filteredTickets.length,
+    frozenAt: Date.now(),
+    rosterSha256Hash,
+    maxTicketNumberFrozen: filteredTickets.length,
+    totalChunks,
+  };
+  await setDoc(doc(db, 'draw_snapshots', newSnapshotId), newSnapshotMeta);
+
+  // 5. Unbiased CSPRNG draw
+  const { index: winningIndex, rawEntropyHex } = selectUniformRandomIndex(filteredTickets.length);
+  const winningTicket = filteredTickets[winningIndex];
+
+  const seedRevealed = `csprng_redraw_v1_${Date.now()}_${rawEntropyHex}`;
+  const seedCommitment = await computeSha256(seedRevealed);
+
+  const newDrawId = `draw_redraw_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const now = Date.now();
+
+  const newInitialAudit: DeliveryAuditEntry = {
+    drawId: newDrawId,
+    previousStatus: 'PENDING_CONTACT',
+    newStatus: 'PENDING_CONTACT',
+    timestamp: now,
+    operatorUid: cleanOperatorUid,
+    reason: `Novo sorteio gerado após não comparecimento do vencedor original (@${origDraw.winnerName}, Bilhete #${origDraw.winningTicketNumber}).`,
+    referenceDrawId: origDraw.drawId,
+  };
+
+  const newDrawRecord: LiveDrawRecord = {
+    drawId: newDrawId,
+    ...(origDraw.ownerUid ? { ownerUid: origDraw.ownerUid } : {}),
+    drawType: origDraw.drawType,
+    ...(origDraw.targetId ? { targetId: origDraw.targetId } : {}),
+    ...(origDraw.targetSessionId ? { targetSessionId: origDraw.targetSessionId } : {}),
+    ...(origDraw.campaignId ? { campaignId: origDraw.campaignId } : {}),
+    ...(origDraw.cycleId ? { cycleId: origDraw.cycleId } : {}),
+    snapshotId: newSnapshotId,
+    frozenRosterHash: rosterSha256Hash,
+    seedCommitment,
+    seedRevealed,
+    winningTicketNumber: winningTicket.ticketNumber,
+    winningTicketId: winningTicket.ticketId,
+    winnerTiktokUserId: winningTicket.tiktokUserId,
+    winnerName: winningTicket.username,
+    winnerSessionId: winningTicket.sessionId,
+    prizeName: origDraw.prizeName,
+    drawnAt: now,
+    deliveryStatus: 'PENDING_CONTACT',
+    deliveryAuditTrail: [newInitialAudit],
+    parentDrawId: origDraw.drawId,
+    excludedPreviousWinnerUids: Array.from(excludedUserIds),
+  };
+
+  // 6. Save new draw record
+  await setDoc(doc(db, 'draws', newDrawId), newDrawRecord);
+  if (origDraw.campaignId) {
+    await setDoc(doc(db, 'campaigns', origDraw.campaignId, 'draws', newDrawId), newDrawRecord);
+  }
+  if (origDraw.targetSessionId) {
+    await setDoc(doc(db, 'sessions', origDraw.targetSessionId, 'draws', newDrawId), newDrawRecord);
+  }
+
+  // 7. Update original draw record with REDRAWN, redrawnAsDrawId, and immutable audit entry
+  const origTransitionAudit: DeliveryAuditEntry = {
+    drawId: origDraw.drawId,
+    previousStatus: 'UNCLAIMED_EXPIRED',
+    newStatus: 'REDRAWN',
+    timestamp: now,
+    operatorUid: cleanOperatorUid,
+    reason: reason?.trim() || `Sorteio refeito por não comparecimento. Sorteio substituto gerado: ${newDrawId}.`,
+    referenceDrawId: newDrawId,
+  };
+
+  const origUpdatedTrail = [...(origDraw.deliveryAuditTrail || []), origTransitionAudit];
+  const origPatch: Partial<LiveDrawRecord> = {
+    deliveryStatus: 'REDRAWN',
+    redrawnAsDrawId: newDrawId,
+    deliveryAuditTrail: origUpdatedTrail,
+  };
+
+  await updateDoc(origRef, origPatch as Record<string, unknown>);
+  if (origDraw.campaignId) {
+    await updateDoc(
+      doc(db, 'campaigns', origDraw.campaignId, 'draws', origDraw.drawId),
+      origPatch as Record<string, unknown>
+    ).catch(() => {});
+  }
+  if (origDraw.targetSessionId) {
+    await updateDoc(
+      doc(db, 'sessions', origDraw.targetSessionId, 'draws', origDraw.drawId),
+      origPatch as Record<string, unknown>
+    ).catch(() => {});
+  }
+
+  // 8. If linked to campaign cycle, bind substitute draw into cycle tracking
+  if (origDraw.campaignId && origDraw.cycleId) {
+    const cycleRef = doc(db, 'campaigns', origDraw.campaignId, 'cycles', origDraw.cycleId);
+    await updateDoc(cycleRef, {
+      drawId: newDrawId,
+      winnerUsername: winningTicket.username,
+      winnerTiktokUserId: winningTicket.tiktokUserId,
+      winningTicketNumber: winningTicket.ticketNumber,
+      deliveryStatus: 'PENDING_CONTACT',
+      updatedAt: now,
+    }).catch(() => {});
+  }
+
+  await recordAuditLog(
+    'DRAW',
+    'REDRAW_EXECUTED_FOR_UNCLAIMED_PRIZE',
+    {
+      originalDrawId: origDraw.drawId,
+      newDrawId,
+      campaignId: origDraw.campaignId || null,
+      cycleId: origDraw.cycleId || null,
+      operatorUid: cleanOperatorUid,
+      excludedWinnersCount: excludedUserIds.size,
+      newWinner: winningTicket.username,
+      newWinningTicketNumber: winningTicket.ticketNumber,
+    },
+    cleanOperatorUid
+  );
+
+  return {
+    newDraw: newDrawRecord,
+    originalDraw: { ...origDraw, ...origPatch },
+  };
+}
+
+

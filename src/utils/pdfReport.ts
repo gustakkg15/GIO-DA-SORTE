@@ -681,7 +681,7 @@ export async function downloadTikTokLivePdfCertificate(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.setTextColor(255, 255, 255);
-  doc.text('GIO DA SORTE PRO', margin + 8, currentY + 12);
+  doc.text('GIO DA SORTE · TIKTOK LIVE PRO', margin + 8, currentY + 12);
 
   doc.setFontSize(10);
   doc.setTextColor(148, 163, 184);

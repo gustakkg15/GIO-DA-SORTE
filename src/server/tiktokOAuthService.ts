@@ -8,7 +8,7 @@ import {
   runTransaction,
   Timestamp,
 } from 'firebase/firestore';
-import { db } from '../firebase.js';
+import { db } from '../firebase.ts';
 
 // ==========================================
 // 1. EXPLICIT DOMAIN & REDIRECT URI ALLOWLIST

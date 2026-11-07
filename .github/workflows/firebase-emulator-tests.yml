@@ -1,0 +1,62 @@
+name: Firebase Emulator Security Rules Tests
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: 'emulator-tests-${{ github.ref }}'
+  cancel-in-progress: true
+
+jobs:
+  emulator-tests:
+    name: Run Firebase Emulator Suite Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21 LTS (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+          else
+            npm install --legacy-peer-deps
+          fi
+
+      - name: Verify Environment & Firebase CLI
+        run: |
+          echo "=== VERIFICAÇÃO DE AMBIENTE DE CI ==="
+          node -v
+          java -version
+          npx firebase --version
+
+      - name: Execute Firebase Emulator Suite Tests (demo-gio-da-sorte)
+        env:
+          GCLOUD_PROJECT: demo-gio-da-sorte
+          CI: 'true'
+        run: |
+          npx firebase emulators:exec --project demo-gio-da-sorte --only firestore,auth "npx tsx scripts/test_official_rules_emulator.ts"

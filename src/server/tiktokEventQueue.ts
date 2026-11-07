@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import {
+import type {
   ClientSseCursorRecord,
   ComponentDiagnosticEntry,
   DurableSseOutboxEvent,
@@ -16,14 +16,14 @@ import {
   TikTokLiveGiftEvent,
   TikTokPerformanceDiagnostics,
   TimeSeriesMetricPoint,
-} from '../types.js';
+} from '../types.ts';
 import {
   fetchSessionEventsAfterSequence,
   getOrCreateLiveSession,
-  GiftEventAtomicResult,
+  type GiftEventAtomicResult,
   recordGiftEventsBatchAtomic,
-} from '../utils/tiktokLiveService.js';
-import { tiktokDiagnosticService } from './tiktokDiagnosticService.js';
+} from '../utils/tiktokLiveService.ts';
+import { tiktokDiagnosticService } from './tiktokDiagnosticService.ts';
 
 export interface DurableWalEntry {
   walId: string;
@@ -987,7 +987,9 @@ export class TikTokDurableEventQueue {
         const sess = await getOrCreateLiveSession(
           sessionId,
           firstEv?.username && firstEv.username !== 'arroba_indisponivel' ? firstEv.username : 'gioborelli',
-          firstEv?.rateApplied || 100
+          firstEv?.rateApplied || 100,
+          firstEv?.ruleIdApplied || 'rule_default_100',
+          firstEv?.ownerUid
         );
         this.initializedSessions.add(sessionId);
         this.lastFirestoreVerifiedAt = Date.now();
@@ -1034,6 +1036,7 @@ export class TikTokDurableEventQueue {
           originalTimestamp: e.event.originalTimestamp,
           streakKey: e.event.streakKey,
           sessionId: e.event.sessionId,
+          ownerUid: e.event.ownerUid,
           tiktokUserId: e.event.tiktokUserId,
           username: e.event.username,
           displayHandle: e.event.displayHandle,

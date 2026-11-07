@@ -1,20 +1,21 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import {
   initializeApp as initializeAdminApp,
   getApps as getAdminApps,
   applicationDefault,
   cert,
-  App as AdminApp,
+  type App as AdminApp,
 } from 'firebase-admin/app';
-import { getAuth as getAdminAuth, DecodedIdToken } from 'firebase-admin/auth';
+import { getAuth as getAdminAuth, type DecodedIdToken } from 'firebase-admin/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase.js';
-import { mercadoPagoSubscriptionService } from './mercadoPagoSubscriptionService.js';
-import {
+import { db } from '../firebase.ts';
+import firebaseConfig from '../../firebase-applet-config.json' with { type: 'json' };
+import { mercadoPagoSubscriptionService } from './mercadoPagoSubscriptionService.ts';
+import type {
   ProPlanEntitlement,
   SubscriptionBillingSubStatus,
   UserSubscriptionRecord,
-} from '../types.js';
+} from '../types.ts';
 
 // Extend Express Request to carry verified Firebase identity and subscription record
 declare global {
@@ -34,6 +35,8 @@ export type TokenVerificationErrorCode =
   | 'FIREBASE_AUTH_REQUIRED'
   | 'FIREBASE_TOKEN_EXPIRED'
   | 'FIREBASE_TOKEN_REVOKED'
+  | 'FIREBASE_USER_DISABLED'
+  | 'FIREBASE_AUTH_SERVICE_UNAVAILABLE'
   | 'FIREBASE_TOKEN_INVALID';
 
 export interface FirebaseAuthVerificationResult {
@@ -53,6 +56,12 @@ const DEFAULT_GCP_PROJECT_ID =
   process.env.FIREBASE_PROJECT_ID ||
   'quick-standard-pw2pc';
 
+const SANDBOX_CONSUMER_PROJECT_NUMBER = '749434257827';
+const IDENTITY_TOOLKIT_SERVICE_NAME = 'identitytoolkit.googleapis.com';
+const IDENTITY_TOOLKIT_ACCOUNTS_LOOKUP_URL =
+  'https://identitytoolkit.googleapis.com/v1/accounts:lookup';
+const FIREBASE_WEB_API_KEY = String(firebaseConfig?.apiKey || '').trim();
+
 let adminAppInstance: AdminApp | null = null;
 
 /**
@@ -71,12 +80,32 @@ export function getOrInitFirebaseAdminApp(): AdminApp {
 
   const rawServiceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
   if (rawServiceAccountJson && rawServiceAccountJson.trim().startsWith('{')) {
-    const parsedServiceAccount = JSON.parse(rawServiceAccountJson);
-    adminAppInstance = initializeAdminApp({
-      credential: cert(parsedServiceAccount),
-      projectId: parsedServiceAccount.project_id || DEFAULT_GCP_PROJECT_ID,
-    });
-    return adminAppInstance;
+    try {
+      const parsedServiceAccount = JSON.parse(rawServiceAccountJson);
+      if (
+        parsedServiceAccount &&
+        typeof parsedServiceAccount === 'object' &&
+        typeof parsedServiceAccount.private_key === 'string'
+      ) {
+        // Fix escaped newlines in private key if passed in single-line env vars
+        parsedServiceAccount.private_key = parsedServiceAccount.private_key.replace(/\\n/g, '\n');
+      }
+      adminAppInstance = initializeAdminApp({
+        credential: cert(parsedServiceAccount),
+        projectId: parsedServiceAccount.project_id || DEFAULT_GCP_PROJECT_ID,
+      });
+      return adminAppInstance;
+    } catch (err: unknown) {
+      // Safe error handling: never log or expose rawServiceAccountJson or secrets
+      const safeErrMsg = err instanceof Error ? err.message : String(err);
+      console.error(
+        '[FirebaseAdminAuth] Falha ao carregar credencial FIREBASE_SERVICE_ACCOUNT_JSON:',
+        safeErrMsg
+      );
+      throw new Error(
+        'Falha ao carregar credencial FIREBASE_SERVICE_ACCOUNT_JSON: formato JSON ou chave privada inválida.'
+      );
+    }
   }
 
   adminAppInstance = initializeAdminApp({
@@ -86,12 +115,321 @@ export function getOrInitFirebaseAdminApp(): AdminApp {
   return adminAppInstance;
 }
 
-// Optional programmatic verifier hook strictly for in-process automated testing of token states
+// Optional programmatic verifier and lookup hooks strictly for in-process automated testing
 type CustomTokenVerifier = (idToken: string, checkRevoked?: boolean) => Promise<DecodedIdToken>;
 let customTokenVerifierForTests: CustomTokenVerifier | null = null;
 
 export function setCustomTokenVerifierForTests(verifier: CustomTokenVerifier | null): void {
   customTokenVerifierForTests = verifier;
+}
+
+type AccountsLookupFetcher = typeof fetch;
+let customAccountsLookupFetcherForTests: AccountsLookupFetcher | null = null;
+
+export function setCustomAccountsLookupFetcherForTests(
+  fetcher: AccountsLookupFetcher | null
+): void {
+  customAccountsLookupFetcherForTests = fetcher;
+}
+
+type CustomFirestoreResourceReader = (
+  collectionName: 'sessions' | 'campaigns' | 'draw_snapshots' | 'draws',
+  docId: string
+) => Promise<{ exists: boolean; data?: Record<string, any> }>;
+let customFirestoreResourceReaderForTests: CustomFirestoreResourceReader | null = null;
+
+export function setCustomFirestoreResourceReaderForTests(
+  reader: CustomFirestoreResourceReader | null
+): void {
+  customFirestoreResourceReaderForTests = reader;
+}
+
+/**
+ * Checks whether an error thrown by `verifyIdToken(idToken, true)` is specifically the
+ * known `SERVICE_DISABLED` error for `identitytoolkit.googleapis.com` on the Cloud Run
+ * sandbox consumer project `749434257827`.
+ * Returns `false` for all other errors (expired/invalid/revoked tokens, network errors, other projects).
+ */
+export function isSandboxIdentityToolkitServiceDisabledError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') {
+    return false;
+  }
+  const anyErr = err as Record<string, any>;
+  const errCode = String(anyErr.code || anyErr.errorInfo?.code || '');
+  if (errCode !== 'auth/internal-error') {
+    return false;
+  }
+
+  const httpDataError = anyErr.httpResponse?.data?.error;
+  const details: unknown[] = Array.isArray(httpDataError?.details)
+    ? httpDataError.details
+    : [];
+
+  for (const item of details) {
+    if (item && typeof item === 'object') {
+      const detail = item as Record<string, any>;
+      const reason = String(detail.reason || '');
+      const service = String(detail.metadata?.service || '');
+      const consumer = String(detail.metadata?.consumer || '');
+      const containerInfo = String(detail.metadata?.containerInfo || '');
+      if (
+        reason === 'SERVICE_DISABLED' &&
+        service === IDENTITY_TOOLKIT_SERVICE_NAME &&
+        (consumer === `projects/${SANDBOX_CONSUMER_PROJECT_NUMBER}` ||
+          containerInfo === SANDBOX_CONSUMER_PROJECT_NUMBER)
+      ) {
+        return true;
+      }
+    }
+  }
+
+  const combinedMessage = `${String(anyErr.message || '')} ${String(
+    httpDataError?.message || ''
+  )}`;
+  const hasIdentityToolkit = combinedMessage.includes(IDENTITY_TOOLKIT_SERVICE_NAME);
+  const hasSandboxProject = combinedMessage.includes(SANDBOX_CONSUMER_PROJECT_NUMBER);
+  const hasServiceDisabledSignal =
+    combinedMessage.includes('SERVICE_DISABLED') ||
+    combinedMessage.includes(
+      `has not been used in project ${SANDBOX_CONSUMER_PROJECT_NUMBER}`
+    ) ||
+    combinedMessage.includes(`overview?project=${SANDBOX_CONSUMER_PROJECT_NUMBER}`);
+
+  return hasIdentityToolkit && hasSandboxProject && hasServiceDisabledSignal;
+}
+
+/**
+ * Checks whether an error thrown by `verifyIdToken(idToken, true)` is due to Identity Toolkit
+ * service unavailability (SERVICE_DISABLED) or IAM permission limitation on the caller Service Account
+ * (e.g. missing `roles/firebaseauth.admin` or `firebaseauth.users.get`).
+ *
+ * In such cases, the system safely falls back to:
+ * 1. Cryptographic token verification via `verifyIdToken(idToken, false)` (RSA-SHA256 signature, expiry, audience, issuer).
+ * 2. Mandatory live account revocation and disabled checks via Firebase Auth REST API (`accounts:lookup`).
+ *
+ * For token expiration, revocation, malformed signatures or network errors, returns `false` (fails directly).
+ */
+export function isIdentityToolkitPermissionOrDisabledError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') {
+    return false;
+  }
+  if (isSandboxIdentityToolkitServiceDisabledError(err)) {
+    return true;
+  }
+
+  const anyErr = err as Record<string, any>;
+  const errCode = String(anyErr.code || anyErr.errorInfo?.code || '');
+
+  // Never fall back for genuine token invalidity/expiry/revocation
+  if (
+    errCode === 'auth/id-token-expired' ||
+    errCode === 'auth/id-token-revoked' ||
+    errCode === 'auth/user-disabled' ||
+    errCode === 'auth/argument-error' ||
+    errCode === 'auth/invalid-id-token'
+  ) {
+    return false;
+  }
+
+  const httpStatus = anyErr.httpResponse?.status ?? anyErr.httpResponse?.statusCode ?? anyErr.status;
+  const httpDataError = anyErr.httpResponse?.data?.error;
+  const apiStatus = String(httpDataError?.status || '');
+  const combinedMessage = `${String(anyErr.message || '')} ${String(httpDataError?.message || '')}`;
+
+  const isPermissionDenied =
+    errCode === 'auth/insufficient-permission' ||
+    apiStatus === 'PERMISSION_DENIED' ||
+    httpStatus === 403 ||
+    combinedMessage.includes('PERMISSION_DENIED') ||
+    combinedMessage.includes('Missing or insufficient permissions') ||
+    combinedMessage.includes('Caller does not have required permission') ||
+    combinedMessage.includes('does not have permission to access');
+
+  const touchesIdentityToolkit =
+    combinedMessage.includes(IDENTITY_TOOLKIT_SERVICE_NAME) ||
+    errCode.startsWith('auth/') ||
+    Boolean(anyErr.httpResponse);
+
+  return isPermissionDenied && touchesIdentityToolkit;
+}
+
+/**
+ * Step B & C of Path C controlled fallback:
+ * Given an `idToken` and its cryptographically verified `DecodedIdToken` (from `verifyIdToken(idToken, false)`),
+ * queries the Firebase Authentication REST API (`accounts:lookup`) and enforces all mandatory checks:
+ * 1. Valid HTTP 200 JSON response with exactly one user in `users`.
+ * 2. Exact match between `users[0].localId` and `decodedToken.uid`.
+ * 3. User is not disabled (`disabled !== true`).
+ * 4. Explicit revocation check comparing `decodedToken.auth_time` against `users[0].validSince` in Unix seconds.
+ */
+async function verifyAccountStateViaIdentityToolkitLookup(
+  idToken: string,
+  decodedToken: DecodedIdToken
+): Promise<DecodedIdToken> {
+  const makeAuthError = (code: string, message: string): Error => {
+    const e: any = new Error(message);
+    e.code = code;
+    return e;
+  };
+
+  if (
+    !decodedToken ||
+    typeof decodedToken.uid !== 'string' ||
+    !decodedToken.uid.trim() ||
+    typeof decodedToken.auth_time !== 'number' ||
+    !Number.isFinite(decodedToken.auth_time) ||
+    decodedToken.auth_time <= 0
+  ) {
+    throw makeAuthError(
+      'auth/argument-error',
+      'Claims obrigatórios (uid ou auth_time) ausentes ou inválidos no token decodificado.'
+    );
+  }
+
+  if (!FIREBASE_WEB_API_KEY) {
+    throw makeAuthError(
+      'auth/service-unavailable',
+      'Configuração do serviço de validação Firebase temporariamente indisponível.'
+    );
+  }
+
+  const fetcher = customAccountsLookupFetcherForTests || fetch;
+  let lookupResponse: globalThis.Response;
+  try {
+    lookupResponse = await fetcher(
+      `${IDENTITY_TOOLKIT_ACCOUNTS_LOOKUP_URL}?key=${encodeURIComponent(FIREBASE_WEB_API_KEY)}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ idToken }),
+        signal: typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+          ? AbortSignal.timeout(8000)
+          : undefined,
+      }
+    );
+  } catch {
+    throw makeAuthError(
+      'auth/service-unavailable',
+      'Falha de comunicação ou tempo limite excedido ao consultar o estado da conta no Firebase Authentication.'
+    );
+  }
+
+  if (!lookupResponse) {
+    throw makeAuthError(
+      'auth/service-unavailable',
+      'Serviço Firebase Authentication indisponível (resposta ausente).'
+    );
+  }
+
+  if (lookupResponse.status >= 500 || lookupResponse.status === 429) {
+    throw makeAuthError(
+      'auth/service-unavailable',
+      'Serviço Firebase Authentication temporariamente indisponível.'
+    );
+  }
+
+  if (!lookupResponse.ok || lookupResponse.status !== 200) {
+    let apiErrorCode = '';
+    try {
+      const errBody = (await lookupResponse.json()) as Record<string, any>;
+      apiErrorCode = String(errBody?.error?.message || '').trim();
+    } catch {
+      // Ignore malformed error body; fail closed below
+    }
+    if (apiErrorCode === 'TOKEN_EXPIRED' || apiErrorCode.startsWith('TOKEN_EXPIRED:')) {
+      throw makeAuthError('auth/id-token-expired', 'Firebase ID token has expired.');
+    }
+    if (
+      apiErrorCode === 'CREDENTIAL_TOO_OLD_LOGIN_AGAIN' ||
+      apiErrorCode === 'TOKEN_REVOKED' ||
+      apiErrorCode.includes('TOKEN_REVOKED')
+    ) {
+      throw makeAuthError('auth/id-token-revoked', 'Firebase ID token has been revoked.');
+    }
+    if (apiErrorCode === 'USER_DISABLED' || apiErrorCode.startsWith('USER_DISABLED:')) {
+      throw makeAuthError('auth/user-disabled', 'The user record is disabled.');
+    }
+    throw makeAuthError(
+      'auth/argument-error',
+      'Consulta accounts:lookup rejeitou o token ou retornou status HTTP de erro.'
+    );
+  }
+
+  let payload: unknown;
+  try {
+    payload = await lookupResponse.json();
+  } catch {
+    throw makeAuthError(
+      'auth/argument-error',
+      'Resposta malformada da API Firebase Authentication.'
+    );
+  }
+
+  if (!payload || typeof payload !== 'object') {
+    throw makeAuthError(
+      'auth/argument-error',
+      'Corpo de resposta inválido da API Firebase Authentication.'
+    );
+  }
+
+  const users = (payload as Record<string, unknown>).users;
+  if (!Array.isArray(users) || users.length !== 1 || !users[0] || typeof users[0] !== 'object') {
+    throw makeAuthError(
+      'auth/argument-error',
+      'Resposta da API Firebase Authentication não contém exatamente um usuário válido.'
+    );
+  }
+
+  const account = users[0] as Record<string, unknown>;
+  const localId = typeof account.localId === 'string' ? account.localId : '';
+  const expectedUid = decodedToken.uid;
+
+  if (!localId || !localId.trim() || localId !== expectedUid || localId.trim() !== expectedUid.trim()) {
+    throw makeAuthError(
+      'auth/argument-error',
+      'Divergência de identidade entre o UID criptográfico do token e o localId retornado pelo Firebase.'
+    );
+  }
+
+  if (account.disabled !== undefined && account.disabled !== false) {
+    throw makeAuthError('auth/user-disabled', 'The user record is disabled.');
+  }
+
+  // Mandatory explicit comparison between token `auth_time` (Unix seconds) and `validSince` (Unix seconds)
+  const authTimeSeconds = Math.floor(decodedToken.auth_time);
+  if (account.validSince !== undefined && account.validSince !== null) {
+    const rawValidSince =
+      typeof account.validSince === 'number' && Number.isFinite(account.validSince)
+        ? String(Math.trunc(account.validSince))
+        : typeof account.validSince === 'string'
+        ? account.validSince.trim()
+        : '';
+
+    if (!rawValidSince || !/^\d+$/.test(rawValidSince)) {
+      throw makeAuthError(
+        'auth/argument-error',
+        'Campo validSince malformado na resposta do Firebase Authentication.'
+      );
+    }
+
+    const validSinceSeconds = Number(rawValidSince);
+    if (!Number.isSafeInteger(validSinceSeconds) || validSinceSeconds < 0) {
+      throw makeAuthError(
+        'auth/argument-error',
+        'Valor numérico de validSince inválido na resposta do Firebase Authentication.'
+      );
+    }
+
+    const authTimeUtcMs = authTimeSeconds * 1000;
+    const validSinceUtcMs = validSinceSeconds * 1000;
+    if (authTimeSeconds < validSinceSeconds || authTimeUtcMs < validSinceUtcMs) {
+      throw makeAuthError('auth/id-token-revoked', 'Firebase ID token has been revoked.');
+    }
+  }
+
+  return decodedToken;
 }
 
 /**
@@ -149,17 +487,23 @@ export async function verifyAuthenticatedFirebaseUser(
       process.env.NODE_ENV !== 'production' &&
       isLoopbackIp &&
       (req.headers['x-gio-loopback-test-suite'] === 'etapa1' ||
-        req.headers['x-gio-loopback-test-suite'] === 'etapa2') &&
+        req.headers['x-gio-loopback-test-suite'] === 'etapa2' ||
+        req.headers['x-gio-loopback-test-suite'] === 'sec03' ||
+        req.headers['x-gio-loopback-test-suite'] === 'sec02') &&
       idToken.startsWith('gio_loopback_test_token:');
 
+    const verifyTokenFn: CustomTokenVerifier =
+      customTokenVerifierForTests ||
+      ((token: string, checkRevoked?: boolean) =>
+        getAdminAuth(getOrInitFirebaseAdminApp()).verifyIdToken(token, checkRevoked));
+
     let decoded: DecodedIdToken;
-    if (customTokenVerifierForTests) {
-      decoded = await customTokenVerifierForTests(idToken, true);
-    } else if (isLoopbackTestSuite) {
+    if (isLoopbackTestSuite && !customTokenVerifierForTests) {
       const parts = idToken.split(':');
       const mode = parts[1] || '';
       const testUid = parts[2] || '';
       const testEmail = parts[3] || `${testUid}@test.local`;
+      const isAdmin = parts[4] === 'admin' || mode === 'admin';
       if (mode === 'expired') {
         const expErr: any = new Error('Firebase ID token has expired.');
         expErr.code = 'auth/id-token-expired';
@@ -186,9 +530,23 @@ export async function verifyAuthenticatedFirebaseUser(
         iat: Math.floor(Date.now() / 1000) - 60,
         exp: Math.floor(Date.now() / 1000) + 3600,
         firebase: { identities: {}, sign_in_provider: 'custom' },
+        ...(isAdmin ? { admin: true } : {}),
       } as DecodedIdToken;
     } else {
-      decoded = await getAdminAuth(getOrInitFirebaseAdminApp()).verifyIdToken(idToken, true);
+      try {
+        // Etapa A — Verificação principal (com checkRevoked = true)
+        decoded = await verifyTokenFn(idToken, true);
+      } catch (primaryErr: unknown) {
+        // Etapa B — Fallback controlado para SERVICE_DISABLED ou falta de permissão IAM no Identity Toolkit
+        if (!isIdentityToolkitPermissionOrDisabledError(primaryErr)) {
+          throw primaryErr;
+        }
+        const cryptographicallyDecoded = await verifyTokenFn(idToken, false);
+        decoded = await verifyAccountStateViaIdentityToolkitLookup(
+          idToken,
+          cryptographicallyDecoded
+        );
+      }
     }
 
     if (!decoded || !decoded.uid || typeof decoded.uid !== 'string' || !decoded.uid.trim()) {
@@ -236,6 +594,25 @@ export async function verifyAuthenticatedFirebaseUser(
         status: 401,
         code: 'FIREBASE_TOKEN_REVOKED',
         reason: 'Seu token de acesso foi revogado (Firebase ID Token revogado). Faça login novamente.',
+      };
+    }
+
+    if (errCode === 'auth/user-disabled' || errMsg.includes('user-disabled')) {
+      return {
+        authenticated: false,
+        status: 401,
+        code: 'FIREBASE_USER_DISABLED',
+        reason: 'Sua conta de usuário está desabilitada no Firebase Authentication.',
+      };
+    }
+
+    if (errCode === 'auth/service-unavailable') {
+      return {
+        authenticated: false,
+        status: 503,
+        code: 'FIREBASE_AUTH_SERVICE_UNAVAILABLE',
+        reason:
+          'Serviço de autenticação Firebase temporariamente indisponível. Tente novamente em instantes.',
       };
     }
 
@@ -326,7 +703,7 @@ export function buildEntitlementFromSubscriptionRecord(
  * - `tier === 'PRO'`
  * - `statusState === 'ACTIVE'`
  * - `billingSubStatus` in `['TRIAL_ACTIVE', 'PAID_ACTIVE', 'CANCELED_ACTIVE_UNTIL_END']`
- * - Respects 7-day trial (`now <= trialEndDate`) and paid cycle (`now <= currentPeriodEnd`) even after cancellation.
+ * - Respects 3-day trial (`now <= trialEndDate`) and paid cycle (`now <= currentPeriodEnd`) even after cancellation.
  */
 export async function verifyProPlanRequestAsync(req: Request): Promise<{
   authenticated: boolean;
@@ -384,7 +761,7 @@ export async function verifyProPlanRequestAsync(req: Request): Promise<{
       uid: authResult.uid,
       subscription: record,
       entitlement,
-      reason: `Acesso operacional exclusivo do plano TIKTOK LIVE PRO (status atual: tier=${record.tier}, statusState=${record.statusState}, billingSubStatus=${record.billingSubStatus}). Assine ou ative seu período de teste gratuito de 7 dias para liberar esta operação.`,
+      reason: `Acesso operacional exclusivo do plano TIKTOK LIVE PRO (status atual: tier=${record.tier}, statusState=${record.statusState}, billingSubStatus=${record.billingSubStatus}). Assine ou ative seu período de teste gratuito de 3 dias para liberar esta operação.`,
     };
   }
 
@@ -492,10 +869,23 @@ export async function verifyFirestoreResourceOwnership(params: {
     };
   }
 
-  const ref = doc(db, collectionName, cleanDocId);
-  const snap = await getDoc(ref);
+  let exists = false;
+  let data: Record<string, any> = {};
 
-  if (!snap.exists()) {
+  if (customFirestoreResourceReaderForTests) {
+    const customResult = await customFirestoreResourceReaderForTests(collectionName, cleanDocId);
+    exists = Boolean(customResult.exists);
+    data = customResult.data || {};
+  } else {
+    const ref = doc(db, collectionName, cleanDocId);
+    const snap = await getDoc(ref);
+    exists = snap.exists();
+    if (exists) {
+      data = snap.data() as Record<string, any>;
+    }
+  }
+
+  if (!exists) {
     if (allowIfNotExists) {
       return { exists: false, allowed: true, status: 200 };
     }
@@ -507,8 +897,6 @@ export async function verifyFirestoreResourceOwnership(params: {
       reason: `Recurso ${collectionName}/${cleanDocId} não encontrado.`,
     };
   }
-
-  const data = snap.data() as Record<string, any>;
   const recordOwnerUid = data.ownerUid ? String(data.ownerUid).trim() : '';
 
   if (!recordOwnerUid) {

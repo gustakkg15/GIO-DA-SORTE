@@ -50,7 +50,7 @@ export default defineConfig(() => {
           maximumFileSizeToCacheInBytes: 15 * 1024 * 1024, // 15 MiB
         },
         devOptions: {
-          enabled: true,
+          enabled: false,
           type: 'module',
         },
       }),
@@ -62,10 +62,11 @@ export default defineConfig(() => {
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
-      // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      // Keep file watching active on source files so Vite invalidates modified modules in memory without manual server restarts.
+      watch: {
+        ignored: ['**/node_modules/**', '**/dist/**', '**/.backups/**', '**/.git/**'],
+      },
     },
   };
 });

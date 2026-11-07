@@ -57,6 +57,8 @@ interface DrawSectionProps {
   }) => void;
   onResetToSample: () => void;
   onResetCoinsOnly: () => void;
+  predeterminedWinningTicket?: { number: number; participantId: string; name: string } | null;
+  drawErrorMessage?: string | null;
 }
 
 export const DrawSection: React.FC<DrawSectionProps> = ({
@@ -83,6 +85,8 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
   onRestoreState,
   onResetToSample,
   onResetCoinsOnly,
+  predeterminedWinningTicket,
+  drawErrorMessage,
 }) => {
   const [isConfirmingClearWinners, setIsConfirmingClearWinners] = useState(false);
   const [copiedHash, setCopiedHash] = useState(false);
@@ -100,7 +104,6 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
   const latestWinner = winners.length > 0 ? winners[0] : null;
   const drawMode = settings.drawMode || 'drum';
 
-  // Determine next ranked prize from queue if available
   const prizes = settings.prizes || [];
   const nextRankedPrize = [...prizes]
     .sort((a, b) => a.rank - b.rank)
@@ -113,54 +116,80 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
   const canDraw = !isDrawing && eligibleCount > 0;
 
   return (
-    <div className="space-y-5 min-w-0">
-      {/* Main Draw Mesa Card */}
-      <div className="rounded-xl bg-[#222B28] border border-[#313D39] p-5 sm:p-6 space-y-5">
-        {/* Header & Mode Selector (Globo Digital vs Roleta Proporcional) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#313D39]">
-          <div>
-            <h2 className="text-base sm:text-lg font-semibold text-[#EAE7DE]">
-              Mesa de Sorteio
-            </h2>
-            <p className="text-xs text-[#9BA8A3] tabular-nums">
-              {eligibleCount} {eligibleCount === 1 ? 'bilhete elegível' : 'bilhetes elegíveis'} · Regra ativa: {settings.rate} moedas = 1 bilhete
-            </p>
+    <div className="space-y-6 min-w-0 pb-6">
+      {/* Main Draw Mesa Card — Central Visual Protagonist */}
+      <section
+        aria-label="Mesa Oficial de Sorteio"
+        className="relative overflow-hidden rounded-2xl bg-[#101F3D] border border-white/10 p-6 sm:p-8 space-y-6 shadow-2xl"
+      >
+        {/* Subtle Radial Glow & Top Electric Accent Bar */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[#0866F5]/10 rounded-full blur-3xl"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#0866F5] via-[#00A9FF] to-[#35B9F5]"
+        />
+
+        {/* 1. Header & Mode Selector (Globo Digital vs Roleta Visual) */}
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-white/[0.08]">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-[#0866F5]/15 border border-[#00A9FF]/30 flex items-center justify-center text-[#00A9FF] shrink-0 shadow-xs">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+                  Mesa Oficial de Sorteio
+                </h2>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md font-mono text-[10px] font-bold uppercase bg-[#20C997]/15 text-[#20C997] border border-[#20C997]/30">
+                  <ShieldCheck className="w-3 h-3" />
+                  CSPRNG ATIVO
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 font-mono tabular-nums mt-0.5">
+                <strong className="text-[#00A9FF] font-bold">{eligibleCount}</strong>{' '}
+                {eligibleCount === 1 ? 'bilhete elegível' : 'bilhetes elegíveis'} · Regra de Conversão:{' '}
+                <strong className="text-white">{settings.rate} moedas = 1 bilhete</strong>
+              </p>
+            </div>
           </div>
 
           {/* Segmented Mode Switcher */}
-          <div className="flex items-center bg-[#171D1C] p-1 rounded-lg border border-[#313D39] self-start sm:self-auto">
+          <div className="flex items-center bg-[#081226] p-1 rounded-xl border border-white/10 self-start sm:self-auto shadow-inner">
             <button
               type="button"
               onClick={() => onUpdateSettings({ drawMode: 'drum' })}
-              className={`min-h-[34px] px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${
+              className={`min-h-[38px] px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
                 drawMode === 'drum'
-                  ? 'bg-[#6EAA90] text-[#171D1C]'
-                  : 'text-[#9BA8A3] hover:text-[#EAE7DE]'
+                  ? 'bg-[#0866F5] text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              <TicketIcon className="w-3.5 h-3.5" />
+              <TicketIcon className="w-4 h-4" />
               <span>Globo Digital</span>
             </button>
             <button
               type="button"
               onClick={() => onUpdateSettings({ drawMode: 'wheel' })}
-              className={`min-h-[34px] px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${
+              className={`min-h-[38px] px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
                 drawMode === 'wheel'
-                  ? 'bg-[#6EAA90] text-[#171D1C]'
-                  : 'text-[#9BA8A3] hover:text-[#EAE7DE]'
+                  ? 'bg-[#0866F5] text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Disc className="w-3.5 h-3.5" />
+              <Disc className="w-4 h-4" />
               <span>Roleta Visual</span>
             </button>
           </div>
         </div>
 
-        {/* Active Prize Card (Discrete & Editable) */}
-        <div className="p-3.5 rounded-xl bg-[#171D1C] border border-[#313D39] flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+        {/* 2. Prominent Prize Showcase Card */}
+        <div className="relative p-4 sm:p-5 rounded-xl bg-[#081226] border border-white/10 flex items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3.5 min-w-0">
             {settings.prizeImage ? (
-              <div className="w-11 h-11 rounded-lg overflow-hidden border border-[#C6A56A]/40 shrink-0 bg-[#222B28]">
+              <div className="w-12 h-12 rounded-xl overflow-hidden border border-[#F5B942]/40 shrink-0 bg-[#101F3D]">
                 <img
                   src={settings.prizeImage}
                   alt={activePrizeLabel}
@@ -168,22 +197,22 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
                 />
               </div>
             ) : (
-              <div className="w-10 h-10 rounded-lg bg-[#2B3632] border border-[#C6A56A]/40 flex items-center justify-center shrink-0 text-[#C6A56A]">
-                <Gift className="w-5 h-5" />
+              <div className="w-12 h-12 rounded-xl bg-[#F5B942]/15 border border-[#F5B942]/30 flex items-center justify-center shrink-0 text-[#F5B942]">
+                <Gift className="w-6 h-6" />
               </div>
             )}
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-medium uppercase tracking-wider text-[#9BA8A3]">
-                  Prêmio em Disputa
+                <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Prêmio em Disputa Nesta Rodada
                 </span>
                 {nextRankedPrize && (
-                  <span className="px-1.5 py-0.5 rounded bg-[#C6A56A]/15 text-[#C6A56A] text-[10px] font-mono font-semibold tabular-nums">
-                    #{nextRankedPrize.rank}º da Fila
+                  <span className="px-2 py-0.5 rounded bg-[#F5B942]/15 text-[#F5B942] border border-[#F5B942]/30 text-[10px] font-mono font-bold tabular-nums">
+                    #{nextRankedPrize.rank}º Lugar
                   </span>
                 )}
               </div>
-              <div className="text-sm font-semibold text-[#EAE7DE] truncate">
+              <div className="text-base sm:text-lg font-extrabold text-[#F5B942] truncate mt-0.5 tracking-tight">
                 {activePrizeLabel}
               </div>
             </div>
@@ -192,50 +221,52 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
           <button
             type="button"
             onClick={() => setIsPrizeModalOpen(true)}
-            className="min-h-[36px] px-3 py-1.5 rounded-lg bg-[#2B3632] hover:bg-[#313D39] text-[#EAE7DE] border border-[#313D39] text-xs font-medium flex items-center gap-1.5 shrink-0 transition"
+            className="gio-btn-secondary px-3.5 py-2 text-xs font-semibold flex items-center gap-1.5 shrink-0"
           >
-            <Edit3 className="w-3.5 h-3.5 text-[#C6A56A]" />
+            <Edit3 className="w-3.5 h-3.5 text-[#00A9FF]" />
             <span>Editar Prêmio</span>
           </button>
         </div>
 
-        {/* Display Arena: Globo Digital or Roleta Visual */}
+        {/* 3. Main Draw Visualization Stage: Globo Digital or Roleta Visual */}
         {drawMode === 'drum' ? (
-          <div className="space-y-4">
-            <TicketDisplay
-              displayNumber={currentDisplayNumber}
-              isSpinning={isDrawing}
-              winnerName={latestWinner ? latestWinner.name : null}
-              winnerPrize={latestWinner ? latestWinner.prize : null}
-              themeMode={settings.themeMode}
-            />
+          <div className="space-y-5">
+            <div className="p-4 sm:p-6 rounded-2xl bg-[#081226]/80 border border-white/10">
+              <TicketDisplay
+                displayNumber={currentDisplayNumber}
+                isSpinning={isDrawing}
+                winnerName={latestWinner ? latestWinner.name : null}
+                winnerPrize={latestWinner ? latestWinner.prize : null}
+                themeMode={settings.themeMode}
+              />
+            </div>
 
-            {/* Primary Draw CTA Button */}
+            {/* High-Impact Primary Draw CTA Button */}
             <button
               type="button"
               disabled={!canDraw}
               onClick={onDraw}
-              className={`w-full min-h-[50px] py-3.5 px-6 rounded-xl font-semibold text-sm sm:text-base flex items-center justify-center gap-2.5 transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6EAA90] ${
+              className={`w-full min-h-[58px] py-4 px-6 rounded-xl font-extrabold text-base sm:text-lg tracking-wide flex items-center justify-center gap-3 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00A9FF] ${
                 canDraw
-                  ? 'bg-[#6EAA90] hover:bg-[#5E9980] text-[#171D1C] shadow-md cursor-pointer'
-                  : 'bg-[#2B3632] text-[#9BA8A3] border border-[#313D39] cursor-not-allowed opacity-60'
+                  ? 'bg-gradient-to-r from-[#0866F5] via-[#00A9FF] to-[#0866F5] hover:brightness-110 text-white shadow-xl shadow-blue-600/30 cursor-pointer'
+                  : 'bg-[#081226] text-slate-500 border border-white/5 cursor-not-allowed opacity-60'
               }`}
             >
               {isDrawing ? (
                 <>
-                  <Sparkles className="w-5 h-5 animate-spin text-[#171D1C]" />
-                  <span>Sorteando Bilhete...</span>
+                  <Sparkles className="w-5 h-5 animate-spin text-white" />
+                  <span className="tracking-wider font-mono">EXTRAINDO NÚMERO CONTEMPLADO...</span>
                 </>
               ) : (
                 <>
-                  <Play className="w-4 h-4 fill-current" />
-                  <span>Sortear Agora no Globo</span>
+                  <Play className="w-5 h-5 fill-current" />
+                  <span>SORTEAR AGORA NO GLOBO DIGITAL</span>
                 </>
               )}
             </button>
           </div>
         ) : (
-          <div className="py-1">
+          <div className="p-4 sm:p-6 rounded-2xl bg-[#081226]/80 border border-white/10">
             <FortuneWheel
               computed={computed}
               isDrawing={isDrawing}
@@ -244,54 +275,79 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
               latestWinner={latestWinner}
               onRequestSpin={onRequestWheelSpin}
               spinSignal={wheelSpinSignal}
+              predeterminedWinningTicket={predeterminedWinningTicket}
             />
+          </div>
+        )}
+
+        {drawErrorMessage && (
+          <div className="flex items-start gap-3 text-xs text-[#F05262] bg-[#F05262]/10 border border-[#F05262]/30 rounded-xl p-4 animate-fade-in">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[#F05262]" />
+            <div className="leading-relaxed font-medium">{drawErrorMessage}</div>
           </div>
         )}
 
         {/* Eligibility Alert when no eligible tickets exist */}
         {eligibleCount === 0 && (
-          <div className="flex items-start gap-2.5 text-xs text-[#D96B6B] bg-[#D96B6B]/10 border border-[#D96B6B]/30 rounded-xl p-3.5">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[#D96B6B]" />
-            <span>
+          <div className="flex items-start gap-3 text-xs text-[#F05262] bg-[#F05262]/10 border border-[#F05262]/30 rounded-xl p-4 animate-fade-in">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[#F05262]" />
+            <div className="leading-relaxed">
               {computed.usedCount === 0
-                ? `Nenhum bilhete elegível emitido. Adicione participantes com pelo menos ${settings.rate} moedas na lista ao lado para liberar o sorteio.`
-                : 'Todos os participantes com bilhetes já foram premiados! Desmarque a opção "Não repetir ganhador" nos recursos extras ou limpe o histórico para sortear novamente.'}
-            </span>
+                ? `Nenhum bilhete elegível emitido no momento. Adicione participantes com pelo menos ${settings.rate} moedas na lista ao lado para liberar o sorteio.`
+                : 'Todos os participantes com bilhetes já foram premiados nesta série! Desmarque a opção "Não repetir ganhador" nos recursos extras abaixo ou limpe o histórico para nova rodada.'}
+            </div>
           </div>
         )}
 
-        {/* Quick Winner Actions Bar (when at least 1 winner exists) */}
+        {/* 4. Winner Spotlight & Verification Bar in Ouro Nobre */}
         {latestWinner && !isDrawing && (
-          <div className="p-3.5 rounded-xl bg-[#171D1C] border border-[#C6A56A]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="p-5 rounded-xl bg-[#081226] border border-[#F5B942]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in shadow-xl">
             <div className="min-w-0">
-              <span className="text-[11px] font-medium text-[#C6A56A] block">
-                Último Ganhador Sorteado
+              <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#F5B942] block">
+                Último Ganhador Contemplado
               </span>
-              <div className="text-sm font-semibold text-[#EAE7DE] truncate tabular-nums">
-                #{latestWinner.number} · {latestWinner.name}
+              <div className="text-base sm:text-lg font-bold text-white truncate font-mono tabular-nums mt-0.5">
+                <span className="text-[#F5B942]">#{latestWinner.number}</span> ·{' '}
+                <span className="font-sans font-extrabold text-white">{latestWinner.name}</span>
               </div>
+              {latestWinner.proof && (
+                <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] font-mono text-slate-400">
+                  <span className="px-1.5 py-0.5 rounded bg-[#20C997]/15 text-[#20C997] border border-[#20C997]/30 font-bold">
+                    PROVABLY FAIR V2 (BACKEND AUTORITATIVO)
+                  </span>
+                  <span title={latestWinner.proof.commitmentHash}>
+                    C_server: {latestWinner.proof.commitmentHash.slice(0, 12)}…
+                  </span>
+                  <span title={latestWinner.proof.eventHash}>
+                    Ledger H1: {latestWinner.proof.eventHash.slice(0, 12)}…
+                  </span>
+                </div>
+              )}
             </div>
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
               <button
                 type="button"
                 onClick={() => onOpenCelebration(latestWinner)}
-                className="min-h-[34px] px-2.5 py-1.5 rounded-lg bg-[#2B3632] hover:bg-[#313D39] text-[#EAE7DE] border border-[#313D39] text-xs font-medium flex items-center gap-1.5 transition"
+                className="gio-btn-secondary px-3.5 py-2 text-xs font-semibold flex items-center gap-1.5"
+                title="Abrir tela cheia de celebração para telão ou live"
               >
-                <Maximize2 className="w-3.5 h-3.5 text-[#6EAA90]" />
+                <Maximize2 className="w-3.5 h-3.5 text-[#00A9FF]" />
                 <span>Telão</span>
               </button>
               <button
                 type="button"
                 onClick={() => onOpenVictoryCard(latestWinner)}
-                className="min-h-[34px] px-2.5 py-1.5 rounded-lg bg-[#2B3632] hover:bg-[#313D39] text-[#C6A56A] border border-[#C6A56A]/40 text-xs font-medium flex items-center gap-1.5 transition"
+                className="px-3.5 py-2 rounded-xl bg-[#F5B942] hover:bg-[#E5A932] text-slate-950 text-xs font-bold flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all active:scale-[0.98]"
+                title="Gerar Cartão VIP para redes sociais"
               >
-                <Award className="w-3.5 h-3.5" />
+                <Award className="w-4 h-4" />
                 <span>Cartão VIP</span>
               </button>
               <button
                 type="button"
                 onClick={onOpenAuditReport}
-                className="min-h-[34px] px-2.5 py-1.5 rounded-lg bg-[#6EAA90]/15 hover:bg-[#6EAA90]/25 text-[#6EAA90] border border-[#6EAA90]/40 text-xs font-semibold flex items-center gap-1.5 transition"
+                className="gio-btn-secondary px-3.5 py-2 text-xs font-semibold flex items-center gap-1.5 text-[#00A9FF] border-[#00A9FF]/30 hover:border-[#00A9FF]"
+                title="Emitir laudo PDF oficial auditado"
               >
                 <FileText className="w-3.5 h-3.5" />
                 <span>Certificado PDF</span>
@@ -300,45 +356,46 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
           </div>
         )}
 
-        {/* Collapsible Advanced Block: Recursos Extras da Mesa */}
-        <div className="pt-2 border-t border-[#313D39]">
+        {/* 5. Collapsible Advanced Block: Recursos Extras da Mesa */}
+        <div className="pt-2 border-t border-white/[0.08]">
           <button
             type="button"
             onClick={() => setIsExtrasOpen((prev) => !prev)}
             aria-expanded={isExtrasOpen}
-            className="w-full min-h-[40px] px-3.5 py-2 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] border border-[#313D39] flex items-center justify-between text-xs font-semibold text-[#EAE7DE] transition"
+            className="w-full min-h-[42px] px-4 py-2.5 rounded-xl bg-[#081226] hover:bg-[#0B1730] border border-white/10 flex items-center justify-between text-xs font-semibold text-white transition-all"
           >
             <span className="flex items-center gap-2">
-              <Sliders className="w-3.5 h-3.5 text-[#6EAA90]" />
-              <span>Recursos Extras da Mesa (Eliminatória, Fila de Prêmios e Auditoria)</span>
+              <Sliders className="w-4 h-4 text-[#00A9FF]" />
+              <span>Recursos Extras da Mesa (Battle Royale, Fila de Prêmios e Hash SHA-256)</span>
             </span>
             {isExtrasOpen ? (
-              <ChevronUp className="w-4 h-4 text-[#9BA8A3]" />
+              <ChevronUp className="w-4 h-4 text-slate-400" />
             ) : (
-              <ChevronDown className="w-4 h-4 text-[#9BA8A3]" />
+              <ChevronDown className="w-4 h-4 text-slate-400" />
             )}
           </button>
 
           {isExtrasOpen && (
-            <div className="mt-3 p-4 rounded-xl bg-[#171D1C] border border-[#313D39] space-y-4 animate-fade-in">
-              {/* Quick Rules Toggle: Exclude previous winners & Countdown */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#313D39]">
-                <label className="flex items-center gap-2 text-xs text-[#EAE7DE] cursor-pointer select-none">
+            <div className="mt-3 p-5 rounded-xl bg-[#081226] border border-white/10 space-y-4 animate-fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-white/[0.08]">
+                <label className="flex items-center gap-2.5 text-xs text-white cursor-pointer select-none font-medium">
                   <input
                     type="checkbox"
                     checked={settings.exclude}
                     onChange={(e) => onUpdateSettings({ exclude: e.target.checked })}
-                    className="w-4 h-4 rounded border-[#313D39] bg-[#222B28] text-[#6EAA90] focus:ring-[#6EAA90]"
+                    className="w-4 h-4 rounded border-white/20 bg-[#101F3D] text-[#0866F5] focus:ring-[#00A9FF]"
                   />
                   <span>Não repetir ganhador em sorteios seguidos</span>
                 </label>
 
-                <div className="flex items-center gap-2 text-xs text-[#9BA8A3]">
+                <div className="flex items-center gap-2 text-xs text-slate-400">
                   <span>Contagem regressiva:</span>
                   <select
                     value={settings.countdownSeconds ?? 10}
-                    onChange={(e) => onUpdateSettings({ countdownSeconds: Number(e.target.value) })}
-                    className="px-2 py-1 rounded bg-[#222B28] border border-[#313D39] text-xs text-[#EAE7DE] font-mono tabular-nums"
+                    onChange={(e) =>
+                      onUpdateSettings({ countdownSeconds: Number(e.target.value) })
+                    }
+                    className="px-3 py-1.5 rounded-lg bg-[#101F3D] border border-white/10 text-xs text-white font-mono tabular-nums focus:outline-none focus:ring-1 focus:ring-[#00A9FF]"
                   >
                     <option value={0}>Desativada (0s)</option>
                     <option value={3}>3 segundos</option>
@@ -348,34 +405,39 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
                 </div>
               </div>
 
-              {/* Advanced Tools Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
                   disabled={eligibleCount < 2}
                   onClick={onOpenBattleRoyale}
-                  className="p-3 rounded-lg bg-[#222B28] hover:bg-[#2B3632] disabled:opacity-40 disabled:cursor-not-allowed border border-[#313D39] text-left flex items-center gap-2.5 transition"
+                  className="p-3.5 rounded-xl bg-[#101F3D] hover:bg-[#14274E] disabled:opacity-40 disabled:cursor-not-allowed border border-white/10 text-left flex items-center gap-3 transition-all"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-[#2B3632] border border-[#C6A56A]/40 flex items-center justify-center text-[#C6A56A] shrink-0">
+                  <div className="w-9 h-9 rounded-lg bg-[#F5B942]/15 border border-[#F5B942]/30 flex items-center justify-center text-[#F5B942] shrink-0">
                     <Flame className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-semibold text-[#EAE7DE]">Modo Eliminatória</div>
-                    <div className="text-[11px] text-[#9BA8A3] truncate">Battle Royale até restar 1 campeão</div>
+                    <div className="text-xs font-semibold text-white">Modo Eliminatória</div>
+                    <div className="text-[11px] text-slate-400 truncate">
+                      Battle Royale até restar 1 campeão
+                    </div>
                   </div>
                 </button>
 
                 <button
                   type="button"
                   onClick={onOpenPrizeQueue}
-                  className="p-3 rounded-lg bg-[#222B28] hover:bg-[#2B3632] border border-[#313D39] text-left flex items-center gap-2.5 transition"
+                  className="p-3.5 rounded-xl bg-[#101F3D] hover:bg-[#14274E] border border-white/10 text-left flex items-center gap-3 transition-all"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-[#2B3632] border border-[#313D39] flex items-center justify-center text-[#6EAA90] shrink-0">
+                  <div className="w-9 h-9 rounded-lg bg-[#00A9FF]/15 border border-[#00A9FF]/30 flex items-center justify-center text-[#00A9FF] shrink-0">
                     <ListOrdered className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-semibold text-[#EAE7DE]">Fila de Prêmios ({prizes.length})</div>
-                    <div className="text-[11px] text-[#9BA8A3] truncate">Configurar 1º, 2º e 3º lugares</div>
+                    <div className="text-xs font-semibold text-white">
+                      Fila de Prêmios ({prizes.length})
+                    </div>
+                    <div className="text-[11px] text-slate-400 truncate">
+                      Configurar 1º, 2º e 3º lugares
+                    </div>
                   </div>
                 </button>
 
@@ -383,63 +445,68 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
                   type="button"
                   disabled={eligibleCount === 0}
                   onClick={onOpenMonteCarlo}
-                  className="p-3 rounded-lg bg-[#222B28] hover:bg-[#2B3632] disabled:opacity-40 disabled:cursor-not-allowed border border-[#313D39] text-left flex items-center gap-2.5 transition"
+                  className="p-3.5 rounded-xl bg-[#101F3D] hover:bg-[#14274E] disabled:opacity-40 disabled:cursor-not-allowed border border-white/10 text-left flex items-center gap-3 transition-all"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-[#2B3632] border border-[#313D39] flex items-center justify-center text-[#6EAA90] shrink-0">
+                  <div className="w-9 h-9 rounded-lg bg-[#00A9FF]/15 border border-[#00A9FF]/30 flex items-center justify-center text-[#00A9FF] shrink-0">
                     <BarChart2 className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-semibold text-[#EAE7DE]">Simulação 10k</div>
-                    <div className="text-[11px] text-[#9BA8A3] truncate">Testar probabilidades (Monte Carlo)</div>
+                    <div className="text-xs font-semibold text-white">Simulação 10k</div>
+                    <div className="text-[11px] text-slate-400 truncate">
+                      Testar probabilidades (Monte Carlo)
+                    </div>
                   </div>
                 </button>
 
                 <button
                   type="button"
                   onClick={onOpenAuditReport}
-                  className="p-3 rounded-lg bg-[#222B28] hover:bg-[#2B3632] border border-[#313D39] text-left flex items-center gap-2.5 transition"
+                  className="p-3.5 rounded-xl bg-[#101F3D] hover:bg-[#14274E] border border-white/10 text-left flex items-center gap-3 transition-all"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-[#2B3632] border border-[#C6A56A]/40 flex items-center justify-center text-[#C6A56A] shrink-0">
+                  <div className="w-9 h-9 rounded-lg bg-[#F5B942]/15 border border-[#F5B942]/30 flex items-center justify-center text-[#F5B942] shrink-0">
                     <FileText className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-semibold text-[#EAE7DE]">Certificado e Laudo PDF</div>
-                    <div className="text-[11px] text-[#9BA8A3] truncate">Relatório oficial com QR Code</div>
+                    <div className="text-xs font-semibold text-white">
+                      Certificado e Laudo PDF
+                    </div>
+                    <div className="text-[11px] text-slate-400 truncate">
+                      Relatório oficial com QR Code
+                    </div>
                   </div>
                 </button>
               </div>
 
-              {/* SHA-256 Roster Integrity Hash */}
-              <div className="p-3 rounded-lg bg-[#222B28] border border-[#313D39] space-y-1.5">
+              {/* SHA-256 Roster Integrity Hash (Verifiable Security) */}
+              <div className="p-3.5 rounded-xl bg-[#081226] border border-white/10 space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#6EAA90]">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>Hash SHA-256 da Lista de Bilhetes</span>
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-[#20C997]">
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Hash SHA-256 Verificável da Lista de Bilhetes</span>
                   </div>
                   <button
                     type="button"
                     onClick={handleCopyHash}
-                    className="px-2 py-0.5 rounded bg-[#171D1C] hover:bg-[#2B3632] border border-[#313D39] text-[10px] font-medium text-[#EAE7DE] flex items-center gap-1 transition"
+                    className="px-2.5 py-1 rounded-lg bg-[#101F3D] hover:bg-[#182943] border border-white/10 text-[11px] font-medium text-white flex items-center gap-1.5 transition-all"
                   >
                     {copiedHash ? (
                       <>
-                        <Check className="w-3 h-3 text-[#6EAA90]" />
-                        <span className="text-[#6EAA90]">Copiado</span>
+                        <Check className="w-3.5 h-3.5 text-[#20C997]" />
+                        <span className="text-[#20C997]">Hash Copiado</span>
                       </>
                     ) : (
                       <>
-                        <Copy className="w-3 h-3 text-[#9BA8A3]" />
+                        <Copy className="w-3.5 h-3.5 text-slate-400" />
                         <span>Copiar Hash</span>
                       </>
                     )}
                   </button>
                 </div>
-                <div className="font-mono text-[10px] text-[#9BA8A3] truncate bg-[#171D1C] px-2.5 py-1.5 rounded border border-[#313D39] select-all">
+                <div className="font-mono text-[11px] text-slate-400 truncate bg-[#050D20] px-3 py-2 rounded-lg border border-white/5 select-all">
                   {rosterHash || 'Calculando hash de integridade...'}
                 </div>
               </div>
 
-              {/* Settings Backup & Quick Reset Controls */}
               <SettingsBackup
                 settings={settings}
                 participants={participants}
@@ -448,57 +515,42 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
                 onUpdateSettings={onUpdateSettings}
                 onOpenAuditReport={onOpenAuditReport}
                 rosterHash={rosterHash}
-                onRestoreState={
-                  onRestoreState ||
-                  (() => {
-                    /* fallback */
-                  })
-                }
-                onResetToSample={
-                  onResetToSample ||
-                  (() => {
-                    /* fallback */
-                  })
-                }
-                onResetCoinsOnly={
-                  onResetCoinsOnly ||
-                  (() => {
-                    /* fallback */
-                  })
-                }
+                onRestoreState={onRestoreState || (() => {})}
+                onResetToSample={onResetToSample || (() => {})}
+                onResetCoinsOnly={onResetCoinsOnly || (() => {})}
               />
             </div>
           )}
         </div>
-      </div>
+      </section>
 
-      {/* Compact Recent Winners Card below Mesa */}
+      {/* Recent Winners History Table below Mesa */}
       {winners.length > 0 && (
-        <div className="rounded-xl bg-[#222B28] border border-[#313D39] p-5 space-y-3.5">
-          <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-[#313D39]">
-            <div className="flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-[#C6A56A]" />
-              <h3 className="text-sm font-semibold text-[#EAE7DE]">
-                Ganhadores desta Sessão ({winners.length})
+        <section aria-label="Histórico de Ganhadores" className="gio-card p-6 space-y-4">
+          <div className="flex items-center justify-between gap-2 pb-3 border-b border-white/[0.08]">
+            <div className="flex items-center gap-2.5">
+              <Trophy className="w-5 h-5 text-[#F5B942]" />
+              <h3 className="text-base font-bold text-white">
+                Ganhadores Desta Sessão ({winners.length})
               </h3>
             </div>
 
             {isConfirmingClearWinners ? (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => {
                     onClearWinners();
                     setIsConfirmingClearWinners(false);
                   }}
-                  className="px-2.5 py-1 text-[11px] font-semibold bg-[#D96B6B] text-[#171D1C] rounded transition"
+                  className="px-3 py-1 text-xs font-semibold bg-[#F05262] text-white rounded-lg transition"
                 >
                   Confirmar Limpeza
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsConfirmingClearWinners(false)}
-                  className="px-2 py-1 text-[11px] text-[#9BA8A3] hover:text-[#EAE7DE]"
+                  className="px-3 py-1 text-xs text-slate-400 hover:text-white"
                 >
                   Cancelar
                 </button>
@@ -507,63 +559,61 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
               <button
                 type="button"
                 onClick={() => setIsConfirmingClearWinners(true)}
-                className="text-xs text-[#9BA8A3] hover:text-[#D96B6B] transition"
+                className="text-xs text-slate-400 hover:text-[#F05262] transition"
               >
                 Limpar histórico
               </button>
             )}
           </div>
 
-          <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+          <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1 custom-scrollbar">
             {winners.map((w, index) => (
               <div
                 key={w.id}
-                className="p-2.5 rounded-lg bg-[#171D1C] border border-[#313D39] flex items-center justify-between gap-2"
+                className="p-3 rounded-xl bg-[#081226] border border-white/5 hover:border-white/10 flex items-center justify-between gap-3 transition-colors"
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="px-2 py-1 rounded bg-[#2B3632] border border-[#C6A56A]/40 text-[#C6A56A] font-mono font-bold text-xs tabular-nums shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="px-3 py-1 rounded-lg bg-[#101F3D] border border-[#F5B942]/40 text-[#F5B942] font-mono font-bold text-sm tabular-nums shrink-0">
                     #{w.number}
                   </span>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-xs text-[#EAE7DE] truncate">
-                        {w.name}
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-white truncate">{w.name}</span>
                       {index === 0 && (
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#6EAA90]/20 text-[#6EAA90] font-medium shrink-0">
+                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#20C997]/15 text-[#20C997] font-semibold border border-[#20C997]/30 shrink-0">
                           Mais recente
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px] text-[#9BA8A3] truncate tabular-nums">
+                    <div className="text-xs text-slate-400 truncate tabular-nums mt-0.5">
                       {w.prize || 'Prêmio'} · {formatDateTime(w.drawnAt)}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
                     onClick={() => onOpenVictoryCard(w)}
                     title="Gerar Cartão VIP"
-                    className="px-2 py-1 rounded bg-[#222B28] hover:bg-[#2B3632] text-[#C6A56A] border border-[#313D39] text-[11px] font-medium flex items-center gap-1 transition"
+                    className="px-3 py-1.5 rounded-lg bg-[#101F3D] hover:bg-[#14274E] text-[#F5B942] border border-[#F5B942]/30 text-xs font-semibold flex items-center gap-1.5 transition-all"
                   >
-                    <Award className="w-3 h-3" />
-                    <span className="hidden sm:inline">Cartão</span>
+                    <Award className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Cartão VIP</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => onRemoveWinner(w.id)}
                     title="Remover registro"
-                    className="p-1.5 text-[#9BA8A3] hover:text-[#D96B6B] rounded transition"
+                    className="p-1.5 text-slate-400 hover:text-[#F05262] rounded-lg transition"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {/* Prize Config Modal */}

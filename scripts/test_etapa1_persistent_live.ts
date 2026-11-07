@@ -12,7 +12,7 @@
  * 7. Simular reinício do backend e verificar recuperação segura (sessão persistida vs Webcast ativo).
  * 8. Testar concorrência entre chamadas simultâneas de conexão.
  * 9. Verificar que eventos não são duplicados nem perdidos (WAL, Outbox, Cursores, Replay).
- * 10. Executar testes de regressão (regras comerciais, planos R$ 29,90 / R$ 199,90, trial 7 dias).
+ * 10. Executar testes de regressão (regras comerciais, planos R$ 29,90 / R$ 199,90, trial 3 dias).
  */
 
 import { spawn, ChildProcess } from 'child_process';
@@ -808,7 +808,7 @@ async function runEtapa1Suite() {
   }
 
   // ============================================================================
-  // TESTE 10: Regressão das Regras Comerciais Inalteradas (Preços e Trial 7 dias)
+  // TESTE 10: Regressão das Regras Comerciais Inalteradas (Preços e Trial 3 dias)
   // ============================================================================
   console.log('\n--- 7. REGRESSÃO DE REGRAS COMERCIAIS E DEMAIS ETAPAS INALTERADAS ---');
 
@@ -817,11 +817,11 @@ async function runEtapa1Suite() {
   recordTest(
     'T10.1',
     'Regressão Comercial',
-    'Preços oficiais (R$ 29,90 mensal e R$ 199,90 anual) e trial de 7 dias permanecem rigorosamente inalterados',
+    'Preços oficiais (R$ 29,90 mensal e R$ 199,90 anual) e trial de 3 dias permanecem rigorosamente inalterados',
     monthlyPlan?.price === 29.90 &&
       annualPlan?.price === 199.90 &&
-      monthlyPlan?.freeTrial?.frequency === 7 &&
-      annualPlan?.freeTrial?.frequency === 7,
+      monthlyPlan?.freeTrial?.frequency === 3 &&
+      annualPlan?.freeTrial?.frequency === 3,
     `Mensal: R$ ${monthlyPlan?.price} (${monthlyPlan?.freeTrial?.frequency}d trial), Anual: R$ ${annualPlan?.price} (${annualPlan?.freeTrial?.frequency}d trial)`
   );
 

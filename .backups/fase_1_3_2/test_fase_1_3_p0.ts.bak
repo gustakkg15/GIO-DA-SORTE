@@ -1,0 +1,979 @@
+/**
+ * GIO DA SORTE PRO — FASE 1.3 (P0)
+ * Suíte de Testes Unitários, Regressão de Autenticação e Isolamento Multiusuário A/B
+ * Escopo: Validação estrita das correções ISO-02 (POST /api/tiktok/restore-session)
+ * e ISO-03 (POST /api/tiktok/test-event) com mocks controlados em memória.
+ *
+ * GARANTIAS DE SEGURANÇA:
+ * - Zero leituras ou escritas no Firestore real.
+ * - Zero conexões TikTok LIVE reais.
+ * - Zero alterações em variáveis de ambiente persistentes ou serviços externos.
+ */
+
+import express, { type Request, type Response, type NextFunction } from 'express';
+import http from 'http';
+import fs from 'fs';
+import crypto from 'crypto';
+import { TikTokLiveAdapter } from '../src/server/tiktokLiveAdapter.ts';
+
+interface MockUserContext {
+  uid: string;
+  email: string;
+  isPro: boolean;
+  isAdmin: boolean;
+}
+
+interface MockSessionRecord {
+  sessionId: string;
+  ownerUid: string;
+  username: string;
+  activeRuleId: string;
+  currentRate: number;
+  totalGiftsCount: number;
+  totalCoins: number;
+}
+
+interface MockDistributedLock {
+  instanceId: string;
+  ownerUid: string;
+  sessionId: string;
+  roomUsername: string;
+  activeRuleId: string;
+  currentRate: number;
+  shouldBeConnected: boolean;
+  lastKnownState: string;
+  updatedAt: number;
+  expiresAt: number;
+}
+
+const TOKENS: Record<string, MockUserContext> = {
+  TOKEN_ORG_A_PRO: {
+    uid: 'uid_organizer_a_pro_001',
+    email: 'org.a@giodasorte.test',
+    isPro: true,
+    isAdmin: false,
+  },
+  TOKEN_ORG_B_PRO: {
+    uid: 'uid_organizer_b_pro_002',
+    email: 'org.b@giodasorte.test',
+    isPro: true,
+    isAdmin: false,
+  },
+  TOKEN_USER_FREE: {
+    uid: 'uid_user_free_003',
+    email: 'free@giodasorte.test',
+    isPro: false,
+    isAdmin: false,
+  },
+  TOKEN_ADMIN_PRO: {
+    uid: 'uid_admin_pro_999',
+    email: 'admin@giodasorte.test',
+    isPro: true,
+    isAdmin: true,
+  },
+};
+
+const SESSIONS_DB = new Map<string, MockSessionRecord>([
+  [
+    'session_A',
+    {
+      sessionId: 'session_A',
+      ownerUid: 'uid_organizer_a_pro_001',
+      username: 'criador_sala_a',
+      activeRuleId: 'rule_a_100',
+      currentRate: 100,
+      totalGiftsCount: 5,
+      totalCoins: 500,
+    },
+  ],
+  [
+    'session_B',
+    {
+      sessionId: 'session_B',
+      ownerUid: 'uid_organizer_b_pro_002',
+      username: 'criador_sala_b',
+      activeRuleId: 'rule_b_50',
+      currentRate: 50,
+      totalGiftsCount: 2,
+      totalCoins: 100,
+    },
+  ],
+  [
+    'session_ADMIN',
+    {
+      sessionId: 'session_ADMIN',
+      ownerUid: 'uid_admin_pro_999',
+      username: 'criador_admin',
+      activeRuleId: 'rule_admin_100',
+      currentRate: 100,
+      totalGiftsCount: 0,
+      totalCoins: 0,
+    },
+  ],
+]);
+
+function extractBearerToken(req: Request): string {
+  const header = req.headers.authorization;
+  if (!header || typeof header !== 'string' || !header.toLowerCase().startsWith('bearer ')) {
+    return '';
+  }
+  return header.slice(7).trim();
+}
+
+async function runSuite() {
+  console.log('================================================================================');
+  console.log('GIO DA SORTE PRO — FASE 1.3 (P0): TESTES DE ISOLAMENTO E AUTORIZAÇÃO (ISO-02 / ISO-03)');
+  console.log('================================================================================\n');
+
+  let passed = 0;
+  let failed = 0;
+
+  function assertTest(id: string, name: string, condition: boolean, details: string) {
+    if (condition) {
+      passed++;
+      console.log(`[PASS] ${id} — ${name}\n       Evidência: ${details}`);
+    } else {
+      failed++;
+      console.error(`[FAIL] ${id} — ${name}\n       Evidência: ${details}`);
+    }
+  }
+
+  // 1. Static source code verification of server.ts to ensure the exact routes in server.ts match our P0 contract
+  const serverSource = fs.readFileSync('server.ts', 'utf8');
+  const serverSha256 = crypto.createHash('sha256').update(serverSource).digest('hex');
+  console.log(`SHA-256 atual de server.ts: ${serverSha256}\n`);
+
+  const restoreBlockMatch = serverSource.match(
+    /app\.post\(\s*'\/api\/tiktok\/restore-session'[\s\S]*?app\.post\(\s*'\/api\/tiktok\/test-event'/
+  );
+  const testEventBlockMatch = serverSource.match(
+    /app\.post\(\s*'\/api\/tiktok\/test-event'[\s\S]*?async function requireAdminDiagnosticAuth/
+  );
+
+  const restoreBlock = restoreBlockMatch ? restoreBlockMatch[0] : '';
+  const testEventBlock = testEventBlockMatch ? testEventBlockMatch[0] : '';
+
+  assertTest(
+    'STATIC-01',
+    'server.ts: POST /api/tiktok/test-event exige verifyAdminRequest(req), sessionId explícito e allowIfNotExists: false',
+    testEventBlock.includes('verifyAdminRequest(req)') &&
+      testEventBlock.includes("code: 'INVALID_SESSION_ID'") &&
+      testEventBlock.includes('allowIfNotExists: false') &&
+      testEventBlock.includes('sessionId: requestedSessionId'),
+    'Inspeção estática do handler POST /api/tiktok/test-event em server.ts confirmada.'
+  );
+
+  assertTest(
+    'STATIC-02',
+    'server.ts: POST /api/tiktok/restore-session exige verifyAdminRequest(req) para simulateServerRestart e verifica activeLiveConnectionOwnerUid + readPersistedWebcastRuntimeState()',
+    restoreBlock.includes('verifyAdminRequest(req)') &&
+      restoreBlock.includes('activeLiveConnectionOwnerUid && activeLiveConnectionOwnerUid !== authUid') &&
+      restoreBlock.includes('readPersistedWebcastRuntimeState()') &&
+      restoreBlock.includes("code: 'OWNERSHIP_FORBIDDEN'"),
+    'Inspeção estática do handler POST /api/tiktok/restore-session em server.ts confirmada.'
+  );
+
+  // 2. Build controlled Express harness executing the exact route logic with controlled in-memory mocks
+  const adapter = new TikTokLiveAdapter();
+  let activeLiveConnectionOwnerUid: string | null = null;
+  let activeLiveConnectionSessionId: string | null = null;
+  let persistedLockState: MockDistributedLock | null = null;
+  let disconnectCallsCount = 0;
+  let resetSimulatedRestartCallsCount = 0;
+  let connectCallsCount = 0;
+
+  // Override network-facing methods on the isolated adapter instance so ZERO real TikTok Webcast connections occur
+  adapter.restoreSessionFromFirestore = async (sessionId: string) => {
+    const rec = SESSIONS_DB.get(sessionId);
+    if (!rec) {
+      return { restoredStreaks: 0, restoredEvents: 0, sessionFound: false };
+    }
+    (adapter as any).currentSessionId = sessionId;
+    (adapter as any).currentUsername = rec.username;
+    (adapter as any).activeRuleId = rec.activeRuleId;
+    (adapter as any).activeRate = rec.currentRate;
+    return {
+      restoredStreaks: 1,
+      restoredEvents: rec.totalGiftsCount,
+      sessionFound: true,
+      username: rec.username,
+      activeRuleId: rec.activeRuleId,
+      currentRate: rec.currentRate,
+    };
+  };
+
+  adapter.connect = async (username: string, sessionId: string, ruleId = 'rule_default_100', rate = 100) => {
+    connectCallsCount++;
+    (adapter as any).currentUsername = username;
+    (adapter as any).currentSessionId = sessionId;
+    (adapter as any).activeRuleId = ruleId;
+    (adapter as any).activeRate = rate;
+    (adapter as any).state = 'CONNECTED';
+    (adapter as any).shouldBeConnected = true;
+    (adapter as any).connection = { disconnect: () => {} };
+    return {
+      success: true,
+      status: adapter.getStatus(),
+    };
+  };
+
+  const origDisconnect = adapter.disconnect.bind(adapter);
+  adapter.disconnect = async (stopReconnecting = true) => {
+    disconnectCallsCount++;
+    await origDisconnect(stopReconnecting);
+  };
+
+  const origReset = adapter.resetMemoryStateForSimulatedRestart.bind(adapter);
+  adapter.resetMemoryStateForSimulatedRestart = () => {
+    resetSimulatedRestartCallsCount++;
+    origReset();
+  };
+
+  async function mockVerifyAuthenticatedFirebaseUser(req: Request) {
+    const token = extractBearerToken(req);
+    if (!token) {
+      return {
+        authenticated: false,
+        status: 401 as const,
+        code: 'FIREBASE_AUTH_REQUIRED',
+        reason: 'Autenticação obrigatória via Firebase ID Token.',
+      };
+    }
+    const ctx = TOKENS[token];
+    if (!ctx) {
+      return {
+        authenticated: false,
+        status: 401 as const,
+        code: 'FIREBASE_TOKEN_INVALID',
+        reason: 'Token inválido.',
+      };
+    }
+    (req as any).authUid = ctx.uid;
+    (req as any).authEmail = ctx.email;
+    return {
+      authenticated: true,
+      status: 200 as const,
+      uid: ctx.uid,
+      email: ctx.email,
+      decodedToken: { uid: ctx.uid, email: ctx.email, admin: ctx.isAdmin },
+    };
+  }
+
+  async function requireFirebaseAuth(req: Request, res: Response, next: NextFunction) {
+    const authResult = await mockVerifyAuthenticatedFirebaseUser(req);
+    if (!authResult.authenticated || !authResult.uid) {
+      res.status(authResult.status || 401).json({
+        success: false,
+        code: authResult.code || 'FIREBASE_AUTH_REQUIRED',
+        error: authResult.reason,
+      });
+      return;
+    }
+    next();
+  }
+
+  async function requireProPlan(req: Request, res: Response, next: NextFunction) {
+    const token = extractBearerToken(req);
+    const ctx = TOKENS[token];
+    if (!ctx || !ctx.isPro) {
+      res.status(403).json({
+        success: false,
+        code: 'PRO_PLAN_REQUIRED',
+        error: 'Assinatura PRO ativa obrigatória.',
+      });
+      return;
+    }
+    next();
+  }
+
+  async function verifyAdminRequest(req: Request) {
+    const authResult = await mockVerifyAuthenticatedFirebaseUser(req);
+    if (!authResult.authenticated || !authResult.uid) {
+      return {
+        authorized: false,
+        status: 401 as const,
+        reason: authResult.reason,
+      };
+    }
+    const token = extractBearerToken(req);
+    const ctx = TOKENS[token];
+    if (!ctx?.isAdmin) {
+      return {
+        authorized: false,
+        status: 403 as const,
+        uid: authResult.uid,
+        email: authResult.email,
+        reason: `Acesso negado: o usuário '${authResult.uid}' está autenticado, mas não possui privilégios administrativos.`,
+      };
+    }
+    return {
+      authorized: true,
+      status: 200 as const,
+      uid: authResult.uid,
+      email: authResult.email,
+    };
+  }
+
+  async function verifyFirestoreResourceOwnership(params: {
+    collectionName: 'sessions';
+    docId: string;
+    authUid: string;
+    allowIfNotExists?: boolean;
+    requireExplicitOwner?: boolean;
+  }) {
+    const rec = SESSIONS_DB.get(params.docId);
+    if (!rec) {
+      if (params.allowIfNotExists) {
+        return { exists: false, allowed: true, status: 200 };
+      }
+      return {
+        exists: false,
+        allowed: false,
+        status: 404,
+        code: 'RESOURCE_NOT_FOUND',
+        reason: `Recurso sessions/${params.docId} não encontrado.`,
+      };
+    }
+    if (!rec.ownerUid && params.requireExplicitOwner !== false) {
+      return {
+        exists: true,
+        allowed: false,
+        status: 403,
+        code: 'OWNERSHIP_FORBIDDEN',
+        reason: 'Sem ownerUid explícito.',
+      };
+    }
+    if (rec.ownerUid !== params.authUid) {
+      return {
+        exists: true,
+        allowed: false,
+        status: 403,
+        code: 'OWNERSHIP_FORBIDDEN',
+        reason: `Acesso negado: o recurso sessions/${params.docId} pertence a outro organizador.`,
+      };
+    }
+    return { exists: true, allowed: true, status: 200, data: rec };
+  }
+
+  async function readPersistedWebcastRuntimeState() {
+    return persistedLockState;
+  }
+
+  const app = express();
+  app.use(express.json());
+
+  // Mount exact route logic from server.ts for /api/tiktok/restore-session, /api/tiktok/test-event, and /api/tiktok/disconnect
+  app.post(
+    '/api/tiktok/restore-session',
+    requireFirebaseAuth,
+    requireProPlan,
+    async (req: Request, res: Response) => {
+      const authUid = (req as any).authUid!;
+      const { sessionId, simulateServerRestart, reconnectWebcast } = req.body || {};
+      if (
+        typeof sessionId !== 'string' ||
+        !sessionId.trim() ||
+        sessionId.trim().length > 128 ||
+        !/^[a-zA-Z0-9_-]+$/.test(sessionId.trim())
+      ) {
+        return res.status(400).json({
+          success: false,
+          code: 'INVALID_SESSION_ID',
+          error: 'sessionId é obrigatório e deve ser um identificador válido.',
+        });
+      }
+      const targetSessionId = sessionId.trim();
+
+      if (simulateServerRestart === true || Boolean(simulateServerRestart)) {
+        const adminCheck = await verifyAdminRequest(req);
+        if (!adminCheck.authorized) {
+          return res.status(adminCheck.status || 403).json({
+            success: false,
+            code: adminCheck.status === 401 ? 'FIREBASE_AUTH_REQUIRED' : 'ADMIN_FORBIDDEN',
+            error:
+              adminCheck.reason ||
+              'Acesso negado: o parâmetro simulateServerRestart exige privilégios administrativos.',
+          });
+        }
+      }
+
+      const ownership = await verifyFirestoreResourceOwnership({
+        collectionName: 'sessions',
+        docId: targetSessionId,
+        authUid,
+        allowIfNotExists: false,
+        requireExplicitOwner: true,
+      });
+      if (!ownership.allowed) {
+        return res.status(ownership.status).json({
+          success: false,
+          code: ownership.code || 'OWNERSHIP_FORBIDDEN',
+          error: ownership.reason,
+        });
+      }
+
+      if (activeLiveConnectionOwnerUid && activeLiveConnectionOwnerUid !== authUid) {
+        return res.status(403).json({
+          success: false,
+          code: 'OWNERSHIP_FORBIDDEN',
+          error:
+            'Acesso negado: a instância global está operando uma sessão LIVE pertencente a outro organizador autenticado.',
+        });
+      }
+
+      const now = Date.now();
+      const persistedLock = await readPersistedWebcastRuntimeState();
+      if (
+        persistedLock &&
+        persistedLock.ownerUid &&
+        persistedLock.ownerUid !== authUid &&
+        persistedLock.shouldBeConnected &&
+        persistedLock.expiresAt > now
+      ) {
+        return res.status(403).json({
+          success: false,
+          code: 'OWNERSHIP_FORBIDDEN',
+          error:
+            'Acesso negado: existe um lock de transmissão LIVE ativo pertencente a outro organizador autenticado.',
+        });
+      }
+
+      const currentAdapterSessionId = adapter.getRawCurrentSessionId();
+      const currentAdapterStatus = adapter.getStatus();
+      const isAdapterBusy =
+        currentAdapterStatus.state === 'CONNECTED' ||
+        currentAdapterStatus.state === 'CONNECTING' ||
+        currentAdapterStatus.state === 'RECONNECTING' ||
+        adapter.isWebcastGenuinelyActive();
+
+      if (currentAdapterSessionId && currentAdapterSessionId !== targetSessionId) {
+        const currentSessionOwnership = await verifyFirestoreResourceOwnership({
+          collectionName: 'sessions',
+          docId: currentAdapterSessionId,
+          authUid,
+          allowIfNotExists: true,
+          requireExplicitOwner: true,
+        });
+        if (!currentSessionOwnership.allowed || (isAdapterBusy && activeLiveConnectionOwnerUid !== authUid)) {
+          return res.status(403).json({
+            success: false,
+            code: 'OWNERSHIP_FORBIDDEN',
+            error:
+              'Acesso negado: não é permitido substituir ou desconectar a sessão LIVE ativa de outro organizador.',
+          });
+        }
+      }
+
+      if (simulateServerRestart === true || Boolean(simulateServerRestart)) {
+        adapter.resetMemoryStateForSimulatedRestart();
+        activeLiveConnectionOwnerUid = null;
+        activeLiveConnectionSessionId = null;
+      }
+
+      const restored = await adapter.restoreSessionFromFirestore(targetSessionId);
+      activeLiveConnectionOwnerUid = authUid;
+      activeLiveConnectionSessionId = targetSessionId;
+
+      if (reconnectWebcast && restored.username) {
+        await adapter.connect(
+          restored.username,
+          targetSessionId,
+          restored.activeRuleId || 'rule_default_100',
+          restored.currentRate || 100,
+          true
+        );
+      }
+
+      const status = adapter.getStatus();
+      res.json({
+        ok: true,
+        success: true,
+        sessionId: targetSessionId,
+        webcastActive: Boolean(status.webcastActive),
+        ...restored,
+        status,
+      });
+    }
+  );
+
+  app.post(
+    '/api/tiktok/test-event',
+    requireFirebaseAuth,
+    async (req: Request, res: Response, next: NextFunction) => {
+      const adminCheck = await verifyAdminRequest(req);
+      if (!adminCheck.authorized) {
+        return res.status(adminCheck.status || 403).json({
+          success: false,
+          code: adminCheck.status === 401 ? 'FIREBASE_AUTH_REQUIRED' : 'ADMIN_FORBIDDEN',
+          error:
+            adminCheck.reason ||
+            'Acesso negado: este endpoint de teste é restrito a administradores autorizados.',
+        });
+      }
+      return next();
+    },
+    requireProPlan,
+    async (req: Request, res: Response) => {
+      const authUid = (req as any).authUid!;
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+
+      const rawSessionId = body.sessionId;
+      if (
+        typeof rawSessionId !== 'string' ||
+        !rawSessionId.trim() ||
+        rawSessionId.trim().length > 128 ||
+        !/^[a-zA-Z0-9_-]+$/.test(rawSessionId.trim())
+      ) {
+        return res.status(400).json({
+          success: false,
+          code: 'INVALID_SESSION_ID',
+          error:
+            'Parâmetro sessionId explícito e válido é obrigatório no corpo da requisição (fallback implícito desativado por segurança).',
+        });
+      }
+      const requestedSessionId = rawSessionId.trim();
+
+      const ownership = await verifyFirestoreResourceOwnership({
+        collectionName: 'sessions',
+        docId: requestedSessionId,
+        authUid,
+        allowIfNotExists: false,
+        requireExplicitOwner: true,
+      });
+      if (!ownership.allowed) {
+        return res.status(ownership.status).json({
+          success: false,
+          code: ownership.code || (ownership.status === 404 ? 'RESOURCE_NOT_FOUND' : 'OWNERSHIP_FORBIDDEN'),
+          error: ownership.reason,
+        });
+      }
+
+      if (activeLiveConnectionOwnerUid && activeLiveConnectionOwnerUid !== authUid) {
+        return res.status(403).json({
+          success: false,
+          code: 'OWNERSHIP_FORBIDDEN',
+          error:
+            'Acesso negado: a instância global está operando uma sessão LIVE pertencente a outro organizador.',
+        });
+      }
+
+      const currentAdapterSessionId = adapter.getRawCurrentSessionId();
+      if (currentAdapterSessionId && currentAdapterSessionId !== requestedSessionId) {
+        const currentSessionOwnership = await verifyFirestoreResourceOwnership({
+          collectionName: 'sessions',
+          docId: currentAdapterSessionId,
+          authUid,
+          allowIfNotExists: true,
+          requireExplicitOwner: true,
+        });
+        if (!currentSessionOwnership.allowed) {
+          return res.status(403).json({
+            success: false,
+            code: 'OWNERSHIP_FORBIDDEN',
+            error:
+              'Acesso negado: a instância global contém uma sessão ativa pertencente a outro organizador.',
+          });
+        }
+      }
+
+      const explicitGiftPayload = {
+        ...body,
+        sessionId: requestedSessionId,
+      };
+      const outcome = adapter.handleIncomingGift(explicitGiftPayload, 'SIMULATED_TEST');
+
+      res.json({
+        success: true,
+        accepted: outcome.accepted,
+        isDuplicate: outcome.isDuplicate,
+        event: outcome.event,
+      });
+    }
+  );
+
+  app.post('/api/tiktok/disconnect', requireFirebaseAuth, async (req: Request, res: Response) => {
+    const authUid = (req as any).authUid!;
+    if (activeLiveConnectionOwnerUid && activeLiveConnectionOwnerUid !== authUid) {
+      return res.status(403).json({
+        success: false,
+        code: 'OWNERSHIP_FORBIDDEN',
+        error: 'Acesso negado: você não pode desconectar uma transmissão LIVE iniciada por outra conta.',
+      });
+    }
+    await adapter.disconnect(true);
+    activeLiveConnectionOwnerUid = null;
+    activeLiveConnectionSessionId = null;
+    persistedLockState = null;
+    res.json({ success: true, ownerUid: authUid, status: adapter.getStatus() });
+  });
+
+  const server = http.createServer(app);
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+  const addr = server.address() as { port: number };
+  const baseUrl = `http://127.0.0.1:${addr.port}`;
+
+  try {
+    console.log('\n--- 1. TESTES OBRIGATÓRIOS ISO-03 (POST /api/tiktok/test-event) ---');
+
+    // T-ISO03-1: Usuário sem token -> HTTP 401
+    const resUnauth = await fetch(`${baseUrl}/api/tiktok/test-event`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: 'session_A', giftId: 5655, diamondCount: 10 }),
+    });
+    const bodyUnauth = await resUnauth.json();
+    assertTest(
+      'ISO03-01',
+      'Requisição sem token Firebase retorna HTTP 401 (FIREBASE_AUTH_REQUIRED)',
+      resUnauth.status === 401 && bodyUnauth.code === 'FIREBASE_AUTH_REQUIRED',
+      `status=${resUnauth.status}, code=${bodyUnauth.code}`
+    );
+
+    // T-ISO03-2: Usuário PRO não administrador -> HTTP 403
+    const resNonAdminPro = await fetch(`${baseUrl}/api/tiktok/test-event`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer TOKEN_ORG_B_PRO',
+      },
+      body: JSON.stringify({ sessionId: 'session_B', giftId: 5655, diamondCount: 10 }),
+    });
+    const bodyNonAdminPro = await resNonAdminPro.json();
+    assertTest(
+      'ISO03-02',
+      'Usuário PRO não administrador recebe HTTP 403 (ADMIN_FORBIDDEN)',
+      resNonAdminPro.status === 403 && bodyNonAdminPro.code === 'ADMIN_FORBIDDEN',
+      `status=${resNonAdminPro.status}, code=${bodyNonAdminPro.code}`
+    );
+
+    // T-ISO03-3: Administrador sem sessionId -> HTTP 400 (sem fallback para currentSessionId)
+    const resMissingSid = await fetch(`${baseUrl}/api/tiktok/test-event`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer TOKEN_ADMIN_PRO',
+      },
+      body: JSON.stringify({
+        user: { userId: '1001', uniqueId: 'apoiador_teste' },
+        giftId: 5655,
+        diamondCount: 50,
+      }),
+    });
+    const bodyMissingSid = await resMissingSid.json();
+    assertTest(
+      'ISO03-03',
+      'Administrador sem sessionId no body recebe HTTP 400 (INVALID_SESSION_ID) e não usa fallback implícito',
+      resMissingSid.status === 400 && bodyMissingSid.code === 'INVALID_SESSION_ID',
+      `status=${resMissingSid.status}, code=${bodyMissingSid.code}`
+    );
+
+    // T-ISO03-4: Administrador informando sessão de outro proprietário -> HTTP 403 (OWNERSHIP_FORBIDDEN)
+    const resOtherOwnerSid = await fetch(`${baseUrl}/api/tiktok/test-event`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer TOKEN_ADMIN_PRO',
+      },
+      body: JSON.stringify({
+        sessionId: 'session_A',
+        user: { userId: '1001', uniqueId: 'apoiador_teste' },
+        giftId: 5655,
+        diamondCount: 50,
+      }),
+    });
+    const bodyOtherOwnerSid = await resOtherOwnerSid.json();
+    assertTest(
+      'ISO03-04',
+      'Sessão pertencente a outro proprietário (session_A != UID_ADMIN) retorna HTTP 403 (OWNERSHIP_FORBIDDEN)',
+      resOtherOwnerSid.status === 403 && bodyOtherOwnerSid.code === 'OWNERSHIP_FORBIDDEN',
+      `status=${resOtherOwnerSid.status}, code=${bodyOtherOwnerSid.code}`
+    );
+
+    // T-ISO03-5: Sessão inexistente -> Rejeitada com HTTP 404 (RESOURCE_NOT_FOUND), sem criação implícita
+    const resNonExistentSid = await fetch(`${baseUrl}/api/tiktok/test-event`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer TOKEN_ADMIN_PRO',
+      },
+      body: JSON.stringify({
+        sessionId: 'session_inexistente_fantasma',
+        user: { userId: '1001', uniqueId: 'apoiador_teste' },
+        giftId: 5655,
+        diamondCount: 50,
+      }),
+    });
+    const bodyNonExistentSid = await resNonExistentSid.json();
+    assertTest(
+      'ISO03-05',
+      'Sessão inexistente é rejeitada (HTTP 404 RESOURCE_NOT_FOUND) sem criação implícita',
+      resNonExistentSid.status === 404 &&
+        bodyNonExistentSid.code === 'RESOURCE_NOT_FOUND' &&
+        !SESSIONS_DB.has('session_inexistente_fantasma'),
+      `status=${resNonExistentSid.status}, code=${bodyNonExistentSid.code}`
+    );
+
+    // T-ISO03-6: Administrador autorizado com sessão própria existente -> Permitido (HTTP 200)
+    const resAdminOwnSession = await fetch(`${baseUrl}/api/tiktok/test-event`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer TOKEN_ADMIN_PRO',
+      },
+      body: JSON.stringify({
+        sessionId: 'session_ADMIN',
+        msgId: 'msg_admin_valid_001',
+        user: { userId: '999001', uniqueId: 'apoiador_admin', nickname: 'Apoiador Admin' },
+        giftId: 5655,
+        giftName: 'Rosa',
+        diamondCount: 100,
+        repeatCount: 1,
+        repeatEnd: true,
+      }),
+    });
+    const bodyAdminOwnSession = await resAdminOwnSession.json();
+    assertTest(
+      'ISO03-06',
+      'Administrador autorizado com sessão própria existente (session_ADMIN) processa evento com HTTP 200',
+      resAdminOwnSession.status === 200 &&
+        bodyAdminOwnSession.success === true &&
+        bodyAdminOwnSession.accepted === true &&
+        bodyAdminOwnSession.event?.sessionId === 'session_ADMIN',
+      `status=${resAdminOwnSession.status}, accepted=${bodyAdminOwnSession.accepted}, event.sessionId=${bodyAdminOwnSession.event?.sessionId}`
+    );
+
+    console.log('\n--- 2. TESTES OBRIGATÓRIOS ISO-02 E ISOLAMENTO A/B (POST /api/tiktok/restore-session) ---');
+
+    // Preparar cenário: Organizador A (UID_A) está conectado em session_A
+    adapter.resetMemoryStateForSimulatedRestart();
+    disconnectCallsCount = 0;
+    resetSimulatedRestartCallsCount = 0;
+    connectCallsCount = 0;
+
+    await adapter.connect('criador_sala_a', 'session_A', 'rule_a_100', 100, false);
+    activeLiveConnectionOwnerUid = TOKENS.TOKEN_ORG_A_PRO.uid;
+    activeLiveConnectionSessionId = 'session_A';
+    persistedLockState = {
+      instanceId: 'srv_test_instance_1',
+      ownerUid: TOKENS.TOKEN_ORG_A_PRO.uid,
+      sessionId: 'session_A',
+      roomUsername: 'criador_sala_a',
+      activeRuleId: 'rule_a_100',
+      currentRate: 100,
+      shouldBeConnected: true,
+      lastKnownState: 'CONNECTED',
+      updatedAt: Date.now(),
+      expiresAt: Date.now() + 45_000,
+    };
+
+    // T-ISO02-1: Organizador B tenta restaurar sua própria session_B enquanto A está conectado em session_A
+    const resRestoreBWhileAConnected = await fetch(`${baseUrl}/api/tiktok/restore-session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer TOKEN_ORG_B_PRO',
+      },
+      body: JSON.stringify({
+        sessionId: 'session_B',
+        reconnectWebcast: false,
+      }),
+    });
+    const bodyRestoreB1 = await resRestoreBWhileAConnected.json();
+
+    assertTest(
+      'ISO02-01',
+      'Organizador B tentando restaurar session_B enquanto Organizador A está conectado recebe HTTP 403 (OWNERSHIP_FORBIDDEN) sem alterar currentSessionId de A',
+      resRestoreBWhileAConnected.status === 403 &&
+        bodyRestoreB1.code === 'OWNERSHIP_FORBIDDEN' &&
+        adapter.getRawCurrentSessionId() === 'session_A' &&
+        activeLiveConnectionOwnerUid === TOKENS.TOKEN_ORG_A_PRO.uid &&
+        adapter.getStatus().state === 'CONNECTED',
+      `status=${resRestoreBWhileAConnected.status}, code=${bodyRestoreB1.code}, currentSessionId=${adapter.getRawCurrentSessionId()}, state=${adapter.getStatus().state}`
+    );
+
+    // T-ISO02-2: Organizador B tenta restaurar session_B com reconnectWebcast: true -> Não pode desconectar LIVE de A
+    const resRestoreBReconnect = await fetch(`${baseUrl}/api/tiktok/restore-session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer TOKEN_ORG_B_PRO',
+      },
+      body: JSON.stringify({
+        sessionId: 'session_B',
+        reconnectWebcast: true,
+      }),
+    });
+    const bodyRestoreB2 = await resRestoreBReconnect.json();
+
+    assertTest(
+      'ISO02-02',
+      'Organizador B com reconnectWebcast: true recebe HTTP 403 (OWNERSHIP_FORBIDDEN) e NÃO desconecta a LIVE de A',
+      resRestoreBReconnect.status === 403 &&
+        bodyRestoreB2.code === 'OWNERSHIP_FORBIDDEN' &&
+        disconnectCallsCount === 0 &&
+        adapter.isWebcastGenuinelyActive() === true &&
+        adapter.getRawCurrentSessionId() === 'session_A',
+      `status=${resRestoreBReconnect.status}, disconnectCallsCount=${disconnectCallsCount}, webcastActive=${adapter.isWebcastGenuinelyActive()}`
+    );
+
+    // T-ISO02-3: simulateServerRestart por não administrador (Organizador B ou Organizador A) deve ser rejeitado com HTTP 403 (ADMIN_FORBIDDEN)
+    const resSimulateByNonAdmin = await fetch(`${baseUrl}/api/tiktok/restore-session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer TOKEN_ORG_B_PRO',
+      },
+      body: JSON.stringify({
+        sessionId: 'session_B',
+        simulateServerRestart: true,
+      }),
+    });
+    const bodySimulateByNonAdmin = await resSimulateByNonAdmin.json();
+
+    assertTest(
+      'ISO02-03',
+      'simulateServerRestart: true enviado por não administrador é rejeitado com HTTP 403 (ADMIN_FORBIDDEN) sem executar reset de memória',
+      resSimulateByNonAdmin.status === 403 &&
+        bodySimulateByNonAdmin.code === 'ADMIN_FORBIDDEN' &&
+        resetSimulatedRestartCallsCount === 0 &&
+        adapter.getRawCurrentSessionId() === 'session_A' &&
+        adapter.getStatus().state === 'CONNECTED',
+      `status=${resSimulateByNonAdmin.status}, code=${bodySimulateByNonAdmin.code}, resetCalls=${resetSimulatedRestartCallsCount}`
+    );
+
+    // T-ISO02-4: Consulta ao lock distribuído persistido quando activeLiveConnectionOwnerUid em memória está null
+    activeLiveConnectionOwnerUid = null;
+    (adapter as any).currentSessionId = '';
+    const resRestoreBLockedByDistributedState = await fetch(`${baseUrl}/api/tiktok/restore-session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer TOKEN_ORG_B_PRO',
+      },
+      body: JSON.stringify({
+        sessionId: 'session_B',
+      }),
+    });
+    const bodyRestoreBLock = await resRestoreBLockedByDistributedState.json();
+
+    // Restore in-memory state of A
+    activeLiveConnectionOwnerUid = TOKENS.TOKEN_ORG_A_PRO.uid;
+    (adapter as any).currentSessionId = 'session_A';
+
+    assertTest(
+      'ISO02-04',
+      'Quando o lock distribuído persistido pertence ao Organizador A, tentativa de restauração pelo Organizador B retorna HTTP 403 (OWNERSHIP_FORBIDDEN)',
+      resRestoreBLockedByDistributedState.status === 403 &&
+        bodyRestoreBLock.code === 'OWNERSHIP_FORBIDDEN',
+      `status=${resRestoreBLockedByDistributedState.status}, code=${bodyRestoreBLock.code}`
+    );
+
+    // T-ISO02-5: Organizador A continua recebendo eventos normalmente em session_A após todas as tentativas bloqueadas de B
+    const giftOutcomeA = adapter.handleIncomingGift(
+      {
+        msgId: 'msg_live_a_after_b_attempts_001',
+        user: { userId: '777001', uniqueId: 'fiel_apoiador_a', nickname: 'Fiel Apoiador A' },
+        giftId: 5655,
+        giftName: 'Rosa',
+        diamondCount: 200,
+        repeatCount: 1,
+        repeatEnd: true,
+      },
+      'LIVE_REAL'
+    );
+
+    assertTest(
+      'ISO02-05',
+      'Organizador A continua recebendo eventos normalmente em session_A sem perda nem desvio para session_B',
+      giftOutcomeA.accepted === true &&
+        giftOutcomeA.event?.sessionId === 'session_A' &&
+        giftOutcomeA.event?.coinsGranted === 200 &&
+        adapter.getStatus().totalCoinsCollected === 200,
+      `accepted=${giftOutcomeA.accepted}, sessionId=${giftOutcomeA.event?.sessionId}, coinsGranted=${giftOutcomeA.event?.coinsGranted}`
+    );
+
+    // T-ISO02-6: Organizador A consegue restaurar sua própria sessão legitimamente (sem simulateServerRestart)
+    const resRestoreAOwn = await fetch(`${baseUrl}/api/tiktok/restore-session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer TOKEN_ORG_A_PRO',
+      },
+      body: JSON.stringify({
+        sessionId: 'session_A',
+        reconnectWebcast: false,
+      }),
+    });
+    const bodyRestoreAOwn = await resRestoreAOwn.json();
+
+    assertTest(
+      'ISO02-06',
+      'Organizador A consegue restaurar legitimamente sua própria session_A (HTTP 200)',
+      resRestoreAOwn.status === 200 &&
+        bodyRestoreAOwn.ok === true &&
+        bodyRestoreAOwn.sessionId === 'session_A',
+      `status=${resRestoreAOwn.status}, sessionId=${bodyRestoreAOwn.sessionId}`
+    );
+
+    // T-ISO02-7: Organizador A consegue desconectar sua própria sessão normalmente
+    const resDisconnectA = await fetch(`${baseUrl}/api/tiktok/disconnect`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer TOKEN_ORG_A_PRO',
+      },
+      body: JSON.stringify({ sessionId: 'session_A' }),
+    });
+    const bodyDisconnectA = await resDisconnectA.json();
+
+    assertTest(
+      'ISO02-07',
+      'Organizador A consegue desconectar sua própria sessão normalmente (HTTP 200, state=DISCONNECTED)',
+      resDisconnectA.status === 200 &&
+        bodyDisconnectA.success === true &&
+        bodyDisconnectA.status?.state === 'DISCONNECTED' &&
+        activeLiveConnectionOwnerUid === null,
+      `status=${resDisconnectA.status}, adapterState=${bodyDisconnectA.status?.state}`
+    );
+
+    // T-ISO02-8: Após A desconectar, Organizador B consegue restaurar sua própria session_B legitimamente
+    const resRestoreBAfterADisconnect = await fetch(`${baseUrl}/api/tiktok/restore-session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer TOKEN_ORG_B_PRO',
+      },
+      body: JSON.stringify({
+        sessionId: 'session_B',
+        reconnectWebcast: false,
+      }),
+    });
+    const bodyRestoreBAfter = await resRestoreBAfterADisconnect.json();
+
+    assertTest(
+      'ISO02-08',
+      'Após Organizador A encerrar sua sessão, Organizador B consegue restaurar legitimamente sua própria session_B (HTTP 200)',
+      resRestoreBAfterADisconnect.status === 200 &&
+        bodyRestoreBAfter.ok === true &&
+        bodyRestoreBAfter.sessionId === 'session_B',
+      `status=${resRestoreBAfterADisconnect.status}, sessionId=${bodyRestoreBAfter.sessionId}`
+    );
+  } finally {
+    await adapter.disconnect(true);
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+
+  console.log('\n================================================================================');
+  console.log(`RESULTADO FINAL FASE 1.3 (P0): ${passed} APROVADOS | ${failed} FALHAS`);
+  console.log('================================================================================');
+
+  if (failed > 0) {
+    process.exit(1);
+  }
+  process.exit(0);
+}
+
+runSuite().catch((err) => {
+  console.error('Erro fatal na execução da suíte Fase 1.3:', err);
+  process.exit(1);
+});

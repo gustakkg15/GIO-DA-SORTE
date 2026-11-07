@@ -58,26 +58,46 @@ service cloud.firestore {
         && (!('winners' in data) || data.winners is list);
     }
 
-    // User Profile & Subscription State Rules
+    // User Profile & Subscription State Rules (S-03: Strict Owner-Only Access; PII & Subscription Shielding)
     match /users/{userId} {
-      allow get, list: if isValidId(userId) || true;
-      allow create: if isValidId(userId) && isValidUserProfile(incoming(), userId);
-      allow update: if isValidId(userId) && isValidUserProfile(incoming(), userId)
+      // S-03: User document is strictly private to the authenticated owner. Enumeration (list) is strictly forbidden.
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming(), userId)
         && incoming().uid == existing().uid;
       allow delete: if isOwner(userId) && isValidId(userId);
 
-      // Subcollection: Saved Raffles for this organizer
-      match /raffles/{raffleId} {
-        allow get, list: if isOwner(userId) && isValidId(userId);
-        allow create: if isOwner(userId) && isValidId(userId) && isValidId(raffleId) && isValidRaffle(incoming(), userId);
-        allow update: if isOwner(userId) && isValidId(userId) && isValidId(raffleId) && isValidRaffle(incoming(), userId)
-          && incoming().userId == existing().userId;
-        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(raffleId);
+      // Subcollection: Optional public organizer profile (read-only for participants, safe public fields)
+      match /public/{profileId} {
+        allow get: if isValidId(userId);
+        allow list: if false;
+        allow create, update: if isOwner(userId) && isValidId(userId);
+        allow delete: if isOwner(userId) && isValidId(userId);
       }
 
-      // Subcollection: Permanent organizer raffle settings
+      // Subcollection: Saved Raffles for this organizer (S-01: Direct client mutations strictly forbidden)
+      match /raffles/{raffleId} {
+        allow get, list: if isOwner(userId) && isValidId(userId);
+        allow create, update, delete: if false;
+
+        // Permanent Traditional Draws (Written exclusively by Backend Admin SDK)
+        match /draws/{drawId} {
+          allow get, list: if isOwner(userId) && isValidId(userId);
+          allow create, update, delete: if false;
+        }
+
+        // Idempotency Locks (Strictly private to Backend Admin SDK)
+        match /idempotency/{idempotencyKey} {
+          allow read, write: if false;
+        }
+      }
+
+    // Subcollection: Permanent organizer raffle settings
       match /settings/{settingId} {
-        allow get, list, create, update, delete: if isValidId(userId) && isValidId(settingId);
+        allow get, list, create, update, delete: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(settingId);
       }
     }
 
@@ -90,69 +110,157 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // TIKTOK LIVE & CAMPAIGNS COLLECTIONS
+    // RESOURCE OWNERSHIP HELPERS FOR LIVE & SPECIAL CAMPAIGNS
+    // ==========================================
+
+    function canReadResource() {
+      return isSignedIn() && (
+        !('ownerUid' in resource.data) ||
+        resource.data.ownerUid == null ||
+        resource.data.ownerUid == '' ||
+        resource.data.ownerUid == request.auth.uid
+      );
+    }
+
+    function isParentSessionOwner(sessionId) {
+      return isSignedIn() && (
+        !('ownerUid' in get(/databases/$(database)/documents/sessions/$(sessionId)).data) ||
+        get(/databases/$(database)/documents/sessions/$(sessionId)).data.ownerUid == null ||
+        get(/databases/$(database)/documents/sessions/$(sessionId)).data.ownerUid == request.auth.uid
+      );
+    }
+
+    function isParentCampaignOwner(campaignId) {
+      return isSignedIn() && (
+        !('ownerUid' in get(/databases/$(database)/documents/campaigns/$(campaignId)).data) ||
+        get(/databases/$(database)/documents/campaigns/$(campaignId)).data.ownerUid == null ||
+        get(/databases/$(database)/documents/campaigns/$(campaignId)).data.ownerUid == request.auth.uid
+      );
+    }
+
+    // ==========================================
+    // TIKTOK LIVE & CAMPAIGNS COLLECTIONS (SEC-01 PROTECTED)
     // ==========================================
 
     // TikTok LIVE Sessions and subcollections (events, streaks, participants, tickets, draws)
     match /sessions/{sessionId} {
-      allow read: if true;
-      allow write: if true;
+      allow get, list: if canReadResource();
+      allow create: if isSignedIn()
+        && isValidId(sessionId)
+        && incoming().ownerUid == request.auth.uid;
+      allow update: if isSignedIn()
+        && isValidId(sessionId)
+        && existing().ownerUid == request.auth.uid
+        && incoming().ownerUid == existing().ownerUid;
+      allow delete: if isSignedIn()
+        && isValidId(sessionId)
+        && existing().ownerUid == request.auth.uid;
 
       match /{subcollection=**} {
-        allow read: if true;
-        allow write: if true;
+        allow get, list: if isSignedIn() && isParentSessionOwner(sessionId);
+        allow create, update: if isSignedIn() && isParentSessionOwner(sessionId);
+        allow delete: if isSignedIn() && isParentSessionOwner(sessionId);
       }
     }
 
     // Global Lifetime Participants (and participations subcollection)
     match /global_participants/{tiktokUserId} {
-      allow read: if true;
-      allow write: if true;
+      allow get, list: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidId(tiktokUserId);
+      allow delete: if false;
 
       match /{subcollection=**} {
-        allow read: if true;
-        allow write: if true;
+        allow get, list: if isSignedIn();
+        allow create, update: if isSignedIn();
+        allow delete: if false;
       }
     }
 
-    // Special Campaigns (and sessions, tickets, snapshots, draws subcollections)
+    // Special Campaigns (and sessions, tickets, snapshots, draws, cycles subcollections)
     match /campaigns/{campaignId} {
-      allow read: if true;
-      allow write: if true;
+      allow get, list: if canReadResource();
+      allow create: if isSignedIn()
+        && isValidId(campaignId)
+        && incoming().ownerUid == request.auth.uid;
+      allow update: if isSignedIn()
+        && isValidId(campaignId)
+        && existing().ownerUid == request.auth.uid
+        && incoming().ownerUid == existing().ownerUid;
+      allow delete: if isSignedIn()
+        && isValidId(campaignId)
+        && existing().ownerUid == request.auth.uid;
 
       match /{subcollection=**} {
-        allow read: if true;
-        allow write: if true;
+        allow get, list: if isSignedIn() && isParentCampaignOwner(campaignId);
+        allow create, update, delete: if isSignedIn() && isParentCampaignOwner(campaignId);
       }
     }
 
     // Draw Snapshots (and chunks subcollection for partitioned tickets)
     match /draw_snapshots/{snapshotId} {
-      allow read: if true;
-      allow write: if true;
+      allow get, list: if canReadResource();
+      allow create: if isSignedIn()
+        && isValidId(snapshotId)
+        && incoming().ownerUid == request.auth.uid;
+      // Snapshots are immutable rosters frozen for audits — updates are strictly forbidden
+      allow update: if false;
+      allow delete: if isSignedIn()
+        && isValidId(snapshotId)
+        && existing().ownerUid == request.auth.uid;
 
       match /{subcollection=**} {
-        allow read: if true;
-        allow write: if true;
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn()
+          && (!('ownerUid' in get(/databases/$(database)/documents/draw_snapshots/$(snapshotId)).data)
+              || get(/databases/$(database)/documents/draw_snapshots/$(snapshotId)).data.ownerUid == request.auth.uid);
+        allow update, delete: if false;
       }
     }
 
     // Official Draws
     match /draws/{drawId} {
-      allow read: if true;
-      allow write: if true;
+      allow get, list: if canReadResource();
+      allow create: if isSignedIn()
+        && isValidId(drawId)
+        && incoming().ownerUid == request.auth.uid;
+      allow update: if isSignedIn()
+        && isValidId(drawId)
+        && existing().ownerUid == request.auth.uid
+        && incoming().ownerUid == existing().ownerUid;
+      allow delete: if isSignedIn()
+        && isValidId(drawId)
+        && existing().ownerUid == request.auth.uid;
     }
 
     // Conversion Rules Versioning
     match /ticket_rules/{ruleId} {
-      allow read: if true;
-      allow write: if true;
+      allow get, list: if isSignedIn();
+      allow create, update: if isSignedIn()
+        && isValidId(ruleId)
+        && (
+          (ruleId == 'org_defaults_' + request.auth.uid) ||
+          (incoming().ownerUid == request.auth.uid)
+        );
+      allow delete: if isSignedIn()
+        && isValidId(ruleId)
+        && (
+          (ruleId == 'org_defaults_' + request.auth.uid) ||
+          (existing().ownerUid == request.auth.uid)
+        );
     }
 
-    // Audit Logs
+    // Audit Logs (Append-only immutable audit trail)
     match /audit_logs/{logId} {
-      allow read: if true;
-      allow write: if true;
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn()
+        && isValidId(logId)
+        && (
+          !('operatorUid' in incoming()) ||
+          incoming().operatorUid == request.auth.uid ||
+          incoming().operatorUid == 'SYSTEM'
+        );
+      allow update: if false;
+      allow delete: if false;
     }
 
     // ==========================================
@@ -162,54 +270,69 @@ service cloud.firestore {
     // Public Institutional & Legal Documents (15 official pages)
     match /legal_documents/{slug} {
       allow read: if true;
-      allow write: if true;
+      allow write: if false;
     }
 
     // Immutable Archived Legal Document Versions
     match /legal_document_versions/{versionId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if false;
     }
 
     // Explicit User Document Acceptances (Registration, PRO Activation, Policy Updates)
     match /document_acceptances/{acceptanceId} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && isValidId(acceptanceId)
+        && incoming().userId == request.auth.uid;
+      allow update, delete: if false;
     }
 
     // LGPD Cookie Consent Records
     match /cookie_consents/{consentId} {
       allow read: if true;
-      allow write: if true;
+      allow create: if isValidId(consentId)
+        && incoming().consentId == consentId;
+      allow update, delete: if false;
     }
 
     // LGPD Data Subject Requests (Access, Correction, Deletion, Portability, Revocation)
     match /lgpd_requests/{requestId} {
-      allow read: if true;
-      allow write: if true;
+      allow get: if isSignedIn() && (
+        !('userId' in resource.data) || resource.data.userId == request.auth.uid
+      );
+      allow list: if isSignedIn();
+      allow create: if isValidId(requestId)
+        && incoming().requestId == requestId;
+      allow update, delete: if false;
     }
 
     // Support & Help Center Tickets with Protocol
     match /support_tickets/{ticketId} {
-      allow read: if true;
-      allow write: if true;
+      allow get: if isSignedIn() && (
+        !('userId' in resource.data) || resource.data.userId == request.auth.uid
+      );
+      allow list: if isSignedIn();
+      allow create: if isValidId(ticketId)
+        && incoming().ticketId == ticketId;
+      allow update, delete: if false;
     }
 
-    // Configurable Company & Legal Settings (Admin)
+    // Configurable Company & Legal Settings (Admin - mutated exclusively via backend)
     match /company_settings/{settingId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if false;
     }
 
-    // Configurable Commercial Subscription Settings (Admin)
+    // Configurable Commercial Subscription Settings (Admin - mutated exclusively via backend)
     match /subscription_settings/{settingId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if false;
     }
 
     // Idempotent Mercado Pago Subscription Webhooks Log
     match /subscription_webhooks/{webhookId} {
-      allow read: if true;
+      allow read: if false;
       allow create, update: if webhookId is string
         && incoming().webhookId == webhookId
         && incoming().dataId is string
@@ -253,15 +376,30 @@ service cloud.firestore {
     }
 
     // TikTok LIVE Diagnostic Events Collection (Dedicated observational storage with 24h TTL)
-    // Completely separated from raffle tickets and financial accounting.
-    // Enforces `expiresAt` (int) and `ttlExpireAt` (Firestore native TTL timestamp).
     match /tiktok_live_diagnostic_events/{traceId} {
-      allow read: if true;
-      allow create, update: if traceId is string
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn()
+        && traceId is string
         && incoming().traceId == traceId
         && incoming().expiresAt is int
         && incoming().ttlExpireAt is timestamp;
-      allow delete: if true;
+      allow delete: if isSignedIn();
+    }
+
+    // Provably Fair V2 Private Precommits (Strictly private to Backend Admin SDK)
+    match /draw_precommits_private/{commitmentHash} {
+      allow read, write: if false;
+    }
+
+    // Provably Fair V2 Public Audit Ledger (Read via backend API, no direct client writes)
+    match /draw_ledger_public/{commitmentHash} {
+      allow read: if true;
+      allow write: if false;
+
+      match /{subcollection=**} {
+        allow read: if true;
+        allow write: if false;
+      }
     }
   }
 }

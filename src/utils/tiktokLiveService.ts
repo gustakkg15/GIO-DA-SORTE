@@ -13,8 +13,8 @@ import {
   writeBatch,
   serverTimestamp,
 } from 'firebase/firestore';
-import { db, auth } from '../firebase';
-import {
+import { db, auth } from '../firebase.ts';
+import type {
   TikTokLiveSession,
   TikTokLiveGiftEvent,
   TikTokLiveStreak,
@@ -35,7 +35,7 @@ import {
   DeliveryStatus,
   DeliveryAuditEntry,
   DeliveryDetails,
-} from '../types';
+} from '../types.ts';
 
 /**
  * Standard SHA-256 calculation compatible with Web and Node.js runtimes
@@ -123,11 +123,96 @@ export async function recordAuditLog(
  * All TikTok LIVE integration, gift capture, automatic accounting, ticket issuance,
  * and accumulated multi-LIVE campaigns require an active PRO plan.
  */
+interface OrganizerPlanStateEntry {
+  tier: SubscriptionPlanTier;
+  statusState: SubscriptionStatusState;
+  updatedAt: number;
+  organizerEmail?: string;
+}
+
+// Per-organizer isolated plan state (ownerUid -> entitlement)
+const organizerPlanStates = new Map<string, OrganizerPlanStateEntry>();
+// Session-to-owner registry (sessionId -> ownerUid)
+const sessionOwnerRegistry = new Map<string, string>();
+
+// Legacy unscoped fallback state (used only when no ownerUid is provided by legacy single-user callers)
 let activePlanTierState: SubscriptionPlanTier = 'PRO';
 let activeStatusState: SubscriptionStatusState = 'ACTIVE';
 let activePlanUpdatedAt: number = Date.now();
 
-export function getProPlanEntitlement(): ProPlanEntitlement {
+// Baseline for an ownerUid not yet explicitly registered in organizerPlanStates
+// P1-ISO-A1: Must be fail-closed (FREE / FREE) on the backend
+let defaultUnregisteredOwnerTier: SubscriptionPlanTier = 'FREE';
+let defaultUnregisteredOwnerStatus: SubscriptionStatusState = 'FREE';
+
+export function registerSessionOwner(sessionId?: string | null, ownerUid?: string | null): void {
+  const cleanSessionId = sessionId ? String(sessionId).trim() : '';
+  const cleanOwnerUid = ownerUid ? String(ownerUid).trim() : '';
+  if (cleanSessionId && cleanOwnerUid) {
+    sessionOwnerRegistry.set(cleanSessionId, cleanOwnerUid);
+  }
+}
+
+export function getRegisteredSessionOwner(sessionId?: string | null): string | undefined {
+  const cleanSessionId = sessionId ? String(sessionId).trim() : '';
+  if (!cleanSessionId) return undefined;
+  return sessionOwnerRegistry.get(cleanSessionId);
+}
+
+export function clearOrganizerPlanStatesForTests(): void {
+  organizerPlanStates.clear();
+  sessionOwnerRegistry.clear();
+  activePlanTierState = 'FREE';
+  activeStatusState = 'FREE';
+  activePlanUpdatedAt = Date.now();
+  defaultUnregisteredOwnerTier = 'FREE';
+  defaultUnregisteredOwnerStatus = 'FREE';
+}
+
+export function getProPlanEntitlement(ownerUid?: string | null): ProPlanEntitlement {
+  const isServer = typeof window === 'undefined';
+  const cleanOwnerUid = ownerUid ? String(ownerUid).trim() : '';
+  if (cleanOwnerUid) {
+    const entry = organizerPlanStates.get(cleanOwnerUid);
+    const tier = entry ? entry.tier : defaultUnregisteredOwnerTier;
+    const statusState = entry ? entry.statusState : defaultUnregisteredOwnerStatus;
+    const updatedAt = entry ? entry.updatedAt : activePlanUpdatedAt;
+    const isPro = tier === 'PRO' && statusState === 'ACTIVE';
+    return {
+      tier,
+      planTier: tier,
+      statusState,
+      active: isPro,
+      organizerEmail: entry?.organizerEmail || (cleanOwnerUid === 'uid_organizer_alpha_001' ? 'gustakkg15@gmail.com' : undefined),
+      updatedAt,
+      features: {
+        liveConnection: isPro,
+        giftCapture: isPro,
+        automaticAccounting: isPro,
+        atomicTicketIssuance: isPro,
+        accumulatedCampaigns: isPro,
+      },
+    };
+  }
+
+  // P1-ISO-A2: On the server, omiting ownerUid MUST be fail-closed (never trusting global activePlanTierState)
+  if (isServer) {
+    return {
+      tier: 'FREE',
+      planTier: 'FREE',
+      statusState: 'FREE',
+      active: false,
+      updatedAt: Date.now(),
+      features: {
+        liveConnection: false,
+        giftCapture: false,
+        automaticAccounting: false,
+        atomicTicketIssuance: false,
+        accumulatedCampaigns: false,
+      },
+    };
+  }
+
   const isPro = activePlanTierState === 'PRO' && activeStatusState === 'ACTIVE';
   return {
     tier: activePlanTierState,
@@ -148,23 +233,60 @@ export function getProPlanEntitlement(): ProPlanEntitlement {
 
 export function setProPlanTier(
   tier: SubscriptionPlanTier,
-  statusState?: SubscriptionStatusState
+  statusState?: SubscriptionStatusState,
+  ownerUid?: string | null
 ): ProPlanEntitlement {
+  let resolvedTier: SubscriptionPlanTier;
+  let resolvedStatus: SubscriptionStatusState;
+
   if (statusState) {
-    activeStatusState = statusState;
-    activePlanTierState = statusState === 'ACTIVE' ? 'PRO' : 'FREE';
+    resolvedStatus = statusState;
+    resolvedTier = statusState === 'ACTIVE' ? 'PRO' : 'FREE';
   } else {
-    activePlanTierState = tier === 'FREE' ? 'FREE' : 'PRO';
-    activeStatusState = activePlanTierState === 'PRO' ? 'ACTIVE' : 'FREE';
+    resolvedTier = tier === 'FREE' ? 'FREE' : 'PRO';
+    resolvedStatus = resolvedTier === 'PRO' ? 'ACTIVE' : 'FREE';
   }
-  activePlanUpdatedAt = Date.now();
+
+  const now = Date.now();
+  const cleanOwnerUid = ownerUid ? String(ownerUid).trim() : '';
+
+  if (cleanOwnerUid) {
+    organizerPlanStates.set(cleanOwnerUid, {
+      tier: resolvedTier,
+      statusState: resolvedStatus,
+      updatedAt: now,
+    });
+    // P1-ISO-A2: Only update browser mirror for client UI without polluting server authorization
+    if (typeof window !== 'undefined') {
+      activePlanTierState = resolvedTier;
+      activeStatusState = resolvedStatus;
+      activePlanUpdatedAt = now;
+    }
+    return getProPlanEntitlement(cleanOwnerUid);
+  }
+
+  if (typeof window !== 'undefined') {
+    activePlanTierState = resolvedTier;
+    activeStatusState = resolvedStatus;
+    activePlanUpdatedAt = now;
+    defaultUnregisteredOwnerTier = resolvedTier;
+    defaultUnregisteredOwnerStatus = resolvedStatus;
+  }
   return getProPlanEntitlement();
 }
 
-export function assertProPlanActive(operationName = 'TikTok LIVE PRO'): void {
-  if (activePlanTierState !== 'PRO' || activeStatusState !== 'ACTIVE') {
+export function assertProPlanActive(operationName = 'TikTok LIVE PRO', ownerUid?: string | null): void {
+  const isServer = typeof window === 'undefined';
+  const cleanOwnerUid = ownerUid ? String(ownerUid).trim() : '';
+  if (isServer && !cleanOwnerUid) {
     throw new Error(
-      `PRO_PLAN_REQUIRED: A operação "${operationName}" (integração TikTok LIVE, captura de presentes, contabilização automática, emissão de bilhetes e campanhas acumuladas) é exclusiva do plano PRO com status ACTIVE (status atual: ${activeStatusState}).`
+      `PRO_PLAN_REQUIRED: A operação "${operationName}" exige identificação explícita do organizador (ownerUid) no servidor.`
+    );
+  }
+  const entitlement = cleanOwnerUid ? getProPlanEntitlement(cleanOwnerUid) : getProPlanEntitlement();
+  if (entitlement.tier !== 'PRO' || entitlement.statusState !== 'ACTIVE' || !entitlement.active) {
+    throw new Error(
+      `PRO_PLAN_REQUIRED: A operação "${operationName}" (integração TikTok LIVE, captura de presentes, contabilização automática, emissão de bilhetes e campanhas acumuladas) é exclusiva do plano PRO com status ACTIVE (status atual: ${entitlement.statusState}).`
     );
   }
 }
@@ -191,12 +313,22 @@ export async function getAuthBearerHeaders(
   const headers: Record<string, string> = { ...extraHeaders };
   if (typeof window !== 'undefined' && auth.currentUser) {
     try {
-      const idToken = await auth.currentUser.getIdToken();
+      let idToken = await auth.currentUser.getIdToken();
+      if (!idToken) {
+        idToken = await auth.currentUser.getIdToken(true);
+      }
       if (idToken) {
         headers['Authorization'] = `Bearer ${idToken}`;
       }
     } catch {
-      // ignore token fetch error on client
+      try {
+        const refreshedToken = await auth.currentUser.getIdToken(true);
+        if (refreshedToken) {
+          headers['Authorization'] = `Bearer ${refreshedToken}`;
+        }
+      } catch {
+        // Unauthenticated or token unavailable; never log raw token values
+      }
     }
   }
   return headers;
@@ -324,7 +456,7 @@ export async function saveOrganizerRaffleDefaults(
   if (!resolvedUid) {
     throw new Error('UID do organizador é obrigatório para salvar configurações permanentes.');
   }
-  assertProPlanActive('Configuração Permanente do Sorteio LIVE');
+  assertProPlanActive('Configuração Permanente do Sorteio LIVE', resolvedUid);
   const now = Date.now();
   const existing = await getOrganizerRaffleDefaults(resolvedUid);
   const resolvedCoinsPerTicket =
@@ -447,6 +579,9 @@ export async function getOrCreateLiveSession(
     if (resolvedOwnerUid) {
       assertRecordOwnership(existing.ownerUid, resolvedOwnerUid, `sessão LIVE (${sessionId})`);
     }
+    if (existing.ownerUid || resolvedOwnerUid) {
+      registerSessionOwner(sessionId, existing.ownerUid || resolvedOwnerUid);
+    }
     // If campaignId/cycleId passed and session doesn't have them yet, persist them
     if (
       (options?.campaignId && existing.campaignId !== options.campaignId) ||
@@ -534,6 +669,9 @@ export async function getOrCreateLiveSession(
   };
 
   await setDoc(sessionRef, initialSession);
+  if (resolvedOwnerUid) {
+    registerSessionOwner(sessionId, resolvedOwnerUid);
+  }
 
   // Initialize default rule document if not exists
   const ruleRef = doc(db, 'ticket_rules', ruleId);
@@ -601,6 +739,7 @@ export async function recordGiftEventAtomic(
     technicalSignature?: string;
     originalTimestamp?: number | string;
     receivedAt?: number;
+    ownerUid?: string;
   }
 ): Promise<{
   success: boolean;
@@ -625,7 +764,11 @@ export async function recordGiftEventAtomic(
     groupId,
   } = input;
 
-  assertProPlanActive('Contabilização Automática e Emissão de Bilhetes');
+  const preResolvedOwnerUid = input.ownerUid || getRegisteredSessionOwner(sessionId);
+  if (input.ownerUid) {
+    registerSessionOwner(sessionId, input.ownerUid);
+  }
+  assertProPlanActive('Contabilização Automática e Emissão de Bilhetes', preResolvedOwnerUid);
 
   const handleAvailable =
     input.handleAvailable !== undefined
@@ -690,6 +833,11 @@ export async function recordGiftEventAtomic(
     }
 
     const sessionDataPreCheck = sessionSnap.data() as TikTokLiveSession;
+    const txResolvedOwnerUid = sessionDataPreCheck.ownerUid || preResolvedOwnerUid;
+    if (txResolvedOwnerUid) {
+      registerSessionOwner(sessionId, txResolvedOwnerUid);
+      assertProPlanActive('Contabilização Automática e Emissão de Bilhetes', txResolvedOwnerUid);
+    }
     if (sessionDataPreCheck.status === 'paused') {
       throw new Error(`A coleta de bilhetes da LIVE (${sessionId}) está PAUSADA. Retome a coleta para emitir novos números.`);
     }
@@ -967,6 +1115,7 @@ export interface GiftEventAtomicInput {
   originalTimestamp?: number | string;
   streakKey?: string;
   sessionId: string;
+  ownerUid?: string;
   tiktokUserId: string;
   username: string;
   displayHandle?: string;
@@ -1024,7 +1173,6 @@ export async function recordGiftEventsBatchAtomic(
   inputs: GiftEventAtomicInput[]
 ): Promise<GiftEventAtomicResult[]> {
   if (!inputs || inputs.length === 0) return [];
-  assertProPlanActive('Contabilização Automática em Lote e Emissão de Bilhetes');
 
   // Group by sessionId while preserving order
   const firstSessionId = inputs[0].sessionId;
@@ -1037,6 +1185,13 @@ export async function recordGiftEventsBatchAtomic(
     }
     return results;
   }
+
+  const preResolvedOwnerUid =
+    inputs.find((item) => item.ownerUid)?.ownerUid || getRegisteredSessionOwner(firstSessionId);
+  if (preResolvedOwnerUid) {
+    registerSessionOwner(firstSessionId, preResolvedOwnerUid);
+  }
+  assertProPlanActive('Contabilização Automática em Lote e Emissão de Bilhetes', preResolvedOwnerUid);
 
   return withSessionPersistenceLock(firstSessionId, async () => {
     const CHUNK_SIZE = 50; // Safe chunk size so ticket + participant + event writes stay well below Firestore 500-write limit
@@ -1177,6 +1332,14 @@ async function executeSingleSessionChunkTransaction(
     }
 
     const sessionData = sessionSnap.data() as TikTokLiveSession;
+    const txResolvedOwnerUid =
+      sessionData.ownerUid ||
+      chunk.find((i) => i.ownerUid)?.ownerUid ||
+      getRegisteredSessionOwner(sessionId);
+    if (txResolvedOwnerUid) {
+      registerSessionOwner(sessionId, txResolvedOwnerUid);
+      assertProPlanActive('Contabilização Automática em Lote e Emissão de Bilhetes', txResolvedOwnerUid);
+    }
     if (sessionData.status === 'paused') {
       throw new Error(`A coleta de bilhetes da LIVE (${sessionId}) está PAUSADA. Retome a coleta para emitir novos números.`);
     }
@@ -1860,9 +2023,10 @@ export async function updateLiveSessionConfigAndRules(
   },
   ownerUid?: string
 ): Promise<TikTokLiveSession> {
-  assertProPlanActive('Configuração de Regras do Sorteio LIVE');
-
   const resolvedOwnerUid = resolveCurrentOwnerUid(ownerUid);
+  if (resolvedOwnerUid) {
+    assertProPlanActive('Configuração de Regras do Sorteio LIVE', resolvedOwnerUid);
+  }
   const sessionRef = doc(db, 'sessions', sessionId);
   const sessionSnap = await getDoc(sessionRef);
   if (!sessionSnap.exists()) {
@@ -1872,6 +2036,10 @@ export async function updateLiveSessionConfigAndRules(
   if (resolvedOwnerUid) {
     assertRecordOwnership(existing.ownerUid, resolvedOwnerUid, `sessão LIVE (${sessionId})`);
   }
+  assertProPlanActive(
+    'Configuração de Regras do Sorteio LIVE',
+    resolvedOwnerUid || existing.ownerUid || getRegisteredSessionOwner(sessionId)
+  );
 
   const newRate =
     config.coinsPerTicket !== undefined && config.coinsPerTicket > 0

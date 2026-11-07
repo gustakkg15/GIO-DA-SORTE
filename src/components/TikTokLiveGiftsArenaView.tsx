@@ -146,16 +146,16 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
   const getDeliveryStatusMeta = (status?: DeliveryStatus) => {
     switch (status) {
       case 'DELIVERED':
-        return { label: 'Prêmio Entregue', badgeClass: 'bg-[#6EAA90]/20 text-[#6EAA90] border-[#6EAA90]/40' };
+        return { label: 'Prêmio Entregue', badgeClass: 'bg-[#20C997]/20 text-[#20C997] border-[#20C997]/40' };
       case 'CONTACTED':
-        return { label: 'Contatado', badgeClass: 'bg-[#60A5FA]/20 text-[#60A5FA] border-[#60A5FA]/40' };
+        return { label: 'Contatado', badgeClass: 'bg-[#00A9FF]/20 text-[#00A9FF] border-[#00A9FF]/40' };
       case 'UNCLAIMED_EXPIRED':
-        return { label: 'Não Reclamado / Expirado', badgeClass: 'bg-[#D96B6B]/20 text-[#D96B6B] border-[#D96B6B]/40' };
+        return { label: 'Não Reclamado / Expirado', badgeClass: 'bg-[#F05262]/20 text-[#F05262] border-[#F05262]/40' };
       case 'REDRAWN':
-        return { label: 'Resorteado (Substituído)', badgeClass: 'bg-[#C084FC]/20 text-[#C084FC] border-[#C084FC]/40' };
+        return { label: 'Resorteado (Substituído)', badgeClass: 'bg-[#35B9F5]/20 text-[#35B9F5] border-[#35B9F5]/40' };
       case 'PENDING_CONTACT':
       default:
-        return { label: 'Pendente Contato', badgeClass: 'bg-[#C6A56A]/20 text-[#C6A56A] border-[#C6A56A]/40' };
+        return { label: 'Pendente Contato', badgeClass: 'bg-[#F5B942]/20 text-[#F5B942] border-[#F5B942]/40' };
     }
   };
 
@@ -250,14 +250,28 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
 
   return (
     <div className="space-y-6 min-w-0">
-      <div className="p-5 sm:p-6 rounded-xl bg-[#222B28] border border-[#313D39] space-y-5">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[#313D39]">
+      <div className="p-5 sm:p-6 rounded-xl bg-[#101F3D] border border-[#182943] space-y-5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[#182943]">
           <div className="space-y-1.5">
-            <h2 className="text-lg sm:text-xl font-semibold text-[#EAE7DE] flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-[#C6A56A] shrink-0" />
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="gio-badge-pro">
+                <Trophy className="w-3.5 h-3.5 text-[#C4B5FD]" />
+                <span>ARENA OFICIAL · PRESENTES LIVE</span>
+              </span>
+              <span
+                className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold border ${
+                  liveDrawTargetMode === 'CAMPAIGN'
+                    ? 'bg-[#8B7CFF]/15 border-[#8B7CFF]/40 text-[#C4B5FD]'
+                    : 'bg-[#0866F5]/15 border-[#00A9FF]/40 text-[#35B9F5]'
+                }`}
+              >
+                {liveDrawTargetMode === 'CAMPAIGN' ? 'Modo Campanha Multi-LIVE' : 'Modo Sessão Individual'}
+              </span>
+            </div>
+            <h2 className="text-lg sm:text-xl font-bold text-[#F8FAFC] flex items-center gap-2 tracking-tight">
               <span>Mesa Oficial de Sorteio — Presentes LIVE</span>
             </h2>
-            <p className="text-xs text-[#9BA8A3]">
+            <p className="text-xs sm:text-sm text-[#94A3B8]">
               Selecione abaixo a sessão da transmissão ou a campanha vinculada para auditar bilhetes e realizar o sorteio com snapshot SHA-256 certificado.
             </p>
           </div>
@@ -272,7 +286,7 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
               <span className={`w-2 h-2 rounded-full ${connMeta.dotClass}`} />
               <span>{connMeta.label}</span>
               {connMeta.state === 'CONNECTED' && liveConnectedUsername && (
-                <span className="font-mono text-[#EAE7DE]">
+                <span className="font-mono text-[#F8FAFC]">
                   · @{liveConnectedUsername.replace(/^@+/, '')}
                 </span>
               )}
@@ -290,9 +304,9 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
             <button
               type="button"
               onClick={() => refreshPlatformStatus()}
-              className="min-h-[34px] px-3 py-1.5 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] text-[#EAE7DE] border border-[#313D39] text-xs font-medium flex items-center gap-1.5 transition"
+              className="min-h-[34px] px-3 py-1.5 rounded-lg bg-[#0B1730] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] text-xs font-medium flex items-center gap-1.5 transition"
             >
-              <RefreshCw className={`w-3.5 h-3.5 text-[#6EAA90] ${isLoadingLiveDetails ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 text-[#00A9FF] ${isLoadingLiveDetails ? 'animate-spin' : ''}`} />
               <span>Atualizar</span>
             </button>
 
@@ -300,9 +314,9 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
               <button
                 type="button"
                 onClick={onToggleSessionRules}
-                className="min-h-[34px] px-3 py-1.5 rounded-lg bg-[#2B3632] hover:bg-[#313D39] text-[#EAE7DE] border border-[#313D39] text-xs font-medium flex items-center gap-1.5 transition"
+                className="min-h-[34px] px-3 py-1.5 rounded-lg bg-[#0B1730] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] text-xs font-medium flex items-center gap-1.5 transition"
               >
-                <Settings className="w-3.5 h-3.5 text-[#C6A56A]" />
+                <Settings className="w-3.5 h-3.5 text-[#00A9FF]" />
                 <span>{isEditingSessionRules ? 'Fechar Regras da Sessão' : 'Regras da Sessão'}</span>
               </button>
             )}
@@ -311,10 +325,10 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
 
         {/* Warning when activeSession.campaignId is not found in loaded campaigns */}
         {missingLinkedCampaignWarning && (
-          <div className="p-3.5 rounded-xl bg-[#C6A56A]/15 border border-[#C6A56A]/40 text-xs text-[#EAE7DE] flex items-start gap-2.5">
-            <AlertTriangle className="w-4 h-4 text-[#C6A56A] shrink-0 mt-0.5" />
+          <div className="p-3.5 rounded-xl bg-[#F5B942]/15 border border-[#F5B942]/40 text-xs text-[#F8FAFC] flex items-start gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-[#F5B942] shrink-0 mt-0.5" />
             <div>
-              <strong className="font-semibold text-[#C6A56A] block">
+              <strong className="font-semibold text-[#F5B942] block">
                 Vínculo de Campanha Não Localizado
               </strong>
               <span>{missingLinkedCampaignWarning}</span>
@@ -326,8 +340,8 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
           <div
             className={`p-3.5 rounded-xl border text-xs font-medium ${
               liveDrawFeedback.type === 'error'
-                ? 'bg-[#D96B6B]/10 border-[#D96B6B]/40 text-[#D96B6B]'
-                : 'bg-[#6EAA90]/15 border-[#6EAA90]/40 text-[#6EAA90]'
+                ? 'bg-[#F05262]/10 border-[#F05262]/40 text-[#F05262]'
+                : 'bg-[#20C997]/15 border-[#20C997]/40 text-[#20C997]'
             }`}
           >
             {liveDrawFeedback.text}
@@ -337,47 +351,63 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
         {/* Seletor de Origem Real: Sessão Individual vs Campanha Acumulada */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Coluna Esquerda: Configuração e Botão Sortear Agora */}
-          <div className="lg:col-span-5 space-y-4 bg-[#171D1C] border border-[#313D39] rounded-xl p-5">
-            <div className="flex items-center bg-[#222B28] p-1 rounded-lg border border-[#313D39]">
+          <div
+            className={`lg:col-span-5 space-y-4 rounded-xl p-5 border transition-colors ${
+              liveDrawTargetMode === 'CAMPAIGN'
+                ? 'bg-[#0B1730] border-[#8B7CFF]/40 shadow-[0_8px_24px_rgba(139,124,255,0.08)]'
+                : 'bg-[#0B1730] border-[#182943]'
+            }`}
+          >
+            <div className="grid grid-cols-2 gap-1.5 bg-[#050D20] p-1.5 rounded-xl border border-[#182943]">
               <button
                 type="button"
                 onClick={() => setLiveDrawTargetMode('SESSION')}
-                className={`flex-1 min-h-[34px] px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+                className={`min-h-[38px] px-3 py-2 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 ${
                   liveDrawTargetMode === 'SESSION'
-                    ? 'bg-[#6EAA90] text-[#171D1C]'
-                    : 'text-[#9BA8A3] hover:text-[#EAE7DE]'
+                    ? 'bg-[#0866F5] text-[#F8FAFC] shadow-sm shadow-[#0866F5]/30'
+                    : 'text-[#94A3B8] hover:text-[#F8FAFC]'
                 }`}
               >
-                Sessão da LIVE ({liveSessionsSummary.length})
+                <Gift className="w-3.5 h-3.5 shrink-0" />
+                <span>Sessão da LIVE ({liveSessionsSummary.length})</span>
               </button>
               <button
                 type="button"
                 onClick={() => setLiveDrawTargetMode('CAMPAIGN')}
-                className={`flex-1 min-h-[34px] px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+                className={`min-h-[38px] px-3 py-2 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 ${
                   liveDrawTargetMode === 'CAMPAIGN'
-                    ? 'bg-[#6EAA90] text-[#171D1C]'
-                    : 'text-[#9BA8A3] hover:text-[#EAE7DE]'
+                    ? 'bg-[#8B7CFF] text-[#F8FAFC] shadow-sm shadow-[#8B7CFF]/30'
+                    : 'text-[#94A3B8] hover:text-[#F8FAFC]'
                 }`}
               >
-                Campanha Multi-LIVE ({liveCampaigns.length})
+                <Layers className="w-3.5 h-3.5 shrink-0" />
+                <span>Multi-LIVE ({liveCampaigns.length})</span>
               </button>
             </div>
 
             {liveDrawTargetMode === 'SESSION' ? (
               <div className="space-y-4">
+                <div className="p-3 rounded-lg bg-[#050D20]/80 border border-[#00A9FF]/25 flex items-center justify-between gap-2 text-xs">
+                  <span className="text-[#35B9F5] font-semibold flex items-center gap-1.5">
+                    <Gift className="w-3.5 h-3.5" />
+                    <span>Sorteio de Transmissão Única</span>
+                  </span>
+                  <span className="text-[11px] font-mono text-[#94A3B8]">1 LIVE = 1 Urna</span>
+                </div>
+
                 <div>
-                  <label className="block text-xs font-medium text-[#9BA8A3] mb-1.5">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
                     Sessão LIVE Real
                   </label>
                   {liveSessionsSummary.length === 0 ? (
-                    <div className="p-3.5 rounded-lg bg-[#222B28] border border-[#313D39] text-xs text-[#9BA8A3]">
+                    <div className="p-3.5 rounded-lg bg-[#050D20] border border-[#182943] text-xs text-[#94A3B8]">
                       Nenhuma sessão registrada ainda. Conecte uma transmissão acima para contabilizar presentes e bilhetes.
                     </div>
                   ) : (
                     <select
                       value={activeLiveSession?.sessionId || ''}
                       onChange={(e) => setSelectedLiveSessionId(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#222B28] border border-[#313D39] text-xs sm:text-sm text-[#EAE7DE] focus:border-[#6EAA90] focus:outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#050D20] border border-[#182943] text-xs sm:text-sm text-[#F8FAFC] focus:border-[#00A9FF] focus:outline-none"
                     >
                       {liveSessionsSummary.map((sess) => {
                         const sMeta = mapLiveSessionCommercialStatus(sess.status);
@@ -392,24 +422,33 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                 </div>
 
                 {activeLiveSession && (
-                  <div className="grid grid-cols-3 gap-2.5 text-center tabular-nums">
-                    <div className="p-3 rounded-lg bg-[#222B28] border border-[#313D39]">
-                      <span className="text-[11px] text-[#9BA8A3] block">Participantes</span>
-                      <strong className="text-base font-mono text-[#EAE7DE]">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-2.5 text-center tabular-nums">
+                    <div className="p-2.5 sm:p-3 rounded-xl bg-[#050D20] border border-[#182943] min-w-0">
+                      <span className="text-[11px] font-medium text-[#94A3B8] block mb-0.5 truncate">Participantes</span>
+                      <strong
+                        title={`Participantes: ${(totalParticipantsCount !== undefined ? totalParticipantsCount : activeLiveSession.uniqueSupportersCount || 0).toLocaleString('pt-BR')}`}
+                        className="text-base sm:text-lg font-mono font-bold text-[#F8FAFC] block truncate"
+                      >
                         {totalParticipantsCount !== undefined
                           ? totalParticipantsCount
                           : activeLiveSession.uniqueSupportersCount || 0}
                       </strong>
                     </div>
-                    <div className="p-3 rounded-lg bg-[#222B28] border border-[#313D39]">
-                      <span className="text-[11px] text-[#9BA8A3] block">Moedas LIVE</span>
-                      <strong className="text-base font-mono text-[#C6A56A]">
+                    <div className="p-2.5 sm:p-3 rounded-xl bg-[#050D20] border border-[#182943] min-w-0">
+                      <span className="text-[11px] font-medium text-[#94A3B8] block mb-0.5 truncate">Moedas LIVE</span>
+                      <strong
+                        title={`Moedas LIVE: ${(activeLiveSession.totalCoins || 0).toLocaleString('pt-BR')}`}
+                        className="text-base sm:text-lg font-mono font-bold text-[#35B9F5] block truncate"
+                      >
                         {(activeLiveSession.totalCoins || 0).toLocaleString('pt-BR')}
                       </strong>
                     </div>
-                    <div className="p-3 rounded-lg bg-[#222B28] border border-[#313D39]">
-                      <span className="text-[11px] text-[#9BA8A3] block">Bilhetes Reais</span>
-                      <strong className="text-base font-mono text-[#6EAA90]">
+                    <div className="p-2.5 sm:p-3 rounded-xl bg-[#050D20] border border-[#20C997]/30 min-w-0">
+                      <span className="text-[11px] font-medium text-[#94A3B8] block mb-0.5 truncate">Bilhetes Reais</span>
+                      <strong
+                        title={`Bilhetes Reais: ${(activeLiveSession.currentTicketCounter || 0).toLocaleString('pt-BR')}`}
+                        className="text-base sm:text-lg font-mono font-bold text-[#20C997] block truncate"
+                      >
                         {(activeLiveSession.currentTicketCounter || 0).toLocaleString('pt-BR')}
                       </strong>
                     </div>
@@ -417,26 +456,26 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                 )}
 
                 {activeLiveSession && (
-                  <div className="p-3 rounded-lg bg-[#222B28] border border-[#313D39] space-y-2 text-xs tabular-nums">
+                  <div className="p-3 rounded-lg bg-[#050D20] border border-[#182943] space-y-2 text-xs tabular-nums">
                     <div className="flex items-center justify-between">
-                      <span className="text-[#9BA8A3]">Taxa persistida na sessão:</span>
-                      <strong className="text-[#EAE7DE] font-mono">
+                      <span className="text-[#94A3B8]">Taxa persistida na sessão:</span>
+                      <strong className="text-[#F8FAFC] font-mono">
                         {activeLiveSession.currentRate} moedas = 1 bilhete
                       </strong>
                     </div>
 
                     {activeLiveSession.campaignId && (
-                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#313D39]">
-                        <span className="text-[#9BA8A3] flex items-center gap-1">
-                          <Layers className="w-3.5 h-3.5 text-[#6EAA90]" />
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#182943]">
+                        <span className="text-[#94A3B8] flex items-center gap-1">
+                          <Layers className="w-3.5 h-3.5 text-[#C4B5FD]" />
                           <span>Campanha vinculada:</span>
                         </span>
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="font-semibold text-[#EAE7DE]">
+                          <span className="font-semibold text-[#F8FAFC]">
                             {linkedCampaignObj ? linkedCampaignObj.title : activeLiveSession.campaignId}
                           </span>
                           {(activeLiveSession.cycleId || linkedCampaignObj?.currentCycleIndex) && (
-                            <span className="px-2 py-0.5 rounded bg-[#171D1C] border border-[#6EAA90]/40 text-[#6EAA90] font-mono text-[11px] font-bold">
+                            <span className="px-2 py-0.5 rounded bg-[#8B7CFF]/15 border border-[#8B7CFF]/40 text-[#C4B5FD] font-mono text-[11px] font-bold">
                               {linkedCampaignObj?.currentCycleIndex
                                 ? `Ciclo #${linkedCampaignObj.currentCycleIndex}`
                                 : activeLiveSession.cycleId}
@@ -453,13 +492,13 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
 
                 {/* Controles Comerciais da Sessão (Ingressão de Presentes) */}
                 {activeLiveSession && (onPauseCollection || onResumeCollection || onEndCollection || onStartNewSession) && (
-                  <div className="pt-2 border-t border-[#313D39] flex flex-wrap items-center justify-between gap-2">
+                  <div className="pt-2 border-t border-[#182943] flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-1.5">
                       {activeLiveSession.status === 'active' && onPauseCollection && (
                         <button
                           type="button"
                           onClick={onPauseCollection}
-                          className="px-2.5 py-1.5 rounded-lg bg-[#222B28] hover:bg-[#2B3632] text-[#C6A56A] border border-[#313D39] text-xs font-medium transition flex items-center gap-1.5"
+                          className="px-2.5 py-1.5 rounded-lg bg-[#050D20] hover:bg-[#182943] text-[#F5B942] border border-[#182943] text-xs font-medium transition flex items-center gap-1.5"
                         >
                           <Pause className="w-3 h-3" />
                           <span>Pausar Ingressão</span>
@@ -469,7 +508,7 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                         <button
                           type="button"
                           onClick={onResumeCollection}
-                          className="px-2.5 py-1.5 rounded-lg bg-[#6EAA90]/15 hover:bg-[#6EAA90]/25 text-[#6EAA90] border border-[#6EAA90]/40 text-xs font-medium transition flex items-center gap-1.5"
+                          className="px-2.5 py-1.5 rounded-lg bg-[#20C997]/15 hover:bg-[#20C997]/25 text-[#20C997] border border-[#20C997]/40 text-xs font-medium transition flex items-center gap-1.5"
                         >
                           <Play className="w-3 h-3" />
                           <span>Retomar Ingressão</span>
@@ -479,7 +518,7 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                         <button
                           type="button"
                           onClick={onEndCollection}
-                          className="px-2.5 py-1.5 rounded-lg bg-[#222B28] hover:bg-[#2B3632] text-[#D96B6B] border border-[#313D39] text-xs font-medium transition flex items-center gap-1.5"
+                          className="px-2.5 py-1.5 rounded-lg bg-[#050D20] hover:bg-[#182943] text-[#F05262] border border-[#182943] text-xs font-medium transition flex items-center gap-1.5"
                         >
                           <Square className="w-3 h-3" />
                           <span>Encerrar Ingressão</span>
@@ -491,9 +530,9 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                       <button
                         type="button"
                         onClick={onStartNewSession}
-                        className="px-2.5 py-1.5 rounded-lg bg-[#222B28] hover:bg-[#2B3632] text-[#EAE7DE] border border-[#313D39] text-xs font-medium transition flex items-center gap-1.5"
+                        className="px-2.5 py-1.5 rounded-lg bg-[#050D20] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] text-xs font-medium transition flex items-center gap-1.5"
                       >
-                        <Plus className="w-3 h-3 text-[#6EAA90]" />
+                        <Plus className="w-3 h-3 text-[#00A9FF]" />
                         <span>Nova Sessão</span>
                       </button>
                     )}
@@ -502,19 +541,27 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
               </div>
             ) : (
               <div className="space-y-4">
+                <div className="p-3 rounded-lg bg-[#8B7CFF]/10 border border-[#8B7CFF]/35 flex items-center justify-between gap-2 text-xs">
+                  <span className="text-[#C4B5FD] font-semibold flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>Campanha Multi-LIVE Acumulada</span>
+                  </span>
+                  <span className="text-[11px] font-mono text-[#C4B5FD]">Múltiplas LIVEs</span>
+                </div>
+
                 <div>
-                  <label className="block text-xs font-medium text-[#9BA8A3] mb-1.5">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#C4B5FD] mb-1.5">
                     Campanha Acumulada Real
                   </label>
                   {liveCampaigns.length === 0 ? (
-                    <div className="p-3.5 rounded-lg bg-[#222B28] border border-[#313D39] text-xs text-[#9BA8A3]">
+                    <div className="p-3.5 rounded-lg bg-[#050D20] border border-[#182943] text-xs text-[#94A3B8]">
                       Nenhuma campanha acumulada encontrada. Crie ou vincule sessões em Recursos Avançados (Multi-LIVE).
                     </div>
                   ) : (
                     <select
                       value={activeLiveCampaign?.campaignId || ''}
                       onChange={(e) => setSelectedCampaignId(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#222B28] border border-[#313D39] text-xs sm:text-sm text-[#EAE7DE] focus:border-[#6EAA90] focus:outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#050D20] border border-[#8B7CFF]/40 text-xs sm:text-sm text-[#F8FAFC] focus:border-[#8B7CFF] focus:outline-none"
                     >
                       {!activeLiveCampaign && (
                         <option value="">Selecione uma campanha...</option>
@@ -529,33 +576,42 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                 </div>
 
                 {activeLiveCampaign && (
-                  <div className="grid grid-cols-3 gap-2.5 text-center tabular-nums">
-                    <div className="p-3 rounded-lg bg-[#222B28] border border-[#313D39]">
-                      <span className="text-[11px] text-[#9BA8A3] block">LIVEs</span>
-                      <strong className="text-base font-mono text-[#EAE7DE]">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-2.5 text-center tabular-nums">
+                    <div className="p-2.5 sm:p-3 rounded-xl bg-[#050D20] border border-[#8B7CFF]/30 min-w-0">
+                      <span className="text-[11px] font-medium text-[#94A3B8] block mb-0.5 truncate">LIVEs</span>
+                      <strong
+                        title={`LIVEs vinculadas: ${activeLiveCampaign.participatingSessionIds?.length || 0}`}
+                        className="text-base sm:text-lg font-mono font-bold text-[#F8FAFC] block truncate"
+                      >
                         {activeLiveCampaign.participatingSessionIds?.length || 0}
                       </strong>
                     </div>
-                    <div className="p-3 rounded-lg bg-[#222B28] border border-[#313D39]">
-                      <span className="text-[11px] text-[#9BA8A3] block">Status</span>
-                      <strong className="text-sm font-mono text-[#C6A56A]">
+                    <div className="p-2.5 sm:p-3 rounded-xl bg-[#050D20] border border-[#8B7CFF]/30 min-w-0">
+                      <span className="text-[11px] font-medium text-[#94A3B8] block mb-0.5 truncate">Status</span>
+                      <strong
+                        title={`Status da campanha: ${activeLiveCampaign.status}`}
+                        className="text-xs sm:text-sm font-mono font-bold text-[#C4B5FD] block truncate"
+                      >
                         {activeLiveCampaign.status}
                       </strong>
                     </div>
-                    <div className="p-3 rounded-lg bg-[#222B28] border border-[#313D39]">
-                      <span className="text-[11px] text-[#9BA8A3] block">Bilhetes</span>
-                      <strong className="text-base font-mono text-[#6EAA90]">
-                        {activeLiveCampaign.totalAccumulatedTickets || 0}
+                    <div className="p-2.5 sm:p-3 rounded-xl bg-[#050D20] border border-[#20C997]/30 min-w-0">
+                      <span className="text-[11px] font-medium text-[#94A3B8] block mb-0.5 truncate">Bilhetes</span>
+                      <strong
+                        title={`Bilhetes acumulados: ${(activeLiveCampaign.totalAccumulatedTickets || 0).toLocaleString('pt-BR')}`}
+                        className="text-base sm:text-lg font-mono font-bold text-[#20C997] block truncate"
+                      >
+                        {(activeLiveCampaign.totalAccumulatedTickets || 0).toLocaleString('pt-BR')}
                       </strong>
                     </div>
                   </div>
                 )}
 
                 {activeLiveCampaign && (
-                  <div className="p-3 rounded-lg bg-[#222B28] border border-[#313D39] space-y-2 text-xs">
+                  <div className="p-3 rounded-lg bg-[#050D20] border border-[#8B7CFF]/30 space-y-2 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-[#9BA8A3]">Modalidade:</span>
-                      <span className="font-mono text-[#EAE7DE] font-semibold">
+                      <span className="text-[#94A3B8]">Modalidade:</span>
+                      <span className="font-mono text-[#F8FAFC] font-semibold">
                         {activeLiveCampaign.campaignMode === 'RECURRING_CUMULATIVE'
                           ? 'Recorrente Acumulativa'
                           : activeLiveCampaign.campaignMode === 'RECURRING_RESET'
@@ -564,9 +620,9 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1 border-t border-[#313D39]">
-                      <span className="text-[#9BA8A3]">Ciclo Ativo:</span>
-                      <span className="px-2 py-0.5 rounded bg-[#171D1C] border border-[#6EAA90]/40 text-[#6EAA90] font-mono font-bold">
+                    <div className="flex items-center justify-between pt-1 border-t border-[#182943]">
+                      <span className="text-[#94A3B8]">Ciclo Ativo:</span>
+                      <span className="px-2 py-0.5 rounded bg-[#8B7CFF]/15 border border-[#8B7CFF]/40 text-[#C4B5FD] font-mono font-bold">
                         Ciclo #{activeLiveCampaign.currentCycleIndex || 1}
                         {resolvedCycleId ? ` · ${resolvedCycleId}` : ''}
                       </span>
@@ -576,7 +632,7 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                       activeLiveCampaign.campaignMode === 'RECURRING_CUMULATIVE') && (
                       <div className="pt-2">
                         {Boolean(activeLiveCampaign.pendingDeliveryCount && activeLiveCampaign.pendingDeliveryCount > 0) ? (
-                          <div className="p-2.5 rounded bg-[#D96B6B]/15 border border-[#D96B6B]/40 text-[11px] text-[#D96B6B] space-y-1">
+                          <div className="p-2.5 rounded bg-[#F05262]/15 border border-[#F05262]/40 text-[11px] text-[#F05262] space-y-1">
                             <div className="font-semibold flex items-center gap-1">
                               <AlertTriangle className="w-3 h-3 shrink-0" />
                               <span>Próximo Ciclo Bloqueado</span>
@@ -591,7 +647,7 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                             type="button"
                             disabled={isAdvancingCycle}
                             onClick={() => handleAdvanceCampaignCycle(activeLiveCampaign.campaignId)}
-                            className="w-full py-1.5 px-3 rounded-lg bg-[#2B3632] hover:bg-[#313D39] border border-[#313D39] text-xs font-semibold text-[#6EAA90] flex items-center justify-center gap-1.5 transition"
+                            className="w-full py-1.5 px-3 rounded-lg bg-[#101F3D] hover:bg-[#182943] border border-[#8B7CFF]/40 text-xs font-semibold text-[#C4B5FD] flex items-center justify-center gap-1.5 transition"
                           >
                             <RotateCw className={`w-3.5 h-3.5 ${isAdvancingCycle ? 'animate-spin' : ''}`} />
                             <span>Abrir Novo Ciclo da Campanha</span>
@@ -600,9 +656,9 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between text-xs pt-1 border-t border-[#313D39]">
-                      <span className="text-[#9BA8A3]">Taxa persistida:</span>
-                      <strong className="text-[#EAE7DE] font-mono">
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-[#182943]">
+                      <span className="text-[#94A3B8]">Taxa persistida:</span>
+                      <strong className="text-[#F8FAFC] font-mono">
                         {activeLiveCampaign.defaultRate || settings.rate} moedas = 1 bilhete
                       </strong>
                     </div>
@@ -612,7 +668,7 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
             )}
 
             <div>
-              <label className="block text-xs font-medium text-[#9BA8A3] mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5">
                 Prêmio deste Sorteio LIVE
               </label>
               <input
@@ -624,7 +680,7 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                     ? activeLiveSession?.prizeName || settings.prizeName || 'Prêmio Especial da LIVE'
                     : activeLiveCampaign?.prizeName || 'Prêmio Acumulado da Campanha'
                 }
-                className="w-full px-3.5 py-2.5 rounded-lg bg-[#222B28] border border-[#313D39] text-xs sm:text-sm text-[#EAE7DE] focus:border-[#6EAA90] focus:outline-none"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-[#050D20] border border-[#182943] text-xs sm:text-sm text-[#F8FAFC] focus:border-[#00A9FF] focus:outline-none"
               />
             </div>
 
@@ -637,44 +693,50 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                   : !activeLiveCampaign || (activeLiveCampaign.totalAccumulatedTickets || 0) <= 0)
               }
               onClick={handlePrepareLiveGiftsDraw}
-              className="w-full min-h-[48px] py-3.5 px-5 rounded-xl bg-[#6EAA90] hover:bg-[#5E9980] disabled:bg-[#2B3632] disabled:text-[#9BA8A3] disabled:border disabled:border-[#313D39] disabled:opacity-60 disabled:cursor-not-allowed text-[#171D1C] font-semibold text-sm sm:text-base flex items-center justify-center gap-2 transition"
+              className={`w-full min-h-[48px] py-3.5 px-5 rounded-xl disabled:bg-[#101F3D] disabled:text-[#94A3B8] disabled:border disabled:border-[#182943] disabled:opacity-60 disabled:cursor-not-allowed text-[#F8FAFC] font-semibold text-sm sm:text-base flex items-center justify-center gap-2 transition shadow-lg ${
+                liveDrawTargetMode === 'CAMPAIGN'
+                  ? 'bg-[#8B7CFF] hover:bg-[#9D90FF] shadow-[#8B7CFF]/25'
+                  : 'bg-[#0866F5] hover:bg-[#00A9FF] shadow-[#0866F5]/20'
+              }`}
             >
               <Play className="w-4 h-4 fill-current" />
               <span>
                 {isFreezingLiveSnapshot
                   ? 'Congelando Snapshot SHA-256...'
+                  : liveDrawTargetMode === 'CAMPAIGN'
+                  ? 'Sortear Agora na Campanha Multi-LIVE'
                   : 'Sortear Agora com Bilhetes LIVE'}
               </span>
             </button>
 
             {((liveDrawTargetMode === 'SESSION' && (!activeLiveSession || (activeLiveSession.currentTicketCounter || 0) <= 0)) ||
               (liveDrawTargetMode === 'CAMPAIGN' && (!activeLiveCampaign || (activeLiveCampaign.totalAccumulatedTickets || 0) <= 0))) && (
-              <p className="text-xs text-[#D96B6B] text-center">
+              <p className="text-xs text-[#F05262] text-center">
                 O botão Sortear Agora requer pelo menos 1 bilhete elegível emitido na sessão/campanha selecionada.
               </p>
             )}
           </div>
 
           {/* Coluna Direita: Participantes e Bilhetes Reais da Sessão Selecionada (com Busca e Exportação Oficial) */}
-          <div className="lg:col-span-7 space-y-4 bg-[#171D1C] border border-[#313D39] rounded-xl p-5 min-w-0">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#313D39]">
+          <div className="lg:col-span-7 space-y-4 bg-[#0B1730] border border-[#182943] rounded-xl p-5 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#182943]">
               <div>
-                <h3 className="text-sm sm:text-base font-semibold text-[#EAE7DE] flex items-center gap-2">
-                  <Users className="w-4 h-4 text-[#6EAA90]" />
+                <h3 className="text-sm sm:text-base font-semibold text-[#F8FAFC] flex items-center gap-2">
+                  <Users className="w-4 h-4 text-[#00A9FF]" />
                   <span>
                     {liveDrawTargetMode === 'SESSION' && activeLiveSession
                       ? `Participantes e Bilhetes da Sessão @${activeLiveSession.username}`
                       : 'Participantes e Bilhetes Contabilizados'}
                   </span>
                 </h3>
-                <p className="text-xs text-[#9BA8A3]">
+                <p className="text-xs text-[#94A3B8]">
                   Dados reais sincronizados do motor TikTok LIVE no Firestore
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
                 {selectedLiveDraws.length > 0 && (
-                  <span className="px-2.5 py-1 rounded bg-[#222B28] border border-[#C6A56A]/40 text-xs font-mono text-[#C6A56A] tabular-nums">
+                  <span className="px-2.5 py-1 rounded bg-[#050D20] border border-[#F5B942]/40 text-xs font-mono text-[#F5B942] tabular-nums">
                     {selectedLiveDraws.length} {selectedLiveDraws.length === 1 ? 'sorteio certificado' : 'sorteios certificados'}
                   </span>
                 )}
@@ -682,9 +744,9 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                   <button
                     type="button"
                     onClick={onExportCsv}
-                    className="px-3 py-1.5 rounded-lg bg-[#222B28] hover:bg-[#2B3632] border border-[#313D39] text-xs font-medium text-[#EAE7DE] transition flex items-center gap-1.5 shrink-0"
+                    className="px-3 py-1.5 rounded-lg bg-[#050D20] hover:bg-[#182943] border border-[#182943] text-xs font-medium text-[#F8FAFC] transition flex items-center gap-1.5 shrink-0"
                   >
-                    <FileSpreadsheet className="w-3.5 h-3.5 text-[#6EAA90]" />
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-[#20C997]" />
                     <span>Exportar CSV</span>
                   </button>
                 )}
@@ -694,34 +756,34 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
             {/* Busca Oficial de Participantes e Bilhetes (Exclusiva na Arena Oficial) */}
             {setParticipantSearchQuery && (
               <div className="relative">
-                <Search className="w-3.5 h-3.5 text-[#9BA8A3] absolute left-3.5 top-2.5" />
+                <Search className="w-3.5 h-3.5 text-[#94A3B8] absolute left-3.5 top-2.5" />
                 <input
                   type="text"
                   value={participantSearchQuery}
                   onChange={(e) => setParticipantSearchQuery(e.target.value)}
                   placeholder="Buscar participante por @usuário, nome ou #bilhete..."
                   aria-label="Buscar participante na Arena Oficial"
-                  className="w-full pl-9 pr-3.5 py-2 rounded-lg bg-[#222B28] border border-[#313D39] text-xs text-[#EAE7DE] placeholder-[#9BA8A3]/60 focus:outline-none focus:border-[#6EAA90]"
+                  className="w-full pl-9 pr-3.5 py-2 rounded-lg bg-[#050D20] border border-[#182943] text-xs text-[#F8FAFC] placeholder-[#94A3B8]/60 focus:outline-none focus:border-[#00A9FF]"
                 />
               </div>
             )}
 
             {selectedLiveParticipants.length === 0 ? (
-              <div className="py-10 text-center space-y-2 border border-dashed border-[#313D39] rounded-xl">
-                <Gift className="w-7 h-7 text-[#9BA8A3] mx-auto" />
-                <p className="text-sm font-semibold text-[#EAE7DE]">
+              <div className="py-10 text-center space-y-2 border border-dashed border-[#182943] rounded-xl">
+                <Gift className="w-7 h-7 text-[#94A3B8] mx-auto" />
+                <p className="text-sm font-semibold text-[#F8FAFC]">
                   {participantSearchQuery
                     ? `Nenhum participante ou bilhete encontrado para "${participantSearchQuery}"`
                     : 'Nenhum participante com presentes nesta sessão'}
                 </p>
-                <p className="text-xs text-[#9BA8A3] max-w-md mx-auto">
+                <p className="text-xs text-[#94A3B8] max-w-md mx-auto">
                   {participantSearchQuery
                     ? 'Tente buscar outro @usuário, apelido ou número de bilhete.'
                     : 'Assim que sua transmissão receber presentes no TikTok LIVE, os participantes e seus bilhetes aparecerão aqui automaticamente.'}
                 </p>
               </div>
             ) : (
-              <div className="max-h-[420px] overflow-y-auto divide-y divide-[#313D39] rounded-xl border border-[#313D39] bg-[#222B28]">
+              <div className="max-h-[420px] overflow-y-auto divide-y divide-[#182943] rounded-xl border border-[#182943] bg-[#050D20]">
                 {selectedLiveParticipants.map((part) => {
                   const pTickets = ticketsByParticipantMap?.get(part.tiktokUserId) || [];
                   const hasHandle =
@@ -735,20 +797,20 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                       key={part.tiktokUserId}
                       onClick={() => onInspectParticipant && onInspectParticipant(part.tiktokUserId)}
                       className={`p-3.5 flex items-center justify-between gap-3 text-xs ${
-                        onInspectParticipant ? 'hover:bg-[#2B3632]/60 cursor-pointer transition' : ''
+                        onInspectParticipant ? 'hover:bg-[#101F3D]/80 cursor-pointer transition' : ''
                       }`}
                     >
                       <div className="min-w-0 space-y-0.5">
-                        <div className="font-semibold text-[#EAE7DE] truncate">
+                        <div className="font-semibold text-[#F8FAFC] truncate">
                           {displayUser}
                           {part.nickname && part.nickname !== part.username ? (
-                            <span className="text-[#9BA8A3] font-normal ml-1.5">({part.nickname})</span>
+                            <span className="text-[#94A3B8] font-normal ml-1.5">({part.nickname})</span>
                           ) : null}
                         </div>
-                        <div className="text-[11px] text-[#9BA8A3] tabular-nums flex flex-wrap items-center gap-2">
+                        <div className="text-[11px] text-[#94A3B8] tabular-nums flex flex-wrap items-center gap-2">
                           <span>Sobras acumuladas: {part.carryoverCoins || 0} moedas</span>
                           {pTickets.length > 0 && (
-                            <span className="font-mono text-[#6EAA90] truncate max-w-xs">
+                            <span className="font-mono text-[#20C997] truncate max-w-xs">
                               · #{pTickets.slice(0, 6).join(', #')}
                               {pTickets.length > 6 ? ` (+${pTickets.length - 6})` : ''}
                             </span>
@@ -757,10 +819,10 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                       </div>
 
                       <div className="flex items-center gap-3 shrink-0 font-mono tabular-nums">
-                        <span className="px-2 py-1 rounded bg-[#171D1C] border border-[#313D39] text-[#C6A56A]">
+                        <span className="px-2 py-1 rounded bg-[#0B1730] border border-[#182943] text-[#F5B942]">
                           {part.coinsInSession.toLocaleString('pt-BR')} moedas
                         </span>
-                        <span className="px-2.5 py-1 rounded bg-[#6EAA90]/15 border border-[#6EAA90]/40 text-[#6EAA90] font-bold">
+                        <span className="px-2.5 py-1 rounded bg-[#20C997]/15 border border-[#20C997]/40 text-[#20C997] font-bold">
                           {part.ticketsInSession} bilhete(s)
                         </span>
                       </div>
@@ -774,14 +836,14 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
 
         {/* Bloco de Sorteios Certificados e Auditoria de Entrega */}
         {selectedLiveDraws.length > 0 && (
-          <div className="p-5 sm:p-6 rounded-xl bg-[#222B28] border border-[#313D39] space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#313D39]">
+          <div className="p-5 sm:p-6 rounded-xl bg-[#0B1730] border border-[#182943] space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#182943]">
               <div className="space-y-0.5">
-                <h3 className="text-sm sm:text-base font-semibold text-[#EAE7DE] flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-[#C6A56A]" />
+                <h3 className="text-sm sm:text-base font-semibold text-[#F8FAFC] flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-[#F5B942]" />
                   <span>Sorteios Certificados e Gestão de Entrega ({selectedLiveDraws.length})</span>
                 </h3>
-                <p className="text-xs text-[#9BA8A3]">
+                <p className="text-xs text-[#94A3B8]">
                   Acompanhe o status formal de entrega de prêmios, auditoria imutável e resolução de não comparecimento.
                 </p>
               </div>
@@ -793,21 +855,21 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                 return (
                   <div
                     key={d.drawId}
-                    className="p-4 rounded-xl bg-[#171D1C] border border-[#313D39] space-y-3"
+                    className="p-4 rounded-xl bg-[#050D20] border border-[#182943] space-y-3"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#313D39]">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#182943]">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono font-bold text-sm text-[#6EAA90] px-2 py-0.5 rounded bg-[#6EAA90]/15 border border-[#6EAA90]/40">
+                        <span className="font-mono font-bold text-sm text-[#20C997] px-2 py-0.5 rounded bg-[#20C997]/15 border border-[#20C997]/40">
                           Bilhete #{d.winningTicketNumber}
                         </span>
-                        <span className="font-semibold text-sm text-[#EAE7DE]">
+                        <span className="font-semibold text-sm text-[#F8FAFC]">
                           @{d.winnerName}
                         </span>
-                        <span className="text-xs text-[#C6A56A] font-medium">
+                        <span className="text-xs text-[#F5B942] font-medium">
                           · {d.prizeName}
                         </span>
                         {d.cycleId && (
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#222B28] text-[#9BA8A3] border border-[#313D39]">
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#0B1730] text-[#94A3B8] border border-[#182943]">
                             {d.cycleId}
                           </span>
                         )}
@@ -819,24 +881,24 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                         >
                           {statusMeta.label}
                         </span>
-                        <span className="text-[11px] font-mono text-[#9BA8A3]">
+                        <span className="text-[11px] font-mono text-[#94A3B8]">
                           {new Date(d.drawnAt).toLocaleDateString('pt-BR')} às {new Date(d.drawnAt).toLocaleTimeString('pt-BR')}
                         </span>
                       </div>
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-                      <div className="space-y-1 font-mono text-[11px] text-[#9BA8A3] truncate max-w-xl">
+                      <div className="space-y-1 font-mono text-[11px] text-[#94A3B8] truncate max-w-xl">
                         <div>
-                          Hash Roster SHA-256: <span className="text-[#EAE7DE]">{d.frozenRosterHash?.slice(0, 24)}...</span>
+                          Hash Roster SHA-256: <span className="text-[#F8FAFC]">{d.frozenRosterHash?.slice(0, 24)}...</span>
                         </div>
                         {d.parentDrawId && (
-                          <div className="text-[#C084FC]">
+                          <div className="text-[#35B9F5]">
                             ↳ Substituto do sorteio original: <span className="underline">{d.parentDrawId}</span>
                           </div>
                         )}
                         {d.redrawnAsDrawId && (
-                          <div className="text-[#D96B6B]">
+                          <div className="text-[#F05262]">
                             ↳ Sorteio original anulado. Substituído por: <span className="underline">{d.redrawnAsDrawId}</span>
                           </div>
                         )}
@@ -848,9 +910,9 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                           onClick={() => {
                             setAuditModalDraw(d);
                           }}
-                          className="px-2.5 py-1.5 rounded-lg bg-[#222B28] hover:bg-[#2B3632] text-[#EAE7DE] border border-[#313D39] text-xs font-medium flex items-center gap-1.5 transition"
+                          className="px-2.5 py-1.5 rounded-lg bg-[#0B1730] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] text-xs font-medium flex items-center gap-1.5 transition"
                         >
-                          <FileText className="w-3.5 h-3.5 text-[#6EAA90]" />
+                          <FileText className="w-3.5 h-3.5 text-[#00A9FF]" />
                           <span>Ver Auditoria</span>
                         </button>
 
@@ -866,9 +928,9 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                               );
                               setDeliveryNotes('');
                             }}
-                            className="px-2.5 py-1.5 rounded-lg bg-[#2B3632] hover:bg-[#313D39] text-[#EAE7DE] border border-[#313D39] text-xs font-medium flex items-center gap-1.5 transition"
+                            className="px-2.5 py-1.5 rounded-lg bg-[#101F3D] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] text-xs font-medium flex items-center gap-1.5 transition"
                           >
-                            <Clock className="w-3.5 h-3.5 text-[#C6A56A]" />
+                            <Clock className="w-3.5 h-3.5 text-[#F5B942]" />
                             <span>Atualizar Entrega</span>
                           </button>
                         )}
@@ -880,7 +942,7 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                               setRedrawModalDraw(d);
                               setRedrawReason('Prazo regulamentar de 48h expirou sem manifestação do ganhador original.');
                             }}
-                            className="px-3 py-1.5 rounded-lg bg-[#D96B6B] hover:bg-[#C25858] text-[#171D1C] text-xs font-bold flex items-center gap-1.5 transition shadow"
+                            className="px-3 py-1.5 rounded-lg bg-[#F05262] hover:bg-[#F05262]/90 text-[#F8FAFC] text-xs font-bold flex items-center gap-1.5 transition shadow"
                           >
                             <RotateCw className="w-3.5 h-3.5" />
                             <span>Realizar Novo Sorteio</span>
@@ -898,21 +960,21 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
 
       {/* Modal 1: Alterar Status de Entrega */}
       {statusModalDraw && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#171D1C]/85 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg bg-[#222B28] border border-[#313D39] rounded-xl shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#313D39]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#050D20]/85 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-[#101F3D] border border-[#182943] rounded-xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#182943]">
               <div>
-                <h3 className="text-sm font-semibold text-[#EAE7DE]">
+                <h3 className="text-sm font-semibold text-[#F8FAFC]">
                   Atualizar Status de Entrega do Prêmio
                 </h3>
-                <p className="text-xs text-[#9BA8A3]">
+                <p className="text-xs text-[#94A3B8]">
                   Ganhador(a): @{statusModalDraw.winnerName} · Bilhete #{statusModalDraw.winningTicketNumber}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setStatusModalDraw(null)}
-                className="text-[#9BA8A3] hover:text-[#EAE7DE] p-1 rounded-lg"
+                className="text-[#94A3B8] hover:text-[#F8FAFC] p-1 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -922,8 +984,8 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
               <div
                 className={`p-3 rounded-lg text-xs font-medium ${
                   modalFeedback.type === 'error'
-                    ? 'bg-[#D96B6B]/15 text-[#D96B6B] border border-[#D96B6B]/40'
-                    : 'bg-[#6EAA90]/15 text-[#6EAA90] border border-[#6EAA90]/40'
+                    ? 'bg-[#F05262]/15 text-[#F05262] border border-[#F05262]/40'
+                    : 'bg-[#20C997]/15 text-[#20C997] border border-[#20C997]/40'
                 }`}
               >
                 {modalFeedback.text}
@@ -932,13 +994,13 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-xs font-medium text-[#EAE7DE] mb-1.5">
+                <label className="block text-xs font-medium text-[#F8FAFC] mb-1.5">
                   Novo Status Formal
                 </label>
                 <select
                   value={selectedNewStatus}
                   onChange={(e) => setSelectedNewStatus(e.target.value as DeliveryStatus)}
-                  className="w-full px-3 py-2 rounded-lg bg-[#171D1C] border border-[#313D39] text-[#EAE7DE] font-medium focus:outline-none focus:border-[#6EAA90]"
+                  className="w-full px-3 py-2 rounded-lg bg-[#0B1730] border border-[#182943] text-[#F8FAFC] font-medium focus:outline-none focus:border-[#00A9FF]"
                 >
                   <option value="CONTACTED">Contatado (Tentativa de contato realizada)</option>
                   <option value="DELIVERED">Prêmio Entregue (Comprovado e concluído)</option>
@@ -947,7 +1009,7 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#EAE7DE] mb-1.5">
+                <label className="block text-xs font-medium text-[#F8FAFC] mb-1.5">
                   Canal / Método de Contato
                 </label>
                 <input
@@ -955,12 +1017,12 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                   value={contactMethod}
                   onChange={(e) => setContactMethod(e.target.value)}
                   placeholder="Ex: Chat TikTok LIVE / Direct / WhatsApp / Email"
-                  className="w-full px-3 py-2 rounded-lg bg-[#171D1C] border border-[#313D39] text-[#EAE7DE] focus:outline-none focus:border-[#6EAA90]"
+                  className="w-full px-3 py-2 rounded-lg bg-[#0B1730] border border-[#182943] text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#EAE7DE] mb-1.5">
+                <label className="block text-xs font-medium text-[#F8FAFC] mb-1.5">
                   Código de Rastreio / Comprovante (opcional)
                 </label>
                 <input
@@ -968,12 +1030,12 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                   value={trackingCode}
                   onChange={(e) => setTrackingCode(e.target.value)}
                   placeholder="Ex: Correios BR123456789BR ou link de comprovante"
-                  className="w-full px-3 py-2 rounded-lg bg-[#171D1C] border border-[#313D39] text-[#EAE7DE] font-mono focus:outline-none focus:border-[#6EAA90]"
+                  className="w-full px-3 py-2 rounded-lg bg-[#0B1730] border border-[#182943] text-[#F8FAFC] font-mono focus:outline-none focus:border-[#00A9FF]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#EAE7DE] mb-1.5">
+                <label className="block text-xs font-medium text-[#F8FAFC] mb-1.5">
                   Observações / Justificativa da Transição
                 </label>
                 <textarea
@@ -981,16 +1043,16 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                   value={deliveryNotes}
                   onChange={(e) => setDeliveryNotes(e.target.value)}
                   placeholder="Registre os detalhes deste contato ou confirmação de entrega para auditoria imutável..."
-                  className="w-full px-3 py-2 rounded-lg bg-[#171D1C] border border-[#313D39] text-[#EAE7DE] focus:outline-none focus:border-[#6EAA90]"
+                  className="w-full px-3 py-2 rounded-lg bg-[#0B1730] border border-[#182943] text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#313D39]">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#182943]">
               <button
                 type="button"
                 onClick={() => setStatusModalDraw(null)}
-                className="px-4 py-2 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] text-[#EAE7DE] border border-[#313D39] text-xs font-medium transition"
+                className="px-4 py-2 rounded-lg bg-[#0B1730] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] text-xs font-medium transition"
               >
                 Cancelar
               </button>
@@ -998,7 +1060,7 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                 type="button"
                 disabled={isSubmittingDelivery}
                 onClick={handleUpdateDeliveryStatus}
-                className="px-4 py-2 rounded-lg bg-[#6EAA90] hover:bg-[#5E9980] text-[#171D1C] text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-50"
+                className="px-4 py-2 rounded-lg bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-50"
               >
                 {isSubmittingDelivery ? 'Registrando...' : 'Confirmar e Gravar Auditoria'}
               </button>
@@ -1009,22 +1071,22 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
 
       {/* Modal 2: Trilha Imutável de Auditoria de Entrega */}
       {auditModalDraw && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#171D1C]/85 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative w-full max-w-2xl bg-[#222B28] border border-[#313D39] rounded-xl shadow-2xl p-6 space-y-4 max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-[#313D39]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#050D20]/85 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-2xl bg-[#101F3D] border border-[#182943] rounded-xl shadow-2xl p-6 space-y-4 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-[#182943]">
               <div>
-                <h3 className="text-sm font-semibold text-[#EAE7DE] flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-[#6EAA90]" />
+                <h3 className="text-sm font-semibold text-[#F8FAFC] flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-[#00A9FF]" />
                   <span>Trilha de Auditoria Imutável de Entrega</span>
                 </h3>
-                <p className="text-xs text-[#9BA8A3]">
+                <p className="text-xs text-[#94A3B8]">
                   Sorteio #{auditModalDraw.winningTicketNumber} · Ganhador(a): @{auditModalDraw.winnerName} · {auditModalDraw.prizeName}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setAuditModalDraw(null)}
-                className="text-[#9BA8A3] hover:text-[#EAE7DE] p-1 rounded-lg"
+                className="text-[#94A3B8] hover:text-[#F8FAFC] p-1 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1032,38 +1094,38 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
 
             <div className="flex-1 overflow-y-auto space-y-3 pr-1 text-xs">
               {(!auditModalDraw.deliveryAuditTrail || auditModalDraw.deliveryAuditTrail.length === 0) ? (
-                <p className="text-xs text-[#9BA8A3] py-6 text-center">
+                <p className="text-xs text-[#94A3B8] py-6 text-center">
                   Nenhuma transição de status registrada até o momento. O sorteio iniciou como Pendente de Contato.
                 </p>
               ) : (
                 auditModalDraw.deliveryAuditTrail.map((entry, idx) => (
                   <div
                     key={idx}
-                    className="p-3.5 rounded-lg bg-[#171D1C] border border-[#313D39] space-y-1.5"
+                    className="p-3.5 rounded-lg bg-[#0B1730] border border-[#182943] space-y-1.5"
                   >
                     <div className="flex items-center justify-between text-[11px]">
                       <div className="flex items-center gap-1.5 font-mono">
-                        <span className="text-[#9BA8A3]">#{idx + 1}</span>
-                        <span className="text-[#EAE7DE] font-semibold">{entry.previousStatus}</span>
-                        <ArrowRight className="w-3 h-3 text-[#6EAA90]" />
-                        <span className="text-[#6EAA90] font-bold">{entry.newStatus}</span>
+                        <span className="text-[#94A3B8]">#{idx + 1}</span>
+                        <span className="text-[#F8FAFC] font-semibold">{entry.previousStatus}</span>
+                        <ArrowRight className="w-3 h-3 text-[#00A9FF]" />
+                        <span className="text-[#20C997] font-bold">{entry.newStatus}</span>
                       </div>
-                      <span className="text-[#9BA8A3] font-mono">
+                      <span className="text-[#94A3B8] font-mono">
                         {new Date(entry.timestamp).toLocaleString('pt-BR')}
                       </span>
                     </div>
 
                     {entry.reason && (
-                      <p className="text-xs text-[#EAE7DE]">
-                        <strong className="text-[#9BA8A3]">Justificativa:</strong> {entry.reason}
+                      <p className="text-xs text-[#F8FAFC]">
+                        <strong className="text-[#94A3B8]">Justificativa:</strong> {entry.reason}
                       </p>
                     )}
 
-                    <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] font-mono text-[#9BA8A3] border-t border-[#313D39]/50">
+                    <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] font-mono text-[#94A3B8] border-t border-[#182943]/50">
                       <span>Operador: {entry.operatorUid}</span>
                       {entry.method && <span>Método: {entry.method}</span>}
                       {entry.referenceDrawId && (
-                        <span className="text-[#C6A56A]">Ref: {entry.referenceDrawId}</span>
+                        <span className="text-[#F5B942]">Ref: {entry.referenceDrawId}</span>
                       )}
                     </div>
                   </div>
@@ -1071,11 +1133,11 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
               )}
             </div>
 
-            <div className="pt-3 border-t border-[#313D39] flex justify-end">
+            <div className="pt-3 border-t border-[#182943] flex justify-end">
               <button
                 type="button"
                 onClick={() => setAuditModalDraw(null)}
-                className="px-4 py-2 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] text-[#EAE7DE] border border-[#313D39] text-xs font-medium transition"
+                className="px-4 py-2 rounded-lg bg-[#0B1730] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] text-xs font-medium transition"
               >
                 Fechar
               </button>
@@ -1086,22 +1148,22 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
 
       {/* Modal 3: Confirmação de Novo Sorteio por Não Comparecimento */}
       {redrawModalDraw && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#171D1C]/85 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg bg-[#222B28] border border-[#313D39] rounded-xl shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#313D39]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#050D20]/85 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-[#101F3D] border border-[#182943] rounded-xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#182943]">
               <div>
-                <h3 className="text-sm font-semibold text-[#EAE7DE] flex items-center gap-2">
-                  <RotateCw className="w-4 h-4 text-[#D96B6B]" />
+                <h3 className="text-sm font-semibold text-[#F8FAFC] flex items-center gap-2">
+                  <RotateCw className="w-4 h-4 text-[#F05262]" />
                   <span>Novo Sorteio por Não Comparecimento</span>
                 </h3>
-                <p className="text-xs text-[#9BA8A3]">
+                <p className="text-xs text-[#94A3B8]">
                   Substituição oficial auditada com exclusão do vencedor original
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setRedrawModalDraw(null)}
-                className="text-[#9BA8A3] hover:text-[#EAE7DE] p-1 rounded-lg"
+                className="text-[#94A3B8] hover:text-[#F8FAFC] p-1 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1111,16 +1173,16 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
               <div
                 className={`p-3 rounded-lg text-xs font-medium ${
                   modalFeedback.type === 'error'
-                    ? 'bg-[#D96B6B]/15 text-[#D96B6B] border border-[#D96B6B]/40'
-                    : 'bg-[#6EAA90]/15 text-[#6EAA90] border border-[#6EAA90]/40'
+                    ? 'bg-[#F05262]/15 text-[#F05262] border border-[#F05262]/40'
+                    : 'bg-[#20C997]/15 text-[#20C997] border border-[#20C997]/40'
                 }`}
               >
                 {modalFeedback.text}
               </div>
             )}
 
-            <div className="p-3.5 rounded-lg bg-[#D96B6B]/15 border border-[#D96B6B]/40 text-xs space-y-1 text-[#EAE7DE]">
-              <strong className="block text-[#D96B6B] font-semibold">Regras Mandatórias de Redraw:</strong>
+            <div className="p-3.5 rounded-lg bg-[#F05262]/15 border border-[#F05262]/40 text-xs space-y-1 text-[#F8FAFC]">
+              <strong className="block text-[#F05262] font-semibold">Regras Mandatórias de Redraw:</strong>
               <p>
                 1. O vencedor original <strong>@{redrawModalDraw.winnerName}</strong> (UID: {redrawModalDraw.winnerTiktokUserId}) será permanentemente excluído dos bilhetes elegíveis deste novo sorteio.
               </p>
@@ -1133,7 +1195,7 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
             </div>
 
             <div className="space-y-2 text-xs">
-              <label className="block text-xs font-medium text-[#EAE7DE]">
+              <label className="block text-xs font-medium text-[#F8FAFC]">
                 Justificativa Formal / Motivo do Novo Sorteio *
               </label>
               <textarea
@@ -1142,15 +1204,15 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                 value={redrawReason}
                 onChange={(e) => setRedrawReason(e.target.value)}
                 placeholder="Informe o motivo formal do novo sorteio (ex: não respondeu às tentativas de contato no prazo regulamentar)..."
-                className="w-full px-3 py-2 rounded-lg bg-[#171D1C] border border-[#313D39] text-[#EAE7DE] focus:outline-none focus:border-[#6EAA90]"
+                className="w-full px-3 py-2 rounded-lg bg-[#0B1730] border border-[#182943] text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
               />
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#313D39]">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#182943]">
               <button
                 type="button"
                 onClick={() => setRedrawModalDraw(null)}
-                className="px-4 py-2 rounded-lg bg-[#171D1C] hover:bg-[#2B3632] text-[#EAE7DE] border border-[#313D39] text-xs font-medium transition"
+                className="px-4 py-2 rounded-lg bg-[#0B1730] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] text-xs font-medium transition"
               >
                 Cancelar
               </button>
@@ -1158,7 +1220,7 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                 type="button"
                 disabled={isSubmittingRedraw}
                 onClick={handleExecuteRedraw}
-                className="px-4 py-2 rounded-lg bg-[#D96B6B] hover:bg-[#C25858] text-[#171D1C] text-xs font-bold flex items-center gap-1.5 transition disabled:opacity-50"
+                className="px-4 py-2 rounded-lg bg-[#F05262] hover:bg-[#F05262]/90 text-[#F8FAFC] text-xs font-bold flex items-center gap-1.5 transition disabled:opacity-50"
               >
                 {isSubmittingRedraw ? 'Executando Sorteio CSPRNG...' : 'Executar Novo Sorteio Certificado'}
               </button>

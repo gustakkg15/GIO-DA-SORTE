@@ -287,14 +287,14 @@ async function runProductionAudit(): Promise<void> {
     monthly.price === 29.90 &&
     monthly.frequency === 1 &&
     monthly.frequencyType === 'months' &&
-    monthly.freeTrial?.frequency === 7 &&
+    monthly.freeTrial?.frequency === 3 &&
     monthly.freeTrial?.frequencyType === 'days';
 
   const annualOk =
     annual.price === 199.90 &&
     annual.frequency === 12 &&
     annual.frequencyType === 'months' &&
-    annual.freeTrial?.frequency === 7 &&
+    annual.freeTrial?.frequency === 3 &&
     annual.freeTrial?.frequencyType === 'days';
 
   results.push({
@@ -302,7 +302,7 @@ async function runProductionAudit(): Promise<void> {
     title: 'Validação dos Valores e Regras Comerciais Aprovadas',
     category: 'REAL_EXECUTION',
     status: monthlyOk && annualOk ? 'PASSED' : 'FAILED',
-    evidence: `Mensal: R$ ${monthly.price.toFixed(2).replace('.', ',')} (1 mês / 7 dias grátis). Anual: R$ ${annual.price.toFixed(2).replace('.', ',')} integral (12 meses / 7 dias grátis, equivalente a ~R$ ${annual.monthlyEquivalent.toFixed(2).replace('.', ',')}/mês, economia anual de R$ ${annual.annualSavingsAmount.toFixed(2).replace('.', ',')} comparada a 12 mensalidades de R$ 29,90, desconto de ~${annual.annualDiscountPercent}%). Configuração de preço oficial: ${config.priceVersion || 'v1.0.0'}.`,
+    evidence: `Mensal: R$ ${monthly.price.toFixed(2).replace('.', ',')} (1 mês / 3 dias grátis). Anual: R$ ${annual.price.toFixed(2).replace('.', ',')} integral (12 meses / 3 dias grátis, equivalente a ~R$ ${annual.monthlyEquivalent.toFixed(2).replace('.', ',')}/mês, economia anual de R$ ${annual.annualSavingsAmount.toFixed(2).replace('.', ',')} comparada a 12 mensalidades de R$ 29,90, desconto de ~${annual.annualDiscountPercent}%). Configuração de preço oficial: ${config.priceVersion || 'v1.0.0'}.`,
   });
 
   // 12. Transparência na Contratação Pública e Termos Legais
@@ -311,7 +311,7 @@ async function runProductionAudit(): Promise<void> {
     title: 'Transparência de Contratação, Termos e Desistência',
     category: 'REAL_EXECUTION',
     status: 'PASSED',
-    evidence: `O modal de checkout (SubscriptionPlanView) exibe explicitamente: R$ 0,00 hoje, duração de 7 dias, data da primeira cobrança calculada, renovação automática, cancelamento livre a qualquer momento e aceite formal gravado em /document_acceptances para Política de Assinaturas e Política de Cancelamento.`,
+    evidence: `O modal de checkout (SubscriptionPlanView) exibe explicitamente: R$ 0,00 hoje, duração de 3 dias, data da primeira cobrança calculada, renovação automática, cancelamento livre a qualquer momento e aceite formal gravado em /document_acceptances para Política de Assinaturas e Política de Cancelamento.`,
   });
 
   // Output all results in console

@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { doc, getDoc, getDocs, setDoc, collection } from 'firebase/firestore';
-import { db } from '../firebase.js';
-import {
+import { db } from '../firebase.ts';
+import type {
   CommercialPlanId,
   CommercialSubscriptionConfig,
   HomologationStepResult,
@@ -14,17 +14,17 @@ import {
   SubscriptionPlanTier,
   SubscriptionStatusState,
   UserSubscriptionRecord,
-} from '../types.js';
+} from '../types.ts';
 import {
   DEFAULT_COMMERCIAL_CONFIG,
   fetchCommercialSubscriptionConfig,
   saveCommercialSubscriptionConfig,
   recordDocumentAcceptance,
-} from '../utils/legalAndComplianceService.js';
-import { recordAuditLog, setProPlanTier } from '../utils/tiktokLiveService.js';
+} from '../utils/legalAndComplianceService.ts';
+import { recordAuditLog, setProPlanTier } from '../utils/tiktokLiveService.ts';
 
 export const MP_API_BASE_URL = 'https://api.mercadopago.com';
-export const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+export const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 
 export interface MercadoPagoTransport {
   createPreapprovalPlan(payload: Record<string, unknown>): Promise<{ status: number; data: any }>;
@@ -385,8 +385,8 @@ export class MercadoPagoSubscriptionService {
 
   /**
    * Returns the two official commercial plans with exact calculations:
-   * - GIO DA SORTE PRO Mensal: R$ 29,90 / 1 month / 7 days free trial
-   * - GIO DA SORTE PRO Anual: R$ 199,90 integral / 12 months / 7 days free trial (~R$ 16,66/mês, economia R$ 158,90, ~44,3% off)
+   * - GIO DA SORTE PRO Mensal: R$ 29,90 / 1 month / 3 days free trial
+   * - GIO DA SORTE PRO Anual: R$ 199,90 integral / 12 months / 3 days free trial (~R$ 16,66/mês, economia R$ 158,90, ~44,3% off)
    */
   public async getOfficialPlans(): Promise<{
     monthly: OfficialSubscriptionPlanDefinition;
@@ -412,7 +412,7 @@ export class MercadoPagoSubscriptionService {
       frequency: 1,
       frequencyType: 'months',
       freeTrial: {
-        frequency: 7,
+        frequency: 3,
         frequencyType: 'days',
       },
       monthlyEquivalent: monthlyPrice,
@@ -432,7 +432,7 @@ export class MercadoPagoSubscriptionService {
       frequency: 12,
       frequencyType: 'months',
       freeTrial: {
-        frequency: 7,
+        frequency: 3,
         frequencyType: 'days',
       },
       monthlyEquivalent,
@@ -463,7 +463,7 @@ export class MercadoPagoSubscriptionService {
     };
     if (includeFreeTrial) {
       autoRecurring.free_trial = {
-        frequency: 7,
+        frequency: 3,
         frequency_type: 'days',
       };
     }
@@ -494,7 +494,7 @@ export class MercadoPagoSubscriptionService {
     };
     if (params.includeFreeTrial) {
       autoRecurring.free_trial = {
-        frequency: 7,
+        frequency: 3,
         frequency_type: 'days',
       };
     }
@@ -542,10 +542,10 @@ export class MercadoPagoSubscriptionService {
   }
 
   /**
-   * Validates whether `next_payment_date` returned by Mercado Pago API is strictly >= 7 days ahead
-   * when a 7-day free trial is applied, and that no immediate charge occurred (`charged_amount === 0`).
+   * Validates whether `next_payment_date` returned by Mercado Pago API is strictly >= 3 days ahead
+   * when a 3-day free trial is applied, and that no immediate charge occurred (`charged_amount === 0`).
    */
-  public verifySevenDayFreeTrialFromMpResponse(
+  public verifyThreeDayFreeTrialFromMpResponse(
     mpData: any,
     referenceStartMs: number
   ): {
@@ -559,7 +559,7 @@ export class MercadoPagoSubscriptionService {
     const freeTrial = mpData?.auto_recurring?.free_trial;
     const freeTrialObjectPresent =
       Boolean(freeTrial) &&
-      Number(freeTrial.frequency) === 7 &&
+      Number(freeTrial.frequency) === 3 &&
       String(freeTrial.frequency_type) === 'days';
 
     const chargedAmount = Number(mpData?.summarized?.charged_amount ?? 0);
@@ -593,7 +593,7 @@ export class MercadoPagoSubscriptionService {
     const diffMs = nextPaymentMs - referenceStartMs;
     const daysUntilFirstPayment = Number((diffMs / (24 * 60 * 60 * 1000)).toFixed(2));
 
-    // Must be at least 6.8 days ahead (allowing minor clock/timezone skew around 7.00 days) and not immediate
+    // Must be at least 2.8 days ahead (allowing minor clock/timezone skew around 3.00 days) and not immediate
     if (!freeTrialObjectPresent) {
       return {
         valid: false,
@@ -602,7 +602,7 @@ export class MercadoPagoSubscriptionService {
         freeTrialObjectPresent: false,
         noImmediateCharge,
         reason:
-          'A API do Mercado Pago não preservou auto_recurring.free_trial { frequency: 7, frequency_type: "days" } na assinatura.',
+          'A API do Mercado Pago não preservou auto_recurring.free_trial { frequency: 3, frequency_type: "days" } na assinatura.',
       };
     }
 
@@ -617,14 +617,14 @@ export class MercadoPagoSubscriptionService {
       };
     }
 
-    if (daysUntilFirstPayment < 6.8 || daysUntilFirstPayment > 8.2) {
+    if (daysUntilFirstPayment < 2.8 || daysUntilFirstPayment > 4.2) {
       return {
         valid: false,
         nextPaymentDateIso: rawNextPayment,
         daysUntilFirstPayment,
         freeTrialObjectPresent,
         noImmediateCharge,
-        reason: `Divergência em next_payment_date: esperado +7 dias após o início do teste, mas a API retornou ${daysUntilFirstPayment} dias (${rawNextPayment}). Contratação bloqueada preventivamente.`,
+        reason: `Divergência em next_payment_date: esperado +3 dias após o início do teste, mas a API retornou ${daysUntilFirstPayment} dias (${rawNextPayment}). Contratação bloqueada preventivamente.`,
       };
     }
 
@@ -634,8 +634,13 @@ export class MercadoPagoSubscriptionService {
       daysUntilFirstPayment,
       freeTrialObjectPresent: true,
       noImmediateCharge: true,
-      reason: `Confirmado pela API do Mercado Pago: free_trial de 7 dias ativo, zero cobrança imediata e primeira cobrança (next_payment_date) agendada para ${rawNextPayment} (+${daysUntilFirstPayment} dias).`,
+      reason: `Confirmado pela API do Mercado Pago: free_trial de 3 dias ativo, zero cobrança imediata e primeira cobrança (next_payment_date) agendada para ${rawNextPayment} (+${daysUntilFirstPayment} dias).`,
     };
+  }
+
+  // Alias for backward compatibility if any callers or external references still call the 7-day method name
+  public verifySevenDayFreeTrialFromMpResponse(mpData: any, referenceStartMs: number) {
+    return this.verifyThreeDayFreeTrialFromMpResponse(mpData, referenceStartMs);
   }
 
   /**
@@ -666,6 +671,7 @@ export class MercadoPagoSubscriptionService {
       if (email && !evaluated.email) evaluated.email = email;
       if (emailVerified) evaluated.emailVerified = true;
       memorySubscriptionsByUid.set(cleanUid, evaluated);
+      setProPlanTier(evaluated.tier, evaluated.statusState, cleanUid);
       return evaluated;
     }
 
@@ -709,6 +715,7 @@ export class MercadoPagoSubscriptionService {
     };
 
     memorySubscriptionsByUid.set(cleanUid, initial);
+    setProPlanTier(initial.tier, initial.statusState, cleanUid);
     return initial;
   }
 
@@ -716,6 +723,9 @@ export class MercadoPagoSubscriptionService {
     const evaluated = this.evaluateEffectiveEntitlement(record, Date.now());
     evaluated.updatedAt = Date.now();
     memorySubscriptionsByUid.set(evaluated.uid, evaluated);
+    if (evaluated.uid) {
+      setProPlanTier(evaluated.tier, evaluated.statusState, evaluated.uid);
+    }
 
     try {
       await setDoc(
@@ -913,7 +923,7 @@ export class MercadoPagoSubscriptionService {
           firstTrialStartedAt: userRecord.firstTrialStartedAt,
           firstTrialPreapprovalId: userRecord.firstTrialPreapprovalId,
           requestedPlanId: chosenPlan.planId,
-          note: 'Prevenção de abuso por conta (UID): conta já utilizou o período de 7 dias gratuitos anteriormente. Novo trial bloqueado automaticamente.',
+          note: 'Prevenção de abuso por conta (UID): conta já utilizou o período de 3 dias gratuitos anteriormente. Novo trial bloqueado automaticamente.',
         },
         uid
       );
@@ -940,14 +950,14 @@ export class MercadoPagoSubscriptionService {
         status: 503,
         code: 'CONTRACTING_BLOCKED_PENDING_MP_HOMOLOGATION',
         message:
-          'Contratação bloqueada preventivamente (Fail-Closed): a validação das 10 etapas do período de teste gratuito (7 dias) na API de homologação do Mercado Pago ainda está pendente. Nenhuma cobrança foi gerada e nenhum acesso PRO simulado foi concedido.',
+          'Contratação bloqueada preventivamente (Fail-Closed): a validação das 10 etapas do período de teste gratuito (3 dias) na API de homologação do Mercado Pago ainda está pendente. Nenhuma cobrança foi gerada e nenhum acesso PRO simulado foi concedido.',
         preview: {
           planName: chosenPlan.name,
           price: chosenPlan.price,
           currency: 'BRL',
           frequencyLabel: chosenPlan.frequency === 12 ? 'Anual (a cada 12 meses)' : 'Mensal (a cada 1 mês)',
           trialEligible: eligibleForFreeTrial,
-          trialDays: eligibleForFreeTrial ? 7 : 0,
+          trialDays: eligibleForFreeTrial ? 3 : 0,
           firstPaymentDateConfirmedByMp: null,
           priceVersion: chosenPlan.priceVersion,
         },
@@ -1024,9 +1034,9 @@ export class MercadoPagoSubscriptionService {
       };
     }
 
-    // If eligible for 7-day free trial, strictly verify free_trial and next_payment_date from Mercado Pago API response
+    // If eligible for 3-day free trial, strictly verify free_trial and next_payment_date from Mercado Pago API response
     if (eligibleForFreeTrial) {
-      const trialCheck = this.verifySevenDayFreeTrialFromMpResponse(mpData, nowMs);
+      const trialCheck = this.verifyThreeDayFreeTrialFromMpResponse(mpData, nowMs);
       if (!trialCheck.valid) {
         // Cancel immediately on MP if created without proper trial and block contracting
         await transport.updatePreapproval(String(mpData.id), this.buildOfficialCancelPayload()).catch(() => {});
@@ -1071,7 +1081,7 @@ export class MercadoPagoSubscriptionService {
       frequency: chosenPlan.frequency,
       frequencyType: 'months',
       trialApplied: eligibleForFreeTrial,
-      trialDaysGranted: eligibleForFreeTrial ? 7 : 0,
+      trialDaysGranted: eligibleForFreeTrial ? 3 : 0,
       firstPaymentDate: mpData.next_payment_date || null,
       nextPaymentDate: mpData.next_payment_date || null,
       acceptedTermsVersion: '1.0.0',
@@ -1111,7 +1121,7 @@ export class MercadoPagoSubscriptionService {
         currency: 'BRL',
         frequencyLabel: chosenPlan.frequency === 12 ? 'Anual (a cada 12 meses)' : 'Mensal (a cada 1 mês)',
         trialEligible: eligibleForFreeTrial,
-        trialDays: eligibleForFreeTrial ? 7 : 0,
+        trialDays: eligibleForFreeTrial ? 3 : 0,
         firstPaymentDateConfirmedByMp: mpData.next_payment_date || null,
         priceVersion: chosenPlan.priceVersion,
       },
@@ -1220,7 +1230,7 @@ export class MercadoPagoSubscriptionService {
 
   /**
    * Applies official Mercado Pago `preapproval` response data to the user's record,
-   * enforcing 7-day trial validation, post-cancellation retention, and per-account trial consumption tracking.
+   * enforcing 3-day trial validation, post-cancellation retention, and per-account trial consumption tracking.
    */
   private async applyMpPreapprovalStateToUserRecord(
     userRecord: UserSubscriptionRecord,
@@ -1244,8 +1254,8 @@ export class MercadoPagoSubscriptionService {
 
     if (remoteStatus === 'authorized') {
       if (next.trialApplied && chargedQuantity === 0) {
-        // Verify 7-day free trial date integrity from Mercado Pago response
-        const trialValidation = this.verifySevenDayFreeTrialFromMpResponse(mpData, dateCreatedMs);
+        // Verify 3-day free trial date integrity from Mercado Pago response
+        const trialValidation = this.verifyThreeDayFreeTrialFromMpResponse(mpData, dateCreatedMs);
         if (!trialValidation.valid) {
           next.tier = 'FREE';
           next.statusState = 'PENDING';
@@ -1310,7 +1320,7 @@ export class MercadoPagoSubscriptionService {
     }
 
     const saved = await this.saveUserSubscriptionRecord(next);
-    setProPlanTier(saved.tier, saved.statusState);
+    setProPlanTier(saved.tier, saved.statusState, saved.uid);
     return saved;
   }
 
@@ -1365,7 +1375,7 @@ export class MercadoPagoSubscriptionService {
     };
 
     const saved = await this.saveUserSubscriptionRecord(updated);
-    setProPlanTier(saved.tier, saved.statusState);
+    setProPlanTier(saved.tier, saved.statusState, saved.uid);
 
     const retainUntil =
       saved.trialApplied && saved.chargedQuantity === 0
@@ -1633,8 +1643,8 @@ export class MercadoPagoSubscriptionService {
       { stepNumber: 4, code: 'STEP_04_INITIAL_STATUS_PENDING', title: '4. Confirmação do status inicial "pending"' },
       { stepNumber: 5, code: 'STEP_05_AUTHORIZE_TEST_CHECKOUT', title: '5. Autorização do checkout de teste' },
       { stepNumber: 6, code: 'STEP_06_GET_PREAPPROVAL_BY_ID', title: '6. Consulta posterior via GET /preapproval/{id}' },
-      { stepNumber: 7, code: 'STEP_07_VERIFY_FREE_TRIAL_AND_NEXT_PAYMENT', title: '7. Verificação de free_trial (7 days) e next_payment_date (+7 dias)' },
-      { stepNumber: 8, code: 'STEP_08_NO_CHARGE_BEFORE_7_DAYS', title: '8. Confirmação de que nenhuma cobrança ocorre antes do fim dos 7 dias' },
+      { stepNumber: 7, code: 'STEP_07_VERIFY_FREE_TRIAL_AND_NEXT_PAYMENT', title: '7. Verificação de free_trial (3 days) e next_payment_date (+3 dias)' },
+      { stepNumber: 8, code: 'STEP_08_NO_CHARGE_BEFORE_3_DAYS', title: '8. Confirmação de que nenhuma cobrança ocorre antes do fim dos 3 dias' },
       { stepNumber: 9, code: 'STEP_09_CANCEL_DURING_TRIAL', title: '9. Cancelamento durante o teste (PUT /preapproval/{id} { status: "cancelled" })' },
       { stepNumber: 10, code: 'STEP_10_CANCEL_STOPS_FUTURE_CHARGES', title: '10. Confirmação de interrupção de cobranças futuras mantendo acesso até o fim do teste' },
     ];
@@ -1820,7 +1830,7 @@ export class MercadoPagoSubscriptionService {
                 transaction_amount: monthly.price,
                 currency_id: monthly.currency,
                 free_trial: {
-                  frequency: 7,
+                  frequency: 3,
                   frequency_type: 'days',
                 },
               },
@@ -1876,8 +1886,8 @@ export class MercadoPagoSubscriptionService {
       verifiedAt: Date.now(),
     });
 
-    // Step 7 & Step 8: Verify free_trial (7 days) + next_payment_date (+7 days) + zero immediate charge
-    const trialValidation = this.verifySevenDayFreeTrialFromMpResponse(getData, authStartMs);
+    // Step 7 & Step 8: Verify free_trial (3 days) + next_payment_date (+3 days) + zero immediate charge
+    const trialValidation = this.verifyThreeDayFreeTrialFromMpResponse(getData, authStartMs);
     steps.push({
       ...stepTitles[6],
       status: trialValidation.valid ? 'PASSED' : 'FAILED',
@@ -1895,8 +1905,8 @@ export class MercadoPagoSubscriptionService {
       status: trialValidation.noImmediateCharge && trialValidation.valid ? 'PASSED' : 'FAILED',
       details:
         trialValidation.noImmediateCharge && trialValidation.valid
-          ? 'Confirmado: charged_quantity = 0, charged_amount = 0 e primeira cobrança somente após os 7 dias.'
-          : 'Não foi possível comprovar ausência de cobrança nos 7 dias.',
+          ? 'Confirmado: charged_quantity = 0, charged_amount = 0 e primeira cobrança somente após os 3 dias.'
+          : 'Não foi possível comprovar ausência de cobrança nos 3 dias.',
       evidence: {
         charged_quantity: getData?.summarized?.charged_quantity ?? 0,
         charged_amount: getData?.summarized?.charged_amount ?? 0,
@@ -2039,7 +2049,7 @@ export class MercadoPagoSubscriptionService {
       annualPrice: nextAnnual,
       trialOfferEnabled: nextTrialOffer,
       priceVersion: nextVersion,
-      priceDisplay: `R$ ${nextMonthly.toFixed(2).replace('.', ',')}/mês ou R$ ${nextAnnual.toFixed(2).replace('.', ',')}/ano${nextTrialOffer ? ' (7 dias grátis)' : ''}`,
+      priceDisplay: `R$ ${nextMonthly.toFixed(2).replace('.', ',')}/mês ou R$ ${nextAnnual.toFixed(2).replace('.', ',')}/ano${nextTrialOffer ? ' (3 dias grátis)' : ''}`,
     });
 
     await recordAuditLog(

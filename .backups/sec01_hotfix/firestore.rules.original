@@ -1,0 +1,269 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net: Default-deny all unspecified operations
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation for UserProfile & Backend-Verified Subscription State
+    function isValidUserProfile(data, userId) {
+      return data.uid == userId
+        && data.email is string
+        && data.email.size() <= 256
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128))
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1024))
+        && (
+          !('statusState' in data)
+          || data.statusState in ['FREE', 'PENDING', 'PAST_DUE', 'CANCELED', 'EXPIRED']
+          || (
+            data.statusState == 'ACTIVE'
+            && 'mpPreapprovalId' in data
+            && data.mpPreapprovalId is string
+            && data.mpPreapprovalId.size() > 0
+            && 'mpExternalReference' in data
+            && data.mpExternalReference == userId
+          )
+        );
+    }
+
+    // Validation for RaffleDocument
+    function isValidRaffle(data, userId) {
+      return data.userId == userId
+        && data.userId == request.auth.uid
+        && data.settings is map
+        && data.participants is list
+        && data.participants.size() <= 10000
+        && (!('winners' in data) || data.winners is list);
+    }
+
+    // User Profile & Subscription State Rules
+    match /users/{userId} {
+      allow get, list: if isValidId(userId) || true;
+      allow create: if isValidId(userId) && isValidUserProfile(incoming(), userId);
+      allow update: if isValidId(userId) && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid;
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      // Subcollection: Saved Raffles for this organizer
+      match /raffles/{raffleId} {
+        allow get, list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(raffleId) && isValidRaffle(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(raffleId) && isValidRaffle(incoming(), userId)
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(raffleId);
+      }
+
+      // Subcollection: Permanent organizer raffle settings
+      match /settings/{settingId} {
+        allow get, list, create, update, delete: if isValidId(userId) && isValidId(settingId);
+      }
+    }
+
+    // Public Raffles: Published by signed-in organizers for participants to search by code or host
+    match /public_raffles/{raffleCode} {
+      allow get, list: if true;
+      allow create: if isSignedIn() && isValidId(raffleCode) && incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(raffleCode) && incoming().userId == request.auth.uid && existing().userId == request.auth.uid;
+      allow delete: if isSignedIn() && isValidId(raffleCode) && existing().userId == request.auth.uid;
+    }
+
+    // ==========================================
+    // TIKTOK LIVE & CAMPAIGNS COLLECTIONS
+    // ==========================================
+
+    // TikTok LIVE Sessions and subcollections (events, streaks, participants, tickets, draws)
+    match /sessions/{sessionId} {
+      allow read: if true;
+      allow write: if true;
+
+      match /{subcollection=**} {
+        allow read: if true;
+        allow write: if true;
+      }
+    }
+
+    // Global Lifetime Participants (and participations subcollection)
+    match /global_participants/{tiktokUserId} {
+      allow read: if true;
+      allow write: if true;
+
+      match /{subcollection=**} {
+        allow read: if true;
+        allow write: if true;
+      }
+    }
+
+    // Special Campaigns (and sessions, tickets, snapshots, draws subcollections)
+    match /campaigns/{campaignId} {
+      allow read: if true;
+      allow write: if true;
+
+      match /{subcollection=**} {
+        allow read: if true;
+        allow write: if true;
+      }
+    }
+
+    // Draw Snapshots (and chunks subcollection for partitioned tickets)
+    match /draw_snapshots/{snapshotId} {
+      allow read: if true;
+      allow write: if true;
+
+      match /{subcollection=**} {
+        allow read: if true;
+        allow write: if true;
+      }
+    }
+
+    // Official Draws
+    match /draws/{drawId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Conversion Rules Versioning
+    match /ticket_rules/{ruleId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Audit Logs
+    match /audit_logs/{logId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // ==========================================
+    // LEGAL CENTER, LGPD, COOKIE CONSENT, SUPPORT & COMPLIANCE COLLECTIONS
+    // ==========================================
+
+    // Public Institutional & Legal Documents (15 official pages)
+    match /legal_documents/{slug} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Immutable Archived Legal Document Versions
+    match /legal_document_versions/{versionId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Explicit User Document Acceptances (Registration, PRO Activation, Policy Updates)
+    match /document_acceptances/{acceptanceId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // LGPD Cookie Consent Records
+    match /cookie_consents/{consentId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // LGPD Data Subject Requests (Access, Correction, Deletion, Portability, Revocation)
+    match /lgpd_requests/{requestId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Support & Help Center Tickets with Protocol
+    match /support_tickets/{ticketId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Configurable Company & Legal Settings (Admin)
+    match /company_settings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Configurable Commercial Subscription Settings (Admin)
+    match /subscription_settings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Idempotent Mercado Pago Subscription Webhooks Log
+    match /subscription_webhooks/{webhookId} {
+      allow read: if true;
+      allow create, update: if webhookId is string
+        && incoming().webhookId == webhookId
+        && incoming().dataId is string
+        && incoming().processedAt is int;
+      allow delete: if false;
+    }
+
+    // OAuth 2.0 CSRF State Store (Shared across Cloud Run instances)
+    // Enumeration (list) is strictly forbidden; only exact SHA-256 hash lookup is allowed.
+    // Enforces both numeric `expiresAt` (validated in all operations) and `ttlExpireAt` (Firestore TTL policy Timestamp).
+    match /oauth_states/{stateHash} {
+      allow get: if stateHash is string && stateHash.size() == 64 && stateHash.matches('^[a-f0-9]{64}$');
+      allow list: if false;
+      allow create: if stateHash is string && stateHash.size() == 64 && stateHash.matches('^[a-f0-9]{64}$')
+        && incoming().stateHash == stateHash
+        && incoming().expiresAt is int
+        && incoming().ttlExpireAt is timestamp
+        && incoming().consumed == false;
+      allow update: if stateHash is string && stateHash.size() == 64 && stateHash.matches('^[a-f0-9]{64}$')
+        && existing().consumed == false
+        && incoming().consumed == true;
+      allow delete: if stateHash is string && stateHash.size() == 64 && stateHash.matches('^[a-f0-9]{64}$');
+    }
+
+    // OAuth 2.0 Persistent Encrypted Sessions (AES-256-GCM encrypted tokens with exclusive 256-bit key)
+    // Enumeration (list) is strictly forbidden; only exact SHA-256 session token hash lookup is allowed.
+    // Enforces `sessionExpiresAt`, `refreshTokenExpiresAt`, and `ttlExpireAt` (Firestore TTL policy Timestamp).
+    match /oauth_sessions/{sessionIdHash} {
+      allow get: if sessionIdHash is string && sessionIdHash.size() == 64 && sessionIdHash.matches('^[a-f0-9]{64}$');
+      allow list: if false;
+      allow create, update: if sessionIdHash is string && sessionIdHash.size() == 64 && sessionIdHash.matches('^[a-f0-9]{64}$')
+        && incoming().sessionIdHash == sessionIdHash
+        && incoming().sessionExpiresAt is int
+        && incoming().refreshTokenExpiresAt is int
+        && incoming().ttlExpireAt is timestamp
+        && incoming().encryptedAccessToken is map
+        && incoming().encryptedRefreshToken is map
+        && incoming().encryptedAccessToken.algorithm == 'aes-256-gcm'
+        && incoming().encryptedAccessToken.keySource == 'SECRET_MANAGER_OAUTH_KEY';
+      allow delete: if sessionIdHash is string && sessionIdHash.size() == 64 && sessionIdHash.matches('^[a-f0-9]{64}$');
+    }
+
+    // TikTok LIVE Diagnostic Events Collection (Dedicated observational storage with 24h TTL)
+    // Completely separated from raffle tickets and financial accounting.
+    // Enforces `expiresAt` (int) and `ttlExpireAt` (Firestore native TTL timestamp).
+    match /tiktok_live_diagnostic_events/{traceId} {
+      allow read: if true;
+      allow create, update: if traceId is string
+        && incoming().traceId == traceId
+        && incoming().expiresAt is int
+        && incoming().ttlExpireAt is timestamp;
+      allow delete: if true;
+    }
+  }
+}
+
+

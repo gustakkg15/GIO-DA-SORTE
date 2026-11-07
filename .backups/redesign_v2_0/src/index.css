@@ -1,0 +1,190 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Direção 3 Oficial — Grafite e Jade */
+    --color-grafite-profundo: #171D1C;
+    --color-grafite-secundario: #222B28;
+    --color-grafite-elevado: #2A3531;
+    --color-borda-grafite: #313D39;
+    --color-marfim: #EAE7DE;
+    --color-marfim-secundario: #9BA8A3;
+    --color-jade: #6EAA90;
+    --color-jade-hover: #5C967D;
+    --color-latao: #C6A56A;
+    --color-latao-suave: rgba(198, 165, 106, 0.16);
+
+    /* Variáveis preservadas para compatibilidade de componentes especiais (OBS, Roleta) */
+    --color-metallic-red: #6EAA90;
+    --color-metallic-red-bright: #82B9A1;
+    --color-metallic-red-light: #C6A56A;
+    --color-metallic-red-deep: #4E856D;
+  }
+
+  html {
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+    background-color: #171D1C;
+  }
+
+  body {
+    font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+    background-color: #171D1C;
+    color: #EAE7DE;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-display, .font-editorial, .font-body {
+    font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.015em;
+  }
+
+  .font-mono, .tabular-nums {
+    font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Indicador de foco acessível em Jade */
+  :focus-visible {
+    outline: 2px solid #6EAA90;
+    outline-offset: 2px;
+  }
+}
+
+/* ==========================================================================
+   Superfícies Grafite e Jade (Discretas, sem neon e sem sombras pesadas)
+   ========================================================================== */
+
+.studio-canvas {
+  background-color: #171D1C;
+}
+
+.studio-card {
+  background: #222B28;
+  border: 1px solid #313D39;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+}
+
+.studio-card:hover {
+  border-color: #3E4D48;
+}
+
+.studio-card-interactive {
+  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.studio-card-interactive:hover {
+  border-color: #6EAA90;
+  background: #26302D;
+}
+
+/* ==========================================================================
+   Animações de Entrada Suaves
+   ========================================================================== */
+
+@keyframes modalBackdropFadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes modalContentSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes cardEntranceSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: modalBackdropFadeIn 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-up {
+  animation: modalContentSlideUp 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-card-enter {
+  animation: cardEntranceSlideUp 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Máscara de Bilhete (Preservada para Cartão de Vitória e Impressão) */
+.ticket-notch {
+  -webkit-mask:
+    radial-gradient(circle 14px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle 14px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+  mask:
+    radial-gradient(circle 14px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle 14px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+}
+
+.ticket-notch-lg {
+  -webkit-mask:
+    radial-gradient(circle 20px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle 20px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+  mask:
+    radial-gradient(circle 20px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle 20px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { transform: scale(1); opacity: 0.92; }
+  50% { transform: scale(1.01); opacity: 1; }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s infinite ease-in-out;
+}
+
+/* Barras de Rolagem Discretas em Grafite */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #171D1C;
+}
+::-webkit-scrollbar-thumb {
+  background: #313D39;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #485953;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

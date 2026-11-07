@@ -1,181 +1,349 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @layer base {
   :root {
-    /* Direção 3 Oficial — Grafite e Jade */
-    --color-grafite-profundo: #171D1C;
-    --color-grafite-secundario: #222B28;
-    --color-grafite-elevado: #2A3531;
-    --color-borda-grafite: #313D39;
-    --color-marfim: #EAE7DE;
-    --color-marfim-secundario: #9BA8A3;
-    --color-jade: #6EAA90;
-    --color-jade-hover: #5C967D;
-    --color-latao: #C6A56A;
-    --color-latao-suave: rgba(198, 165, 106, 0.16);
+    /* Official GIO DA SORTE Visual System Palette */
+    --bg-primary: #050D20;
+    --bg-secondary: #0B1730;
+    --bg-card: #101F3D;
+    --bg-elevated: #182943;
 
-    /* Variáveis preservadas para compatibilidade de componentes especiais (OBS, Roleta) */
-    --color-metallic-red: #6EAA90;
-    --color-metallic-red-bright: #82B9A1;
-    --color-metallic-red-light: #C6A56A;
-    --color-metallic-red-deep: #4E856D;
+    /* Dominant Blue Spectrum */
+    --accent-primary: #0866F5;
+    --accent-electric: #00A9FF;
+    --accent-light: #35B9F5;
+    --accent-secondary: #1E40AF;
+
+    /* Semantic Accents */
+    --color-pro: #8B7CFF;
+    --color-pro-light: #C4B5FD;
+    --color-success: #20C997;
+    --color-gold: #F5B942;
+    --color-warning: #F59E0B;
+    --color-danger: #F05262;
+
+    /* Typography Hierarchy */
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
+
+    /* Borders & Structural Dividers */
+    --border-subtle: #182943;
+    --border-strong: rgba(53, 185, 245, 0.28);
+    --border-pro: rgba(139, 124, 255, 0.35);
+
+    /* Font Stacks */
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   }
 
   html {
-    overflow-x: hidden;
-    scroll-behavior: smooth;
-    -webkit-tap-highlight-color: transparent;
-    background-color: #171D1C;
-  }
-
-  body {
-    font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    overflow-x: hidden;
-    min-height: 100vh;
-    background-color: #171D1C;
-    color: #EAE7DE;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
 
-  h1, h2, h3, h4, h5, h6, .font-display, .font-editorial, .font-body {
-    font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
-    letter-spacing: -0.015em;
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+    line-height: 1.5;
   }
 
-  .font-mono, .tabular-nums {
-    font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  /* Enforce tabular-nums on all numeric, monospace, and metric elements */
+  .font-mono,
+  .tabular-nums,
+  code,
+  pre,
+  input[type="number"] {
+    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
   }
-
-  /* Indicador de foco acessível em Jade */
-  :focus-visible {
-    outline: 2px solid #6EAA90;
-    outline-offset: 2px;
-  }
 }
 
 /* ==========================================================================
-   Superfícies Grafite e Jade (Discretas, sem neon e sem sombras pesadas)
+   GIO DA SORTE — GLOBAL SAAS COMPONENT SYSTEM (PREMIUM EDITORIAL)
    ========================================================================== */
 
-.studio-canvas {
-  background-color: #171D1C;
+/* Surfaces & Cards */
+.gio-surface {
+  background-color: var(--bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0.875rem;
 }
 
-.studio-card {
-  background: #222B28;
-  border: 1px solid #313D39;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+.gio-card {
+  background-color: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 4px 20px -2px rgba(2, 8, 23, 0.65);
+  transition: border-color 200ms cubic-bezier(0.16, 1, 0.3, 1), 
+              background-color 200ms cubic-bezier(0.16, 1, 0.3, 1), 
+              transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.studio-card:hover {
-  border-color: #3E4D48;
+.gio-card-interactive {
+  cursor: pointer;
 }
 
-.studio-card-interactive {
+.gio-card-interactive:hover {
+  border-color: rgba(0, 169, 255, 0.4);
+  background-color: #122447;
+  transform: translateY(-1.5px);
+  box-shadow: 0 0 0 1px rgba(0, 169, 255, 0.2), 0 8px 28px -4px rgba(2, 8, 23, 0.8);
+}
+
+.gio-card-elevated {
+  background-color: var(--bg-elevated);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  box-shadow: 0 12px 32px -8px rgba(2, 8, 23, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.gio-card-pro {
+  background: linear-gradient(180deg, rgba(139, 124, 255, 0.08) 0%, rgba(16, 31, 61, 0.98) 100%);
+  border: 1px solid rgba(139, 124, 255, 0.35);
+  border-radius: 1rem;
+  box-shadow: 0 0 0 1px rgba(139, 124, 255, 0.15), 0 8px 24px -4px rgba(139, 124, 255, 0.14);
+}
+
+/* Standardized Buttons */
+.gio-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--accent-primary);
+  color: #FFFFFF;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 2px 12px rgba(8, 102, 245, 0.4);
   transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-
-.studio-card-interactive:hover {
-  border-color: #6EAA90;
-  background: #26302D;
+.gio-btn-primary:hover:not(:disabled) {
+  background-color: #0b72ff;
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 18px rgba(8, 102, 245, 0.55);
+  transform: translateY(-1px);
+}
+.gio-btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25), 0 1px 4px rgba(8, 102, 245, 0.3);
 }
 
-/* ==========================================================================
-   Animações de Entrada Suaves
-   ========================================================================== */
-
-@keyframes modalBackdropFadeIn {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+.gio-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: rgba(11, 23, 48, 0.9);
+  color: var(--text-primary);
+  font-weight: 600;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 3px rgba(2, 8, 23, 0.4);
+  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gio-btn-secondary:hover:not(:disabled) {
+  background-color: #14274E;
+  border-color: rgba(0, 169, 255, 0.35);
+  color: #FFFFFF;
+  transform: translateY(-1px);
+}
+.gio-btn-secondary:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
-@keyframes modalContentSlideUp {
-  0% {
+.gio-btn-pro {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #7C6BF2 0%, #6350E0 100%);
+  color: #FFFFFF;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(196, 181, 253, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 2px 14px rgba(124, 107, 242, 0.35);
+  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gio-btn-pro:hover:not(:disabled) {
+  background: linear-gradient(135deg, #8B7CFF 0%, #705DE8 100%);
+  border-color: rgba(196, 181, 253, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 4px 20px rgba(139, 124, 255, 0.45);
+  transform: translateY(-1px);
+}
+.gio-btn-pro:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.gio-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: rgba(240, 82, 98, 0.12);
+  color: var(--color-danger);
+  font-weight: 600;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(240, 82, 98, 0.32);
+  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gio-btn-danger:hover:not(:disabled) {
+  background-color: var(--color-danger);
+  border-color: var(--color-danger);
+  color: #FFFFFF;
+}
+
+/* Standardized Badges */
+.gio-badge-pro {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background-color: rgba(139, 124, 255, 0.14);
+  color: var(--color-pro-light);
+  border: 1px solid rgba(139, 124, 255, 0.38);
+}
+
+.gio-badge-free {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background-color: rgba(8, 102, 245, 0.12);
+  color: var(--accent-light);
+  border: 1px solid rgba(53, 185, 245, 0.3);
+}
+
+.gio-badge-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background-color: rgba(32, 201, 151, 0.14);
+  color: var(--color-success);
+  border: 1px solid rgba(32, 201, 151, 0.35);
+}
+
+.gio-badge-gold {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background-color: rgba(245, 185, 66, 0.14);
+  color: var(--color-gold);
+  border: 1px solid rgba(245, 185, 66, 0.4);
+}
+
+/* Standardized Inputs */
+.gio-input {
+  width: 100%;
+  background-color: #081226;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+.gio-input::placeholder {
+  color: rgba(148, 163, 184, 0.45);
+}
+.gio-input:focus {
+  outline: none;
+  background-color: #0B1730;
+  border-color: var(--accent-electric);
+  box-shadow: 0 0 0 3px rgba(0, 169, 255, 0.18);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #050D20;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #182943;
+  border-radius: 4px;
+  border: 2px solid #050D20;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0866F5;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(5, 13, 32, 0.4);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #182943;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #00A9FF;
+}
+
+/* Subtle Functional Animations */
+@keyframes fadeIn {
+  from {
     opacity: 0;
-    transform: translateY(14px) scale(0.98);
+    transform: translateY(4px);
   }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes cardEntranceSlideUp {
-  0% {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  100% {
+  to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
 .animate-fade-in {
-  animation: modalBackdropFadeIn 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.animate-slide-up {
-  animation: modalContentSlideUp 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-card-enter {
-  animation: cardEntranceSlideUp 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Máscara de Bilhete (Preservada para Cartão de Vitória e Impressão) */
-.ticket-notch {
-  -webkit-mask:
-    radial-gradient(circle 14px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
-    radial-gradient(circle 14px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
-  mask:
-    radial-gradient(circle 14px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
-    radial-gradient(circle 14px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
-}
-
-.ticket-notch-lg {
-  -webkit-mask:
-    radial-gradient(circle 20px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
-    radial-gradient(circle 20px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
-  mask:
-    radial-gradient(circle 20px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
-    radial-gradient(circle 20px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
-}
-
-@keyframes pulse-subtle {
-  0%, 100% { transform: scale(1); opacity: 0.92; }
-  50% { transform: scale(1.01); opacity: 1; }
-}
-
-.animate-pulse-subtle {
-  animation: pulse-subtle 3s infinite ease-in-out;
-}
-
-/* Barras de Rolagem Discretas em Grafite */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #171D1C;
-}
-::-webkit-scrollbar-thumb {
-  background: #313D39;
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #485953;
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+/* Accessibility Focus Ring */
+:focus-visible {
+  outline: 2px solid #00A9FF;
+  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -187,4 +355,22 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ==========================================================================
+   LIGHT THEME OVERRIDES (data-theme="light")
+   ========================================================================== */
+html[data-theme="light"] {
+  --bg-primary: #F8FAFC;
+  --bg-secondary: #F1F5F9;
+  --bg-card: #FFFFFF;
+  --bg-elevated: #E2E8F0;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --border-subtle: #CBD5E1;
+}
+
+html[data-theme="light"] body {
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
 }

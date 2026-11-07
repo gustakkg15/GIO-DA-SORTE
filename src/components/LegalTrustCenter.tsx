@@ -61,6 +61,7 @@ import {
   saveCommercialSubscriptionConfig,
   HELP_FAQ_ITEMS,
 } from '../utils/legalAndComplianceService';
+import { getAuthBearerHeaders } from '../utils/tiktokLiveService';
 
 interface LegalTrustCenterProps {
   initialSlug?: LegalDocumentSlug;
@@ -369,28 +370,28 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
   }, [faqQuery]);
 
   return (
-    <div className="space-y-6">
-      {/* Official Header Banner with Logo Neon G PRO em Bilhete */}
-      <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-[#050814] via-[#0A1128] to-[#0F172A] border border-[#E11D48]/40 shadow-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+    <div className="space-y-6 min-w-0 animate-fade-in">
+      {/* Official Header Banner with Clean Vector Emblem */}
+      <div className="p-6 sm:p-7 rounded-2xl bg-[#081226] border border-white/[0.08] shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-5">
         <div className="flex items-center gap-4">
           <img
-            src="/logo.png"
-            alt="GIO DA SORTE PRO"
-            className="w-14 h-14 object-contain shrink-0 drop-shadow-[0_0_12px_rgba(225,29,72,0.35)]"
+            src="/icon.svg"
+            alt="GIO DA SORTE"
+            className="w-14 h-14 object-contain shrink-0 drop-shadow-[0_0_12px_rgba(0,169,255,0.35)]"
           />
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest px-2.5 py-0.5 rounded bg-[#E11D48]/20 text-[#FDA4AF] border border-[#E11D48]/40">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest px-2.5 py-0.5 rounded bg-[#0866F5]/20 text-[#35B9F5] border border-[#0866F5]/40">
                 Acesso Público • Transparência & Conformidade
               </span>
-              <span className="text-[10px] font-mono text-emerald-300 bg-emerald-950/60 border border-emerald-700/50 px-2 py-0.5 rounded">
+              <span className="text-[10px] font-mono text-[#20C997] bg-[#20C997]/15 border border-[#20C997]/40 px-2 py-0.5 rounded">
                 15 Documentos Institucionais Ativos
               </span>
             </div>
-            <h1 className="text-lg sm:text-2xl font-display font-black text-white mt-1">
-              Central Legal, Privacidade (LGPD) e Confiança — GIO DA SORTE PRO
+            <h1 className="text-lg sm:text-2xl font-display font-black text-[#F8FAFC] mt-1">
+              Central Legal, Privacidade (LGPD) e Confiança — GIO DA SORTE
             </h1>
-            <p className="text-xs text-blue-100/80 mt-0.5">
+            <p className="text-xs text-[#94A3B8] mt-0.5">
               Consulte nossos termos, regulamentos de sorteios, política de privacidade, aviso de independência do TikTok, suporte com protocolo e portal do titular de dados.
             </p>
           </div>
@@ -401,39 +402,39 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
           <button
             type="button"
             onClick={() => setPortalTab('documents')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
               portalTab === 'documents'
-                ? 'bg-gradient-to-r from-[#E11D48] to-[#BE123C] text-white shadow-md'
-                : 'bg-[#050814] text-slate-300 hover:text-white border border-blue-900/60'
+                ? 'gio-btn-primary shadow-xs'
+                : 'bg-[#101F3D] text-[#94A3B8] hover:text-[#F8FAFC] border border-white/[0.08]'
             }`}
           >
-            <Scale className="w-3.5 h-3.5" />
+            <Scale className="w-4 h-4" />
             <span>Documentos & Políticas (15)</span>
           </button>
 
           <button
             type="button"
             onClick={() => setPortalTab('privacy_lgpd')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
               portalTab === 'privacy_lgpd'
-                ? 'bg-gradient-to-r from-[#E11D48] to-[#BE123C] text-white shadow-md'
-                : 'bg-[#050814] text-slate-300 hover:text-white border border-blue-900/60'
+                ? 'gio-btn-primary shadow-xs'
+                : 'bg-[#101F3D] text-[#94A3B8] hover:text-[#F8FAFC] border border-white/[0.08]'
             }`}
           >
-            <ShieldCheck className="w-3.5 h-3.5" />
+            <ShieldCheck className="w-4 h-4" />
             <span>Minha Privacidade (LGPD)</span>
           </button>
 
           <button
             type="button"
             onClick={() => setPortalTab('help_support')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
               portalTab === 'help_support'
-                ? 'bg-gradient-to-r from-[#E11D48] to-[#BE123C] text-white shadow-md'
-                : 'bg-[#050814] text-slate-300 hover:text-white border border-blue-900/60'
+                ? 'gio-btn-primary shadow-xs'
+                : 'bg-[#101F3D] text-[#94A3B8] hover:text-[#F8FAFC] border border-white/[0.08]'
             }`}
           >
-            <HelpCircle className="w-3.5 h-3.5" />
+            <HelpCircle className="w-4 h-4" />
             <span>Ajuda, FAQ & Suporte</span>
           </button>
 
@@ -441,13 +442,13 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
             <button
               type="button"
               onClick={() => setPortalTab('admin_legal')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
                 portalTab === 'admin_legal'
-                  ? 'bg-gradient-to-r from-amber-600 to-[#E11D48] text-white shadow-md'
-                  : 'bg-[#050814] text-[#FDA4AF] hover:text-white border border-[#E11D48]/50'
+                  ? 'bg-gradient-to-r from-[#F5B942] to-[#E5A932] text-[#050D20] shadow-md'
+                  : 'bg-[#101F3D] text-[#F5B942] hover:text-[#F8FAFC] border border-[#F5B942]/40'
               }`}
             >
-              <Lock className="w-3.5 h-3.5" />
+              <Lock className="w-4 h-4" />
               <span>ADMINISTRAÇÃO JURÍDICA</span>
             </button>
           )}
@@ -459,17 +460,17 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
         <div
           className={`p-3.5 rounded-xl border text-xs flex items-center justify-between gap-3 ${
             feedbackBanner.type === 'success'
-              ? 'bg-emerald-950/60 border-emerald-700/60 text-emerald-200'
+              ? 'bg-[#20C997]/15 border-[#20C997]/50 text-[#F8FAFC]'
               : feedbackBanner.type === 'warning'
-              ? 'bg-amber-950/60 border-amber-700/60 text-amber-200'
-              : 'bg-rose-950/60 border-rose-700/60 text-rose-200'
+              ? 'bg-[#F5B942]/15 border-[#F5B942]/50 text-[#F8FAFC]'
+              : 'bg-[#F05262]/15 border-[#F05262]/50 text-[#F8FAFC]'
           }`}
         >
           <span>{feedbackBanner.text}</span>
           <button
             type="button"
             onClick={() => setFeedbackBanner(null)}
-            className="text-slate-400 hover:text-white px-2 py-0.5"
+            className="text-[#94A3B8] hover:text-[#F8FAFC] px-2 py-0.5 cursor-pointer"
           >
             ✕
           </button>
@@ -482,14 +483,14 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
       {portalTab === 'documents' && activeDocument && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Mobile Document Selector & Table of Contents */}
-          <div className="lg:hidden space-y-3 p-4 rounded-2xl bg-[#0A1128] border border-blue-900/70">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#FDA4AF]">
+          <div className="lg:hidden space-y-3 p-4 rounded-2xl bg-[#101F3D] border border-[#182943]">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#35B9F5]">
               Selecionar Documento Institucional (15 páginas públicas):
             </label>
             <select
               value={selectedSlug}
               onChange={(e) => setSelectedSlug(e.target.value as LegalDocumentSlug)}
-              className="w-full px-3 py-2.5 rounded-xl bg-[#050814] border border-blue-800 text-xs font-bold text-white"
+              className="w-full px-3 py-2.5 rounded-xl bg-[#050D20] border border-[#182943] text-xs font-bold text-[#F8FAFC]"
             >
               {orderedDocuments.map((docItem, idx) => (
                 <option key={docItem.slug} value={docItem.slug}>
@@ -498,8 +499,8 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
               ))}
             </select>
 
-            <div className="pt-2 border-t border-blue-900/50">
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+            <div className="pt-2 border-t border-[#182943]">
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-1.5">
                 Índice Rápido desta Página:
               </span>
               <div className="flex flex-wrap gap-1.5">
@@ -507,7 +508,7 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                   <a
                     key={sec.id}
                     href={`#sec-${sec.id}`}
-                    className="text-[11px] px-2.5 py-1 rounded-lg bg-[#050814] text-blue-200 border border-blue-900/60 hover:border-[#E11D48]"
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-[#050D20] text-[#35B9F5] border border-[#182943] hover:border-[#00A9FF]"
                   >
                     {sec.title}
                   </a>
@@ -518,12 +519,12 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
 
           {/* Desktop Left Sidebar: 15 Pages Navigation + Section TOC */}
           <aside className="hidden lg:block lg:col-span-4 space-y-4 sticky top-20">
-            <div className="p-4 rounded-2xl bg-[#0A1128] border border-blue-900/70 space-y-2">
-              <div className="flex items-center justify-between pb-2 border-b border-blue-900/60">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#FDA4AF]">
+            <div className="p-4 rounded-2xl gio-card space-y-2">
+              <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#35B9F5]">
                   15 Páginas Institucionais
                 </span>
-                <span className="text-[10px] font-mono text-slate-400">Público</span>
+                <span className="text-[10px] font-mono text-[#94A3B8]">Público</span>
               </div>
               <div className="space-y-1 max-h-[440px] overflow-y-auto pr-1">
                 {orderedDocuments.map((docItem, idx) => {
@@ -533,10 +534,10 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                       key={docItem.slug}
                       type="button"
                       onClick={() => setSelectedSlug(docItem.slug)}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs transition flex items-center justify-between gap-2 ${
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs transition flex items-center justify-between gap-2 cursor-pointer ${
                         isSelected
-                          ? 'bg-gradient-to-r from-[#1E3A8A] to-[#E11D48]/80 text-white font-bold shadow-sm'
-                          : 'text-slate-300 hover:text-white hover:bg-[#050814]/60'
+                          ? 'bg-[#0866F5] text-white font-bold shadow-xs'
+                          : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-white/[0.05]'
                       }`}
                     >
                       <span className="truncate">
@@ -552,8 +553,8 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
             </div>
 
             {/* Desktop Section Anchor Index */}
-            <div className="p-4 rounded-2xl bg-[#0A1128] border border-blue-900/70 space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-blue-300 block">
+            <div className="p-4 rounded-2xl gio-card space-y-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#35B9F5] block">
                 Sumário da Página Atual
               </span>
               <div className="space-y-1.5 text-xs">
@@ -561,7 +562,7 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                   <a
                     key={sec.id}
                     href={`#sec-${sec.id}`}
-                    className="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-[#FDA4AF] hover:bg-[#050814]/70 transition"
+                    className="block px-2.5 py-1.5 rounded-lg text-[#94A3B8] hover:text-[#35B9F5] hover:bg-white/[0.05] transition"
                   >
                     {sec.title}
                   </a>
@@ -571,28 +572,28 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
           </aside>
 
           {/* Main Document Content Reader */}
-          <article className="lg:col-span-8 p-6 sm:p-8 rounded-2xl bg-[#0A1128] border border-[#E11D48]/35 shadow-xl space-y-6">
+          <article className="lg:col-span-8 p-6 sm:p-8 rounded-2xl gio-card space-y-6">
             {/* Document Metadata Header */}
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-blue-900/70 pb-5">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-white/[0.08] pb-5">
               <div className="space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[10px] font-mono font-bold uppercase px-2.5 py-0.5 rounded bg-[#E11D48]/20 text-[#FDA4AF] border border-[#E11D48]/40">
+                  <span className="text-[10px] font-mono font-bold uppercase px-2.5 py-0.5 rounded bg-[#0866F5]/20 text-[#35B9F5] border border-[#0866F5]/40">
                     Categoria: {activeDocument.category}
                   </span>
-                  <span className="text-[10px] font-mono px-2.5 py-0.5 rounded bg-[#050814] text-blue-300 border border-blue-800">
+                  <span className="text-[10px] font-mono px-2.5 py-0.5 rounded bg-[#081226] text-[#35B9F5] border border-white/[0.08]">
                     Versão {activeDocument.version}
                   </span>
                   {activeDocument.isMandatoryAcceptance && (
-                    <span className="text-[10px] font-mono px-2.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-700/60">
+                    <span className="text-[10px] font-mono px-2.5 py-0.5 rounded bg-[#F5B942]/15 text-[#F5B942] border border-[#F5B942]/40">
                       Aceite Obrigatório
                     </span>
                   )}
                 </div>
-                <h2 className="text-xl sm:text-2xl font-display font-black text-white">
+                <h2 className="text-xl sm:text-2xl font-display font-black text-[#F8FAFC]">
                   {activeDocument.title}
                 </h2>
-                <p className="text-xs sm:text-sm text-blue-200/80">{activeDocument.subtitle}</p>
-                <div className="flex flex-wrap items-center gap-4 pt-1 text-[11px] font-mono text-slate-400">
+                <p className="text-xs sm:text-sm text-[#94A3B8]">{activeDocument.subtitle}</p>
+                <div className="flex flex-wrap items-center gap-4 pt-1 text-[11px] font-mono text-[#64748B]">
                   <span>
                     Publicado em: {new Date(activeDocument.publishedAt).toLocaleDateString('pt-BR')}
                   </span>
@@ -609,16 +610,16 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="px-3 py-2 rounded-xl bg-[#050814] hover:bg-blue-950 text-slate-200 border border-blue-800 text-xs font-semibold transition flex items-center gap-1.5"
+                  className="px-3 py-2 rounded-xl bg-[#0B1730] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Printer className="w-3.5 h-3.5 text-[#FDA4AF]" />
+                  <Printer className="w-3.5 h-3.5 text-[#35B9F5]" />
                   <span>Imprimir / PDF</span>
                 </button>
                 {activeDocument.slug === 'politica-de-cookies' && onOpenCookieSettings && (
                   <button
                     type="button"
                     onClick={onOpenCookieSettings}
-                    className="px-3 py-2 rounded-xl bg-[#E11D48]/20 hover:bg-[#E11D48]/30 text-[#FDA4AF] border border-[#E11D48]/40 text-xs font-bold transition flex items-center gap-1.5"
+                    className="px-3 py-2 rounded-xl bg-[#0866F5]/20 hover:bg-[#0866F5]/30 text-[#35B9F5] border border-[#00A9FF]/40 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
                   >
                     <Cookie className="w-3.5 h-3.5" />
                     <span>Configurações de Cookies</span>
@@ -628,8 +629,8 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
             </div>
 
             {/* Executive Summary Box */}
-            <div className="p-4 rounded-xl bg-[#050814]/90 border border-blue-900/70 text-xs text-blue-100/90 leading-relaxed">
-              <strong className="text-[#FDA4AF] block mb-1 uppercase tracking-wider text-[10px]">
+            <div className="p-4 rounded-xl bg-[#0B1730] border border-[#182943] text-xs text-[#F8FAFC] leading-relaxed">
+              <strong className="text-[#35B9F5] block mb-1 uppercase tracking-wider text-[10px]">
                 Resumo Executivo do Documento:
               </strong>
               {activeDocument.summary}
@@ -641,12 +642,12 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                 <section
                   key={section.id}
                   id={`sec-${section.id}`}
-                  className="p-5 rounded-xl bg-[#050814]/60 border border-blue-900/40 space-y-2 scroll-mt-24"
+                  className="p-5 rounded-xl bg-[#0B1730] border border-[#182943] space-y-2 scroll-mt-24"
                 >
-                  <h3 className="text-sm sm:text-base font-display font-bold text-white">
+                  <h3 className="text-sm sm:text-base font-display font-bold text-[#F8FAFC]">
                     {section.title}
                   </h3>
-                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed whitespace-pre-line">
+                  <p className="text-xs sm:text-sm text-[#94A3B8] leading-relaxed whitespace-pre-line">
                     {section.content}
                   </p>
                 </section>
@@ -655,39 +656,39 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
 
             {/* Configurable Company Identification Footer inside Legal Documents */}
             {companySettings && (
-              <div className="p-4 rounded-xl bg-[#050814] border border-blue-900/60 text-xs space-y-2">
+              <div className="p-4 rounded-xl bg-[#0B1730] border border-[#182943] text-xs space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-[#FDA4AF] flex items-center gap-1.5">
+                  <span className="font-bold text-[#35B9F5] flex items-center gap-1.5">
                     <Building2 className="w-4 h-4" />
                     <span>Identificação Institucional e Canais Oficiais</span>
                   </span>
-                  <span className="text-[10px] font-mono text-slate-400">
+                  <span className="text-[10px] font-mono text-[#64748B]">
                     Configurável no Painel Administrativo
                   </span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-300">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-[#F8FAFC]">
                   <div>
-                    <strong className="text-slate-400">Nome Fantasia / Plataforma:</strong>{' '}
-                    {companySettings.nomeFantasia || 'GIO DA SORTE PRO'}
+                    <strong className="text-[#94A3B8]">Nome Fantasia / Plataforma:</strong>{' '}
+                    {companySettings.nomeFantasia || 'GIO DA SORTE'}
                   </div>
                   <div>
-                    <strong className="text-slate-400">Razão Social:</strong>{' '}
+                    <strong className="text-[#94A3B8]">Razão Social:</strong>{' '}
                     {companySettings.razaoSocial || 'Pendente de preenchimento administrativo'}
                   </div>
                   <div>
-                    <strong className="text-slate-400">CNPJ / Identificação Fiscal:</strong>{' '}
+                    <strong className="text-[#94A3B8]">CNPJ / Identificação Fiscal:</strong>{' '}
                     {companySettings.cnpj || companySettings.vatOrTaxId || 'Pendente de preenchimento administrativo'}
                   </div>
                   <div>
-                    <strong className="text-slate-400">E-mail de Atendimento:</strong>{' '}
+                    <strong className="text-[#94A3B8]">E-mail de Atendimento:</strong>{' '}
                     {companySettings.emailAtendimento || 'Utilize o formulário oficial na aba Suporte'}
                   </div>
                   <div>
-                    <strong className="text-slate-400">Encarregado de Dados (DPO):</strong>{' '}
+                    <strong className="text-[#94A3B8]">Encarregado de Dados (DPO):</strong>{' '}
                     {companySettings.dpoEncarregado || 'Canal disponível na aba Minha Privacidade (LGPD)'}
                   </div>
                   <div>
-                    <strong className="text-slate-400">Endereço Empresarial:</strong>{' '}
+                    <strong className="text-[#94A3B8]">Endereço Empresarial:</strong>{' '}
                     {companySettings.enderecoEmpresarial || 'Pendente de preenchimento administrativo'}
                   </div>
                 </div>
@@ -695,28 +696,28 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
             )}
 
             {/* Explicit Acceptance Box (Fase 11) */}
-            <div className="p-4 rounded-xl bg-gradient-to-r from-[#050814] to-[#0A1128] border border-[#E11D48]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="p-4 rounded-xl bg-gradient-to-r from-[#050D20] to-[#0B1730] border border-[#00A9FF]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <CheckCircle2
                     className={`w-4 h-4 ${
-                      userHasAcceptedActiveDoc ? 'text-emerald-400' : 'text-[#FDA4AF]'
+                      userHasAcceptedActiveDoc ? 'text-[#20C997]' : 'text-[#35B9F5]'
                     }`}
                   />
-                  <span className="text-xs font-bold text-white">
+                  <span className="text-xs font-bold text-[#F8FAFC]">
                     {userHasAcceptedActiveDoc
                       ? `Você já registrou aceite para a versão atual (${activeDocument.version}) deste documento.`
                       : `Registro de Ciência e Aceite Explícito (Versão ${activeDocument.version})`}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-[#94A3B8]">
                   O aceite registra data, hora, versão do documento e evidência técnica para fins de conformidade.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={handleAcceptActiveDocument}
-                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#E11D48] to-[#BE123C] hover:brightness-110 text-white text-xs font-bold shadow-md transition shrink-0"
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#0866F5] to-[#00A9FF] hover:brightness-110 text-[#F8FAFC] text-xs font-bold shadow-[0_6px_18px_rgba(8,102,245,0.35)] transition shrink-0 cursor-pointer"
               >
                 {userHasAcceptedActiveDoc ? 'Reconfirmar Aceite Desta Versão' : 'Registrar Meu Aceite Agora'}
               </button>
@@ -724,8 +725,8 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
 
             {/* Related Documents Links */}
             {activeDocument.relatedSlugs && activeDocument.relatedSlugs.length > 0 && (
-              <div className="pt-4 border-t border-blue-900/60 space-y-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+              <div className="pt-4 border-t border-[#182943] space-y-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#94A3B8] block">
                   Documentos Relacionados:
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -737,7 +738,7 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                         key={relSlug}
                         type="button"
                         onClick={() => setSelectedSlug(relSlug)}
-                        className="px-3 py-1.5 rounded-xl bg-[#050814] hover:bg-blue-950 text-[#FDA4AF] border border-blue-900/70 text-xs font-semibold transition flex items-center gap-1.5"
+                        className="px-3 py-1.5 rounded-xl bg-[#0B1730] hover:bg-[#182943] text-[#35B9F5] border border-[#182943] text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
                       >
                         <FileText className="w-3.5 h-3.5" />
                         <span>{relDoc.title}</span>
@@ -758,16 +759,16 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
       {portalTab === 'privacy_lgpd' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-7 space-y-6">
-            <div className="p-6 rounded-2xl bg-[#0A1128] border border-[#E11D48]/35 shadow-xl space-y-4">
-              <div className="flex items-center gap-3 border-b border-blue-900/60 pb-4">
-                <div className="w-10 h-10 rounded-xl bg-[#E11D48]/20 border border-[#E11D48]/40 flex items-center justify-center text-[#FDA4AF]">
+            <div className="p-6 rounded-2xl bg-[#101F3D] border border-[#182943] shadow-[0_12px_32px_rgba(2,8,23,0.45)] space-y-4">
+              <div className="flex items-center gap-3 border-b border-[#182943] pb-4">
+                <div className="w-10 h-10 rounded-xl bg-[#0866F5]/20 border border-[#00A9FF]/40 flex items-center justify-center text-[#35B9F5]">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base sm:text-lg font-display font-bold text-white">
+                  <h2 className="text-base sm:text-lg font-display font-bold text-[#F8FAFC]">
                     Minha Privacidade — Direitos do Titular (LGPD)
                   </h2>
-                  <p className="text-xs text-blue-200/80">
+                  <p className="text-xs text-[#94A3B8]">
                     Exerça seus direitos previstos na Lei Geral de Proteção de Dados (Lei nº 13.709/2018) com protocolo auditável.
                   </p>
                 </div>
@@ -776,7 +777,7 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
               <form onSubmit={handleSubmitLgpdRequest} className="space-y-4 text-xs">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-semibold text-blue-200 mb-1">
+                    <label className="block font-semibold text-[#94A3B8] mb-1">
                       Nome do Titular *
                     </label>
                     <input
@@ -784,11 +785,11 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                       value={lgpdName}
                       onChange={(e) => setLgpdName(e.target.value)}
                       placeholder="Seu nome ou @usuário"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#050814] border border-blue-900 text-white focus:outline-none focus:border-[#E11D48]"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#050D20] border border-[#182943] text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
                     />
                   </div>
                   <div>
-                    <label className="block font-semibold text-blue-200 mb-1">
+                    <label className="block font-semibold text-[#94A3B8] mb-1">
                       E-mail para Retorno e Protocolo *
                     </label>
                     <input
@@ -796,19 +797,19 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                       value={lgpdEmail}
                       onChange={(e) => setLgpdEmail(e.target.value)}
                       placeholder="seuemail@exemplo.com"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#050814] border border-blue-900 text-white focus:outline-none focus:border-[#E11D48]"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#050D20] border border-[#182943] text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-blue-200 mb-1">
+                  <label className="block font-semibold text-[#94A3B8] mb-1">
                     Tipo de Solicitação LGPD *
                   </label>
                   <select
                     value={lgpdType}
                     onChange={(e) => setLgpdType(e.target.value as LgpdRequestType)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#050814] border border-blue-900 text-white focus:outline-none focus:border-[#E11D48]"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#050D20] border border-[#182943] text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
                   >
                     <option value="ACESSO_DADOS">1. Acesso aos meus dados pessoais tratados</option>
                     <option value="CORRECAO_DADOS">2. Correção de dados incompletos, inexatos ou desatualizados</option>
@@ -820,7 +821,7 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-blue-200 mb-1">
+                  <label className="block font-semibold text-[#94A3B8] mb-1">
                     Detalhes da Solicitação *
                   </label>
                   <textarea
@@ -828,18 +829,18 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                     value={lgpdDescription}
                     onChange={(e) => setLgpdDescription(e.target.value)}
                     placeholder="Informe os detalhes do seu pedido (ex: @username do TikTok, e-mail da conta ou sessão específica)..."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#050814] border border-blue-900 text-white focus:outline-none focus:border-[#E11D48]"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#050D20] border border-[#182943] text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
                   />
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-[#050814] border border-blue-900/60 text-[11px] text-slate-300 leading-relaxed">
-                  <strong className="text-[#FDA4AF]">Nota sobre Preservação Legal:</strong> Pedidos de exclusão são processados pelo fluxo administrativo respeitando a retenção de registros obrigatórios para auditoria pública de sorteios já realizados (art. 16 da LGPD).
+                <div className="p-3.5 rounded-xl bg-[#0B1730] border border-[#182943] text-[11px] text-[#94A3B8] leading-relaxed">
+                  <strong className="text-[#35B9F5]">Nota sobre Preservação Legal:</strong> Pedidos de exclusão são processados pelo fluxo administrativo respeitando a retenção de registros obrigatórios para auditoria pública de sorteios já realizados (art. 16 da LGPD).
                 </div>
 
                 <button
                   type="submit"
                   disabled={isSubmittingLgpd}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#E11D48] to-[#BE123C] hover:brightness-110 text-white font-bold text-xs shadow-lg transition flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#0866F5] to-[#00A9FF] hover:brightness-110 text-[#F8FAFC] font-bold text-xs shadow-[0_8px_20px_rgba(8,102,245,0.35)] transition flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Send className="w-4 h-4" />
                   <span>Protocolar Solicitação de Privacidade (LGPD)</span>
@@ -850,22 +851,22 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
 
           {/* Right Column: Transparency Summary + User LGPD History */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="p-5 rounded-2xl bg-[#0A1128] border border-blue-900/70 space-y-3 text-xs">
-              <h3 className="text-sm font-display font-bold text-white flex items-center gap-2">
-                <UserCheck className="w-4 h-4 text-[#F43F5E]" />
+            <div className="p-5 rounded-2xl bg-[#101F3D] border border-[#182943] space-y-3 text-xs shadow-[0_12px_32px_rgba(2,8,23,0.45)]">
+              <h3 className="text-sm font-display font-bold text-[#F8FAFC] flex items-center gap-2">
+                <UserCheck className="w-4 h-4 text-[#00A9FF]" />
                 <span>Dados da Integração TikTok & Cookies</span>
               </h3>
-              <p className="text-slate-300 leading-relaxed">
-                • <strong>TikTok Login Kit (OAuth 2.0):</strong> Coleta apenas <code className="text-[#FDA4AF]">open_id</code>, <code className="text-[#FDA4AF]">display_name</code> e <code className="text-[#FDA4AF]">avatar_url</code> mediante sua autorização explícita. Você pode revogar a conexão a qualquer instante na aba TikTok LIVE Pro.
+              <p className="text-[#94A3B8] leading-relaxed">
+                • <strong className="text-[#F8FAFC]">TikTok Login Kit (OAuth 2.0):</strong> Coleta apenas <code className="text-[#35B9F5] font-mono">open_id</code>, <code className="text-[#35B9F5] font-mono">display_name</code> e <code className="text-[#35B9F5] font-mono">avatar_url</code> mediante sua autorização explícita. Você pode revogar a conexão a qualquer instante na aba TikTok LIVE Pro.
               </p>
-              <p className="text-slate-300 leading-relaxed">
-                • <strong>Eventos Públicos da LIVE:</strong> Durante transmissões conectadas, o sistema registra o ID do remetente, apelido público, @username (quando disponível), moedas enviadas e bilhetes emitidos para garantir a auditabilidade SHA-256 do sorteio.
+              <p className="text-[#94A3B8] leading-relaxed">
+                • <strong className="text-[#F8FAFC]">Eventos Públicos da LIVE:</strong> Durante transmissões conectadas, o sistema registra o ID do remetente, apelido público, @username (quando disponível), moedas enviadas e bilhetes emitidos para garantir a auditabilidade SHA-256 do sorteio.
               </p>
               {onOpenCookieSettings && (
                 <button
                   type="button"
                   onClick={onOpenCookieSettings}
-                  className="w-full py-2.5 rounded-xl bg-[#050814] hover:bg-blue-950 text-[#FDA4AF] border border-[#E11D48]/40 font-bold text-xs transition flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 rounded-xl bg-[#0B1730] hover:bg-[#182943] text-[#35B9F5] border border-[#00A9FF]/40 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Cookie className="w-4 h-4" />
                   <span>Gerenciar Consentimento de Cookies</span>
@@ -873,13 +874,13 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
               )}
             </div>
 
-            <div className="p-5 rounded-2xl bg-[#0A1128] border border-blue-900/70 space-y-3">
-              <h3 className="text-sm font-display font-bold text-white flex items-center gap-2">
-                <History className="w-4 h-4 text-[#F43F5E]" />
+            <div className="p-5 rounded-2xl bg-[#101F3D] border border-[#182943] space-y-3 shadow-[0_12px_32px_rgba(2,8,23,0.45)]">
+              <h3 className="text-sm font-display font-bold text-[#F8FAFC] flex items-center gap-2">
+                <History className="w-4 h-4 text-[#00A9FF]" />
                 <span>Histórico de Solicitações LGPD ({lgpdRequests.length})</span>
               </h3>
               {lgpdRequests.length === 0 ? (
-                <p className="text-xs text-slate-400 py-4 text-center">
+                <p className="text-xs text-[#94A3B8] py-4 text-center">
                   Nenhuma solicitação LGPD protocolada ainda.
                 </p>
               ) : (
@@ -887,22 +888,22 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                   {lgpdRequests.map((req) => (
                     <div
                       key={req.requestId}
-                      className="p-3 rounded-xl bg-[#050814] border border-blue-900/60 space-y-1 text-xs"
+                      className="p-3 rounded-xl bg-[#0B1730] border border-[#182943] space-y-1 text-xs"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono font-bold text-[#FDA4AF]">{req.protocol}</span>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">
+                        <span className="font-mono font-bold text-[#35B9F5]">{req.protocol}</span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#050D20] text-[#35B9F5] border border-[#182943]">
                           {req.status}
                         </span>
                       </div>
-                      <p className="font-semibold text-white">{req.requestType}</p>
-                      <p className="text-slate-400 text-[11px]">{req.description}</p>
+                      <p className="font-semibold text-[#F8FAFC]">{req.requestType}</p>
+                      <p className="text-[#94A3B8] text-[11px]">{req.description}</p>
                       {req.adminResponse && (
-                        <div className="mt-1.5 p-2 rounded-lg bg-emerald-950/40 border border-emerald-800/50 text-[11px] text-emerald-200">
-                          <strong>Resposta do Encarregado (DPO):</strong> {req.adminResponse}
+                        <div className="mt-1.5 p-2 rounded-lg bg-[#20C997]/15 border border-[#20C997]/40 text-[11px] text-[#F8FAFC]">
+                          <strong className="text-[#20C997]">Resposta do Encarregado (DPO):</strong> {req.adminResponse}
                         </div>
                       )}
-                      <span className="block text-[10px] font-mono text-slate-500">
+                      <span className="block text-[10px] font-mono text-[#64748B]">
                         {new Date(req.createdAt).toLocaleString('pt-BR')}
                       </span>
                     </div>
@@ -921,25 +922,25 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* FAQ & Guides */}
-            <div className="lg:col-span-7 p-6 rounded-2xl bg-[#0A1128] border border-blue-900/70 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-blue-900/60 pb-4">
+            <div className="lg:col-span-7 p-6 rounded-2xl bg-[#101F3D] border border-[#182943] space-y-4 shadow-[0_12px_32px_rgba(2,8,23,0.45)]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#182943] pb-4">
                 <div>
-                  <h2 className="text-base sm:text-lg font-display font-bold text-white flex items-center gap-2">
-                    <BookOpen className="w-5 h-5 text-[#F43F5E]" />
+                  <h2 className="text-base sm:text-lg font-display font-bold text-[#F8FAFC] flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-[#00A9FF]" />
                     <span>Perguntas Frequentes (FAQ) e Guias Rápidos</span>
                   </h2>
-                  <p className="text-xs text-blue-200/80">
+                  <p className="text-xs text-[#94A3B8]">
                     Tire dúvidas sobre TikTok LIVE, conversão de moedas em bilhetes, campanhas acumuladas e assinatura.
                   </p>
                 </div>
                 <div className="relative w-full sm:w-64">
-                  <Search className="w-3.5 h-3.5 text-[#F43F5E] absolute left-3 top-2.5" />
+                  <Search className="w-3.5 h-3.5 text-[#35B9F5] absolute left-3 top-2.5" />
                   <input
                     type="text"
                     value={faqQuery}
                     onChange={(e) => setFaqQuery(e.target.value)}
                     placeholder="Buscar dúvida ou tutorial..."
-                    className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-[#050814] border border-blue-800 text-xs text-white focus:outline-none focus:border-[#E11D48]"
+                    className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-[#050D20] border border-[#182943] text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
                   />
                 </div>
               </div>
@@ -948,13 +949,13 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                 {filteredFaqs.map((faq) => (
                   <div
                     key={faq.id}
-                    className="p-4 rounded-xl bg-[#050814]/90 border border-blue-900/60 space-y-1.5"
+                    className="p-4 rounded-xl bg-[#0B1730] border border-[#182943] space-y-1.5"
                   >
-                    <span className="text-[10px] font-mono font-bold uppercase text-[#FDA4AF]">
+                    <span className="text-[10px] font-mono font-bold uppercase text-[#35B9F5]">
                       {faq.category}
                     </span>
-                    <h3 className="text-xs sm:text-sm font-bold text-white">{faq.question}</h3>
-                    <p className="text-xs text-slate-300 leading-relaxed">{faq.answer}</p>
+                    <h3 className="text-xs sm:text-sm font-bold text-[#F8FAFC]">{faq.question}</h3>
+                    <p className="text-xs text-[#94A3B8] leading-relaxed">{faq.answer}</p>
                   </div>
                 ))}
               </div>
@@ -962,41 +963,41 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
 
             {/* Support Ticket Form & Protocol History */}
             <div className="lg:col-span-5 space-y-6">
-              <div className="p-6 rounded-2xl bg-[#0A1128] border border-[#E11D48]/35 shadow-xl space-y-4">
-                <h2 className="text-base font-display font-bold text-white flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-[#F43F5E]" />
+              <div className="p-6 rounded-2xl bg-[#101F3D] border border-[#182943] shadow-[0_12px_32px_rgba(2,8,23,0.45)] space-y-4">
+                <h2 className="text-base font-display font-bold text-[#F8FAFC] flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-[#00A9FF]" />
                   <span>Abrir Chamado de Suporte / Relatar Problema</span>
                 </h2>
                 <form onSubmit={handleSubmitSupportTicket} className="space-y-3 text-xs">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block font-semibold text-blue-200 mb-1">Seu Nome *</label>
+                      <label className="block font-semibold text-[#94A3B8] mb-1">Seu Nome *</label>
                       <input
                         type="text"
                         value={supName}
                         onChange={(e) => setSupName(e.target.value)}
                         placeholder="Nome ou @usuário"
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-900 text-white"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC]"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-blue-200 mb-1">Seu E-mail *</label>
+                      <label className="block font-semibold text-[#94A3B8] mb-1">Seu E-mail *</label>
                       <input
                         type="email"
                         value={supEmail}
                         onChange={(e) => setSupEmail(e.target.value)}
                         placeholder="voce@exemplo.com"
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-900 text-white"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC]"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block font-semibold text-blue-200 mb-1">Categoria *</label>
+                    <label className="block font-semibold text-[#94A3B8] mb-1">Categoria *</label>
                     <select
                       value={supCategory}
                       onChange={(e) => setSupCategory(e.target.value as SupportTicketCategory)}
-                      className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-900 text-white"
+                      className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC]"
                     >
                       <option value="INTEGRACAO_TIKTOK">Integração TikTok LIVE / OAuth 2.0</option>
                       <option value="SORTEIO_E_BILHETES">Sorteios, Moedas e Emissão de Bilhetes</option>
@@ -1009,31 +1010,31 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                   </div>
 
                   <div>
-                    <label className="block font-semibold text-blue-200 mb-1">Assunto *</label>
+                    <label className="block font-semibold text-[#94A3B8] mb-1">Assunto *</label>
                     <input
                       type="text"
                       value={supSubject}
                       onChange={(e) => setSupSubject(e.target.value)}
                       placeholder="Resumo da solicitação ou problema"
-                      className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-900 text-white"
+                      className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC]"
                     />
                   </div>
 
                   <div>
-                    <label className="block font-semibold text-blue-200 mb-1">Mensagem / Descrição *</label>
+                    <label className="block font-semibold text-[#94A3B8] mb-1">Mensagem / Descrição *</label>
                     <textarea
                       rows={4}
                       value={supMessage}
                       onChange={(e) => setSupMessage(e.target.value)}
                       placeholder="Descreva sua dúvida ou o comportamento observado..."
-                      className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-900 text-white"
+                      className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC]"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={isSubmittingSupport}
-                    className="w-full py-3 rounded-xl bg-gradient-to-r from-[#E11D48] to-[#BE123C] hover:brightness-110 text-white font-bold text-xs shadow-lg transition flex items-center justify-center gap-2"
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-[#0866F5] to-[#00A9FF] hover:brightness-110 text-[#F8FAFC] font-bold text-xs shadow-[0_8px_20px_rgba(8,102,245,0.35)] transition flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Send className="w-4 h-4" />
                     <span>Enviar Solicitação e Gerar Protocolo</span>
@@ -1042,12 +1043,12 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
               </div>
 
               {/* Support Ticket History */}
-              <div className="p-5 rounded-2xl bg-[#0A1128] border border-blue-900/70 space-y-3">
-                <h3 className="text-sm font-display font-bold text-white">
+              <div className="p-5 rounded-2xl bg-[#101F3D] border border-[#182943] space-y-3 shadow-[0_12px_32px_rgba(2,8,23,0.45)]">
+                <h3 className="text-sm font-display font-bold text-[#F8FAFC]">
                   Meus Chamados e Protocolos ({supportTickets.length})
                 </h3>
                 {supportTickets.length === 0 ? (
-                  <p className="text-xs text-slate-400 py-4 text-center">
+                  <p className="text-xs text-[#94A3B8] py-4 text-center">
                     Nenhum chamado registrado ainda.
                   </p>
                 ) : (
@@ -1055,19 +1056,19 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                     {supportTickets.map((t) => (
                       <div
                         key={t.ticketId}
-                        className="p-3 rounded-xl bg-[#050814] border border-blue-900/60 space-y-1 text-xs"
+                        className="p-3 rounded-xl bg-[#0B1730] border border-[#182943] space-y-1 text-xs"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-mono font-bold text-[#FDA4AF]">{t.protocol}</span>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">
+                          <span className="font-mono font-bold text-[#35B9F5]">{t.protocol}</span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#050D20] text-[#35B9F5] border border-[#182943]">
                             {t.status}
                           </span>
                         </div>
-                        <p className="font-bold text-white">{t.subject}</p>
-                        <p className="text-[11px] text-slate-400">{t.message}</p>
+                        <p className="font-bold text-[#F8FAFC]">{t.subject}</p>
+                        <p className="text-[11px] text-[#94A3B8]">{t.message}</p>
                         {t.adminReply && (
-                          <div className="mt-1 p-2 rounded-lg bg-emerald-950/40 border border-emerald-800/50 text-[11px] text-emerald-200">
-                            <strong>Resposta do Suporte:</strong> {t.adminReply}
+                          <div className="mt-1 p-2 rounded-lg bg-[#20C997]/15 border border-[#20C997]/40 text-[11px] text-[#F8FAFC]">
+                            <strong className="text-[#20C997]">Resposta do Suporte:</strong> {t.adminReply}
                           </div>
                         )}
                       </div>
@@ -1086,10 +1087,10 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
       {portalTab === 'admin_legal' && (
         <div className="space-y-6">
           {!isAdminAuthorized ? (
-            <div className="p-8 rounded-2xl bg-[#0A1128] border border-rose-700/60 text-center space-y-3">
-              <Lock className="w-10 h-10 text-rose-400 mx-auto" />
-              <h2 className="text-lg font-bold text-white">Acesso Restrito ao Administrador</h2>
-              <p className="text-xs text-slate-300 max-w-md mx-auto">
+            <div className="p-8 rounded-2xl bg-[#101F3D] border border-[#F05262]/60 text-center space-y-3 shadow-[0_12px_32px_rgba(2,8,23,0.45)]">
+              <Lock className="w-10 h-10 text-[#F05262] mx-auto" />
+              <h2 className="text-lg font-bold text-[#F8FAFC]">Acesso Restrito ao Administrador</h2>
+              <p className="text-xs text-[#94A3B8] max-w-md mx-auto">
                 A área de Administração Jurídica exige autenticação com a conta de administrador autorizada no backend.
               </p>
             </div>
@@ -1097,29 +1098,29 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
             <div className="space-y-6">
               {/* Pending Company Fields Warning Alert (Fase 12) */}
               {pendingCompanyFields.length > 0 && (
-                <div className="p-4 rounded-2xl bg-amber-950/60 border border-amber-600/60 flex items-start gap-3 text-xs text-amber-200">
-                  <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="p-4 rounded-2xl bg-[#F5B942]/15 border border-[#F5B942]/50 flex items-start gap-3 text-xs text-[#F8FAFC]">
+                  <AlertTriangle className="w-5 h-5 text-[#F5B942] shrink-0 mt-0.5" />
                   <div className="space-y-1">
-                    <strong className="text-white block">
+                    <strong className="text-[#F8FAFC] block">
                       Aviso Administrativo: Campos Empresariais Obrigatórios Pendentes de Preenchimento ({pendingCompanyFields.length})
                     </strong>
-                    <p>
-                      Conforme as diretrizes de conformidade (Fase 12), o sistema jamais inventa dados empresariais fictícios. Preencha na aba <strong>"Dados Empresariais"</strong> os seguintes campos pendentes:{' '}
-                      <span className="font-mono text-amber-300">{pendingCompanyFields.join(', ')}</span>.
+                    <p className="text-[#94A3B8]">
+                      Conforme as diretrizes de conformidade (Fase 12), o sistema jamais inventa dados empresariais fictícios. Preencha na aba <strong className="text-[#F8FAFC]">&quot;Dados Empresariais&quot;</strong> os seguintes campos pendentes:{' '}
+                      <span className="font-mono text-[#F5B942]">{pendingCompanyFields.join(', ')}</span>.
                     </p>
                   </div>
                 </div>
               )}
 
               {/* Admin Legal Sub-navigation */}
-              <div className="flex flex-wrap items-center gap-2 border-b border-blue-900/60 pb-3">
+              <div className="flex flex-wrap items-center gap-2 border-b border-[#182943] pb-3">
                 <button
                   type="button"
                   onClick={() => setAdminSubTab('editor')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                     adminSubTab === 'editor'
-                      ? 'bg-[#E11D48] text-white'
-                      : 'bg-[#0A1128] text-slate-300 border border-blue-900/60'
+                      ? 'bg-[#0866F5] text-[#F8FAFC]'
+                      : 'bg-[#101F3D] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#182943]'
                   }`}
                 >
                   <Edit3 className="w-3.5 h-3.5" />
@@ -1129,10 +1130,10 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                 <button
                   type="button"
                   onClick={() => setAdminSubTab('company')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                     adminSubTab === 'company'
-                      ? 'bg-[#E11D48] text-white'
-                      : 'bg-[#0A1128] text-slate-300 border border-blue-900/60'
+                      ? 'bg-[#0866F5] text-[#F8FAFC]'
+                      : 'bg-[#101F3D] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#182943]'
                   }`}
                 >
                   <Building2 className="w-3.5 h-3.5" />
@@ -1142,10 +1143,10 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                 <button
                   type="button"
                   onClick={() => setAdminSubTab('commercial')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                     adminSubTab === 'commercial'
-                      ? 'bg-[#E11D48] text-white'
-                      : 'bg-[#0A1128] text-slate-300 border border-blue-900/60'
+                      ? 'bg-[#0866F5] text-[#F8FAFC]'
+                      : 'bg-[#101F3D] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#182943]'
                   }`}
                 >
                   <CreditCard className="w-3.5 h-3.5" />
@@ -1155,10 +1156,10 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                 <button
                   type="button"
                   onClick={() => setAdminSubTab('lgpd_admin')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                     adminSubTab === 'lgpd_admin'
-                      ? 'bg-[#E11D48] text-white'
-                      : 'bg-[#0A1128] text-slate-300 border border-blue-900/60'
+                      ? 'bg-[#0866F5] text-[#F8FAFC]'
+                      : 'bg-[#101F3D] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#182943]'
                   }`}
                 >
                   <ShieldCheck className="w-3.5 h-3.5" />
@@ -1168,10 +1169,10 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                 <button
                   type="button"
                   onClick={() => setAdminSubTab('support_admin')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                     adminSubTab === 'support_admin'
-                      ? 'bg-[#E11D48] text-white'
-                      : 'bg-[#0A1128] text-slate-300 border border-blue-900/60'
+                      ? 'bg-[#0866F5] text-[#F8FAFC]'
+                      : 'bg-[#101F3D] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#182943]'
                   }`}
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
@@ -1181,10 +1182,10 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                 <button
                   type="button"
                   onClick={() => setAdminSubTab('consents_log')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                     adminSubTab === 'consents_log'
-                      ? 'bg-[#E11D48] text-white'
-                      : 'bg-[#0A1128] text-slate-300 border border-blue-900/60'
+                      ? 'bg-[#0866F5] text-[#F8FAFC]'
+                      : 'bg-[#101F3D] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#182943]'
                   }`}
                 >
                   <History className="w-3.5 h-3.5" />
@@ -1195,15 +1196,15 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
               {/* SUB-TAB 1: DOCUMENT EDITOR & IMMUTABLE VERSIONING */}
               {adminSubTab === 'editor' && (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                  <div className="lg:col-span-7 p-6 rounded-2xl bg-[#0A1128] border border-blue-900/70 space-y-4 text-xs">
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-blue-900/60 pb-3">
-                      <h3 className="text-sm font-display font-bold text-white">
+                  <div className="lg:col-span-7 p-6 rounded-2xl bg-[#101F3D] border border-[#182943] space-y-4 text-xs shadow-[0_12px_32px_rgba(2,8,23,0.45)]">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#182943] pb-3">
+                      <h3 className="text-sm font-display font-bold text-[#F8FAFC]">
                         Editor de Documentos Jurídicos (Versionamento Imutável)
                       </h3>
                       <button
                         type="button"
                         onClick={() => setPreviewMode((v) => !v)}
-                        className="px-3 py-1.5 rounded-lg bg-[#050814] text-[#FDA4AF] border border-[#E11D48]/40 font-semibold flex items-center gap-1.5"
+                        className="px-3 py-1.5 rounded-lg bg-[#0B1730] text-[#35B9F5] border border-[#00A9FF]/40 font-semibold flex items-center gap-1.5 cursor-pointer"
                       >
                         <Eye className="w-3.5 h-3.5" />
                         <span>{previewMode ? 'Voltar para Edição' : 'Pré-visualizar Documento'}</span>
@@ -1212,13 +1213,13 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div className="sm:col-span-2">
-                        <label className="block font-semibold text-blue-200 mb-1">
+                        <label className="block font-semibold text-[#94A3B8] mb-1">
                           Documento Institucional
                         </label>
                         <select
                           value={editSlug}
                           onChange={(e) => setEditSlug(e.target.value as LegalDocumentSlug)}
-                          className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white font-bold"
+                          className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] text-[#F8FAFC] font-bold"
                         >
                           {orderedDocuments.map((d) => (
                             <option key={d.slug} value={d.slug}>
@@ -1228,7 +1229,7 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                         </select>
                       </div>
                       <div>
-                        <label className="block font-semibold text-blue-200 mb-1">
+                        <label className="block font-semibold text-[#94A3B8] mb-1">
                           Nova Versão
                         </label>
                         <input
@@ -1236,21 +1237,21 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                           value={editVersion}
                           onChange={(e) => setEditVersion(e.target.value)}
                           placeholder="Ex: 1.1.0"
-                          className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white font-mono"
+                          className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] text-[#F8FAFC] font-mono"
                         />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block font-semibold text-blue-200 mb-1">
+                        <label className="block font-semibold text-[#94A3B8] mb-1">
                           Data de Início de Vigência
                         </label>
                         <input
                           type="date"
                           value={editEffectiveDate}
                           onChange={(e) => setEditEffectiveDate(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white"
+                          className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] text-[#F8FAFC]"
                         />
                       </div>
                       <label className="flex items-center gap-2 pt-5 cursor-pointer">
@@ -1258,36 +1259,36 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                           type="checkbox"
                           checked={editMandatory}
                           onChange={(e) => setEditMandatory(e.target.checked)}
-                          className="w-4 h-4 accent-[#E11D48]"
+                          className="w-4 h-4 accent-[#00A9FF]"
                         />
-                        <span className="font-semibold text-white">
+                        <span className="font-semibold text-[#F8FAFC]">
                           Exigir novo aceite obrigatório dos usuários
                         </span>
                       </label>
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-blue-200 mb-1">
+                      <label className="block font-semibold text-[#94A3B8] mb-1">
                         Resumo Executivo da Versão
                       </label>
                       <textarea
                         rows={2}
                         value={editSummary}
                         onChange={(e) => setEditSummary(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] text-[#F8FAFC]"
                       />
                     </div>
 
                     {previewMode ? (
-                      <div className="p-4 rounded-xl bg-[#050814] border border-emerald-700/50 space-y-3">
-                        <span className="text-[10px] font-mono uppercase text-emerald-400">
+                      <div className="p-4 rounded-xl bg-[#0B1730] border border-[#20C997]/50 space-y-3">
+                        <span className="text-[10px] font-mono uppercase text-[#20C997]">
                           Modo Pré-visualização (v{editVersion})
                         </span>
-                        <p className="text-slate-300">{editSummary}</p>
+                        <p className="text-[#94A3B8]">{editSummary}</p>
                         {editSections.map((s) => (
-                          <div key={s.id} className="space-y-1 border-t border-blue-950 pt-2">
-                            <h4 className="font-bold text-white">{s.title}</h4>
-                            <p className="text-slate-300 whitespace-pre-line">{s.content}</p>
+                          <div key={s.id} className="space-y-1 border-t border-[#182943] pt-2">
+                            <h4 className="font-bold text-[#F8FAFC]">{s.title}</h4>
+                            <p className="text-[#94A3B8] whitespace-pre-line">{s.content}</p>
                           </div>
                         ))}
                       </div>
@@ -1296,7 +1297,7 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                         {editSections.map((sec, idx) => (
                           <div
                             key={sec.id}
-                            className="p-3.5 rounded-xl bg-[#050814] border border-blue-900/60 space-y-2"
+                            className="p-3.5 rounded-xl bg-[#0B1730] border border-[#182943] space-y-2"
                           >
                             <input
                               type="text"
@@ -1307,7 +1308,7 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                                   prev.map((item, i) => (i === idx ? { ...item, title: val } : item))
                                 );
                               }}
-                              className="w-full px-2.5 py-1.5 rounded-lg bg-[#0A1128] border border-blue-900 text-white font-bold"
+                              className="w-full px-2.5 py-1.5 rounded-lg bg-[#050D20] border border-[#182943] text-[#F8FAFC] font-bold"
                             />
                             <textarea
                               rows={3}
@@ -1318,7 +1319,7 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                                   prev.map((item, i) => (i === idx ? { ...item, content: val } : item))
                                 );
                               }}
-                              className="w-full px-2.5 py-1.5 rounded-lg bg-[#0A1128] border border-blue-900 text-slate-200"
+                              className="w-full px-2.5 py-1.5 rounded-lg bg-[#050D20] border border-[#182943] text-[#F8FAFC]"
                             />
                           </div>
                         ))}
@@ -1329,16 +1330,16 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                       <button
                         type="button"
                         onClick={handleSaveDraftAdmin}
-                        className="px-4 py-2.5 rounded-xl bg-blue-950 hover:bg-blue-900 text-blue-200 border border-blue-700 font-bold transition flex items-center gap-1.5"
+                        className="px-4 py-2.5 rounded-xl bg-[#0B1730] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] font-bold transition flex items-center gap-1.5 cursor-pointer"
                       >
-                        <Save className="w-4 h-4" />
+                        <Save className="w-4 h-4 text-[#35B9F5]" />
                         <span>Salvar Rascunho</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={handlePublishNewVersionAdmin}
-                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#E11D48] to-[#BE123C] hover:brightness-110 text-white font-bold shadow-lg transition flex items-center gap-1.5"
+                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0866F5] to-[#00A9FF] hover:brightness-110 text-[#F8FAFC] font-bold shadow-[0_6px_18px_rgba(8,102,245,0.35)] transition flex items-center gap-1.5 cursor-pointer"
                       >
                         <UploadCloud className="w-4 h-4" />
                         <span>Publicar Nova Versão Imutável</span>
@@ -1347,11 +1348,11 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                   </div>
 
                   {/* Version Comparison & Archived Versions */}
-                  <div className="lg:col-span-5 p-6 rounded-2xl bg-[#0A1128] border border-blue-900/70 space-y-4 text-xs">
-                    <h3 className="text-sm font-display font-bold text-white">
+                  <div className="lg:col-span-5 p-6 rounded-2xl bg-[#101F3D] border border-[#182943] space-y-4 text-xs shadow-[0_12px_32px_rgba(2,8,23,0.45)]">
+                    <h3 className="text-sm font-display font-bold text-[#F8FAFC]">
                       Histórico e Comparação de Versões Publicadas
                     </h3>
-                    <p className="text-slate-400">
+                    <p className="text-[#94A3B8]">
                       Versões publicadas nunca são sobrescritas sem histórico: toda nova publicação arquiva a versão anterior de forma imutável.
                     </p>
                     <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
@@ -1365,32 +1366,32 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                                 compareVersionId === ver.versionId ? '' : ver.versionId
                               )
                             }
-                            className="p-3 rounded-xl bg-[#050814] border border-blue-900/60 hover:border-[#E11D48]/50 cursor-pointer space-y-1"
+                            className="p-3 rounded-xl bg-[#0B1730] border border-[#182943] hover:border-[#00A9FF]/50 cursor-pointer space-y-1"
                           >
                             <div className="flex items-center justify-between">
-                              <span className="font-mono font-bold text-[#FDA4AF]">
+                              <span className="font-mono font-bold text-[#35B9F5]">
                                 Versão {ver.version}
                               </span>
                               <span
                                 className={`text-[10px] font-mono px-2 py-0.5 rounded ${
                                   ver.archived
-                                    ? 'bg-slate-800 text-slate-400'
-                                    : 'bg-emerald-950 text-emerald-300'
+                                    ? 'bg-[#050D20] text-[#94A3B8] border border-[#182943]'
+                                    : 'bg-[#20C997]/15 text-[#20C997] border border-[#20C997]/40'
                                 }`}
                               >
                                 {ver.archived ? 'ARQUIVADA' : 'VIGENTE'}
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-300">{ver.summary}</p>
-                            <span className="block text-[10px] font-mono text-slate-500">
+                            <p className="text-[11px] text-[#94A3B8]">{ver.summary}</p>
+                            <span className="block text-[10px] font-mono text-[#64748B]">
                               Publicada em {new Date(ver.publishedAt).toLocaleString('pt-BR')} por{' '}
                               {ver.publishedBy}
                             </span>
                             {compareVersionId === ver.versionId && (
-                              <div className="mt-2 pt-2 border-t border-blue-900/60 space-y-1.5 text-[11px] text-slate-300">
+                              <div className="mt-2 pt-2 border-t border-[#182943] space-y-1.5 text-[11px] text-[#94A3B8]">
                                 {ver.sections.map((s) => (
                                   <div key={s.id}>
-                                    <strong className="text-white">{s.title}:</strong> {s.content}
+                                    <strong className="text-[#F8FAFC]">{s.title}:</strong> {s.content}
                                   </div>
                                 ))}
                               </div>
@@ -1398,7 +1399,7 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                           </div>
                         ))}
                       {versionHistory.filter((v) => v.documentId === editSlug).length === 0 && (
-                        <p className="text-slate-500 py-4 text-center">
+                        <p className="text-[#64748B] py-4 text-center">
                           Documento na versão inicial v1.0.0. Publique uma nova versão ao lado para testar o arquivamento e comparação.
                         </p>
                       )}
@@ -1411,20 +1412,20 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
               {adminSubTab === 'company' && companySettings && (
                 <form
                   onSubmit={handleSaveCompanySettingsAdmin}
-                  className="p-6 rounded-2xl bg-[#0A1128] border border-blue-900/70 space-y-4 text-xs"
+                  className="p-6 rounded-2xl bg-[#101F3D] border border-[#182943] space-y-4 text-xs shadow-[0_12px_32px_rgba(2,8,23,0.45)]"
                 >
-                  <div className="border-b border-blue-900/60 pb-3">
-                    <h3 className="text-sm sm:text-base font-display font-bold text-white">
+                  <div className="border-b border-[#182943] pb-3">
+                    <h3 className="text-sm sm:text-base font-display font-bold text-[#F8FAFC]">
                       Dados Empresariais e Identificação Oficial do Organizador (Fase 12)
                     </h3>
-                    <p className="text-slate-400">
+                    <p className="text-[#94A3B8]">
                       Estes campos alimentam automaticamente os documentos jurídicos, rodapé e regulamentos sem jamais inventar CNPJ ou endereços falsos.
                     </p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
-                      <label className="block font-semibold text-blue-200 mb-1">Razão Social</label>
+                      <label className="block font-semibold text-[#94A3B8] mb-1">Razão Social</label>
                       <input
                         type="text"
                         value={companySettings.razaoSocial}
@@ -1432,23 +1433,23 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                           setCompanySettings({ ...companySettings, razaoSocial: e.target.value })
                         }
                         placeholder="Informe a razão social oficial"
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC]"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-blue-200 mb-1">Nome Fantasia</label>
+                      <label className="block font-semibold text-[#94A3B8] mb-1">Nome Fantasia</label>
                       <input
                         type="text"
                         value={companySettings.nomeFantasia}
                         onChange={(e) =>
                           setCompanySettings({ ...companySettings, nomeFantasia: e.target.value })
                         }
-                        placeholder="GIO DA SORTE PRO"
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white"
+                        placeholder="GIO DA SORTE"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC]"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-blue-200 mb-1">CNPJ</label>
+                      <label className="block font-semibold text-[#94A3B8] mb-1">CNPJ</label>
                       <input
                         type="text"
                         value={companySettings.cnpj}
@@ -1456,11 +1457,11 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                           setCompanySettings({ ...companySettings, cnpj: e.target.value })
                         }
                         placeholder="00.000.000/0000-00"
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white font-mono"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC] font-mono"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-blue-200 mb-1">
+                      <label className="block font-semibold text-[#94A3B8] mb-1">
                         VAT / Número Fiscal Internacional
                       </label>
                       <input
@@ -1470,11 +1471,11 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                           setCompanySettings({ ...companySettings, vatOrTaxId: e.target.value })
                         }
                         placeholder="Opcional"
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white font-mono"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC] font-mono"
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="block font-semibold text-blue-200 mb-1">
+                      <label className="block font-semibold text-[#94A3B8] mb-1">
                         Endereço Empresarial Completo
                       </label>
                       <input
@@ -1487,11 +1488,11 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                           })
                         }
                         placeholder="Logradouro, número, complemento, cidade, UF, CEP"
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC]"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-blue-200 mb-1">
+                      <label className="block font-semibold text-[#94A3B8] mb-1">
                         E-mail Oficial de Atendimento
                       </label>
                       <input
@@ -1504,11 +1505,11 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                           })
                         }
                         placeholder="contato@seudominio.com"
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC]"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-blue-200 mb-1">
+                      <label className="block font-semibold text-[#94A3B8] mb-1">
                         Canal de Privacidade (LGPD)
                       </label>
                       <input
@@ -1521,11 +1522,11 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                           })
                         }
                         placeholder="privacidade@seudominio.com"
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC]"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-blue-200 mb-1">
+                      <label className="block font-semibold text-[#94A3B8] mb-1">
                         Representante Legal
                       </label>
                       <input
@@ -1538,11 +1539,11 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                           })
                         }
                         placeholder="Nome completo do representante"
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC]"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-blue-200 mb-1">
+                      <label className="block font-semibold text-[#94A3B8] mb-1">
                         Responsável pelo Tratamento de Dados (DPO)
                       </label>
                       <input
@@ -1555,11 +1556,11 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                           })
                         }
                         placeholder="Nome e contato do Encarregado DPO"
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC]"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-blue-200 mb-1">
+                      <label className="block font-semibold text-[#94A3B8] mb-1">
                         Telefone / Informações de Contato
                       </label>
                       <input
@@ -1572,11 +1573,11 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                           })
                         }
                         placeholder="+55 (00) 00000-0000"
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC]"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-blue-200 mb-1">
+                      <label className="block font-semibold text-[#94A3B8] mb-1">
                         Identificação Padrão do Organizador
                       </label>
                       <input
@@ -1589,14 +1590,14 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                           })
                         }
                         placeholder="Identificação exibida nos regulamentos"
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC]"
                       />
                     </div>
                   </div>
 
                   <button
                     type="submit"
-                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#E11D48] to-[#BE123C] text-white font-bold shadow-lg transition flex items-center gap-2"
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0866F5] to-[#00A9FF] text-[#F8FAFC] font-bold shadow-[0_6px_18px_rgba(8,102,245,0.35)] transition flex items-center gap-2 cursor-pointer"
                   >
                     <Save className="w-4 h-4" />
                     <span>Salvar Dados Empresariais no Firestore</span>
@@ -1610,12 +1611,13 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                   onSubmit={async (e) => {
                     await handleSaveCommercialConfigAdmin(e);
                     try {
+                      const authHeaders = await getAuthBearerHeaders({
+                        'Content-Type': 'application/json',
+                        'x-gio-admin-access': 'authorized',
+                      });
                       await fetch('/api/subscriptions/admin/plans', {
                         method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'x-gio-admin-access': 'authorized',
-                        },
+                        headers: authHeaders,
                         body: JSON.stringify({
                           monthlyPrice: Number(commercialConfig.monthlyPrice ?? 29.9),
                           annualPrice: Number(commercialConfig.annualPrice ?? 199.9),
@@ -1627,32 +1629,32 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                       // ignore
                     }
                   }}
-                  className="p-6 rounded-2xl bg-[#0A1128] border border-cyan-500/40 space-y-5 text-xs"
+                  className="p-6 rounded-2xl bg-[#101F3D] border border-[#00A9FF]/40 space-y-5 text-xs shadow-[0_12px_32px_rgba(2,8,23,0.45)]"
                 >
-                  <div className="border-b border-blue-900/70 pb-3 flex flex-wrap items-center justify-between gap-3">
+                  <div className="border-b border-[#182943] pb-3 flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-300">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#F5B942]">
                         Planos Oficiais Mercado Pago & Regras Comerciais
                       </span>
-                      <h3 className="text-sm sm:text-base font-display font-bold text-white mt-0.5">
+                      <h3 className="text-sm sm:text-base font-display font-bold text-[#F8FAFC] mt-0.5">
                         Parâmetros Comerciais — GIO DA SORTE PRO Mensal (R$ 29,90) & Anual (R$ 199,90)
                       </h3>
-                      <p className="text-slate-400">
+                      <p className="text-[#94A3B8]">
                         Alterações de preço geram uma nova versão comercial (atual:{' '}
-                        <strong className="font-mono text-cyan-300">
+                        <strong className="font-mono text-[#35B9F5]">
                           {commercialConfig.priceVersion || 'v1.0.0'}
                         </strong>
                         ) e aplicam-se apenas a novas contratações, preservando o valor das assinaturas vigentes.
                       </p>
                     </div>
-                    <span className="px-3 py-1 rounded-lg bg-[#050814] border border-amber-500/40 font-mono text-[11px] text-amber-300">
+                    <span className="px-3 py-1 rounded-lg bg-[#050D20] border border-[#F5B942]/40 font-mono text-[11px] text-[#F5B942]">
                       Homologação MP: {commercialConfig.mpHomologationStatus || 'PENDING_CREDENTIALS'}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                     <div>
-                      <label className="block font-semibold text-cyan-200 mb-1">
+                      <label className="block font-semibold text-[#35B9F5] mb-1">
                         PRO Mensal (BRL / 1 mês)
                       </label>
                       <input
@@ -1665,11 +1667,11 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                             monthlyPrice: Number(e.target.value),
                           })
                         }
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white font-mono tabular-nums"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC] font-mono tabular-nums"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-amber-200 mb-1">
+                      <label className="block font-semibold text-[#F5B942] mb-1">
                         PRO Anual Integral (BRL / 12 meses)
                       </label>
                       <input
@@ -1682,27 +1684,27 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                             annualPrice: Number(e.target.value),
                           })
                         }
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-amber-300 font-mono tabular-nums"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#F5B942] focus:outline-none text-[#F5B942] font-mono tabular-nums"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-cyan-200 mb-1">
+                      <label className="block font-semibold text-[#20C997] mb-1">
                         Teste Gratuito (Dias)
                       </label>
                       <input
                         type="number"
-                        value={commercialConfig.freeTrialDays ?? 7}
+                        value={commercialConfig.freeTrialDays ?? 3}
                         onChange={(e) =>
                           setCommercialConfig({
                             ...commercialConfig,
                             freeTrialDays: Number(e.target.value),
                           })
                         }
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white font-mono tabular-nums"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#20C997] focus:outline-none text-[#F8FAFC] font-mono tabular-nums"
                       />
                     </div>
                     <div className="flex items-end pb-1">
-                      <label className="flex items-center gap-2 text-slate-200 cursor-pointer">
+                      <label className="flex items-center gap-2 text-[#F8FAFC] cursor-pointer">
                         <input
                           type="checkbox"
                           checked={commercialConfig.trialOfferEnabled ?? true}
@@ -1712,16 +1714,16 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                               trialOfferEnabled: e.target.checked,
                             })
                           }
-                          className="w-4 h-4 accent-cyan-400"
+                          className="w-4 h-4 accent-[#00A9FF]"
                         />
-                        <span>Oferta 7 Dias Grátis Ativa</span>
+                        <span>Oferta 3 Dias Grátis Ativa</span>
                       </label>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <label className="block font-semibold text-blue-200 mb-1">
+                      <label className="block font-semibold text-[#94A3B8] mb-1">
                         Resumo Oficial de Preços Exibido
                       </label>
                       <input
@@ -1733,11 +1735,11 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                             priceDisplay: e.target.value,
                           })
                         }
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white font-mono"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC] font-mono"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-blue-200 mb-1">
+                      <label className="block font-semibold text-[#94A3B8] mb-1">
                         Periodicidade / Ciclos Oficiais
                       </label>
                       <input
@@ -1749,11 +1751,11 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                             billingCycle: e.target.value,
                           })
                         }
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC]"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-blue-200 mb-1">
+                      <label className="block font-semibold text-[#94A3B8] mb-1">
                         Meios de Pagamento Aceitos
                       </label>
                       <input
@@ -1765,15 +1767,15 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                             paymentMethodsInfo: e.target.value,
                           })
                         }
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC]"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block font-semibold text-blue-200 mb-1">
-                        Regra de Renovação Automática e Teste de 7 Dias
+                      <label className="block font-semibold text-[#94A3B8] mb-1">
+                        Regra de Renovação Automática e Teste de 3 Dias
                       </label>
                       <textarea
                         rows={2}
@@ -1784,11 +1786,11 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                             renewalPolicy: e.target.value,
                           })
                         }
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC]"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-blue-200 mb-1">
+                      <label className="block font-semibold text-[#94A3B8] mb-1">
                         Regra de Cancelamento (&quot;canceled&quot;) e Retenção de Acesso
                       </label>
                       <textarea
@@ -1800,14 +1802,14 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                             refundPolicySummary: e.target.value,
                           })
                         }
-                        className="w-full px-3 py-2 rounded-xl bg-[#050814] border border-blue-800 text-white"
+                        className="w-full px-3 py-2 rounded-xl bg-[#050D20] border border-[#182943] focus:border-[#00A9FF] focus:outline-none text-[#F8FAFC]"
                       />
                     </div>
                   </div>
 
                   <button
                     type="submit"
-                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black shadow-lg transition flex items-center gap-2"
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0866F5] to-[#00A9FF] text-[#F8FAFC] font-black shadow-[0_6px_18px_rgba(8,102,245,0.35)] transition flex items-center gap-2 cursor-pointer"
                   >
                     <Save className="w-4 h-4" />
                     <span>Salvar Parâmetros Comerciais e Atualizar Versão</span>
@@ -1817,12 +1819,12 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
 
               {/* SUB-TAB 4: ADMIN LGPD REQUESTS WORKFLOW */}
               {adminSubTab === 'lgpd_admin' && (
-                <div className="p-6 rounded-2xl bg-[#0A1128] border border-blue-900/70 space-y-4 text-xs">
-                  <h3 className="text-sm font-display font-bold text-white">
+                <div className="p-6 rounded-2xl bg-[#101F3D] border border-[#182943] space-y-4 text-xs shadow-[0_12px_32px_rgba(2,8,23,0.45)]">
+                  <h3 className="text-sm font-display font-bold text-[#F8FAFC]">
                     Gestão Administrativa de Solicitações LGPD ({lgpdRequests.length})
                   </h3>
                   {lgpdRequests.length === 0 ? (
-                    <p className="text-slate-400 py-6 text-center">
+                    <p className="text-[#94A3B8] py-6 text-center">
                       Nenhuma solicitação LGPD recebida.
                     </p>
                   ) : (
@@ -1830,22 +1832,22 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                       {lgpdRequests.map((req) => (
                         <div
                           key={req.requestId}
-                          className="p-4 rounded-xl bg-[#050814] border border-blue-900/60 space-y-3"
+                          className="p-4 rounded-xl bg-[#0B1730] border border-[#182943] space-y-3"
                         >
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <div>
-                              <span className="font-mono font-bold text-[#FDA4AF]">
+                              <span className="font-mono font-bold text-[#35B9F5]">
                                 {req.protocol}
                               </span>{' '}
-                              • <strong className="text-white">{req.requesterName}</strong> (
+                              • <strong className="text-[#F8FAFC]">{req.requesterName}</strong> (
                               {req.requesterEmail})
                             </div>
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#050D20] text-[#35B9F5] border border-[#182943]">
                               {req.status}
                             </span>
                           </div>
-                          <p className="text-slate-300">
-                            <strong>Tipo:</strong> {req.requestType} — {req.description}
+                          <p className="text-[#94A3B8]">
+                            <strong className="text-[#F8FAFC]">Tipo:</strong> {req.requestType} — {req.description}
                           </p>
                           <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
                             <select
@@ -1856,7 +1858,7 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                                   [req.requestId]: e.target.value as LgpdRequestStatus,
                                 }))
                               }
-                              className="sm:col-span-4 px-3 py-2 rounded-lg bg-[#0A1128] border border-blue-800 text-white"
+                              className="sm:col-span-4 px-3 py-2 rounded-lg bg-[#050D20] border border-[#182943] text-[#F8FAFC]"
                             >
                               <option value="RECEBIDA">RECEBIDA</option>
                               <option value="EM_ANALISE">EM_ANALISE</option>
@@ -1876,7 +1878,7 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                                 }))
                               }
                               placeholder="Parecer / resposta do DPO ao titular..."
-                              className="sm:col-span-6 px-3 py-2 rounded-lg bg-[#0A1128] border border-blue-800 text-white"
+                              className="sm:col-span-6 px-3 py-2 rounded-lg bg-[#050D20] border border-[#182943] text-[#F8FAFC]"
                             />
                             <button
                               type="button"
@@ -1893,7 +1895,7 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                                   text: `Solicitação ${req.protocol} atualizada!`,
                                 });
                               }}
-                              className="sm:col-span-2 py-2 px-3 rounded-lg bg-[#E11D48] text-white font-bold"
+                              className="sm:col-span-2 py-2 px-3 rounded-lg bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-bold cursor-pointer transition"
                             >
                               Atualizar
                             </button>
@@ -1907,12 +1909,12 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
 
               {/* SUB-TAB 5: ADMIN SUPPORT TICKETS */}
               {adminSubTab === 'support_admin' && (
-                <div className="p-6 rounded-2xl bg-[#0A1128] border border-blue-900/70 space-y-4 text-xs">
-                  <h3 className="text-sm font-display font-bold text-white">
+                <div className="p-6 rounded-2xl bg-[#101F3D] border border-[#182943] space-y-4 text-xs shadow-[0_12px_32px_rgba(2,8,23,0.45)]">
+                  <h3 className="text-sm font-display font-bold text-[#F8FAFC]">
                     Gestão de Chamados de Suporte ({supportTickets.length})
                   </h3>
                   {supportTickets.length === 0 ? (
-                    <p className="text-slate-400 py-6 text-center">
+                    <p className="text-[#94A3B8] py-6 text-center">
                       Nenhum chamado de suporte registrado.
                     </p>
                   ) : (
@@ -1920,19 +1922,19 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                       {supportTickets.map((t) => (
                         <div
                           key={t.ticketId}
-                          className="p-4 rounded-xl bg-[#050814] border border-blue-900/60 space-y-3"
+                          className="p-4 rounded-xl bg-[#0B1730] border border-[#182943] space-y-3"
                         >
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <div>
-                              <span className="font-mono font-bold text-[#FDA4AF]">{t.protocol}</span>{' '}
-                              • <strong className="text-white">{t.subject}</strong> ({t.name} -{' '}
+                              <span className="font-mono font-bold text-[#35B9F5]">{t.protocol}</span>{' '}
+                              • <strong className="text-[#F8FAFC]">{t.subject}</strong> ({t.name} -{' '}
                               {t.email})
                             </div>
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#050D20] text-[#35B9F5] border border-[#182943]">
                               {t.status}
                             </span>
                           </div>
-                          <p className="text-slate-300">{t.message}</p>
+                          <p className="text-[#94A3B8]">{t.message}</p>
                           <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
                             <select
                               value={adminSupportStatusMap[t.ticketId] || t.status}
@@ -1942,7 +1944,7 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                                   [t.ticketId]: e.target.value as SupportTicketStatus,
                                 }))
                               }
-                              className="sm:col-span-3 px-3 py-2 rounded-lg bg-[#0A1128] border border-blue-800 text-white"
+                              className="sm:col-span-3 px-3 py-2 rounded-lg bg-[#050D20] border border-[#182943] text-[#F8FAFC]"
                             >
                               <option value="ABERTO">ABERTO</option>
                               <option value="EM_ATENDIMENTO">EM_ATENDIMENTO</option>
@@ -1959,7 +1961,7 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                                 }))
                               }
                               placeholder="Resposta técnica ao usuário..."
-                              className="sm:col-span-7 px-3 py-2 rounded-lg bg-[#0A1128] border border-blue-800 text-white"
+                              className="sm:col-span-7 px-3 py-2 rounded-lg bg-[#050D20] border border-[#182943] text-[#F8FAFC]"
                             />
                             <button
                               type="button"
@@ -1975,7 +1977,7 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                                   text: `Chamado ${t.protocol} respondido!`,
                                 });
                               }}
-                              className="sm:col-span-2 py-2 px-3 rounded-lg bg-[#E11D48] text-white font-bold"
+                              className="sm:col-span-2 py-2 px-3 rounded-lg bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-bold cursor-pointer transition"
                             >
                               Responder
                             </button>
@@ -1990,62 +1992,62 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
               {/* SUB-TAB 6: DOCUMENT ACCEPTANCES & COOKIE CONSENT LOGS */}
               {adminSubTab === 'consents_log' && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-xs">
-                  <div className="p-5 rounded-2xl bg-[#0A1128] border border-blue-900/70 space-y-3">
-                    <h3 className="text-sm font-display font-bold text-white">
+                  <div className="p-5 rounded-2xl bg-[#101F3D] border border-[#182943] space-y-3 shadow-[0_12px_32px_rgba(2,8,23,0.45)]">
+                    <h3 className="text-sm font-display font-bold text-[#F8FAFC]">
                       Registros de Aceite de Documentos por Versão ({acceptances.length})
                     </h3>
                     <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                       {acceptances.map((acc) => (
                         <div
                           key={acc.acceptanceId}
-                          className="p-3 rounded-xl bg-[#050814] border border-blue-900/60 space-y-1"
+                          className="p-3 rounded-xl bg-[#0B1730] border border-[#182943] space-y-1"
                         >
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-white">{acc.documentId}</span>
-                            <span className="font-mono text-[#FDA4AF]">v{acc.version}</span>
+                            <span className="font-bold text-[#F8FAFC]">{acc.documentId}</span>
+                            <span className="font-mono text-[#35B9F5]">v{acc.version}</span>
                           </div>
-                          <p className="text-[11px] text-slate-400">
+                          <p className="text-[11px] text-[#94A3B8]">
                             Usuário: {acc.userEmail || acc.userId} • Contexto: {acc.context}
                           </p>
-                          <span className="block text-[10px] font-mono text-slate-500">
+                          <span className="block text-[10px] font-mono text-[#64748B]">
                             {new Date(acc.acceptedAt).toLocaleString('pt-BR')}
                           </span>
                         </div>
                       ))}
                       {acceptances.length === 0 && (
-                        <p className="text-slate-500 py-4 text-center">
+                        <p className="text-[#64748B] py-4 text-center">
                           Nenhum aceite registrado ainda.
                         </p>
                       )}
                     </div>
                   </div>
 
-                  <div className="p-5 rounded-2xl bg-[#0A1128] border border-blue-900/70 space-y-3">
-                    <h3 className="text-sm font-display font-bold text-white">
+                  <div className="p-5 rounded-2xl bg-[#101F3D] border border-[#182943] space-y-3 shadow-[0_12px_32px_rgba(2,8,23,0.45)]">
+                    <h3 className="text-sm font-display font-bold text-[#F8FAFC]">
                       Logs de Consentimento de Cookies ({cookieLogs.length})
                     </h3>
                     <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                       {cookieLogs.map((c) => (
                         <div
                           key={c.consentId}
-                          className="p-3 rounded-xl bg-[#050814] border border-blue-900/60 space-y-1"
+                          className="p-3 rounded-xl bg-[#0B1730] border border-[#182943] space-y-1"
                         >
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-white">{c.choiceType}</span>
-                            <span className="font-mono text-blue-300">Aviso v{c.noticeVersion}</span>
+                            <span className="font-bold text-[#F8FAFC]">{c.choiceType}</span>
+                            <span className="font-mono text-[#35B9F5]">Aviso v{c.noticeVersion}</span>
                           </div>
-                          <p className="text-[11px] text-slate-400 font-mono">
+                          <p className="text-[11px] text-[#94A3B8] font-mono">
                             Essenciais: Sim | Preferências: {c.categories.preferences ? 'Sim' : 'Não'} |
                             Estatísticas: {c.categories.statistics ? 'Sim' : 'Não'} | Marketing:{' '}
                             {c.categories.marketing ? 'Sim' : 'Não'}
                           </p>
-                          <span className="block text-[10px] font-mono text-slate-500">
+                          <span className="block text-[10px] font-mono text-[#64748B]">
                             {new Date(c.decidedAt).toLocaleString('pt-BR')}
                           </span>
                         </div>
                       ))}
                       {cookieLogs.length === 0 && (
-                        <p className="text-slate-500 py-4 text-center">
+                        <p className="text-[#64748B] py-4 text-center">
                           Nenhum log de cookie registrado ainda.
                         </p>
                       )}

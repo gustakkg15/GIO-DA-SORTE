@@ -117,12 +117,12 @@ async function runTests() {
   assert.equal(plans.monthly.price, 29.9);
   assert.equal(plans.monthly.frequency, 1);
   assert.equal(plans.monthly.frequencyType, 'months');
-  assert.deepEqual(plans.monthly.freeTrial, { frequency: 7, frequencyType: 'days' });
+  assert.deepEqual(plans.monthly.freeTrial, { frequency: 3, frequencyType: 'days' });
 
   assert.equal(plans.annual.price, 199.9);
   assert.equal(plans.annual.frequency, 12);
   assert.equal(plans.annual.frequencyType, 'months');
-  assert.deepEqual(plans.annual.freeTrial, { frequency: 7, frequencyType: 'days' });
+  assert.deepEqual(plans.annual.freeTrial, { frequency: 3, frequencyType: 'days' });
   assert.equal(plans.annual.monthlyEquivalent, 16.66);
   assert.equal(plans.annual.annualSavingsAmount, 158.9);
   assert.equal(plans.annual.annualDiscountPercent, 44.3);
@@ -140,7 +140,7 @@ async function runTests() {
   assert.equal((monthlyIndividualPayload.auto_recurring as any).transaction_amount, 29.9);
   assert.equal((monthlyIndividualPayload.auto_recurring as any).frequency, 1);
   assert.deepEqual((monthlyIndividualPayload.auto_recurring as any).free_trial, {
-    frequency: 7,
+    frequency: 3,
     frequency_type: 'days',
   });
   assert.equal('preapproval_plan_id' in monthlyIndividualPayload, false);
@@ -218,7 +218,7 @@ async function runTests() {
         external_reference: 'uid_test',
         payer_email: 'test@testuser.com',
         date_created: new Date().toISOString(),
-        // Divergência: cobrança no mesmo dia em vez de +7 dias!
+        // Divergência: cobrança no mesmo dia em vez de +3 dias!
         next_payment_date: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
         auto_recurring: {
           frequency: 1,
@@ -260,9 +260,9 @@ async function runTests() {
       const id = `mp_sub_${seqCounter}`;
       const nowMs = Date.now();
       const autoRec = (payload.auto_recurring || {}) as Record<string, any>;
-      const hasTrial = Boolean(autoRec.free_trial && autoRec.free_trial.frequency === 7);
+      const hasTrial = Boolean(autoRec.free_trial && autoRec.free_trial.frequency === 3);
       const nextPaymentMs = hasTrial
-        ? nowMs + 7 * 24 * 60 * 60 * 1000
+        ? nowMs + 3 * 24 * 60 * 60 * 1000
         : nowMs + (autoRec.frequency === 12 ? 365 : 30) * 24 * 60 * 60 * 1000;
 
       const created = {
@@ -279,7 +279,7 @@ async function runTests() {
           frequency_type: 'months',
           transaction_amount: Number(autoRec.transaction_amount || 29.9),
           currency_id: 'BRL',
-          free_trial: hasTrial ? { frequency: 7, frequency_type: 'days' } : undefined,
+          free_trial: hasTrial ? { frequency: 3, frequency_type: 'days' } : undefined,
         },
         summarized: {
           charged_quantity: 0,
@@ -328,7 +328,7 @@ async function runTests() {
     mpHomologationStatus: 'VERIFIED',
   });
 
-  // Cenário 1: Contratação do Plano PRO Mensal (R$ 29,90 + 7 dias grátis)
+  // Cenário 1: Contratação do Plano PRO Mensal (R$ 29,90 + 3 dias grátis)
   const uidMonthly = `user_monthly_${Date.now()}`;
   const checkoutMonthly = await simService.initiateCheckout({
     uid: uidMonthly,
@@ -346,7 +346,7 @@ async function runTests() {
   assert.equal(checkoutMonthly.subscription?.frequency, 1);
   console.log('  ✔ Cenário 1: Contratação Mensal (R$ 29,90, status inicial PENDING, init_point individual).');
 
-  // Cenário 2: Contratação do Plano PRO Anual (R$ 199,90 integral + 7 dias grátis)
+  // Cenário 2: Contratação do Plano PRO Anual (R$ 199,90 integral + 3 dias grátis)
   const uidAnnual = `user_annual_${Date.now()}`;
   const checkoutAnnual = await simService.initiateCheckout({
     uid: uidAnnual,
@@ -362,7 +362,7 @@ async function runTests() {
   assert.equal(checkoutAnnual.subscription?.frequency, 12);
   console.log('  ✔ Cenário 2: Contratação Anual (R$ 199,90 integral por 12 meses, sem parcelamento mensal).');
 
-  // Cenário 3: Acesso ativo durante os 7 dias de teste gratuito após autorização no Mercado Pago
+  // Cenário 3: Acesso ativo durante os 3 dias de teste gratuito após autorização no Mercado Pago
   const mpMonthlyObj = remotePreapprovals.get(checkoutMonthly.preapprovalId!);
   mpMonthlyObj.status = 'authorized';
   const verifyMonthlyTrial = await simService.verifyAndSyncUserSubscription({
@@ -373,8 +373,8 @@ async function runTests() {
   assert.equal(verifyMonthlyTrial.subscription?.statusState, 'ACTIVE');
   assert.equal(verifyMonthlyTrial.subscription?.billingSubStatus, 'TRIAL_ACTIVE');
   assert.equal(verifyMonthlyTrial.subscription?.hasUsedFreeTrial, true);
-  assert.equal(getProPlanEntitlement().active, true);
-  console.log('  ✔ Cenário 3: Acesso PRO liberado durante os 7 dias de teste gratuito (TRIAL_ACTIVE / ACTIVE).');
+  assert.equal(getProPlanEntitlement(uidMonthly).active, true);
+  console.log('  ✔ Cenário 3: Acesso PRO liberado durante os 3 dias de teste gratuito (TRIAL_ACTIVE / ACTIVE).');
 
   // Cenário 12: Bloqueio de tentativa de sequestro de assinatura por outra conta (Account B -> Account A)
   const hijackAttempt = await simService.verifyAndSyncUserSubscription({
@@ -386,7 +386,7 @@ async function runTests() {
   assert.equal(hijackAttempt.code, 'SUBSCRIPTION_OWNERSHIP_MISMATCH_BLOCKED');
   console.log('  ✔ Cenário 12: Tentativa de reivindicação cruzada por outra conta bloqueada (403 Ownership Mismatch).');
 
-  // Cenário 5: Cancelamento durante os 7 dias de teste gratuito ("status": "cancelled" no HTTP -> normalizado "canceled" + retenção até trialEndDate)
+  // Cenário 5: Cancelamento durante os 3 dias de teste gratuito ("status": "cancelled" no HTTP -> normalizado "canceled" + retenção até trialEndDate)
   const cancelDuringTrial = await simService.cancelSubscription({
     uid: uidMonthly,
     actor: 'mensal@teste.com',
@@ -402,7 +402,7 @@ async function runTests() {
     '  ✔ Cenário 5: Cancelamento no teste enviou {"status":"cancelled"} (normalizado para "canceled") e manteve acesso PRO até trialEndDate.'
   );
 
-  // Cenário 10: Prevenção de reutilização dos 7 dias de teste pelo mesmo Firebase UID
+  // Cenário 10: Prevenção de reutilização dos 3 dias de teste pelo mesmo Firebase UID
   const secondCheckoutSameUid = await simService.initiateCheckout({
     uid: uidMonthly,
     email: 'mensal@teste.com',
@@ -417,7 +417,7 @@ async function runTests() {
   assert.equal(secondCheckoutSameUid.subscription?.trialApplied, false);
   // Verifica que o e-mail real do cliente foi preservado na operação normal (não substituído por @testuser.com)
   assert.equal(remotePreapprovals.get(secondCheckoutSameUid.preapprovalId!).payer_email, 'mensal@teste.com');
-  console.log('  ✔ Cenário 10: Reutilização dos 7 dias grátis pelo mesmo Firebase UID bloqueada (trialEligible = false) e e-mail real preservado.');
+  console.log('  ✔ Cenário 10: Reutilização dos 3 dias grátis pelo mesmo Firebase UID bloqueada (trialEligible = false) e e-mail real preservado.');
 
   // Cenário 4: Cobrança recorrente após término do teste (Ciclo Pago Ativo)
   const mpAnnualObj = remotePreapprovals.get(checkoutAnnual.preapprovalId!);
@@ -440,7 +440,7 @@ async function runTests() {
   assert.equal(verifyAnnualPaid.success, true);
   assert.equal(verifyAnnualPaid.subscription?.statusState, 'ACTIVE');
   assert.equal(verifyAnnualPaid.subscription?.billingSubStatus, 'PAID_ACTIVE');
-  console.log('  ✔ Cenário 4: Ciclo pago recorrente ativo após término dos 7 dias de teste (PAID_ACTIVE).');
+  console.log('  ✔ Cenário 4: Ciclo pago recorrente ativo após término dos 3 dias de teste (PAID_ACTIVE).');
 
   // Cenário 6: Cancelamento em ciclo pago mantém acesso até currentPeriodEnd
   const cancelPaidCycle = await simService.cancelSubscription({
@@ -469,7 +469,7 @@ async function runTests() {
   });
   assert.equal(verifyPastDue.subscription?.statusState, 'PAST_DUE');
   assert.equal(verifyPastDue.subscription?.billingSubStatus, 'PAYMENT_REJECTED');
-  assert.equal(getProPlanEntitlement().active, false);
+  assert.equal(getProPlanEntitlement(uidAnnual).active, false);
   console.log('  ✔ Cenário 7: Recusa de cobrança atualizou estado para PAST_DUE e bloqueou motor PRO.');
 
   // Cenário 8: Idempotência e validação HMAC-SHA256 de Webhooks duplicados

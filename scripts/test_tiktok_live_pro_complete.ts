@@ -90,9 +90,10 @@ async function runTests() {
     }
     assert(blockedCampaign, 'Backend bloqueia criação de campanha acumulada quando plano = FREE');
 
-    // Reativa plano PRO para os próximos testes
-    setProPlanTier('PRO');
-    const proEntitlement = getProPlanEntitlement();
+    // Reativa plano PRO para o UID exclusivo de teste nos próximos testes
+    const TEST_ORGANIZER_UID = 'user_pro_test_uid';
+    setProPlanTier('PRO', 'ACTIVE', TEST_ORGANIZER_UID);
+    const proEntitlement = getProPlanEntitlement(TEST_ORGANIZER_UID);
     assert(
       proEntitlement.tier === 'PRO' && proEntitlement.active === true,
       'Plano PRO habilita conexão LIVE, emissão de bilhetes e campanhas acumuladas'
@@ -104,7 +105,7 @@ async function runTests() {
     console.log('\n--- [2] Configuração do Sorteio da LIVE & Regras ---');
     const uniqueSuffix = Date.now().toString(36);
     const sessionId = `sess_pro_test_${uniqueSuffix}`;
-    const session = await getOrCreateLiveSession(sessionId, `@criador_pro_${uniqueSuffix}`, 20);
+    const session = await getOrCreateLiveSession(sessionId, `@criador_pro_${uniqueSuffix}`, 20, TEST_ORGANIZER_UID);
 
     const updatedSession = await updateLiveSessionConfigAndRules(session.sessionId, {
       raffleTitle: 'Sorteio PIX 500 Reais',
@@ -115,7 +116,7 @@ async function runTests() {
       maxTotalTickets: 8,
       allowDuplicateWinners: false,
       participationRulesNotes: 'Mínimo de 15 moedas por envio; máximo de 5 bilhetes por participante e 8 na LIVE.',
-    });
+    }, TEST_ORGANIZER_UID);
 
     assert(
       updatedSession.currentRate === 10 &&
@@ -132,6 +133,7 @@ async function runTests() {
     console.log('\n--- [3] Regra de Mínimo de Moedas por Presente ---');
     const smallGiftRes = await recordGiftEventAtomic({
       sessionId: session.sessionId,
+      ownerUid: TEST_ORGANIZER_UID,
       tiktokUserId: 'uid_ana_101',
       username: 'ana_live',
       nickname: 'Ana Live',
@@ -162,6 +164,7 @@ async function runTests() {
     // Envio 1 do combo: repeatCount = 1, diamondCount = 20 -> 20 moedas -> 2 bilhetes (#1, #2)
     const comboStep1 = await recordGiftEventAtomic({
       sessionId: session.sessionId,
+      ownerUid: TEST_ORGANIZER_UID,
       tiktokUserId: 'uid_bruno_202',
       username: 'bruno_vip',
       nickname: 'Bruno VIP',
@@ -179,6 +182,7 @@ async function runTests() {
     // Envio 2 do mesmo combo: repeatCount = 2 -> delta = +1 unidade (+20 moedas) -> +2 bilhetes (#3, #4)
     const comboStep2 = await recordGiftEventAtomic({
       sessionId: session.sessionId,
+      ownerUid: TEST_ORGANIZER_UID,
       tiktokUserId: 'uid_bruno_202',
       username: 'bruno_vip',
       nickname: 'Bruno VIP',
@@ -196,6 +200,7 @@ async function runTests() {
     // Retransmissão idêntica do passo 2 (mesmo transactionId + repeatCount) -> deve ser bloqueada por idempotência
     const duplicateRetry = await recordGiftEventAtomic({
       sessionId: session.sessionId,
+      ownerUid: TEST_ORGANIZER_UID,
       tiktokUserId: 'uid_bruno_202',
       username: 'bruno_vip',
       nickname: 'Bruno VIP',
@@ -227,6 +232,7 @@ async function runTests() {
     // Se Bruno enviar 30 moedas (que daria +3 bilhetes), ele só pode receber +1 bilhete (#5).
     const brunoCapRes = await recordGiftEventAtomic({
       sessionId: session.sessionId,
+      ownerUid: TEST_ORGANIZER_UID,
       tiktokUserId: 'uid_bruno_202',
       username: 'bruno_vip',
       nickname: 'Bruno VIP',
@@ -250,6 +256,7 @@ async function runTests() {
     // Carla envia 50 moedas (que daria 5 bilhetes), mas o teto da LIVE (8) limita a emissão a 3 bilhetes (#6, #7, #8).
     const carlaCapRes = await recordGiftEventAtomic({
       sessionId: session.sessionId,
+      ownerUid: TEST_ORGANIZER_UID,
       tiktokUserId: 'uid_carla_303',
       username: 'carla_top',
       nickname: 'Carla Top',
@@ -301,7 +308,7 @@ async function runTests() {
     // 7. PERSISTÊNCIA DURÁVEL E RECUPERAÇÃO DO FIRESTORE PÓS-REINICIALIZAÇÃO
     // ------------------------------------------------------------------------
     console.log('\n--- [7] Recuperação Pós-Reinicialização do Servidor ---');
-    const persistedSession = await getOrCreateLiveSession(session.sessionId, `@criador_pro_${uniqueSuffix}`);
+    const persistedSession = await getOrCreateLiveSession(session.sessionId, `@criador_pro_${uniqueSuffix}`, undefined, TEST_ORGANIZER_UID);
     const persistedEvents = await fetchRecentSessionEvents(session.sessionId, 20);
 
     assert(
@@ -315,11 +322,12 @@ async function runTests() {
     // 8. SORTEIO INDIVIDUAL DA LIVE COM HASH SHA-256 E CSPRNG
     // ------------------------------------------------------------------------
     console.log('\n--- [8] Sorteio Individual da LIVE (SHA-256 + CSPRNG) ---');
-    const liveSnapshot = await createNonBlockingSessionSnapshot(session.sessionId);
+    const liveSnapshot = await createNonBlockingSessionSnapshot(session.sessionId, TEST_ORGANIZER_UID);
     const liveDrawResult = await executeIndividualLiveDraw(
       session.sessionId,
       liveSnapshot.snapshotId,
-      'PIX R$ 500,00'
+      'PIX R$ 500,00',
+      TEST_ORGANIZER_UID
     );
 
     assert(
@@ -343,15 +351,16 @@ async function runTests() {
       maxTotalTickets: 6,   // Limita a 6 bilhetes totais na campanha
       eligibilityRuleDefault: 'ALL_TICKETS',
       rulesSummary: 'Campanha acumulada com teto de 4 bilhetes/usuário e 6 bilhetes totais',
-    });
+      ownerUid: TEST_ORGANIZER_UID,
+    }, TEST_ORGANIZER_UID);
 
     const updatedCamp = await updateCampaignRulesConfig(campaign.campaignId, {
       maxTicketsPerUser: 4,
       maxTotalTickets: 6,
       rulesSummary: 'Regras atualizadas: máx 4 bilhetes/usuário e 6 bilhetes totais.',
-    });
+    }, TEST_ORGANIZER_UID);
 
-    const linkResult = await addSessionToCampaign(updatedCamp.campaignId, session.sessionId);
+    const linkResult = await addSessionToCampaign(updatedCamp.campaignId, session.sessionId, { ownerUid: TEST_ORGANIZER_UID });
     const campTickets = await fetchCampaignTickets(updatedCamp.campaignId);
     const brunoCampTickets = campTickets.filter((t) => t.tiktokUserId === 'uid_bruno_202');
     const carlaCampTickets = campTickets.filter((t) => t.tiktokUserId === 'uid_carla_303');
@@ -363,7 +372,7 @@ async function runTests() {
       'Campanha acumulada indexou a LIVE aplicando maxTicketsPerUser=4 (Bruno=4) e maxTotalTickets=6 (Carla=2, Total=6)'
     );
 
-    const snapshot = await freezeCampaignSnapshot(updatedCamp.campaignId);
+    const snapshot = await freezeCampaignSnapshot(updatedCamp.campaignId, TEST_ORGANIZER_UID);
     assert(
       snapshot.rosterSha256Hash.length === 64 && snapshot.totalEligibleTickets === 6,
       'Snapshot da campanha congelado com hash SHA-256 de 64 caracteres e 6 bilhetes elegíveis'
@@ -372,7 +381,8 @@ async function runTests() {
     const campaignDraw = await executeCampaignDraw(
       updatedCamp.campaignId,
       snapshot.snapshotId,
-      'iPhone 16 Pro Max'
+      'iPhone 16 Pro Max',
+      TEST_ORGANIZER_UID
     );
     assert(
       Boolean(campaignDraw.winningTicket?.username) && campaignDraw.seedCommitment.length === 64,
@@ -382,7 +392,7 @@ async function runTests() {
     failed++;
     console.error('❌ Erro inesperado durante os testes:', err);
   } finally {
-    // Garante que o plano PRO permaneça ativo ao finalizar os testes
+    // Restaurar estado isolado de teste ao finalizar
     setProPlanTier('PRO');
   }
 

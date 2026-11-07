@@ -1,0 +1,65 @@
+{
+  "purpose": "Provenance register; fill exact commit SHA and import date when copying original upstream skill folders.",
+  "sources": [
+    {
+      "repo": "emilkowalski/skills",
+      "ref": "main",
+      "skills": [
+        "emil-design-eng",
+        "animate",
+        "review-animations",
+        "improve-animations",
+        "animation-performance",
+        "break-ui"
+      ],
+      "license": "MIT"
+    },
+    {
+      "repo": "ConardLi/garden-skills",
+      "ref": "main",
+      "skills": [
+        "web-design-engineer"
+      ],
+      "license": "MIT"
+    },
+    {
+      "repo": "elayadesign/ai-design-skills",
+      "ref": "main",
+      "skills": [
+        "landing-page-design"
+      ],
+      "license": "MIT"
+    },
+    {
+      "repo": "jakubkrehel/skills",
+      "ref": "main",
+      "skills": [
+        "better-interface",
+        "better-ui",
+        "better-layout",
+        "better-typography",
+        "better-colors",
+        "better-accessibility",
+        "interface-review",
+        "state-machine"
+      ],
+      "license": "MIT"
+    },
+    {
+      "repo": "MengTo/Skills",
+      "ref": "main",
+      "skills": [
+        "build-awwwards-quality-sites"
+      ],
+      "license": "MIT"
+    },
+    {
+      "repo": "vercel-labs/agent-skills",
+      "ref": "main",
+      "skills": [
+        "react-best-practices"
+      ],
+      "license": "MIT (declared in SKILL.md; verify repo license before redistribution)"
+    }
+  ]
+}

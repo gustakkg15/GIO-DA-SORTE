@@ -4,10 +4,8 @@ import {
   Search,
   Hash,
   User,
-  Radio,
   Clock,
   Trash2,
-  ExternalLink,
   Sparkles,
   ChevronRight,
   RefreshCw,
@@ -123,17 +121,17 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-      <div className="bg-slate-900 border border-slate-700 w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-slide-up">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#050D20]/85 backdrop-blur-md animate-fade-in">
+      <div className="bg-[#101F3D] border border-[#182943] w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-slide-up">
         {/* Header */}
-        <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-blue-950/70 via-slate-900 to-slate-900">
+        <div className="p-5 border-b border-[#182943] flex items-center justify-between bg-[#0B1730]">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-blue-600/30 border border-blue-500/40 flex items-center justify-center text-sky-400">
+            <div className="w-10 h-10 rounded-xl bg-[#0866F5]/20 border border-[#00A9FF]/40 flex items-center justify-center text-[#00A9FF]">
               <Search className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-display font-black text-lg text-white">Encontrar Sorteio do Sorteador</h3>
-              <p className="text-xs text-slate-400">
+              <h3 className="font-display font-bold text-lg text-[#F8FAFC]">Encontrar Sorteio do Sorteador</h3>
+              <p className="text-xs text-[#94A3B8]">
                 Conecte-se para ver seus bilhetes no sorteio do seu streamer ou organizador
               </p>
             </div>
@@ -141,14 +139,14 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition"
+            className="text-[#94A3B8] hover:text-[#F8FAFC] p-2 rounded-xl hover:bg-[#182943] transition"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab Switcher */}
-        <div className="p-3 bg-slate-950/60 border-b border-slate-800 flex items-center justify-center gap-2">
+        <div className="p-3 bg-[#0B1730]/80 border-b border-[#182943] flex items-center justify-center gap-2">
           <button
             type="button"
             onClick={() => {
@@ -157,8 +155,8 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
             }}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
               activeTab === 'code'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-[#0866F5] text-[#F8FAFC] shadow-sm'
+                : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#182943]'
             }`}
           >
             <Hash className="w-3.5 h-3.5" />
@@ -174,8 +172,8 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
             }}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
               activeTab === 'search'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-[#0866F5] text-[#F8FAFC] shadow-sm'
+                : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#182943]'
             }`}
           >
             <User className="w-3.5 h-3.5" />
@@ -190,8 +188,8 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
             }}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
               activeTab === 'history'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-[#0866F5] text-[#F8FAFC] shadow-sm'
+                : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#182943]'
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
@@ -201,13 +199,13 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
 
         {/* Feedback messages */}
         {errorMsg && (
-          <div className="mx-5 mt-4 p-3 bg-rose-950/60 border border-rose-500/50 rounded-xl text-rose-300 text-xs flex items-center gap-2">
+          <div className="mx-5 mt-4 p-3 bg-[#F05262]/15 border border-[#F05262]/40 rounded-xl text-[#F05262] text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
         {successMsg && (
-          <div className="mx-5 mt-4 p-3 bg-emerald-950/60 border border-emerald-500/50 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+          <div className="mx-5 mt-4 p-3 bg-[#20C997]/15 border border-[#20C997]/40 rounded-xl text-[#20C997] text-xs flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{successMsg}</span>
           </div>
@@ -218,7 +216,7 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
           {activeTab === 'code' && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
+                <label className="text-xs font-bold uppercase tracking-wider text-[#F8FAFC] block">
                   Código do Sorteio ou Link Direto
                 </label>
                 <div className="relative">
@@ -227,11 +225,11 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
                     value={inputCode}
                     onChange={(e) => setInputCode(e.target.value)}
                     placeholder="Ex: GIO-7492 ou cole o link enviado"
-                    className="w-full bg-slate-950 border-2 border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 font-mono uppercase focus:outline-none transition"
+                    className="w-full bg-[#0B1730] border border-[#182943] focus:border-[#00A9FF] rounded-xl px-4 py-3 text-sm text-[#F8FAFC] placeholder:text-[#94A3B8]/50 font-mono uppercase focus:outline-none transition"
                     onKeyDown={(e) => e.key === 'Enter' && handleConnectByCode()}
                   />
                 </div>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-[#94A3B8]">
                   O organizador do sorteio encontra o código no topo do app ou no botão de compartilhar.
                 </p>
               </div>
@@ -240,7 +238,7 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
                 type="button"
                 onClick={() => handleConnectByCode()}
                 disabled={loading || !inputCode.trim()}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 transition active:scale-98"
+                className="w-full py-3 bg-[#0866F5] hover:bg-[#00A9FF] disabled:opacity-50 text-[#F8FAFC] font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg transition active:scale-98"
               >
                 {loading ? (
                   <>
@@ -256,10 +254,10 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
               </button>
 
               {/* Quick tip */}
-              <div className="p-4 bg-slate-950/80 rounded-2xl border border-slate-800 text-xs text-slate-400 space-y-1.5">
-                <span className="font-bold text-sky-300 block">Dica para Participantes:</span>
+              <div className="p-4 bg-[#0B1730] rounded-xl border border-[#182943] text-xs text-[#94A3B8] space-y-1.5">
+                <span className="font-bold text-[#00A9FF] block">Dica para Participantes:</span>
                 <p>
-                  Quando seu sorteador envia um link com <code className="text-white">?sorteio=GIO-XXXX</code>, o app abre automaticamente no sorteio dele sem você precisar digitar nada!
+                  Quando seu sorteador envia um link com <code className="text-[#F8FAFC] font-mono">?sorteio=GIO-XXXX</code>, o app abre automaticamente no sorteio dele sem você precisar digitar nada!
                 </p>
               </div>
             </div>
@@ -274,16 +272,16 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Nome do canal, streamer ou título..."
-                    className="w-full bg-slate-950 border-2 border-slate-700 focus:border-blue-500 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none transition"
+                    className="w-full bg-[#0B1730] border border-[#182943] focus:border-[#00A9FF] rounded-xl pl-9 pr-3 py-2.5 text-xs text-[#F8FAFC] placeholder:text-[#94A3B8]/50 focus:outline-none transition"
                     onKeyDown={(e) => e.key === 'Enter' && handleSearchByName()}
                   />
-                  <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                  <Search className="w-4 h-4 text-[#94A3B8] absolute left-3 top-3" />
                 </div>
                 <button
                   type="button"
                   onClick={handleSearchByName}
                   disabled={loading}
-                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition shrink-0"
+                  className="px-4 py-2.5 bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-bold text-xs rounded-xl transition shrink-0"
                 >
                   Buscar
                 </button>
@@ -296,29 +294,29 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
                     <div
                       key={r.code}
                       onClick={() => handleConnectByCode(r.code)}
-                      className={`p-3.5 bg-slate-950 hover:bg-blue-950/40 border ${
-                        currentCode === r.code ? 'border-blue-500/80 ring-1 ring-blue-500' : 'border-slate-800'
-                      } rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition group`}
+                      className={`p-3.5 bg-[#0B1730] hover:bg-[#182943] border ${
+                        currentCode === r.code ? 'border-[#00A9FF] ring-1 ring-[#00A9FF]' : 'border-[#182943]'
+                      } rounded-xl flex items-center justify-between gap-3 cursor-pointer transition group`}
                     >
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-sm text-white group-hover:text-sky-300 transition">
+                          <span className="font-bold text-sm text-[#F8FAFC] group-hover:text-[#00A9FF] transition">
                             {r.organizerName}
                           </span>
-                          <span className="text-[10px] font-mono font-bold bg-blue-900/60 border border-blue-700/60 text-sky-300 px-2 py-0.5 rounded-full">
+                          <span className="text-[10px] font-mono font-bold bg-[#0866F5]/20 border border-[#00A9FF]/40 text-[#35B9F5] px-2 py-0.5 rounded-full">
                             #{r.code}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-400 mt-0.5">{r.title}</p>
-                        <span className="text-[10px] text-slate-500">
+                        <p className="text-xs text-[#94A3B8] mt-0.5">{r.title}</p>
+                        <span className="text-[10px] text-[#94A3B8] font-mono tabular-nums">
                           {r.participants.length} participantes · Taxa: {r.settings.rate} moedas
                         </span>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-white transition" />
+                      <ChevronRight className="w-4 h-4 text-[#94A3B8] group-hover:text-[#F8FAFC] transition" />
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-8 text-xs text-slate-500">
+                  <div className="text-center py-8 text-xs text-[#94A3B8]">
                     Digite o nome de quem está realizando o sorteio para pesquisar.
                   </div>
                 )}
@@ -333,45 +331,45 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
                   <div
                     key={r.code}
                     onClick={() => handleConnectByCode(r.code)}
-                    className={`p-3.5 bg-slate-950 hover:bg-blue-950/40 border ${
-                      currentCode === r.code ? 'border-blue-500 ring-1 ring-blue-500' : 'border-slate-800'
-                    } rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition group`}
+                    className={`p-3.5 bg-[#0B1730] hover:bg-[#182943] border ${
+                      currentCode === r.code ? 'border-[#00A9FF] ring-1 ring-[#00A9FF]' : 'border-[#182943]'
+                    } rounded-xl flex items-center justify-between gap-3 cursor-pointer transition group`}
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-white group-hover:text-sky-300 transition">
+                        <span className="font-bold text-sm text-[#F8FAFC] group-hover:text-[#00A9FF] transition">
                           {r.organizerName}
                         </span>
-                        <span className="text-[10px] font-mono font-bold bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-mono font-bold bg-[#182943] text-[#F8FAFC] px-2 py-0.5 rounded-full">
                           #{r.code}
                         </span>
                         {currentCode === r.code && (
-                          <span className="text-[10px] bg-emerald-950 border border-emerald-500/50 text-emerald-400 px-2 py-0.5 rounded-full font-bold">
+                          <span className="text-[10px] bg-[#20C997]/15 border border-[#20C997]/40 text-[#20C997] px-2 py-0.5 rounded-full font-bold">
                             Ativo
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400 mt-0.5">{r.title}</p>
+                      <p className="text-xs text-[#94A3B8] mt-0.5">{r.title}</p>
                     </div>
 
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={(e) => handleRemoveHistory(r.code, e)}
-                        className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition"
+                        className="text-[#94A3B8] hover:text-[#F05262] p-1.5 rounded-lg hover:bg-[#101F3D] transition"
                         title="Remover do histórico"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
-                      <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-white transition" />
+                      <ChevronRight className="w-4 h-4 text-[#94A3B8] group-hover:text-[#F8FAFC] transition" />
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-8 text-xs text-slate-500 space-y-2">
-                  <Clock className="w-8 h-8 text-slate-600 mx-auto" />
+                <div className="text-center py-8 text-xs text-[#94A3B8] space-y-2">
+                  <Clock className="w-8 h-8 text-[#94A3B8] mx-auto" />
                   <p>Você ainda não acessou nenhum sorteio externo.</p>
-                  <p className="text-[11px] text-slate-600">
+                  <p className="text-[11px] text-[#94A3B8]">
                     Os sorteios que você consultar ficarão salvos aqui para você voltar em 1 clique.
                   </p>
                 </div>
@@ -382,15 +380,15 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
 
         {/* Footer with Reset to Local */}
         {isViewingExternal && onResetToLocal && (
-          <div className="p-4 border-t border-slate-800 bg-slate-950 flex items-center justify-between">
-            <span className="text-xs text-slate-400">Quer voltar ao seu próprio sorteio?</span>
+          <div className="p-4 border-t border-[#182943] bg-[#0B1730] flex items-center justify-between">
+            <span className="text-xs text-[#94A3B8]">Quer voltar ao seu próprio sorteio?</span>
             <button
               type="button"
               onClick={() => {
                 onResetToLocal();
                 onClose();
               }}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition"
+              className="px-3 py-1.5 bg-[#182943] hover:bg-[#0866F5] text-[#F8FAFC] text-xs font-bold rounded-xl transition"
             >
               Voltar ao Meu Sorteio
             </button>

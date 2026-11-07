@@ -7,7 +7,7 @@
  * 4. TikTok Comments Protected Routes (Extract, Import, Draw)
  * 5. PRO Entitlement Enforcement (FREE blocked 403, PRO allowed 200)
  * 6. CSPRNG Cryptographic Draw & Audit Hash
- * 7. Commercial Plan Pricing & 7-day Trial Rules
+ * 7. Commercial Plan Pricing & 3-day Trial Rules
  * 8. Legacy Migration Dry-Run Verification (Zero writes)
  */
 import {
@@ -455,9 +455,9 @@ async function runTests() {
     `Preço atual: R$ ${annual.price}`
   );
   assert(
-    monthly.freeTrial.frequency === 7 && annual.freeTrial.frequency === 7,
-    'Período de teste gratuito preservado em 7 dias nos dois planos',
-    '7 dias de degustação garantidos'
+    monthly.freeTrial.frequency === 3 && annual.freeTrial.frequency === 3,
+    'Período de teste gratuito preservado em 3 dias nos dois planos',
+    '3 dias de degustação garantidos'
   );
 
   // 3.2 Trial Cancellation Entitlement: Access maintained until trialEndDate

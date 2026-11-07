@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Award, Plus, Trash2, Trophy, ArrowUp, ArrowDown, CheckCircle2 } from 'lucide-react';
+import { X, Plus, Trash2, Trophy, ArrowUp, ArrowDown } from 'lucide-react';
 import { RaffleSettings, PrizeTier, Winner } from '../types';
 import { generateUid } from '../utils/raffle';
 
@@ -64,18 +64,18 @@ export const PrizeQueueModal: React.FC<PrizeQueueModalProps> = ({
   const thirdPlace = winners[2];
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up">
+    <div className="fixed inset-0 z-50 bg-[#050D20]/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+      <div className="bg-[#101F3D] border border-[#182943] rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up">
         {/* Header */}
-        <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+        <div className="p-5 border-b border-[#182943] flex items-center justify-between bg-[#0B1730]">
           <div className="flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-sky-400" />
-            <h3 className="font-display font-bold text-lg text-white">Fila de Prêmios & Pódio · GIO DA SORTE</h3>
+            <Trophy className="w-5 h-5 text-[#F5B942]" />
+            <h3 className="font-display font-bold text-lg text-[#F8FAFC]">Fila de Prêmios & Pódio · GIO DA SORTE</h3>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg transition"
+            className="p-1.5 text-[#94A3B8] hover:text-[#F8FAFC] rounded-lg transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -85,8 +85,8 @@ export const PrizeQueueModal: React.FC<PrizeQueueModalProps> = ({
         <div className="p-6 overflow-y-auto space-y-6">
           {/* Visual Podium if winners exist */}
           {winners.length > 0 && (
-            <div className="bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-sky-400 block text-center">
+            <div className="bg-[#0B1730] border border-[#182943] rounded-2xl p-5 space-y-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#00A9FF] block text-center">
                 Pódio Oficial dos Ganhadores
               </span>
 
@@ -95,15 +95,15 @@ export const PrizeQueueModal: React.FC<PrizeQueueModalProps> = ({
                 <div className="flex flex-col items-center">
                   {secondPlace ? (
                     <div className="text-center mb-2">
-                      <div className="text-xs font-bold text-white truncate max-w-[90px]">{secondPlace.name}</div>
-                      <div className="text-[10px] text-slate-400">#{secondPlace.number}</div>
+                      <div className="text-xs font-bold text-[#F8FAFC] truncate max-w-[90px]">{secondPlace.name}</div>
+                      <div className="text-[10px] text-[#94A3B8] font-mono tabular-nums">#{secondPlace.number}</div>
                     </div>
                   ) : (
-                    <div className="text-[11px] text-slate-600 mb-2">Aguardando</div>
+                    <div className="text-[11px] text-[#94A3B8] mb-2">Aguardando</div>
                   )}
-                  <div className="w-full bg-slate-800 h-20 rounded-t-xl flex flex-col items-center justify-center border-t-2 border-slate-400">
-                    <span className="font-display font-black text-xl text-slate-300">2º</span>
-                    <span className="text-[10px] text-slate-400 font-semibold">Prata</span>
+                  <div className="w-full bg-[#182943] h-20 rounded-t-xl flex flex-col items-center justify-center border-t-2 border-[#35B9F5]">
+                    <span className="font-display font-black text-xl text-[#F8FAFC]">2º</span>
+                    <span className="text-[10px] text-[#94A3B8] font-semibold">Prata</span>
                   </div>
                 </div>
 
@@ -111,14 +111,14 @@ export const PrizeQueueModal: React.FC<PrizeQueueModalProps> = ({
                 <div className="flex flex-col items-center">
                   {firstPlace ? (
                     <div className="text-center mb-2">
-                      <div className="text-xs font-black text-sky-300 truncate max-w-[100px]">{firstPlace.name}</div>
-                      <div className="text-[10px] text-sky-200 font-bold">#{firstPlace.number}</div>
+                      <div className="text-xs font-black text-[#F5B942] truncate max-w-[100px]">{firstPlace.name}</div>
+                      <div className="text-[10px] text-[#F8FAFC] font-mono font-bold tabular-nums">#{firstPlace.number}</div>
                     </div>
                   ) : (
-                    <div className="text-[11px] text-slate-600 mb-2">Aguardando</div>
+                    <div className="text-[11px] text-[#94A3B8] mb-2">Aguardando</div>
                   )}
-                  <div className="w-full bg-gradient-to-t from-blue-700 via-sky-600 to-sky-400 h-28 rounded-t-xl flex flex-col items-center justify-center shadow-lg shadow-blue-500/25 text-white border-t-2 border-sky-200">
-                    <Trophy className="w-5 h-5 fill-white mb-0.5" />
+                  <div className="w-full bg-gradient-to-t from-[#0866F5] via-[#00A9FF] to-[#35B9F5] h-28 rounded-t-xl flex flex-col items-center justify-center shadow-lg text-[#F8FAFC] border-t-2 border-[#F5B942]">
+                    <Trophy className="w-5 h-5 text-[#F5B942] mb-0.5" />
                     <span className="font-display font-black text-2xl leading-none">1º</span>
                     <span className="text-[10px] font-bold uppercase tracking-wider">Ouro</span>
                   </div>
@@ -128,15 +128,15 @@ export const PrizeQueueModal: React.FC<PrizeQueueModalProps> = ({
                 <div className="flex flex-col items-center">
                   {thirdPlace ? (
                     <div className="text-center mb-2">
-                      <div className="text-xs font-bold text-white truncate max-w-[90px]">{thirdPlace.name}</div>
-                      <div className="text-[10px] text-slate-400">#{thirdPlace.number}</div>
+                      <div className="text-xs font-bold text-[#F8FAFC] truncate max-w-[90px]">{thirdPlace.name}</div>
+                      <div className="text-[10px] text-[#94A3B8] font-mono tabular-nums">#{thirdPlace.number}</div>
                     </div>
                   ) : (
-                    <div className="text-[11px] text-slate-600 mb-2">Aguardando</div>
+                    <div className="text-[11px] text-[#94A3B8] mb-2">Aguardando</div>
                   )}
-                  <div className="w-full bg-slate-900 h-14 rounded-t-xl flex flex-col items-center justify-center border-t-2 border-amber-700">
-                    <span className="font-display font-black text-lg text-amber-600">3º</span>
-                    <span className="text-[10px] text-slate-500 font-semibold">Bronze</span>
+                  <div className="w-full bg-[#101F3D] h-14 rounded-t-xl flex flex-col items-center justify-center border-t-2 border-[#F5B942]/60">
+                    <span className="font-display font-black text-lg text-[#F5B942]">3º</span>
+                    <span className="text-[10px] text-[#94A3B8] font-semibold">Bronze</span>
                   </div>
                 </div>
               </div>
@@ -145,7 +145,7 @@ export const PrizeQueueModal: React.FC<PrizeQueueModalProps> = ({
 
           {/* Add Prize Form */}
           <form onSubmit={handleAddPrize} className="space-y-2">
-            <label className="block text-xs font-semibold text-slate-300">
+            <label className="block text-xs font-semibold text-[#F8FAFC]">
               Cadastrar Prêmios para Rodadas Sequenciais
             </label>
             <div className="flex gap-2">
@@ -154,11 +154,11 @@ export const PrizeQueueModal: React.FC<PrizeQueueModalProps> = ({
                 value={newPrizeName}
                 onChange={(e) => setNewPrizeName(e.target.value)}
                 placeholder="Ex.: 1º Lugar - Smartphone, 2º Lugar - Fone de Ouvido..."
-                className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-400"
+                className="flex-1 bg-[#0B1730] border border-[#182943] rounded-xl px-3.5 py-2.5 text-sm text-[#F8FAFC] placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#00A9FF]"
               />
               <button
                 type="submit"
-                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs sm:text-sm rounded-xl transition flex items-center gap-1.5 shrink-0 shadow-md shadow-blue-600/30"
+                className="px-4 py-2.5 bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-bold text-xs sm:text-sm rounded-xl transition flex items-center gap-1.5 shrink-0 shadow-md"
               >
                 <Plus className="w-4 h-4" />
                 <span>Adicionar Prêmio</span>
@@ -168,9 +168,9 @@ export const PrizeQueueModal: React.FC<PrizeQueueModalProps> = ({
 
           {/* Prize Queue List */}
           <div className="space-y-2">
-            <span className="text-xs font-semibold text-slate-400 block">Fila de Prêmios Cadastrados:</span>
+            <span className="text-xs font-semibold text-[#94A3B8] block">Fila de Prêmios Cadastrados:</span>
             {prizes.length === 0 ? (
-              <div className="p-4 bg-slate-950 border border-dashed border-slate-800 rounded-xl text-center text-xs text-slate-500">
+              <div className="p-4 bg-[#0B1730] border border-dashed border-[#182943] rounded-xl text-center text-xs text-[#94A3B8]">
                 Nenhum prêmio cadastrado na fila ainda.
               </div>
             ) : (
@@ -178,13 +178,13 @@ export const PrizeQueueModal: React.FC<PrizeQueueModalProps> = ({
                 {prizes.map((prize, idx) => (
                   <div
                     key={prize.id}
-                    className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between gap-3"
+                    className="p-3 bg-[#0B1730] border border-[#182943] rounded-xl flex items-center justify-between gap-3"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="w-6 h-6 rounded-full bg-blue-950 border border-blue-800 text-sky-400 font-bold text-xs flex items-center justify-center shrink-0">
+                      <span className="w-6 h-6 rounded-full bg-[#182943] border border-[#00A9FF]/40 text-[#00A9FF] font-mono font-bold text-xs flex items-center justify-center shrink-0 tabular-nums">
                         {idx + 1}
                       </span>
-                      <span className="text-sm font-bold text-white truncate">{prize.name}</span>
+                      <span className="text-sm font-bold text-[#F8FAFC] truncate">{prize.name}</span>
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0">
@@ -194,7 +194,7 @@ export const PrizeQueueModal: React.FC<PrizeQueueModalProps> = ({
                           onSetCurrentPrize(prize.name);
                           onClose();
                         }}
-                        className="px-2.5 py-1 text-xs font-semibold bg-blue-600/20 text-sky-300 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg transition"
+                        className="px-2.5 py-1 text-xs font-semibold bg-[#0866F5]/20 text-[#35B9F5] hover:bg-[#0866F5]/30 border border-[#00A9FF]/30 rounded-lg transition"
                       >
                         Usar Agora
                       </button>
@@ -203,7 +203,7 @@ export const PrizeQueueModal: React.FC<PrizeQueueModalProps> = ({
                         type="button"
                         disabled={idx === 0}
                         onClick={() => handleMove(idx, 'up')}
-                        className="p-1 text-slate-400 hover:text-white disabled:opacity-30 rounded"
+                        className="p-1 text-[#94A3B8] hover:text-[#F8FAFC] disabled:opacity-30 rounded"
                       >
                         <ArrowUp className="w-4 h-4" />
                       </button>
@@ -212,7 +212,7 @@ export const PrizeQueueModal: React.FC<PrizeQueueModalProps> = ({
                         type="button"
                         disabled={idx === prizes.length - 1}
                         onClick={() => handleMove(idx, 'down')}
-                        className="p-1 text-slate-400 hover:text-white disabled:opacity-30 rounded"
+                        className="p-1 text-[#94A3B8] hover:text-[#F8FAFC] disabled:opacity-30 rounded"
                       >
                         <ArrowDown className="w-4 h-4" />
                       </button>
@@ -220,7 +220,7 @@ export const PrizeQueueModal: React.FC<PrizeQueueModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleRemovePrize(prize.id)}
-                        className="p-1 text-slate-500 hover:text-red-400 rounded"
+                        className="p-1 text-[#94A3B8] hover:text-[#F05262] rounded"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

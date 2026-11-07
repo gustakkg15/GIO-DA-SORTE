@@ -10,12 +10,14 @@ import {
   Lock,
   MessageSquare,
   Search,
-  FileText,
   ArrowRight,
   Sparkles,
-  Award,
-  CheckCircle2,
   Compass,
+  Gift,
+  Coins,
+  ShieldCheck,
+  Play,
+  TrendingUp,
 } from 'lucide-react';
 import {
   Participant,
@@ -48,6 +50,20 @@ interface MainDashboardProps {
   onOpenVictoryCard: (winner: Winner) => void;
 }
 
+export const ProFeatureBadge: React.FC<{ isPro: boolean }> = ({ isPro }) => (
+  <span
+    data-testid="comments-sorter-pro-badge"
+    className="gio-badge-pro inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#8B7CFF]/15 text-[#C4B5FD] border border-[#8B7CFF]/40 text-[11px] font-bold uppercase tracking-wider shadow-[0_0_12px_rgba(139,124,255,0.18)]"
+  >
+    {isPro ? (
+      <Crown className="w-3 h-3 text-[#8B7CFF] shrink-0" />
+    ) : (
+      <Lock className="w-3 h-3 text-[#C4B5FD] shrink-0" />
+    )}
+    <span className="text-[#C4B5FD]">PRO</span>
+  </span>
+);
+
 export const MainDashboard: React.FC<MainDashboardProps> = ({
   settings,
   participants,
@@ -68,6 +84,16 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   onOpenVictoryCard,
 }) => {
   const isPro = entitlement.active && entitlement.tier === 'PRO';
+  const isFreeUser = !isPro;
+
+  const handleCommentsSorterAccess = () => {
+    if (isFreeUser) {
+      onOpenSubscription();
+      return;
+    }
+    onOpenCommentsSorter();
+  };
+
   const cleanLiveUsername = (liveConnectedUsername || '').replace(/^@+/, '');
   const connMeta = mapTikTokConnectionState(liveConnectionState, false, cleanLiveUsername);
 
@@ -85,11 +111,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
       ? 'Verificar conexão da LIVE'
       : 'Conectar transmissão agora';
 
-  // Aggregate real metrics from both local raffle and persisted TikTok LIVE sessions
   const liveTicketsTotal = liveSessions.reduce((acc, s) => acc + (s.currentTicketCounter || 0), 0);
-  const liveSupportersTotal = liveSessions.reduce((acc, s) => acc + (s.uniqueSupportersCount || 0), 0);
+  const liveSupportersTotal = liveSessions.reduce(
+    (acc, s) => acc + (s.uniqueSupportersCount || 0),
+    0
+  );
 
-  const totalRafflesCompleted = winners.length + liveSessions.filter((s) => s.latestDrawFrozenTicketMax).length;
+  const totalRafflesCompleted =
+    winners.length + liveSessions.filter((s) => s.latestDrawFrozenTicketMax).length;
   const totalParticipantsCount = participants.length + liveSupportersTotal;
   const totalTicketsIssued = computed.usedCount + liveTicketsTotal;
 
@@ -102,339 +131,441 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     ? `Sessão LIVE @${latestLiveSession.username} (${latestLiveSession.currentTicketCounter || 0} bilhetes)`
     : `${participants.length} participantes prontos na lista atual`;
 
+  const currentPrize = settings.prizeName || settings.currentPrize || 'Prêmio Principal';
+  const raffleTitle = settings.raffleTitle || 'Sorteio Oficial GIO DA SORTE';
+  const raffleCode = settings.raffleCode || 'GIO-7492';
+
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Primary Hero Card with Single Dominant Action: + CRIAR NOVO SORTEIO */}
-      <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-[#050814] via-[#0A1128] to-[#0F172A] border border-[#E11D48]/50 shadow-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div className="flex items-start gap-4 max-w-2xl">
-          <div className="hidden sm:flex w-16 h-16 rounded-2xl bg-[#050814] border border-[#E11D48]/45 items-center justify-center p-1.5 shadow-lg shadow-[#E11D48]/20 shrink-0">
-            <img
-              src="/logo.png"
-              alt="Logo Oficial GIO DA SORTE PRO"
-              className="w-full h-full object-contain"
-            />
-          </div>
-          <div className="space-y-2.5">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
-              <span className="font-semibold text-[#FDA4AF]">Painel Principal</span>
-              <span aria-hidden="true">·</span>
-              <span>Prêmio Atual: {settings.prizeName || settings.currentPrize || 'Prêmio Principal'}</span>
-              <span aria-hidden="true">·</span>
+    <div className="space-y-8 animate-fade-in min-w-0 pb-6">
+      {/* 1. Hero Operational Console — Foco Editorial e Hierarquia Clara */}
+      <section
+        aria-label="Console Operacional Principal"
+        className="relative overflow-hidden rounded-2xl bg-[#101F3D] border border-white/10 shadow-xl"
+      >
+        {/* Subtle Radial Atmosphere and Top Hairline Accent */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-24 right-1/4 w-96 h-96 bg-[#0866F5]/10 rounded-full blur-3xl"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#0866F5] via-[#00A9FF] to-[#8B7CFF]"
+        />
+
+        <div className="relative p-6 sm:p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-3.5 max-w-2xl min-w-0">
+            {/* Context & Tag */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#0866F5]/15 border border-[#00A9FF]/30 font-mono text-[11px] font-bold text-[#00A9FF] uppercase tracking-wider">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Painel Operacional · CSPRNG Ativo
+              </span>
+              <span className="font-mono text-xs text-slate-400 font-semibold tabular-nums">
+                #{raffleCode}
+              </span>
               <button
                 type="button"
                 onClick={onOpenOnboardingTour}
-                className="text-sky-400 hover:text-sky-300 underline font-medium inline-flex items-center gap-1"
+                className="px-2.5 py-0.5 rounded-md bg-[#0B1730] hover:bg-white/[0.06] border border-white/10 text-xs text-[#00A9FF] font-medium inline-flex items-center gap-1 transition-all"
               >
-                <Compass className="w-3.5 h-3.5" />
-                <span>Ver tutorial rápido</span>
+                <Compass className="w-3.5 h-3.5 shrink-0" />
+                <span>Tutorial rápido</span>
               </button>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-display font-black text-white tracking-tight">
-              Bem-vindo ao <span className="text-[#FDA4AF]">GIO DA SORTE PRO</span>
-            </h1>
-
-            <p className="text-sm text-slate-300 leading-relaxed">
-              Inicie um novo sorteio passo a passo, conecte sua transmissão do TikTok LIVE para emitir bilhetes
-              automaticamente ou gerencie seus participantes em segundos.
-            </p>
-          </div>
-        </div>
-
-        {/* Dominant Primary CTA */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={onStartNewRaffleWizard}
-            className="min-h-[52px] px-7 py-3.5 rounded-xl bg-gradient-to-r from-[#E11D48] via-[#F43F5E] to-[#BE123C] text-white font-display font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-xl shadow-[#E11D48]/30 ring-1 ring-[#FDA4AF]/35 hover:brightness-110 active:scale-98 transition"
-          >
-            <Plus className="w-5 h-5 stroke-[3]" />
-            <span>+ CRIAR NOVO SORTEIO</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Essential Metrics Grid (6 Objective Indicators) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* 1. Total de Sorteios Realizados */}
-        <div className="p-5 rounded-2xl bg-[#0A1128]/85 border border-blue-900/60 flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <span className="text-xs font-semibold text-slate-400">Total de Sorteios Realizados</span>
-            <div className="text-2xl sm:text-3xl font-display font-black text-white tabular-nums">
-              {totalRafflesCompleted}
+            {/* Main Title */}
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
+                Controle de Sorteios & Transmissões
+              </h1>
+              <p className="text-sm text-slate-300 mt-1 leading-relaxed">
+                Gerencie participantes, conecte lives do TikTok e realize sorteios auditáveis com integridade matemática.
+              </p>
             </div>
-            <p className="text-xs text-slate-400">
-              {winners.length} na mesa atual · {liveSessions.length} sessões LIVE salvas
-            </p>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-[#E11D48]/15 border border-[#E11D48]/40 flex items-center justify-center text-[#FDA4AF] shrink-0">
-            <Trophy className="w-5 h-5" />
-          </div>
-        </div>
 
-        {/* 2. Total de Participantes */}
-        <div className="p-5 rounded-2xl bg-[#0A1128]/85 border border-blue-900/60 flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <span className="text-xs font-semibold text-slate-400">Total de Participantes</span>
-            <div className="text-2xl sm:text-3xl font-display font-black text-white tabular-nums">
-              {totalParticipantsCount}
+            {/* Active Draw Metadata Strip */}
+            <div className="pt-2 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-400">
+              <div className="flex items-center gap-2">
+                <Ticket className="w-4 h-4 text-[#00A9FF] shrink-0" />
+                <span>Sorteio ativo:</span>
+                <strong className="text-white font-semibold">{raffleTitle}</strong>
+              </div>
+              <span className="hidden sm:inline text-slate-700">•</span>
+              <div className="flex items-center gap-2">
+                <Gift className="w-4 h-4 text-[#F5B942] shrink-0" />
+                <span>Prêmio em disputa:</span>
+                <strong className="text-[#F5B942] font-semibold">{currentPrize}</strong>
+              </div>
+              <span className="hidden sm:inline text-slate-700">•</span>
+              <div className="flex items-center gap-2">
+                <Coins className="w-4 h-4 text-[#35B9F5] shrink-0" />
+                <span>Taxa de conversão:</span>
+                <strong className="font-mono text-white tabular-nums font-medium">
+                  {settings.rate} moedas = 1 bilhete
+                </strong>
+              </div>
             </div>
-            <p className="text-xs text-slate-400">
-              {participants.length} na lista local · {liveSupportersTotal} apoiadores em LIVE
-            </p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-400/30 flex items-center justify-center text-sky-300 shrink-0">
-            <Users className="w-5 h-5" />
-          </div>
-        </div>
 
-        {/* 3. Total de Bilhetes Emitidos */}
-        <div className="p-5 rounded-2xl bg-[#0A1128]/85 border border-blue-900/60 flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <span className="text-xs font-semibold text-slate-400">Total de Bilhetes Emitidos</span>
-            <div className="text-2xl sm:text-3xl font-display font-black text-[#FDA4AF] tabular-nums">
-              {totalTicketsIssued}
-            </div>
-            <p className="text-xs text-slate-400">
-              {computed.usedCount} bilhetes locais · {liveTicketsTotal} bilhetes automáticos LIVE
-            </p>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-[#E11D48]/15 border border-[#E11D48]/40 flex items-center justify-center text-[#FDA4AF] shrink-0">
-            <Ticket className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* 4. Status da Conexão TikTok */}
-        <div className="p-5 rounded-2xl bg-[#0A1128]/85 border border-blue-900/60 flex items-start justify-between gap-4">
-          <div className="space-y-1 min-w-0">
-            <span className="text-xs font-semibold text-slate-400">Status da Conexão TikTok LIVE</span>
-            <div className="flex items-center gap-2">
-              <span
-                className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                  liveConnectionState === 'CONNECTED'
-                    ? 'bg-emerald-400 animate-pulse'
-                    : liveConnectionState === 'CONNECTING' || liveConnectionState === 'RECONNECTING'
-                    ? 'bg-amber-400 animate-pulse'
-                    : liveConnectionState === 'ERROR'
-                    ? 'bg-rose-400'
-                    : 'bg-slate-500'
-                }`}
-              />
-              <span className="text-base sm:text-lg font-display font-bold text-white truncate">
-                {liveDashboardStatusText}
-              </span>
-            </div>
+          {/* Primary Action Buttons with Clear Visual Weight */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
             <button
               type="button"
-              onClick={() => onOpenLivePro('feed')}
-              className="text-xs font-semibold text-sky-400 hover:text-sky-300 inline-flex items-center gap-1 pt-0.5"
+              onClick={onOpenTraditionalDraw}
+              className="gio-btn-primary px-6 py-3.5 text-sm font-bold shadow-lg shadow-blue-600/25"
             >
-              <span>{liveDashboardActionText}</span>
-              <ArrowRight className="w-3 h-3" />
+              <Play className="w-4 h-4 fill-current shrink-0" />
+              <span>Abrir Mesa de Sorteio</span>
             </button>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-[#E11D48]/15 border border-[#E11D48]/40 flex items-center justify-center text-[#FDA4AF] shrink-0">
-            <Radio className="w-5 h-5" />
-          </div>
-        </div>
 
-        {/* 5. Situação da Assinatura */}
-        <div className="p-5 rounded-2xl bg-[#0A1128]/85 border border-blue-900/60 flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <span className="text-xs font-semibold text-slate-400">Situação da Assinatura</span>
-            <div className="text-base sm:text-lg font-display font-bold text-white flex items-center gap-2">
-              {isPro ? (
-                <span className="text-[#FDA4AF]">Plano PRO Ativo</span>
-              ) : (
-                <span className="text-slate-200">Plano Gratuito (FREE)</span>
-              )}
-            </div>
             <button
               type="button"
-              onClick={onOpenSubscription}
-              className="text-xs font-semibold text-[#FDA4AF] hover:underline inline-flex items-center gap-1 pt-0.5"
+              onClick={onStartNewRaffleWizard}
+              className="gio-btn-secondary px-5 py-3.5 text-sm font-semibold"
             >
-              <span>{isPro ? 'Ver recursos do meu plano' : 'Conhecer vantagens do PRO'}</span>
-              <ArrowRight className="w-3 h-3" />
+              <Plus className="w-4 h-4 text-[#00A9FF] shrink-0" />
+              <span>Criar Novo Sorteio</span>
             </button>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-[#E11D48]/20 border border-[#E11D48]/45 flex items-center justify-center text-[#FDA4AF] shrink-0">
-            {isPro ? <Crown className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
-          </div>
         </div>
+      </section>
 
-        {/* 6. Última Atividade */}
-        <div className="p-5 rounded-2xl bg-[#0A1128]/85 border border-blue-900/60 flex items-start justify-between gap-4">
-          <div className="space-y-1 min-w-0">
-            <span className="text-xs font-semibold text-slate-400">Última Atividade Registrada</span>
-            <div className="text-sm sm:text-base font-bold text-white truncate">{lastActivityLabel}</div>
-            <p className="text-xs text-slate-400">
-              {latestWinner
-                ? formatDateTime(latestWinner.drawnAt)
-                : latestLiveSession
-                ? formatDateTime(latestLiveSession.startedAt)
-                : 'Sincronizado automaticamente'}
-            </p>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center text-emerald-300 shrink-0">
-            <Clock className="w-5 h-5" />
-          </div>
-        </div>
-      </div>
-
-      {/* Main Shortcuts Grid */}
-      <div className="space-y-3">
+      {/* 2. Structured Operational KPIs — Hierarquia e Clareza Visual */}
+      <section aria-label="Indicadores Operacionais Chave" className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-base sm:text-lg font-display font-bold text-white">
-            Atalhos Rápidos para Principais Funções
+          <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-slate-400">
+            Métricas em Tempo Real
           </h2>
-          <span className="text-xs text-slate-400">Escolha o que deseja fazer agora</span>
+          <span className="text-xs text-slate-400 font-mono">
+            {formatDateTime(Date.now())}
+          </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Shortcut 1: TikTok LIVE PRO */}
-          <button
-            type="button"
-            onClick={() => onOpenLivePro('feed')}
-            className="p-5 rounded-2xl bg-gradient-to-b from-[#0F172A] to-[#0A1128] hover:border-[#F43F5E] border border-[#E11D48]/50 text-left transition flex flex-col justify-between gap-4 group"
+          {/* KPI 1: Bilhetes Emitidos (Métrica Primária) */}
+          <div className="gio-card p-5 flex flex-col justify-between gap-3 border-l-4 border-l-[#0866F5]">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="text-xs font-semibold tracking-wider uppercase">
+                Bilhetes Emitidos
+              </span>
+              <Ticket className="w-4 h-4 text-[#00A9FF]" />
+            </div>
+            <div>
+              <div className="text-3xl font-mono font-bold text-white tabular-nums tracking-tight">
+                {totalTicketsIssued.toLocaleString('pt-BR')}
+              </div>
+              <p className="text-xs text-slate-400 mt-1 tabular-nums">
+                {computed.usedCount} locais · {liveTicketsTotal} via TikTok
+              </p>
+            </div>
+          </div>
+
+          {/* KPI 2: Total de Participantes */}
+          <div className="gio-card p-5 flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="text-xs font-semibold tracking-wider uppercase">
+                Participantes
+              </span>
+              <Users className="w-4 h-4 text-[#00A9FF]" />
+            </div>
+            <div>
+              <div className="text-3xl font-mono font-bold text-white tabular-nums tracking-tight">
+                {totalParticipantsCount.toLocaleString('pt-BR')}
+              </div>
+              <p className="text-xs text-slate-400 mt-1 tabular-nums">
+                {participants.length} na lista · {liveSupportersTotal} em transmissão
+              </p>
+            </div>
+          </div>
+
+          {/* KPI 3: Status TikTok LIVE */}
+          <div className="gio-card p-5 flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="text-xs font-semibold tracking-wider uppercase">
+                TikTok LIVE
+              </span>
+              <Radio
+                className={`w-4 h-4 ${
+                  liveConnectionState === 'CONNECTED' ? 'text-[#20C997]' : 'text-slate-400'
+                }`}
+              />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                    liveConnectionState === 'CONNECTED'
+                      ? 'bg-[#20C997] animate-pulse'
+                      : liveConnectionState === 'CONNECTING' ||
+                        liveConnectionState === 'RECONNECTING'
+                      ? 'bg-[#F5B942] animate-pulse'
+                      : liveConnectionState === 'ERROR'
+                      ? 'bg-[#F05262]'
+                      : 'bg-slate-500'
+                  }`}
+                />
+                <span className="text-base font-bold text-white truncate">
+                  {liveDashboardStatusText}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => onOpenLivePro('feed')}
+                className="text-xs font-semibold text-[#00A9FF] hover:text-[#35B9F5] inline-flex items-center gap-1 mt-1 transition-colors"
+              >
+                <span>{liveDashboardActionText}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* KPI 4: Plano e Assinatura */}
+          <div className="gio-card p-5 flex flex-col justify-between gap-3 border-r-4 border-r-[#8B7CFF]/50">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="text-xs font-semibold tracking-wider uppercase">
+                Seu Plano
+              </span>
+              <Crown className="w-4 h-4 text-[#8B7CFF]" />
+            </div>
+            <div>
+              <div className="text-base font-bold text-white flex items-center gap-2">
+                {isPro ? (
+                  <span className="text-[#C4B5FD]">Plano PRO Ativo</span>
+                ) : (
+                  <span className="text-slate-200">Plano Gratuito (FREE)</span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={onOpenSubscription}
+                className="text-xs font-semibold text-[#C4B5FD] hover:text-[#8B7CFF] inline-flex items-center gap-1 mt-1 transition-colors"
+              >
+                <span>{isPro ? 'Gerenciar assinatura' : 'Testar PRO por 3 dias grátis'}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. Módulos e Ferramentas Principais — 4 Modos Operacionais Bem Resolvidos */}
+      <section aria-label="Ferramentas Operacionais" className="space-y-4">
+        <div>
+          <h2 className="text-base font-bold text-white tracking-tight">
+            Modalidades de Sorteio & Ferramentas
+          </h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Selecione o motor de sorteio mais apropriado para sua transmissão ou evento.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* Card 1: Mesa de Sorteio Oficial */}
+          <div
+            onClick={onOpenTraditionalDraw}
+            className="gio-card gio-card-interactive p-6 flex flex-col justify-between gap-5 group border-white/10 hover:border-[#0866F5]/60"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') onOpenTraditionalDraw();
+            }}
           >
-            <div className="space-y-2">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-[#E11D48]/20 border border-[#E11D48]/50 flex items-center justify-center text-[#FDA4AF]">
+                <div className="w-11 h-11 rounded-xl bg-[#0866F5]/15 border border-[#0866F5]/30 flex items-center justify-center text-[#00A9FF]">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <span className="gio-badge-free">Gratuito</span>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white group-hover:text-[#00A9FF] transition-colors">
+                  Mesa de Sorteio Oficial
+                </h3>
+                <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                  Globo Digital, Roleta Proporcional e Battle Royale com validação criptográfica SHA-256.
+                </p>
+              </div>
+            </div>
+            <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between">
+              <span className="text-xs font-bold text-[#00A9FF] inline-flex items-center gap-1">
+                <span>Abrir mesa</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              </span>
+              <span className="font-mono text-[11px] text-slate-400 tabular-nums">
+                {computed.eligibleTickets.length} elegíveis
+              </span>
+            </div>
+          </div>
+
+          {/* Card 2: TikTok LIVE PRO */}
+          <div
+            onClick={() => onOpenLivePro('feed')}
+            className="gio-card gio-card-interactive p-6 flex flex-col justify-between gap-5 group border-white/10 hover:border-[#8B7CFF]/60"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') onOpenLivePro('feed');
+            }}
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-11 h-11 rounded-xl bg-[#8B7CFF]/15 border border-[#8B7CFF]/30 flex items-center justify-center text-[#C4B5FD]">
                   <Radio className="w-5 h-5" />
                 </div>
-                <span className="text-[11px] font-bold text-[#FDA4AF] flex items-center gap-1">
-                  {isPro ? <Crown className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                <span className="gio-badge-pro">
+                  {isPro ? <Crown className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
                   <span>PRO</span>
                 </span>
               </div>
-              <h3 className="text-sm sm:text-base font-display font-bold text-white group-hover:text-[#FDA4AF] transition">
-                Sorteio por Presentes da LIVE
-              </h3>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Conecte sua LIVE, capture presentes em tempo real e emita bilhetes automáticos.
-              </p>
-            </div>
-            <span className="text-xs font-bold text-[#FDA4AF] inline-flex items-center gap-1">
-              <span>Abrir TikTok LIVE PRO</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </span>
-          </button>
-
-          {/* Shortcut 2: TikTok Comments Sorter */}
-          <button
-            type="button"
-            onClick={onOpenCommentsSorter}
-            className="p-5 rounded-2xl bg-[#0A1128]/90 hover:border-sky-400/60 border border-blue-900/60 text-left transition flex flex-col justify-between gap-4 group"
-          >
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-400/30 flex items-center justify-center text-sky-300">
-                  <MessageSquare className="w-5 h-5" />
-                </div>
-                <span className="text-[11px] font-semibold text-emerald-400">Gratuito</span>
+              <div>
+                <h3 className="text-base font-bold text-white group-hover:text-[#C4B5FD] transition-colors">
+                  Sorteio por Presentes LIVE
+                </h3>
+                <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                  Conecte sua transmissão, capture presentes ao vivo e converta moedas em bilhetes imediatos.
+                </p>
               </div>
-              <h3 className="text-sm sm:text-base font-display font-bold text-white group-hover:text-sky-300 transition">
-                Sorteador de Comentários
-              </h3>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Sorteie entre comentários do TikTok, palavras-chave ou listas rápidas de arrobas.
-              </p>
             </div>
-            <span className="text-xs font-bold text-sky-300 inline-flex items-center gap-1">
-              <span>Abrir Sorteador</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </span>
-          </button>
+            <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between">
+              <span className="text-xs font-bold text-[#C4B5FD] inline-flex items-center gap-1">
+                <span>Painel da LIVE</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              </span>
+              <span className="font-mono text-[11px] text-slate-400 tabular-nums">
+                {liveSessions.length} sessões
+              </span>
+            </div>
+          </div>
 
-          {/* Shortcut 3: Traditional Drum & Wheel */}
-          <button
-            type="button"
-            onClick={onOpenTraditionalDraw}
-            className="p-5 rounded-2xl bg-[#0A1128]/90 hover:border-sky-400/60 border border-blue-900/60 text-left transition flex flex-col justify-between gap-4 group"
+          {/* Card 3: Sorteador de Comentários PRO (Preservando ID & Data Attributes) */}
+          <div
+            id="comments-sorter-card"
+            onClick={handleCommentsSorterAccess}
+            data-pro-exclusive="true"
+            data-pro-locked={isFreeUser}
+            className="gio-card gio-card-interactive p-6 flex flex-col justify-between gap-5 group border-white/10 hover:border-[#8B7CFF]/60"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') handleCommentsSorterAccess();
+            }}
           >
-            <div className="space-y-2">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-400/30 flex items-center justify-center text-indigo-300">
-                  <Sparkles className="w-5 h-5" />
+                <div className="w-11 h-11 rounded-xl bg-[#8B7CFF]/15 border border-[#8B7CFF]/30 flex items-center justify-center text-[#C4B5FD]">
+                  <MessageSquare className="w-5 h-5 text-[#8B7CFF]" />
                 </div>
-                <span className="text-[11px] font-semibold text-emerald-400">Gratuito</span>
+                <ProFeatureBadge isPro={isPro} />
               </div>
-              <h3 className="text-sm sm:text-base font-display font-bold text-white group-hover:text-sky-300 transition">
-                Mesa de Sorteio (Tambor & Roleta)
-              </h3>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Sorteio proporcional por moedas com Tambor 3D, Roleta da Fortuna e Battle Royale.
-              </p>
+              <div>
+                <h3 className="text-base font-bold text-white group-hover:text-[#C4B5FD] transition-colors">
+                  Sorteador de Comentários
+                </h3>
+                <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                  Filtre por palavras-chave, @arrobas e selecione vencedores com transparência total.
+                </p>
+              </div>
             </div>
-            <span className="text-xs font-bold text-sky-300 inline-flex items-center gap-1">
-              <span>Ir para Mesa de Sorteio</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </span>
-          </button>
+            <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between">
+              <span className="text-xs font-bold text-[#C4B5FD] inline-flex items-center gap-1">
+                <span>{isPro ? 'Abrir sorteador' : 'Desbloquear no PRO'}</span>
+                <ArrowRight className="w-3.5 h-3.5 text-[#8B7CFF] group-hover:translate-x-1 transition-transform" />
+              </span>
+              <span className="font-mono text-[11px] text-slate-400">
+                PRO Exclusivo
+              </span>
+            </div>
+          </div>
 
-          {/* Shortcut 4: Participants & Ticket Lookup */}
-          <button
-            type="button"
+          {/* Card 4: Participantes & Consulta */}
+          <div
             onClick={onOpenParticipants}
-            className="p-5 rounded-2xl bg-[#0A1128]/90 hover:border-sky-400/60 border border-blue-900/60 text-left transition flex flex-col justify-between gap-4 group"
+            className="gio-card gio-card-interactive p-6 flex flex-col justify-between gap-5 group border-white/10 hover:border-[#20C997]/60"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') onOpenParticipants();
+            }}
           >
-            <div className="space-y-2">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center text-emerald-300">
+                <div className="w-11 h-11 rounded-xl bg-[#20C997]/15 border border-[#20C997]/30 flex items-center justify-center text-[#20C997]">
                   <Search className="w-5 h-5" />
                 </div>
-                <span className="text-[11px] font-semibold text-slate-400">{participants.length} cadastrados</span>
+                <span className="font-mono text-xs font-semibold text-slate-400 tabular-nums">
+                  {participants.length} inscritos
+                </span>
               </div>
-              <h3 className="text-sm sm:text-base font-display font-bold text-white group-hover:text-emerald-300 transition">
-                Participantes & Consulta
-              </h3>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Pesquise por @usuário ou #bilhete, importe planilhas e consulte o histórico.
-              </p>
+              <div>
+                <h3 className="text-base font-bold text-white group-hover:text-[#20C997] transition-colors">
+                  Participantes & Cotas
+                </h3>
+                <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                  Cadastre participantes, importe arquivos CSV e consulte bilhetes em segundos.
+                </p>
+              </div>
             </div>
-            <span className="text-xs font-bold text-emerald-300 inline-flex items-center gap-1">
-              <span>Gerenciar Participantes</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </span>
-          </button>
+            <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between">
+              <span className="text-xs font-bold text-[#20C997] inline-flex items-center gap-1">
+                <span>Gerenciar cotas</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              </span>
+              <span className="font-mono text-[11px] text-slate-400">
+                CSV & Manual
+              </span>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* Recent Winners & Activity Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-7 p-5 sm:p-6 rounded-2xl bg-[#0A1128]/85 border border-blue-900/60 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm sm:text-base font-display font-bold text-white">
-              Últimos Ganhadores Registrados
-            </h3>
+      {/* 4. Histórico Recente — Ganhadores Registrados e Sessões de LIVE */}
+      <section
+        aria-label="Atividades Recentes e Auditoria"
+        className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+      >
+        {/* Left (7 cols): Ganhadores Oficiais */}
+        <div className="lg:col-span-7 gio-card p-6 space-y-4">
+          <div className="flex items-center justify-between gap-2 pb-3.5 border-b border-white/[0.08]">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#F5B942]/15 border border-[#F5B942]/30 flex items-center justify-center text-[#F5B942]">
+                <Trophy className="w-4 h-4" />
+              </div>
+              <h3 className="text-base font-bold text-white">
+                Últimos Ganhadores Registrados
+              </h3>
+            </div>
             <button
               type="button"
               onClick={onOpenReports}
-              className="text-xs font-semibold text-sky-400 hover:underline"
+              className="text-xs font-semibold text-[#00A9FF] hover:text-[#35B9F5] transition-colors"
             >
-              Ver histórico completo
+              Ver relatórios completos &rarr;
             </button>
           </div>
 
           {winners.length === 0 ? (
-            <div className="p-6 rounded-xl bg-[#050814]/60 border border-slate-800/80 text-center space-y-2">
-              <p className="text-xs sm:text-sm font-semibold text-slate-300">
-                Ainda não há ganhadores salvos na sessão atual.
+            <div className="py-8 px-6 rounded-xl bg-[#081226] border border-white/5 text-center space-y-2">
+              <p className="text-sm font-semibold text-slate-200">
+                Nenhum ganhador registrado na sessão atual
               </p>
-              <p className="text-xs text-slate-400">
-                Clique em &ldquo;+ Criar Novo Sorteio&rdquo; no topo para realizar seu primeiro sorteio.
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Abra a Mesa de Sorteio acima para realizar o primeiro sorteio auditado e emitir o certificado.
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-800/80">
+            <div className="space-y-2.5">
               {winners.slice(0, 5).map((w) => (
-                <div key={w.id} className="py-3 flex items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="font-mono font-bold text-[#FDA4AF]">#{w.number}</span>
+                <div
+                  key={w.id}
+                  className="p-3.5 rounded-xl bg-[#081226] border border-white/5 hover:border-white/10 flex items-center justify-between gap-3 transition-colors"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <span className="px-3 py-1 rounded-lg bg-[#101F3D] border border-[#F5B942]/40 font-mono font-bold text-[#F5B942] tabular-nums shrink-0 text-sm">
+                      #{w.number}
+                    </span>
                     <div className="min-w-0">
-                      <div className="font-bold text-white truncate">{w.name}</div>
-                      <div className="text-slate-400 truncate">
+                      <div className="font-bold text-white text-sm truncate">{w.name}</div>
+                      <div className="text-xs text-slate-400 truncate tabular-nums mt-0.5">
                         {w.prize} · {formatDateTime(w.drawnAt)}
                       </div>
                     </div>
@@ -442,9 +573,9 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                   <button
                     type="button"
                     onClick={() => onOpenVictoryCard(w)}
-                    className="px-3 py-1.5 rounded-lg bg-[#E11D48]/20 hover:bg-[#E11D48]/35 text-[#FDA4AF] border border-[#E11D48]/45 font-semibold shrink-0 transition"
+                    className="px-3 py-1.5 rounded-lg bg-[#101F3D] hover:bg-[#14274E] text-[#F5B942] border border-[#F5B942]/30 text-xs font-semibold shrink-0 transition-all"
                   >
-                    Ver Cartão
+                    Cartão VIP
                   </button>
                 </div>
               ))}
@@ -452,52 +583,63 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           )}
         </div>
 
-        {/* Recent TikTok LIVE Sessions Summary */}
-        <div className="lg:col-span-5 p-5 sm:p-6 rounded-2xl bg-[#0A1128]/85 border border-blue-900/60 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm sm:text-base font-display font-bold text-white">
-              Transmissões TikTok LIVE Recentes
-            </h3>
+        {/* Right (5 cols): Transmissões TikTok LIVE */}
+        <div className="lg:col-span-5 gio-card p-6 space-y-4">
+          <div className="flex items-center justify-between gap-2 pb-3.5 border-b border-white/[0.08]">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#8B7CFF]/15 border border-[#8B7CFF]/30 flex items-center justify-center text-[#C4B5FD]">
+                <Radio className="w-4 h-4" />
+              </div>
+              <h3 className="text-base font-bold text-white">
+                Transmissões TikTok LIVE
+              </h3>
+            </div>
             <button
               type="button"
               onClick={() => onOpenLivePro('motor1')}
-              className="text-xs font-semibold text-[#FDA4AF] hover:underline"
+              className="text-xs font-semibold text-[#C4B5FD] hover:text-[#8B7CFF] transition-colors"
             >
-              Gerenciar LIVES
+              Gerenciar &rarr;
             </button>
           </div>
 
           {liveSessions.length === 0 ? (
-            <div className="p-6 rounded-xl bg-[#050814]/60 border border-slate-800/80 text-center space-y-2">
-              <p className="text-xs sm:text-sm font-semibold text-slate-300">
-                Nenhuma transmissão conectada recentemente.
+            <div className="py-8 px-6 rounded-xl bg-[#081226] border border-white/5 text-center space-y-2">
+              <p className="text-sm font-semibold text-slate-200">
+                Nenhuma transmissão registrada
               </p>
-              <p className="text-xs text-slate-400">
-                Ao conectar uma LIVE no módulo TikTok LIVE PRO, as sessões e bilhetes aparecerão aqui.
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                Conecte uma LIVE no módulo TikTok LIVE PRO para visualizar as coletas de moedas e presentes aqui.
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-800/80">
+            <div className="space-y-2.5">
               {liveSessions.slice(0, 4).map((sess) => (
-                <div key={sess.sessionId} className="py-3 flex items-center justify-between gap-3 text-xs">
+                <div
+                  key={sess.sessionId}
+                  className="p-3.5 rounded-xl bg-[#081226] border border-white/5 hover:border-white/10 flex items-center justify-between gap-3 transition-colors"
+                >
                   <div className="min-w-0">
-                    <div className="font-bold text-white truncate">
-                      @{sess.username} — {sess.raffleTitle || sess.roomTitle || 'Sorteio LIVE'}
+                    <div className="font-bold text-white text-sm truncate">
+                      @{sess.username}
                     </div>
-                    <div className="text-slate-400">
-                      {sess.totalCoins || 0} moedas · {sess.uniqueSupportersCount || 0} participantes
+                    <div className="text-xs text-slate-400 font-mono tabular-nums mt-0.5">
+                      {(sess.totalCoins || 0).toLocaleString('pt-BR')} moedas ·{' '}
+                      {(sess.uniqueSupportersCount || 0).toLocaleString('pt-BR')} apoiadores
                     </div>
                   </div>
-                  <div className="text-right font-mono shrink-0">
-                    <span className="font-bold text-[#FDA4AF]">{sess.currentTicketCounter || 0}</span>
-                    <span className="block text-[10px] text-slate-400">bilhetes</span>
+                  <div className="text-right font-mono tabular-nums shrink-0">
+                    <span className="font-bold text-sm text-[#00A9FF]">
+                      {(sess.currentTicketCounter || 0).toLocaleString('pt-BR')}
+                    </span>
+                    <span className="block text-[11px] text-slate-400">bilhetes</span>
                   </div>
                 </div>
               ))}
             </div>
           )}
         </div>
-      </div>
+      </section>
     </div>
   );
 };

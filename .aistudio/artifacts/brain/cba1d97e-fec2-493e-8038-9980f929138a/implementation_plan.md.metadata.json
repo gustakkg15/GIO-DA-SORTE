@@ -1,6 +1,6 @@
 {
-  "summary": "Plano técnico revisado da Etapa 2 (Persistência e Sincronização Automática dos Sorteios) do GIO DA SORTE PRO. Incorpora rigorosamente: (1) trava de abertura de novo ciclo recorrente condicionada a entrega oficial (DELIVERED) ou novo sorteio deliberado, impedindo acúmulo de pendências; (2) preservação irrestrita da identidade Grafite e Jade (#171D1C, #222B28, #2B3632, #6EAA90, #C6A56A) e tipografia IBM Plex Sans e IBM Plex Mono; (3) segurança criptográfica estrita do novo sorteio para prêmio não reclamado (exclusão do vencedor anterior, novo snapshot, nova semente CSPRNG, novo SHA-256 e amarração bilateral por parentDrawId e redrawnAsDrawId com certificado original preservado); (4) atomicidade e idempotência nas transações de ciclo no Firestore contra concorrência; e (5) retrocompatibilidade total com registros legados sem atribuição arbitrária de proprietário.",
-  "updatedAt": "2026-11-03T19:59:15.002057024Z",
-  "requestFeedback": true,
-  "userFacing": true
+  "summary":  "Implementação real da Autenticação Dual OIDC + Firebase nos workers das rotas /api/raffle/draw/sweep e /api/raffle/draw/recover, com 15/15 cenários de testes automatizados aprovados e revisão documental de IAM.",
+  "updatedAt":  "2026-11-07T16:07:16.124339877Z",
+  "requestFeedback":  true,
+  "userFacing":  true
 }

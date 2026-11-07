@@ -32,6 +32,34 @@
       },
       "required": ["uid", "email"]
     },
+    "PublicOrganizerProfile": {
+      "title": "PublicOrganizerProfile",
+      "description": "Safe public organizer profile without PII or subscription data",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Organizer UID",
+          "maxLength": 128
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Public display name",
+          "maxLength": 128
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "Public avatar URL",
+          "maxLength": 1024
+        },
+        "bio": {
+          "type": "string",
+          "description": "Organizer public bio",
+          "maxLength": 512
+        }
+      },
+      "required": ["uid", "displayName"]
+    },
     "RaffleDocument": {
       "title": "RaffleDocument",
       "description": "Raffle data document including participants, winners, and settings",
@@ -265,6 +293,10 @@
     "/users/{userId}": {
       "schema": "UserProfile",
       "description": "User profile and verified subscription state document for raffle organizer"
+    },
+    "/users/{userId}/public/{profileId}": {
+      "schema": "PublicOrganizerProfile",
+      "description": "Safe public organizer profile accessible by participants"
     },
     "/users/{userId}/settings/{settingId}": {
       "schema": "OrganizerRaffleDefaults",

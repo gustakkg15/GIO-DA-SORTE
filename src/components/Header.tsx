@@ -101,10 +101,10 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center gap-2.5 whitespace-nowrap shrink-0">
               <div className="relative w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center shrink-0">
                 <img
-                  src="/logo.png"
-                  alt="Logotipo Oficial GIO DA SORTE PRO"
+                  src="/icon.svg"
+                  alt="Logotipo Oficial GIO DA SORTE"
                   referrerPolicy="no-referrer"
-                  className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(225,29,72,0.35)]"
+                  className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(0,169,255,0.35)]"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                   }}

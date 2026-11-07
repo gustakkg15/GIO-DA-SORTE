@@ -60,6 +60,8 @@ export interface Winner {
   number: number;
   prize: string;
   drawnAt: number;
+  drawId?: string;
+  proof?: TraditionalDrawProofV2;
 }
 
 export interface TicketAllocation {
@@ -140,6 +142,7 @@ export type TikTokConnectionState = 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' 
 export interface TikTokMemberPresenceEvent {
   eventId: string;
   sessionId: string;
+  ownerUid?: string;
   tiktokUserId: string;
   username: string;
   nickname: string;
@@ -216,6 +219,7 @@ export interface TikTokLiveGiftEvent {
   originalTimestamp?: number | string; // High-precision original timestamp from TikTok payload
   streakKey?: string; // Scoped streak key for this combo cycle
   sessionId: string;
+  ownerUid?: string; // Explicit ownerUid bound to the LIVE session
   tiktokUserId: string; // Stable numeric TikTok user ID
   username: string;
   displayHandle?: string; // "@usuario" or "Arroba indisponível"
@@ -1043,7 +1047,7 @@ export interface OfficialSubscriptionPlanDefinition {
   frequency: number;
   frequencyType: 'months';
   freeTrial: {
-    frequency: 7;
+    frequency: number;
     frequencyType: 'days';
   };
   monthlyEquivalent: number;
@@ -1271,13 +1275,159 @@ export interface TikTokDiagnosticStats {
 
 export interface TikTokDiagnosticAuditEntry {
   id: string;
-  action: 'ENABLE_DEBUG' | 'DISABLE_DEBUG' | 'CLEAR_BUFFER' | 'QUERY_EVENTS' | 'TOGGLE_REJECTED';
+  action: 'ENABLE_DEBUG' | 'DISABLE_DEBUG' | 'CLEAR_BUFFER' | 'TOGGLE_REJECTED' | 'QUERY_EVENTS';
   adminUid: string;
   adminEmail: string;
   timestamp: number;
   details?: string;
 }
 
+// ============================================================================
+// SORTEADOR TRADICIONAL BACKEND AUTORITATIVO V2.0 (PROVABLY FAIR)
+// ============================================================================
 
+export type TraditionalRaffleOperationalState = 'IDLE' | 'COMMITTED' | 'REVEALED' | 'EXPIRED';
 
+export interface CanonicalTicketEntry {
+  participantId: string;
+  number: number;
+  name: string;
+}
 
+export interface TraditionalDrawProofV2 {
+  protocolVersion: 'GIO_PF_V2';
+  commitmentHash: string;
+  serverSeed: string;
+  salt: string;
+  clientEntropy: string;
+  drawNonce: string;
+  drawId: string;
+  fencingToken: number;
+  rosterVersion: number;
+  drawSequence: number;
+  rosterSha256Hash: string;
+  winningIndex: number;
+  winningNumber: number;
+  winnerParticipantId: string;
+  winnerName: string;
+  blockIndex: number;
+  wordOffset: number;
+  uint32Value: number;
+  limitN: number;
+  totalEligibleTickets: number;
+  eventHash: string;
+  previousEventHash: string;
+  sequenceNumber: number;
+  drawnAtIso: string;
+}
+
+export interface TraditionalDrawPrecommitRecord {
+  commitmentHash: string;
+  ownerUid: string;
+  raffleId: string;
+  serverSeed: string;
+  salt: string;
+  drawNonce: string;
+  fencingToken: number;
+  rosterVersionAtCommit: number;
+  drawSequenceAtCommit: number;
+  status: 'COMMITTED' | 'REVEALED' | 'EXPIRED';
+  createdAtMs: number;
+  createdAtIso: string;
+  expiresAtMs: number;
+  expiresAtIso: string;
+  revealedAtIso?: string;
+  expiredAtIso?: string;
+  drawId?: string;
+  winningTicket?: CanonicalTicketEntry;
+  winningIndex?: number;
+  rosterSha256Hash?: string;
+  proof?: TraditionalDrawProofV2;
+}
+
+export interface TraditionalDrawLedgerEvent {
+  eventId: string;
+  commitmentHash: string;
+  sequenceNumber: number;
+  previousEventHash: string;
+  eventType: 'PRECOMMIT' | 'REVEALED' | 'EXPIRED';
+  timestampIso: string;
+  canonicalPayloadJson: string;
+  payload: Record<string, unknown>;
+  eventHash: string;
+}
+
+export interface TraditionalDrawLedgerHead {
+  commitmentHash: string;
+  raffleId: string;
+  ownerUid: string;
+  lastSequenceNumber: number;
+  lastEventHash: string;
+  lastEventType: 'PRECOMMIT' | 'REVEALED' | 'EXPIRED';
+  updatedAtIso: string;
+}
+
+export interface TraditionalDrawIdempotencyRecord {
+  compositeKey: string;
+  ownerUid: string;
+  raffleId: string;
+  idempotencyKey: string;
+  drawId: string;
+  requestFingerprint: string;
+  status: 'IN_PROGRESS' | 'COMPLETED';
+  lockAcquisitionId: string;
+  fencingToken: number;
+  startedAtMs: number;
+  startedAtIso: string;
+  completedAtMs?: number;
+  completedAtIso?: string;
+  recoveredCount?: number;
+  lastRecoveredAtIso?: string;
+  responseStatus?: number;
+  responseBody?: Record<string, unknown>;
+}
+
+export interface TraditionalPermanentDrawRecord {
+  drawId: string;
+  ownerUid: string;
+  raffleId: string;
+  idempotencyKey: string;
+  requestFingerprint: string;
+  commitmentHash: string;
+  drawNonce: string;
+  clientEntropy: string;
+  fencingToken: number;
+  rosterVersion: number;
+  drawSequence: number;
+  drawMode: DrawMode;
+  winnerCount: number;
+  prizeId: string;
+  prizeName: string;
+  winningIndex: number;
+  winningTicket: CanonicalTicketEntry;
+  rosterSha256Hash: string;
+  totalEligibleTickets: number;
+  winnerRecord: Winner;
+  proof: TraditionalDrawProofV2;
+  drawnAtMs: number;
+  drawnAtIso: string;
+}
+
+export interface AuthoritativeTraditionalRaffleDocument {
+  userId: string;
+  raffleId: string;
+  title: string;
+  settings: RaffleSettings;
+  participants: Participant[];
+  excludedParticipantIds?: string[];
+  winners: Winner[];
+  rosterVersion: number;
+  drawSequence: number;
+  drawStateVersion: number;
+  fencingToken: number;
+  operationalState: TraditionalRaffleOperationalState;
+  commitmentHash: string | null;
+  drawNonce: string | null;
+  lastDrawId?: string | null;
+  updatedAt: string;
+}
