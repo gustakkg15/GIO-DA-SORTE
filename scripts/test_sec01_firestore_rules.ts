@@ -1,7 +1,7 @@
 /**
  * SEC-01 FIRESTORE SECURITY RULES VERIFICATION TEST SUITE
  * 
- * Verifies the 10 mandatory requirements:
+ * Verifies the 10 mandatory requirements + Phase 10.4 Security Enhancements:
  * 1. Anonymous user reading private collections -> Blocked (Permission Denied).
  * 2. Anonymous user writing documents -> Blocked (Permission Denied).
  * 3. User A trying to update/delete User B's documents -> Blocked.
@@ -11,7 +11,10 @@
  * 7. Backend using Firebase Admin SDK -> Operations continue operating legitimately.
  * 8. Draws, participants, campaigns, and history integrity -> No data loss or unauthorized mutation.
  * 9. Legacy documents without verifiable owner -> Preserved without artificial owner assignment.
- * 10. Regression testing of existing functionality.
+ * 10. Commercial PRO plan self-elevation shield -> Client SDK updates to ACTIVE statusState blocked.
+ * 11. LGPD and Support Ticket List Isolation -> Blanket list queries without UID filter blocked.
+ * 12. Global Participants write protection -> Direct client writes blocked.
+ * 13. Audit log SYSTEM operator forgery -> Client SDK writes with SYSTEM operator blocked.
  */
 
 import fs from 'fs';
@@ -291,11 +294,11 @@ const checks: SecurityRuleCheck[] = [
     expectedOutcome: 'DENY',
   },
 
-  // 8. Legacy records: Readable by signed-in users, no ownership invented
+  // 8. Legacy records without owner -> DENY by fail-closed isParentSessionOwner rule
   {
     id: 8.1,
-    category: 'SEC-01 Item 8: Legacy Documents Preservation',
-    scenario: 'Signed-in User reading legacy session without ownerUid',
+    category: 'SEC-01 Item 8: Legacy Unowned Session Protection',
+    scenario: 'Signed-in User reading unowned legacy session subcollection',
     collection: 'sessions',
     operation: 'get',
     auth: { uid: 'user_A' },
@@ -314,6 +317,81 @@ const checks: SecurityRuleCheck[] = [
     pathParams: { sessionId: 'sess_legacy_001' },
     expectedOutcome: 'DENY',
   },
+
+  // 9. Phase 10.4: Commercial PRO Plan Self-Elevation Shield -> DENY
+  {
+    id: 9.1,
+    category: 'SEC-01 Item 9: Commercial PRO Shield',
+    scenario: 'User FREE trying to update statusState to ACTIVE via Client SDK',
+    collection: 'users',
+    operation: 'update',
+    auth: { uid: 'user_A' },
+    resourceData: { uid: 'user_A', email: 'user_a@test.com', statusState: 'FREE' },
+    requestData: { uid: 'user_A', email: 'user_a@test.com', statusState: 'ACTIVE', mpPreapprovalId: 'fake_123' },
+    pathParams: { userId: 'user_A' },
+    expectedOutcome: 'DENY',
+  },
+
+  // 10. Phase 10.4: Global Participants Write Protection -> DENY
+  {
+    id: 10.1,
+    category: 'SEC-01 Item 10: Global Participants Write Lock',
+    scenario: 'User A attempting to update global_participants coins for User B',
+    collection: 'global_participants',
+    operation: 'update',
+    auth: { uid: 'user_A' },
+    resourceData: { tiktokUserId: 'user_B', accumulatedCoins: 100 },
+    requestData: { tiktokUserId: 'user_B', accumulatedCoins: 999999 },
+    pathParams: { tiktokUserId: 'user_B' },
+    expectedOutcome: 'DENY',
+  },
+
+  // 14. Phase 11: TikTok Identity & Private Token Vault Shielding -> DENY
+  {
+    id: 14.1,
+    category: 'Phase 11: TikTok Identity Shield',
+    scenario: 'User A attempting to self-link tiktokOpenId on /users/user_A via Client SDK',
+    collection: 'users',
+    operation: 'update',
+    auth: { uid: 'user_A' },
+    resourceData: { uid: 'user_A', email: 'a@test.com', statusState: 'FREE', tiktokOpenId: null, tiktokLinked: false },
+    requestData: { uid: 'user_A', email: 'a@test.com', statusState: 'FREE', tiktokOpenId: 'forged_open_id', tiktokLinked: true },
+    pathParams: { userId: 'user_A' },
+    expectedOutcome: 'DENY',
+  },
+  {
+    id: 14.2,
+    category: 'Phase 11: Private Token Vault Locked',
+    scenario: 'User A attempting to read /users/user_A/private_tokens/tiktok via Client SDK',
+    collection: 'private_tokens',
+    operation: 'get',
+    auth: { uid: 'user_A' },
+    resourceData: { encryptedAccessToken: {} },
+    pathParams: { userId: 'user_A', tokenId: 'tiktok' },
+    expectedOutcome: 'DENY',
+  },
+  {
+    id: 14.3,
+    category: 'Phase 11: TikTok Identities Index Locked',
+    scenario: 'Authenticated user attempting to read /tiktok_identities/open_id_123 via Client SDK',
+    collection: 'tiktok_identities',
+    operation: 'get',
+    auth: { uid: 'user_A' },
+    resourceData: { openId: 'open_id_123', uid: 'user_A' },
+    pathParams: { openId: 'open_id_123' },
+    expectedOutcome: 'DENY',
+  },
+  {
+    id: 14.4,
+    category: 'Phase 11: TikTok Identities Index Locked',
+    scenario: 'Authenticated user attempting to write /tiktok_identities/open_id_123 via Client SDK',
+    collection: 'tiktok_identities',
+    operation: 'create',
+    auth: { uid: 'user_A' },
+    requestData: { openId: 'open_id_123', uid: 'user_A' },
+    pathParams: { openId: 'open_id_123' },
+    expectedOutcome: 'DENY',
+  },
 ];
 
 /**
@@ -327,6 +405,37 @@ function evaluateRule(check: SecurityRuleCheck): 'ALLOW' | 'DENY' {
     typeof id === 'string' && id.length <= 128 && /^[a-zA-Z0-9_\-]+$/.test(id);
 
   switch (check.collection) {
+    case 'users': {
+      const userId = check.pathParams.userId;
+      if (!isValidId(userId) || !isSignedIn || authUid !== userId) return 'DENY';
+      if (check.operation === 'get') return 'ALLOW';
+      if (check.operation === 'update') {
+        const reqState = check.requestData?.statusState;
+        const resState = check.resourceData?.statusState;
+        if (reqState && reqState !== resState) return 'DENY';
+        if (check.requestData?.mpPreapprovalId && check.requestData.mpPreapprovalId !== check.resourceData?.mpPreapprovalId) return 'DENY';
+        if (
+          'tiktokOpenId' in (check.requestData || {}) &&
+          (check.requestData?.tiktokOpenId ?? null) !== (check.resourceData?.tiktokOpenId ?? null)
+        ) {
+          return 'DENY';
+        }
+        if (
+          'tiktokLinked' in (check.requestData || {}) &&
+          Boolean(check.requestData?.tiktokLinked) !== Boolean(check.resourceData?.tiktokLinked)
+        ) {
+          return 'DENY';
+        }
+        return 'ALLOW';
+      }
+      return 'DENY';
+    }
+
+    case 'private_tokens':
+    case 'tiktok_identities': {
+      return 'DENY';
+    }
+
     case 'settings': {
       const targetUserId = check.pathParams.userId;
       const targetSettingId = check.pathParams.settingId;
@@ -457,15 +566,11 @@ function evaluateRule(check: SecurityRuleCheck): 'ALLOW' | 'DENY' {
       const logId = check.pathParams.logId;
       if (!isValidId(logId)) return 'DENY';
       if (check.operation === 'get' || check.operation === 'list') {
-        return isSignedIn ? 'ALLOW' : 'DENY';
+        if (!isSignedIn) return 'DENY';
+        return check.resourceData?.operatorUid === authUid ? 'ALLOW' : 'DENY';
       }
       if (check.operation === 'create') {
-        if (
-          isSignedIn &&
-          (!check.requestData?.operatorUid ||
-            check.requestData.operatorUid === authUid ||
-            check.requestData.operatorUid === 'SYSTEM')
-        ) {
+        if (isSignedIn && check.requestData?.operatorUid === authUid) {
           return 'ALLOW';
         }
         return 'DENY';
@@ -483,10 +588,7 @@ function evaluateRule(check: SecurityRuleCheck): 'ALLOW' | 'DENY' {
       if (check.operation === 'get' || check.operation === 'list') {
         return isSignedIn ? 'ALLOW' : 'DENY';
       }
-      if (check.operation === 'create' || check.operation === 'update') {
-        return isSignedIn ? 'ALLOW' : 'DENY';
-      }
-      if (check.operation === 'delete') return 'DENY';
+      // Mutações diretas do Client SDK bloqueadas na Fase 10.4
       return 'DENY';
     }
 
@@ -536,7 +638,19 @@ async function runRulesEvaluation() {
   if (!snapshotUpdateFalse || !auditLogsImmutable) {
     throw new Error('Snapshots ou Audit Logs não estão definidos como imutáveis!');
   }
-  console.log('✓ [PASS] Snapshots e Audit Logs definidos como imutáveis (allow update/delete: if false).');
+  console.log('✓ [PASS] Snapshots e Audit Logs definidos como imutáveis.');
+
+  // Check 4: Phase 10.4 Proteções Comerciais e LGPD
+  const proShieldMatch = rulesContent.includes('statusState == existing().statusState');
+  const lgpdListMatch = rulesContent.includes('match /lgpd_requests/{requestId}') &&
+    rulesContent.includes('resource.data.userId == request.auth.uid');
+  const globalPartLockMatch = rulesContent.includes('match /global_participants/{tiktokUserId}') &&
+    rulesContent.includes('allow create, update, delete: if false;');
+
+  if (!proShieldMatch || !lgpdListMatch || !globalPartLockMatch) {
+    throw new Error('Faltam proteções de plano PRO, isolamento LGPD ou bloqueio de global_participants em firestore.rules!');
+  }
+  console.log('✓ [PASS] Proteções comerciais PRO, isolamento LGPD e trava de global_participants verificadas em firestore.rules.');
 
   // Run test matrix against simulator
   console.log('\n--- EXECUTANDO MATRIZ DE TESTES DE REGRAS ---');

@@ -1,6 +1,6 @@
 {
-  "summary":  "Implementação real da Autenticação Dual OIDC + Firebase nos workers das rotas /api/raffle/draw/sweep e /api/raffle/draw/recover, com 15/15 cenários de testes automatizados aprovados e revisão documental de IAM.",
-  "updatedAt":  "2026-11-07T16:07:16.124339877Z",
+  "summary":  "Plano de Implementacao da Fase 11 revisado com a separacao explicita entre o fluxo de Primeiro Acesso / Login com TikTok e o fluxo de Vinculacao de Contas GIO Existentes com reautenticacao e protecao contra conflito de open_id.",
+  "updatedAt":  "2026-11-08T00:13:34.958467048Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

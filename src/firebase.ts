@@ -3,6 +3,7 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithCustomToken,
   signOut,
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -12,6 +13,7 @@ import {
   updateProfile,
   updatePassword,
   reauthenticateWithCredential,
+  reauthenticateWithPopup,
   EmailAuthProvider,
   type User,
   type Auth,
@@ -134,6 +136,7 @@ if (typeof window !== 'undefined') {
 
 export {
   signInWithPopup,
+  signInWithCustomToken,
   signOut,
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -143,6 +146,7 @@ export {
   updateProfile,
   updatePassword,
   reauthenticateWithCredential,
+  reauthenticateWithPopup,
   EmailAuthProvider,
 };
 export type { User, Auth };

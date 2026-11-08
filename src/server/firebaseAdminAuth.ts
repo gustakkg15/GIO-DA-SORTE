@@ -931,3 +931,271 @@ export async function verifyFirestoreResourceOwnership(params: {
     data,
   };
 }
+
+// ==========================================
+// PHASE 11: FIREBASE CUSTOM TOKEN & STEP-UP REAUTHENTICATION
+// ==========================================
+
+export type CustomTokenCreator = (
+  uid: string,
+  developerClaims?: Record<string, any>
+) => Promise<string>;
+
+let customTokenCreatorForTests: CustomTokenCreator | null = null;
+
+export function setCustomTokenCreatorForTests(creator: CustomTokenCreator | null): void {
+  customTokenCreatorForTests = creator;
+}
+
+/**
+ * Generates a cryptographically signed Firebase Auth Custom Token for a verified UID.
+ * Must ONLY be called by the backend after complete TikTok OAuth v2 state + code + open_id
+ * validation and transactional identity binding.
+ */
+export async function createFirebaseCustomTokenForUid(
+  uid: string,
+  developerClaims?: Record<string, any>
+): Promise<string> {
+  const cleanUid = typeof uid === 'string' ? uid.trim() : '';
+  if (!cleanUid || cleanUid.length > 128 || /\s/.test(cleanUid)) {
+    throw new Error('UID inválido para emissão de Firebase Custom Token.');
+  }
+
+  if (customTokenCreatorForTests) {
+    return await customTokenCreatorForTests(cleanUid, developerClaims);
+  }
+
+  const adminAuth = getAdminAuth(getOrInitFirebaseAdminApp());
+  return await adminAuth.createCustomToken(cleanUid, developerClaims);
+}
+
+export interface StepUpReauthVerificationResult {
+  verified: boolean;
+  status: number;
+  code?: string;
+  reason?: string;
+  uid?: string;
+  authTimeSec?: number;
+  method?: 'password' | 'google.com';
+}
+
+const ALLOWED_STEP_UP_SIGN_IN_PROVIDERS = new Set(['password', 'google.com']);
+
+/**
+ * PHASE 11.1 — Cryptographic Step-Up Reauthentication Verification
+ *
+ * Security Invariants:
+ * 1. NEVER trusts `reauthConfirmed`, `reauthMethod`, `auth_time`, or `reauthVerified` sent by the frontend.
+ * 2. Cryptographically verifies the Firebase ID Token signature, expiration (`exp`), and revocation (`checkRevoked = true`)
+ *    on the backend via `verifyAuthenticatedFirebaseUser(req)`.
+ * 3. If a dedicated `reauthIdToken` is provided in headers/body, verifies it cryptographically and enforces
+ *    strict UID equality (`reauthToken.uid === sessionToken.uid`), blocking cross-UID token substitution (`REAUTH_UID_MISMATCH`).
+ * 4. Extracts `auth_time` and `firebase.sign_in_provider` EXCLUSIVELY from the verified `DecodedIdToken`.
+ * 5. Enforces `nowSec - decoded.auth_time <= maxAgeSeconds` (default 300s) and `sign_in_provider` in `{'password', 'google.com'}`.
+ */
+export async function verifyRecentReauthentication(
+  req: Request,
+  options?: { maxAgeSeconds?: number; expectedUid?: string }
+): Promise<StepUpReauthVerificationResult> {
+  const maxAgeSeconds = options?.maxAgeSeconds ?? 300; // 5 minutes window for recent reauthentication
+  const body = (req.body && typeof req.body === 'object' ? req.body : {}) as Record<string, any>;
+  const query = (req.query && typeof req.query === 'object' ? req.query : {}) as Record<string, any>;
+
+  // 1. Block explicit client attempts to forge server-side reauthentication claims
+  const forbiddenClientReauthFields = [
+    'auth_time',
+    'authTime',
+    'authTimeSec',
+    'reauthVerified',
+    'verified',
+    'decodedFirebaseToken',
+    'sign_in_provider',
+    'signInProvider',
+    'customClaims',
+  ];
+  for (const field of forbiddenClientReauthFields) {
+    if (body[field] !== undefined || query[field] !== undefined) {
+      return {
+        verified: false,
+        status: 403,
+        code: 'REAUTH_FORGERY_ATTEMPT',
+        reason: `Tentativa de falsificação de reautenticação bloqueada: o campo "${field}" não pode ser enviado pelo cliente.`,
+      };
+    }
+  }
+
+  if (
+    body.reauthConfirmed === false ||
+    req.headers['x-gio-reauth-confirmed'] === 'false'
+  ) {
+    return {
+      verified: false,
+      status: 403,
+      code: 'REAUTHENTICATION_REQUIRED',
+      reason:
+        'Reautenticação obrigatória: confirme sua identidade com Senha ou Google Auth antes de vincular uma conta TikTok.',
+    };
+  }
+
+  // 2. Cryptographically verify the primary Firebase ID Token (signature, expiry, disabled, revocation)
+  const primaryAuth = await verifyAuthenticatedFirebaseUser(req);
+  if (!primaryAuth.authenticated || !primaryAuth.uid || !primaryAuth.decodedToken) {
+    return {
+      verified: false,
+      status: primaryAuth.status || 401,
+      code: primaryAuth.code || 'FIREBASE_AUTH_REQUIRED',
+      reason:
+        primaryAuth.reason ||
+        'Sessão Firebase autenticada e válida é obrigatória para vincular uma conta TikTok.',
+    };
+  }
+
+  const verifiedUid = primaryAuth.uid;
+
+  // Reject if caller or body specifies a different target UID
+  const requestedBodyUid =
+    typeof body.uid === 'string' && body.uid.trim() ? body.uid.trim() : null;
+  const expectedUid =
+    typeof options?.expectedUid === 'string' && options.expectedUid.trim()
+      ? options.expectedUid.trim()
+      : null;
+
+  if (
+    (requestedBodyUid && requestedBodyUid !== verifiedUid) ||
+    (expectedUid && expectedUid !== verifiedUid)
+  ) {
+    return {
+      verified: false,
+      status: 403,
+      code: 'REAUTH_UID_MISMATCH',
+      reason:
+        'Violação de propriedade: o token de reautenticação pertence a um UID diferente da conta alvo.',
+    };
+  }
+
+  // 3. If a dedicated step-up `reauthIdToken` was supplied, cryptographically verify it and enforce UID match
+  let effectiveDecodedToken: DecodedIdToken = primaryAuth.decodedToken;
+  const rawReauthIdToken =
+    (typeof body.reauthIdToken === 'string' && body.reauthIdToken.trim()) ||
+    (typeof req.headers['x-gio-reauth-id-token'] === 'string' &&
+      req.headers['x-gio-reauth-id-token'].trim()) ||
+    '';
+
+  if (rawReauthIdToken) {
+    const syntheticReq = {
+      headers: {
+        authorization: `Bearer ${rawReauthIdToken}`,
+      },
+      query: {},
+      ip: req.ip,
+      socket: req.socket,
+    } as unknown as Request;
+
+    const stepUpAuth = await verifyAuthenticatedFirebaseUser(syntheticReq);
+    if (!stepUpAuth.authenticated || !stepUpAuth.uid || !stepUpAuth.decodedToken) {
+      return {
+        verified: false,
+        status: stepUpAuth.status || 401,
+        code: stepUpAuth.code || 'FIREBASE_TOKEN_INVALID',
+        reason:
+          stepUpAuth.reason ||
+          'Token de reautenticação inválido, expirado ou revogado.',
+      };
+    }
+
+    if (stepUpAuth.uid !== verifiedUid) {
+      return {
+        verified: false,
+        status: 403,
+        code: 'REAUTH_UID_MISMATCH',
+        reason:
+          'Violação de segurança: o reauthIdToken pertence a outro UID e não pode autorizar esta conta.',
+      };
+    }
+
+    effectiveDecodedToken = stepUpAuth.decodedToken;
+  }
+
+  // 4. Verify cryptographic `firebase.sign_in_provider` claim (NEVER trust client `reauthMethod`)
+  const decodedRecord = effectiveDecodedToken as Record<string, any>;
+  const tokenSignInProvider = String(
+    decodedRecord.firebase?.sign_in_provider || ''
+  ).trim();
+
+  const clientClaimedMethod = String(
+    body.reauthMethod || req.headers['x-gio-reauth-method'] || ''
+  ).trim();
+
+  if (
+    clientClaimedMethod &&
+    (!ALLOWED_STEP_UP_SIGN_IN_PROVIDERS.has(clientClaimedMethod) ||
+      (tokenSignInProvider && clientClaimedMethod !== tokenSignInProvider))
+  ) {
+    return {
+      verified: false,
+      status: 403,
+      code: 'REAUTH_FORGERY_ATTEMPT',
+      reason: `Divergência de segurança: o método de reautenticação informado pelo cliente (${clientClaimedMethod}) contradiz o provedor criptográfico do token Firebase (${tokenSignInProvider || 'desconhecido'}).`,
+    };
+  }
+
+  if (!ALLOWED_STEP_UP_SIGN_IN_PROVIDERS.has(tokenSignInProvider)) {
+    return {
+      verified: false,
+      status: 403,
+      code: 'REAUTHENTICATION_PROVIDER_INVALID',
+      reason: `Reautenticação recusada: o token atual foi emitido via "${tokenSignInProvider || 'desconhecido'}". Exige-se reautenticação recente comprovada por Senha (password) ou Google Auth (google.com).`,
+    };
+  }
+
+  // 5. Verify cryptographic `auth_time` claim strictly (NEVER fall back to `iat` or client fields)
+  const rawAuthTime = decodedRecord.auth_time;
+  if (
+    typeof rawAuthTime !== 'number' ||
+    !Number.isFinite(rawAuthTime) ||
+    rawAuthTime <= 0
+  ) {
+    return {
+      verified: false,
+      status: 403,
+      code: 'REAUTH_INVALID_AUTH_TIME',
+      reason:
+        'Token Firebase não possui claim criptográfico auth_time válido para comprovar reautenticação.',
+    };
+  }
+
+  const authTimeSec = Math.floor(rawAuthTime);
+  const nowSec = Math.floor(Date.now() / 1000);
+
+  if (authTimeSec > nowSec + 30) {
+    return {
+      verified: false,
+      status: 403,
+      code: 'REAUTH_INVALID_AUTH_TIME',
+      reason: 'Claim auth_time inválido (timestamp no futuro).',
+      authTimeSec,
+    };
+  }
+
+  if (nowSec - authTimeSec > maxAgeSeconds) {
+    return {
+      verified: false,
+      status: 403,
+      code: 'REAUTHENTICATION_STALE',
+      reason:
+        'Sua confirmação de identidade expirou (mais de 5 minutos). Reautentique-se com sua senha ou Google Auth para gerar um token recente antes de vincular o TikTok.',
+      uid: verifiedUid,
+      authTimeSec,
+    };
+  }
+
+  return {
+    verified: true,
+    status: 200,
+    uid: verifiedUid,
+    authTimeSec,
+    method: tokenSignInProvider as 'password' | 'google.com',
+  };
+}
+
+

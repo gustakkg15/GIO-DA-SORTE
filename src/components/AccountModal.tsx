@@ -18,11 +18,15 @@ import {
   Clock,
   Sparkles,
   Check,
+  Link2,
+  Unlink,
+  AtSign,
 } from 'lucide-react';
 import {
   auth,
   googleProvider,
   signInWithPopup,
+  signInWithCustomToken,
   signOut,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -31,6 +35,7 @@ import {
   updateProfile,
   updatePassword,
   reauthenticateWithCredential,
+  reauthenticateWithPopup,
   EmailAuthProvider,
   User as FirebaseUser,
 } from '../firebase';
@@ -89,10 +94,130 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Phase 11: TikTok Login (Flow 1), @username Visual Lookup, and Account Linking (Flow 2)
+  const [showUsernameLookup, setShowUsernameLookup] = useState(false);
+  const [visualTikTokUsername, setVisualTikTokUsername] = useState('');
+  const [usernameLookupNotice, setUsernameLookupNotice] = useState<string | null>(null);
+
+  const [linkedTikTokProfile, setLinkedTikTokProfile] = useState<{
+    linked: boolean;
+    openId: string | null;
+    displayName?: string;
+    avatarUrl?: string;
+    username?: string;
+    scope?: string | null;
+  }>({ linked: false, openId: null });
+  const [showLinkStepUpModal, setShowLinkStepUpModal] = useState(false);
+  const [linkReauthPassword, setLinkReauthPassword] = useState('');
+  const [tiktokLoading, setTiktokLoading] = useState(false);
+
   // Rate Limiting / Throttle Countdown
   const [throttleRemaining, setThrottleRemaining] = useState<number>(0);
 
   const initialInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch linked TikTok identity status when authenticated user opens modal
+  useEffect(() => {
+    if (!isOpen || !currentUser) {
+      setLinkedTikTokProfile({ linked: false, openId: null });
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const idToken = await currentUser.getIdToken();
+        const res = await fetch('/api/tiktok/auth/identity', {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled && res.ok && data.linked) {
+          setLinkedTikTokProfile({
+            linked: true,
+            openId: data.openId || null,
+            displayName: data.profile?.display_name || currentUser.displayName || 'Criador TikTok',
+            avatarUrl: data.profile?.avatar_url || currentUser.photoURL || '',
+            username: data.profile?.username || undefined,
+            scope: data.scope || 'user.info.basic',
+          });
+          return;
+        }
+        if (!cancelled && currentUser.uid.startsWith('gio_tt_')) {
+          setLinkedTikTokProfile({
+            linked: true,
+            openId: 'Verificado via TikTok OAuth',
+            displayName: currentUser.displayName || 'Criador TikTok',
+            avatarUrl: currentUser.photoURL || '',
+            scope: 'user.info.basic',
+          });
+        }
+      } catch {
+        // Ignore transient status fetch error
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, currentUser]);
+
+  // Listen for TikTok OAuth popup callback messages (Flow 1 LOGIN & Flow 2 LINK)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePopupMessage = async (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      const payload = event.data;
+      if (!payload || typeof payload !== 'object' || payload.provider !== 'tiktok') return;
+
+      if (payload.type === 'OAUTH_AUTH_ERROR') {
+        setTiktokLoading(false);
+        setErrorMsg(
+          String(payload.error || 'Não foi possível concluir a autenticação com o TikTok.')
+        );
+        return;
+      }
+
+      if (payload.type === 'OAUTH_AUTH_SUCCESS') {
+        try {
+          if (payload.flowMode === 'LINK') {
+            setLinkedTikTokProfile({
+              linked: true,
+              openId: payload.user?.open_id || null,
+              displayName: payload.user?.display_name || 'Criador TikTok',
+              avatarUrl: payload.user?.avatar_url || '',
+              username: payload.user?.username || undefined,
+              scope: payload.scope || 'user.info.basic',
+            });
+            setShowLinkStepUpModal(false);
+            setLinkReauthPassword('');
+            setSuccessMsg(
+              'Conta TikTok vinculada com sucesso à sua conta GIO da Sorte!'
+            );
+          } else {
+            // Flow 1: LOGIN with Firebase Custom Token issued by backend
+            if (payload.firebaseCustomToken) {
+              await signInWithCustomToken(auth, String(payload.firebaseCustomToken));
+              resetThrottleState();
+              setSuccessMsg('Autenticado com sucesso via TikTok OAuth 2.0!');
+            } else {
+              setErrorMsg(
+                'O servidor não retornou o token de sessão Firebase após a validação do TikTok.'
+              );
+            }
+          }
+        } catch (err) {
+          const msg = getGenericAuthErrorMessage(err, 'login');
+          setErrorMsg(msg || 'Falha ao estabelecer sessão Firebase após login com TikTok.');
+        } finally {
+          setTiktokLoading(false);
+        }
+      }
+    };
+
+    window.addEventListener('message', handlePopupMessage);
+    return () => window.removeEventListener('message', handlePopupMessage);
+  }, [isOpen]);
 
   // Check rate limit on mount and run timer
   useEffect(() => {
@@ -297,22 +422,198 @@ export const AccountModal: React.FC<AccountModalProps> = ({
     }
   };
 
-  // 5. Sign Out
+  // 5. Operation 1 — Logout GIO (Ends only browser session; preserves TikTok authorization & active LIVE workers)
   const handleSignOut = async () => {
     setLoading(true);
     setErrorMsg(null);
     setSuccessMsg(null);
 
     try {
+      if (currentUser) {
+        const idToken = await currentUser.getIdToken().catch(() => '');
+        if (idToken) {
+          await fetch('/api/auth/gio-logout', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({}),
+          }).catch(() => {});
+        }
+      }
       await signOut(auth);
       clearForm();
       setShowChangePassword(false);
-      setSuccessMsg('Você desconectou da sua conta. Seus dados continuam no seu navegador.');
+      setShowLinkStepUpModal(false);
+      setLinkedTikTokProfile({ linked: false, openId: null });
+      setSuccessMsg(
+        'Sessão GIO encerrada neste navegador. Autorização TikTok e workers de LIVE ativos e autorizados foram preservados.'
+      );
       setTimeout(() => setSuccessMsg(null), 3500);
     } catch {
       setErrorMsg('Não foi possível encerrar a sessão no momento.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 5B. Phase 11 — Flow 1: First Access / Login with TikTok OAuth 2.0
+  const handleTikTokLoginOAuth = async () => {
+    setTiktokLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      const res = await fetch('/api/tiktok/auth/login/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) {
+        setErrorMsg(
+          data.error ||
+            'Não foi possível iniciar o login com TikTok OAuth 2.0. Verifique as credenciais no servidor.'
+        );
+        setTiktokLoading(false);
+        return;
+      }
+
+      window.location.assign(data.url);
+    } catch {
+      setErrorMsg('Erro de conexão ao iniciar autenticação oficial com o TikTok.');
+      setTiktokLoading(false);
+    }
+  };
+
+  // 5C. Phase 11 — Secondary @username Visual Lookup (Requires Official OAuth to Authenticate)
+  const handleUsernameVisualLookup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanHandle = visualTikTokUsername.replace(/^@/, '').trim();
+    if (!cleanHandle) {
+      setErrorMsg('Informe seu @usuário do TikTok para identificação visual.');
+      return;
+    }
+
+    setErrorMsg(null);
+    try {
+      const res = await fetch('/api/tiktok/auth/username-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: cleanHandle }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setUsernameLookupNotice(
+        data.error ||
+          `Perfil @${cleanHandle} identificado visualmente. Por segurança, @usuário nunca autentica sozinho: clique abaixo para confirmar a propriedade via TikTok OAuth oficial.`
+      );
+    } catch {
+      setUsernameLookupNotice(
+        `Perfil @${cleanHandle} selecionado. Conclua a verificação via TikTok OAuth oficial para entrar.`
+      );
+    }
+  };
+
+  // 5D. Phase 11.1 — Flow 2: Link TikTok to Existing GIO Account (Cryptographic Step-Up Reauthentication)
+  // After Firebase `reauthenticateWithCredential` or `reauthenticateWithPopup`, `getIdToken(true)` forces
+  // Firebase to mint a fresh ID Token with updated `auth_time` and `firebase.sign_in_provider`, which the
+  // backend verifies cryptographically without trusting client boolean flags.
+  const startAuthenticatedTikTokLinkFlow = async () => {
+    if (!currentUser) return;
+    const freshIdToken = await currentUser.getIdToken(true);
+    const res = await fetch('/api/tiktok/auth/link/start', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${freshIdToken}`,
+      },
+      body: JSON.stringify({
+        reauthIdToken: freshIdToken,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.url) {
+      throw new Error(
+        data.error || 'Não foi possível iniciar a vinculação da conta TikTok.'
+      );
+    }
+    window.location.assign(data.url);
+  };
+
+  const handleLinkWithPasswordReauth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser || !currentUser.email) return;
+    if (!linkReauthPassword) {
+      setErrorMsg('Confirme sua senha atual para autorizar a vinculação do TikTok.');
+      return;
+    }
+
+    setTiktokLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      const cred = EmailAuthProvider.credential(currentUser.email, linkReauthPassword);
+      await reauthenticateWithCredential(currentUser, cred);
+      setLinkReauthPassword('');
+      await startAuthenticatedTikTokLinkFlow();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Falha na confirmação de senha.';
+      setErrorMsg(msg);
+      setTiktokLoading(false);
+    }
+  };
+
+  const handleLinkWithGoogleReauth = async () => {
+    if (!currentUser) return;
+    setTiktokLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      await reauthenticateWithPopup(currentUser, googleProvider);
+      await startAuthenticatedTikTokLinkFlow();
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : 'Falha na confirmação Google Auth para vincular TikTok.';
+      setErrorMsg(msg);
+      setTiktokLoading(false);
+    }
+  };
+
+  // 5E. Operation 2 — Desvinculação TikTok (Revokes tokens & stops dependent tasks; preserves GIO account & raffle history)
+  const handleUnlinkTikTok = async () => {
+    if (!currentUser) return;
+    setTiktokLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      const idToken = await currentUser.getIdToken();
+      const res = await fetch('/api/tiktok/auth/unlink', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErrorMsg(data.error || 'Não foi possível desconectar a conta TikTok.');
+        return;
+      }
+      setLinkedTikTokProfile({ linked: false, openId: null });
+      setSuccessMsg(
+        'Conta TikTok desvinculada e tokens revogados com sucesso! Tarefas dependentes foram encerradas e sua conta GIO, configurações e histórico de sorteios foram preservados.'
+      );
+    } catch {
+      setErrorMsg('Erro ao desvincular conta TikTok.');
+    } finally {
+      setTiktokLoading(false);
     }
   };
 
@@ -567,6 +868,123 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 <RefreshCw className="w-4 h-4 text-[#00A9FF]" />
                 <span>Recarregar da Nuvem</span>
               </button>
+            </div>
+
+            {/* Phase 11: Linked TikTok Identity Management (Flow 2 Link & Unlink) */}
+            <div className="bg-[#101F3D] border border-[#182943] rounded-xl p-3.5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Link2 className="w-4 h-4 text-[#00A9FF]" />
+                  <span className="text-xs font-bold text-[#F8FAFC]">
+                    Identidade TikTok OAuth 2.0
+                  </span>
+                </div>
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                    linkedTikTokProfile.linked
+                      ? 'bg-[#20C997]/15 text-[#20C997] border-[#20C997]/40'
+                      : 'bg-[#050D20] text-[#94A3B8] border-[#182943]'
+                  }`}
+                >
+                  {linkedTikTokProfile.linked ? 'VINCULADA' : 'NÃO VINCULADA'}
+                </span>
+              </div>
+
+              {linkedTikTokProfile.linked ? (
+                <div className="space-y-2.5">
+                  <div className="bg-[#050D20] border border-[#182943] rounded-lg p-2.5 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-[#F8FAFC] truncate">
+                        {linkedTikTokProfile.displayName || 'Criador TikTok'}
+                        {linkedTikTokProfile.username
+                          ? ` (@${linkedTikTokProfile.username.replace(/^@/, '')})`
+                          : ''}
+                      </div>
+                      <div className="text-[11px] text-[#94A3B8] truncate">
+                        open_id verificado • Escopo: {linkedTikTokProfile.scope || 'user.info.basic'}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={tiktokLoading || loading}
+                      onClick={handleUnlinkTikTok}
+                      className="px-2.5 py-1.5 rounded-lg bg-[#F05262]/15 hover:bg-[#F05262]/25 border border-[#F05262]/40 text-[#F05262] text-[11px] font-bold flex items-center gap-1 transition shrink-0 disabled:opacity-50"
+                    >
+                      <Unlink className="w-3.5 h-3.5" />
+                      <span>Desconectar TikTok</span>
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                    Desconectar o TikTok revoga os tokens OAuth sem excluir sua conta GIO nem interromper sorteios ou workers de LIVE ativos.
+                  </p>
+                </div>
+              ) : !showLinkStepUpModal ? (
+                <div className="space-y-2">
+                  <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                    Vincule sua conta oficial do TikTok a esta conta GIO para entrar com 1 clique mantendo seus sorteios e plano.
+                  </p>
+                  <button
+                    type="button"
+                    disabled={tiktokLoading || loading}
+                    onClick={() => {
+                      setShowLinkStepUpModal(true);
+                      setErrorMsg(null);
+                    }}
+                    className="w-full py-2 px-3 rounded-lg bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                  >
+                    <Link2 className="w-3.5 h-3.5" />
+                    <span>Vincular Conta TikTok (Exige Confirmação)</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-[#050D20] border border-[#00A9FF]/40 rounded-lg p-3 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#F8FAFC] flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-[#00A9FF]" />
+                      Confirmação de Segurança Obrigatória
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowLinkStepUpModal(false);
+                        setLinkReauthPassword('');
+                      }}
+                      className="text-[11px] text-[#94A3B8] hover:text-[#F8FAFC]"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                    Por segurança, confirme sua identidade atual (Senha ou Google Auth) antes de vincular um perfil do TikTok. Contas TikTok já vinculadas a outro usuário são bloqueadas.
+                  </p>
+                  {currentUser.email && (
+                    <form onSubmit={handleLinkWithPasswordReauth} className="space-y-2">
+                      <input
+                        type="password"
+                        value={linkReauthPassword}
+                        onChange={(e) => setLinkReauthPassword(e.target.value)}
+                        placeholder="Digite sua senha atual para confirmar"
+                        className="w-full px-3 py-2 text-xs bg-[#101F3D] border border-[#182943] rounded-lg text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#00A9FF]"
+                      />
+                      <button
+                        type="submit"
+                        disabled={tiktokLoading}
+                        className="w-full py-2 px-3 rounded-lg bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-bold text-xs transition disabled:opacity-50"
+                      >
+                        {tiktokLoading ? 'Verificando...' : 'Confirmar Senha e Abrir TikTok OAuth'}
+                      </button>
+                    </form>
+                  )}
+                  <button
+                    type="button"
+                    disabled={tiktokLoading}
+                    onClick={handleLinkWithGoogleReauth}
+                    className="w-full py-2 px-3 rounded-lg bg-[#101F3D] hover:bg-[#182943] border border-[#182943] text-[#F8FAFC] font-semibold text-xs transition disabled:opacity-50"
+                  >
+                    Confirmar com Google Auth e Vincular TikTok
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Sensitive Action: Change Password (Step-up Verification) */}
@@ -1008,16 +1426,92 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   </div>
                 </div>
 
-                {/* Google Sign-in Alternative */}
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={handleGoogleSignIn}
-                  className="w-full py-2.5 px-4 bg-[#101F3D] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] hover:border-[#00A9FF]/50 font-semibold text-xs rounded-xl transition flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
-                >
-                  <User className="w-4 h-4 text-[#00A9FF]" />
-                  <span>Continuar com Google</span>
-                </button>
+                {/* Phase 11: Primary TikTok OAuth Login + Secondary @username Visual Lookup + Google Sign-In */}
+                <div className="space-y-2.5">
+                  <button
+                    type="button"
+                    disabled={loading || tiktokLoading}
+                    onClick={handleTikTokLoginOAuth}
+                    className="w-full py-2.5 px-4 bg-gradient-to-r from-[#0866F5] to-[#00A9FF] hover:brightness-110 text-[#F8FAFC] font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-md shadow-[#0866F5]/25 active:scale-95 disabled:opacity-50 cursor-pointer"
+                  >
+                    <Sparkles className="w-4 h-4 text-[#F5B942]" />
+                    <span>
+                      {tiktokLoading ? 'Conectando ao TikTok OAuth...' : 'Continuar com TikTok (OAuth Oficial)'}
+                    </span>
+                  </button>
+
+                  {!showUsernameLookup ? (
+                    <button
+                      type="button"
+                      disabled={loading || tiktokLoading}
+                      onClick={() => {
+                        setShowUsernameLookup(true);
+                        setUsernameLookupNotice(null);
+                      }}
+                      className="w-full py-2 px-3 bg-[#050D20] hover:bg-[#101F3D] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#182943] font-semibold text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <AtSign className="w-3.5 h-3.5 text-[#00A9FF]" />
+                      <span>Entrar com @usuário do TikTok (Busca Visual + OAuth)</span>
+                    </button>
+                  ) : (
+                    <div className="bg-[#050D20] border border-[#182943] rounded-xl p-3 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[#F8FAFC] flex items-center gap-1.5">
+                          <AtSign className="w-3.5 h-3.5 text-[#00A9FF]" />
+                          Identificação Visual por @usuário
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowUsernameLookup(false);
+                            setUsernameLookupNotice(null);
+                          }}
+                          className="text-[11px] text-[#94A3B8] hover:text-[#F8FAFC]"
+                        >
+                          Fechar
+                        </button>
+                      </div>
+                      <form onSubmit={handleUsernameVisualLookup} className="flex gap-2">
+                        <input
+                          type="text"
+                          value={visualTikTokUsername}
+                          onChange={(e) => setVisualTikTokUsername(e.target.value)}
+                          placeholder="@seu_usuario_tiktok"
+                          className="flex-1 px-3 py-2 text-xs bg-[#101F3D] border border-[#182943] rounded-lg text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#00A9FF]"
+                        />
+                        <button
+                          type="submit"
+                          className="px-3 py-2 rounded-lg bg-[#101F3D] hover:bg-[#182943] border border-[#00A9FF]/40 text-[#00A9FF] font-bold text-xs transition"
+                        >
+                          Localizar
+                        </button>
+                      </form>
+                      <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                        {usernameLookupNotice ||
+                          'Por segurança, o @usuário serve apenas como identificação visual e nunca autentica a conta sozinho. A propriedade da conta é validada via TikTok OAuth 2.0.'}
+                      </p>
+                      <button
+                        type="button"
+                        disabled={tiktokLoading}
+                        onClick={handleTikTokLoginOAuth}
+                        className="w-full py-2 px-3 rounded-lg bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-bold text-xs transition"
+                      >
+                        Verificar Propriedade com TikTok OAuth
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Google Sign-in Alternative */}
+                  <button
+                    type="button"
+                    disabled={loading || tiktokLoading}
+                    onClick={handleGoogleSignIn}
+                    className="w-full py-2.5 px-4 bg-[#101F3D] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] hover:border-[#00A9FF]/50 font-semibold text-xs rounded-xl transition flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                  >
+                    <User className="w-4 h-4 text-[#00A9FF]" />
+                    <span>Continuar com Google</span>
+                  </button>
+                </div>
               </>
             )}
 

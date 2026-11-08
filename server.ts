@@ -91,6 +91,8 @@ import {
   verifyFirestoreResourceOwnership,
   buildEntitlementFromSubscriptionRecord,
   setCustomTokenVerifierForTests,
+  setCustomTokenCreatorForTests,
+  verifyRecentReauthentication,
 } from './src/server/firebaseAdminAuth.ts';
 import {
   issueSseStreamTicket,
@@ -104,11 +106,13 @@ import {
   ALLOWED_HTTPS_ORIGINS,
   SESSION_COOKIE_NAME,
   STATE_COOKIE_NAME,
+  INITIATOR_COOKIE_NAME,
   resolveAuthorizedRedirectConfig,
   resolveValidatedScopes,
   checkEncryptionKeyStatus,
   diagnoseOAuthConfiguration,
   parseCookies,
+  assertNoClientIdentityForgery,
   OAuthSecurityError,
 } from './src/server/tiktokOAuthService.ts';
 import {
@@ -120,10 +124,42 @@ import { requireWorkerOrFirebaseAuth } from './src/server/workerOidcAuth.ts';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+export function parseValidPort(raw: string | undefined | null): number | null {
+  if (!raw || typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  const val = Number.parseInt(trimmed, 10);
+  if (Number.isFinite(val) && val >= 1 && val <= 65535) {
+    return val;
+  }
+  return null;
+}
+
+export function resolveServerPort(
+  argv: string[] = process.argv,
+  envPort: string | undefined = process.env.PORT
+): number {
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === '--port' || arg === '-p') {
+      const next = argv[i + 1];
+      const parsed = parseValidPort(next);
+      if (parsed !== null) return parsed;
+    } else if (arg.startsWith('--port=') || arg.startsWith('-p=')) {
+      const parts = arg.split('=');
+      const valStr = parts.slice(1).join('=');
+      const parsed = parseValidPort(valStr);
+      if (parsed !== null) return parsed;
+    }
+  }
+  const envParsed = parseValidPort(envPort);
+  if (envParsed !== null) return envParsed;
+  return 3000;
+}
+
 const app = express();
 const httpServer = http.createServer(app);
-const parsedPort = Number.parseInt(process.env.PORT || '3000', 10);
-const PORT = Number.isFinite(parsedPort) && parsedPort > 0 ? parsedPort : 3000;
+const PORT = resolveServerPort();
 const HOST = '0.0.0.0';
 
 app.use(express.json());
@@ -253,10 +289,16 @@ app.get('/api/tiktok/auth/status', async (req: Request, res: Response) => {
 });
 
 /**
- * Construct TikTok OAuth 2.0 authorization URL for popup flow with persistent Firestore CSRF state
+ * Flow 1 (First Access / Login with TikTok) — Start OAuth Authorization
+ * Supports both GET /api/tiktok/auth/url and POST /api/tiktok/auth/login/start
  */
-app.get('/api/tiktok/auth/url', async (req: Request, res: Response) => {
+async function handleStartTikTokLoginOAuth(req: Request, res: Response) {
   try {
+    assertNoClientIdentityForgery({
+      ...(req.query as Record<string, any>),
+      ...(req.body && typeof req.body === 'object' ? req.body : {}),
+    });
+
     const diag = diagnoseOAuthConfiguration({ req });
 
     if (!diag.canInitiateAuthFlow) {
@@ -276,41 +318,149 @@ app.get('/api/tiktok/auth/url', async (req: Request, res: Response) => {
       });
     }
 
-    const authReq = await tiktokOAuthService.createAuthorizationUrl({ req });
+    const cookies = parseCookies(req);
+    const existingInitiator = cookies[INITIATOR_COOKIE_NAME] || undefined;
 
-    res.setHeader(
-      'Set-Cookie',
-      `${STATE_COOKIE_NAME}=${authReq.state}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=600`
-    );
+    const authReq = await tiktokOAuthService.createAuthorizationUrl({
+      req,
+      flowMode: 'LOGIN',
+      initiatorToken: existingInitiator,
+      generateInitiatorToken: true,
+    });
 
-    res.json({
+    const setCookies: string[] = [
+      `${STATE_COOKIE_NAME}=${authReq.state}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=600`,
+    ];
+    if (authReq.initiatorToken) {
+      setCookies.push(tiktokOAuthService.formatInitiatorCookie(authReq.initiatorToken, 600));
+    }
+    res.setHeader('Set-Cookie', setCookies);
+
+    return res.json({
       url: authReq.url,
       redirectUri: authReq.redirectUri,
       targetOrigin: authReq.targetOrigin,
       state: authReq.state,
+      initiatorToken: authReq.initiatorToken,
+      flowMode: authReq.flowMode,
       scopes: authReq.scopes,
       pkceEnabled: authReq.pkceEnabled,
       expiresAt: authReq.expiresAt,
     });
   } catch (err: unknown) {
     const status = err instanceof OAuthSecurityError ? err.statusCode : 500;
+    const code = err instanceof OAuthSecurityError ? err.code : 'OAUTH_START_ERROR';
     const message = err instanceof Error ? err.message : String(err);
-    res.status(status).json({ oauthConfigured: false, error: message });
+    return res.status(status).json({ oauthConfigured: false, code, error: message });
   }
-});
+}
+
+app.get('/api/tiktok/auth/url', handleStartTikTokLoginOAuth);
+app.post('/api/tiktok/auth/login/start', handleStartTikTokLoginOAuth);
+
+/**
+ * Flow 2 (Link TikTok to Existing GIO Account) — Start OAuth Account Linking
+ * Requires:
+ * 1. Active authenticated Firebase session (`requireFirebaseAuth`)
+ * 2. Recent step-up reauthentication via password or Google Auth (`verifyRecentReauthentication`)
+ */
+app.post(
+  '/api/tiktok/auth/link/start',
+  requireFirebaseAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const authUid = req.authUid!;
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+
+      // Block if client tries to specify a different UID or forge open_id/tokens
+      if (body.uid && String(body.uid).trim() !== authUid) {
+        return res.status(403).json({
+          success: false,
+          code: 'OWNERSHIP_FORBIDDEN',
+          error: 'Não é permitido vincular conta TikTok em nome de outro UID.',
+        });
+      }
+      const sanitizedPayloadCheck = { ...body };
+      delete sanitizedPayloadCheck.uid;
+      assertNoClientIdentityForgery(sanitizedPayloadCheck);
+
+      // Mandatory Cryptographic Backend Step-Up Reauthentication Check
+      const reauthCheck = await verifyRecentReauthentication(req, {
+        expectedUid: authUid,
+      });
+      if (!reauthCheck.verified) {
+        return res.status(reauthCheck.status).json({
+          success: false,
+          code: reauthCheck.code || 'REAUTHENTICATION_REQUIRED',
+          error: reauthCheck.reason,
+        });
+      }
+
+      const diag = diagnoseOAuthConfiguration({ req });
+      if (!diag.canInitiateAuthFlow) {
+        return res.status(400).json({
+          success: false,
+          oauthConfigured: false,
+          canInitiateAuthFlow: false,
+          configurationErrors: diag.configurationErrors,
+          error:
+            diag.configurationErrors.join(' ') ||
+            'Credenciais OAuth do TikTok não estão configuradas no servidor.',
+        });
+      }
+
+      const cookies = parseCookies(req);
+      const existingInitiator = cookies[INITIATOR_COOKIE_NAME] || undefined;
+
+      const authReq = await tiktokOAuthService.createAuthorizationUrl({
+        req,
+        flowMode: 'LINK',
+        linkTargetUid: authUid,
+        reauthVerified: true,
+        initiatorToken: existingInitiator,
+        generateInitiatorToken: true,
+      });
+
+      const setCookies: string[] = [
+        `${STATE_COOKIE_NAME}=${authReq.state}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=600`,
+      ];
+      if (authReq.initiatorToken) {
+        setCookies.push(tiktokOAuthService.formatInitiatorCookie(authReq.initiatorToken, 600));
+      }
+      res.setHeader('Set-Cookie', setCookies);
+
+      return res.json({
+        success: true,
+        url: authReq.url,
+        redirectUri: authReq.redirectUri,
+        targetOrigin: authReq.targetOrigin,
+        state: authReq.state,
+        initiatorToken: authReq.initiatorToken,
+        flowMode: 'LINK',
+        linkTargetUid: authUid,
+        scopes: authReq.scopes,
+        pkceEnabled: authReq.pkceEnabled,
+        expiresAt: authReq.expiresAt,
+      });
+    } catch (err: unknown) {
+      const status = err instanceof OAuthSecurityError ? err.statusCode : 500;
+      const code = err instanceof OAuthSecurityError ? err.code : 'OAUTH_LINK_START_ERROR';
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(status).json({ success: false, code, error: message });
+    }
+  }
+);
 
 /**
  * TikTok OAuth 2.0 Callback Endpoint (Popup PostMessage Flow)
- * - Atomically validates and consumes single-use CSRF state from Firestore (`oauth_states/{stateHash}`)
- * - Works across multiple Cloud Run instances and server restarts
- * - Exchanges authorization code for tokens on the backend (`https://open.tiktokapis.com/v2/oauth/token/`)
- * - Encrypts tokens with AES-256-GCM in Firestore (`oauth_sessions/{sessionIdHash}`)
- * - Uses exact authorized HTTPS `targetOrigin` in `window.opener.postMessage(payload, targetOrigin)`
+ * - Atomically validates and consumes single-use CSRF state + initiator session binding
+ * - Executes Flow 1 (`LOGIN`) or Flow 2 (`LINK`) transactionally on the backend
+ * - Issues `firebaseCustomToken` (for `LOGIN`) only after complete identity and binding verification
+ * - NEVER returns `access_token` or `refresh_token` to the browser
  */
 async function handleTikTokOAuthCallback(req: Request, res: Response) {
   const { code, state, error, error_description } = req.query;
 
-  // Determine fallback authorized origin from allowlist (never trusting arbitrary headers)
   let fallbackOrigin = PROD_APP_ORIGIN;
   try {
     fallbackOrigin = resolveAuthorizedRedirectConfig({ req }).targetOrigin;
@@ -332,10 +482,10 @@ async function handleTikTokOAuthCallback(req: Request, res: Response) {
     <meta charset="utf-8" />
     <title>Autenticação TikTok — GIO DA SORTE</title>
   </head>
-  <body style="background:#080B11;color:#F8FAFC;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;padding:24px;text-align:center;">
-    <div style="max-width:420px;padding:24px;border-radius:16px;background:rgba(15,23,42,0.9);border:1px solid rgba(255,255,255,0.1);">
-      <h2 style="margin:0 0 8px 0;font-size:16px;color:#00F2FE;">GIO DA SORTE</h2>
-      <p style="margin:0;font-size:13px;color:#CBD5E1;line-height:1.5;">${messageText}</p>
+  <body style="background:#050D20;color:#F8FAFC;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;padding:24px;text-align:center;">
+    <div style="max-width:420px;padding:24px;border-radius:16px;background:#101F3D;border:1px solid rgba(255,255,255,0.1);">
+      <h2 style="margin:0 0 8px 0;font-size:16px;color:#00A9FF;">GIO DA SORTE</h2>
+      <p style="margin:0;font-size:13px;color:#94A3B8;line-height:1.5;">${messageText}</p>
     </div>
     <script>
       (function() {
@@ -354,7 +504,9 @@ async function handleTikTokOAuthCallback(req: Request, res: Response) {
   };
 
   if (error) {
-    const errMsg = String(error_description || error || 'Autorização recusada ou cancelada no TikTok.');
+    const errMsg = String(
+      error_description || error || 'Autorização recusada ou cancelada no TikTok.'
+    );
     return renderPopupResult(
       { type: 'OAUTH_AUTH_ERROR', provider: 'tiktok', error: errMsg },
       fallbackOrigin,
@@ -363,20 +515,43 @@ async function handleTikTokOAuthCallback(req: Request, res: Response) {
   }
 
   try {
+    const cookies = parseCookies(req);
+    const initiatorToken =
+      cookies[INITIATOR_COOKIE_NAME] ||
+      (typeof req.headers['x-tiktok-oauth-initiator'] === 'string'
+        ? req.headers['x-tiktok-oauth-initiator']
+        : undefined) ||
+      (typeof req.query.initiatorToken === 'string' ? req.query.initiatorToken : undefined);
+
+    const rawQueryCopy: Record<string, any> = { ...(req.query as Record<string, any>) };
+    delete rawQueryCopy.code;
+    delete rawQueryCopy.state;
+    delete rawQueryCopy.scopes;
+    delete rawQueryCopy.initiatorToken;
+
     const result = await tiktokOAuthService.handleCallbackExchange({
       code: typeof code === 'string' ? code : '',
       state: typeof state === 'string' ? state : '',
+      initiatorToken,
+      rawClientPayload: rawQueryCopy,
+      issueFirebaseCustomToken: true,
     });
 
     res.setHeader('Set-Cookie', [
       tiktokOAuthService.formatSessionCookie(result.sessionToken, result.maxAgeSec),
       `${STATE_COOKIE_NAME}=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0`,
+      tiktokOAuthService.formatClearInitiatorCookie(),
     ]);
 
     return renderPopupResult(
       {
         type: 'OAUTH_AUTH_SUCCESS',
         provider: 'tiktok',
+        flowMode: result.identityResolution.flowMode,
+        uid: result.identityResolution.uid,
+        isNewUser: result.identityResolution.isNewUser,
+        linkedToExistingAccount: result.identityResolution.linkedToExistingAccount,
+        firebaseCustomToken: result.identityResolution.firebaseCustomToken || null,
         user: result.sessionDoc.userProfile,
         scope: result.sessionDoc.scope,
         expiresAt: result.sessionDoc.accessTokenExpiresAt,
@@ -384,7 +559,9 @@ async function handleTikTokOAuthCallback(req: Request, res: Response) {
         sessionState: 'ACTIVE',
       },
       result.targetOrigin,
-      'Autenticação TikTok concluída com sucesso! Esta janela será fechada automaticamente.'
+      result.identityResolution.flowMode === 'LINK'
+        ? 'Conta TikTok vinculada com sucesso à sua conta GIO da Sorte! Esta janela será fechada automaticamente.'
+        : 'Autenticação TikTok concluída com sucesso! Esta janela será fechada automaticamente.'
     );
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -400,6 +577,198 @@ async function handleTikTokOAuthCallback(req: Request, res: Response) {
 app.get(
   ['/auth/tiktok/callback', '/auth/tiktok/callback/', '/api/tiktok/auth/callback'],
   handleTikTokOAuthCallback
+);
+
+/**
+ * POST /api/tiktok/auth/exchange
+ * Programmatic JSON callback exchange endpoint for SPA/Integration verification.
+ * Enforces identical CSRF state, initiator binding, and client forgery protections.
+ * NEVER returns `access_token` or `refresh_token`.
+ */
+app.post('/api/tiktok/auth/exchange', async (req: Request, res: Response) => {
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const cookies = parseCookies(req);
+    const initiatorToken =
+      cookies[INITIATOR_COOKIE_NAME] ||
+      (typeof req.headers['x-tiktok-oauth-initiator'] === 'string'
+        ? req.headers['x-tiktok-oauth-initiator']
+        : undefined) ||
+      (typeof body.initiatorToken === 'string' ? body.initiatorToken : undefined);
+
+    const payloadToCheck = { ...body };
+    delete payloadToCheck.code;
+    delete payloadToCheck.state;
+    delete payloadToCheck.initiatorToken;
+
+    const result = await tiktokOAuthService.handleCallbackExchange({
+      code: typeof body.code === 'string' ? body.code : '',
+      state: typeof body.state === 'string' ? body.state : '',
+      initiatorToken,
+      rawClientPayload: payloadToCheck,
+      issueFirebaseCustomToken: true,
+    });
+
+    res.setHeader('Set-Cookie', [
+      tiktokOAuthService.formatSessionCookie(result.sessionToken, result.maxAgeSec),
+      `${STATE_COOKIE_NAME}=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0`,
+      tiktokOAuthService.formatClearInitiatorCookie(),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      flowMode: result.identityResolution.flowMode,
+      uid: result.identityResolution.uid,
+      openId: result.identityResolution.openId,
+      isNewUser: result.identityResolution.isNewUser,
+      linkedToExistingAccount: result.identityResolution.linkedToExistingAccount,
+      firebaseCustomToken: result.identityResolution.firebaseCustomToken || null,
+      user: result.sessionDoc.userProfile,
+      scope: result.sessionDoc.scope,
+      expiresAt: result.sessionDoc.accessTokenExpiresAt,
+      authenticatedAt: result.sessionDoc.updatedAt || Date.now(),
+      sessionState: 'ACTIVE',
+    });
+  } catch (err: unknown) {
+    const status = err instanceof OAuthSecurityError ? err.statusCode : 400;
+    const code = err instanceof OAuthSecurityError ? err.code : 'OAUTH_EXCHANGE_ERROR';
+    const message = err instanceof Error ? err.message : String(err);
+    return res.status(status).json({
+      success: false,
+      code,
+      error: message,
+    });
+  }
+});
+
+/**
+ * POST /api/tiktok/auth/username-login
+ * Explicitly blocks any attempt to authenticate using only `@username` or `open_id` without OAuth.
+ * `@username` is strictly a visual lookup aid and never an authentication factor.
+ */
+app.post('/api/tiktok/auth/username-login', (req: Request, res: Response) => {
+  const rawHandle = String(req.body?.username || req.body?.handle || '')
+    .replace(/^@/, '')
+    .trim();
+  return res.status(403).json({
+    success: false,
+    code: 'USERNAME_NOT_AUTH_FACTOR',
+    requiresOfficialOAuth: true,
+    visualHandle: rawHandle ? `@${rawHandle}` : null,
+    error:
+      'Autenticação bloqueada: @usuário é apenas um identificador visual e não comprova propriedade da conta. Conclua o login oficial via TikTok OAuth 2.0 para autenticar.',
+  });
+});
+
+/**
+ * GET /api/tiktok/auth/identity
+ * Returns the authenticated GIO user's linked TikTok identity metadata.
+ * NEVER exposes `access_token` or `refresh_token`.
+ */
+app.get(
+  '/api/tiktok/auth/identity',
+  requireFirebaseAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const authUid = req.authUid!;
+      const status = await tiktokOAuthService.getUserTikTokIdentityStatus(authUid);
+      return res.status(200).json({
+        success: true,
+        ...status,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(500).json({ success: false, error: message });
+    }
+  }
+);
+
+/**
+ * Operation 1 — Logout GIO (`POST /api/auth/gio-logout`)
+ * Ends ONLY the user's GIO browser session.
+ * - Preserves TikTok authorization (`tiktok_identities/{identityDocId}`, `users/{uid}/private_tokens/tiktok`).
+ * - Preserves active and authorized TikTok LIVE workers (`activeLiveConnectionOwnerUid`, `tiktokAdapter`, Webcast lease).
+ * - Preserves raffle settings and draw history.
+ */
+app.post(
+  '/api/auth/gio-logout',
+  requireFirebaseAuth,
+  async (req: Request, res: Response) => {
+    const authUid = req.authUid!;
+    const identityStatus = await tiktokOAuthService.getUserTikTokIdentityStatus(authUid);
+    const persistedLock = await readPersistedWebcastRuntimeState();
+    const hasActiveAuthorizedLiveWorker =
+      activeLiveConnectionOwnerUid === authUid ||
+      tiktokAdapter.getCurrentOwnerUid() === authUid ||
+      Boolean(
+        persistedLock &&
+          persistedLock.shouldBeConnected &&
+          persistedLock.ownerUid === authUid &&
+          persistedLock.expiresAt > Date.now()
+      );
+
+    return res.status(200).json({
+      success: true,
+      operation: 'GIO_LOGOUT',
+      uid: authUid,
+      gioSessionEnded: true,
+      tiktokAuthorizationPreserved: identityStatus.linked,
+      activeLiveWorkerPreserved: hasActiveAuthorizedLiveWorker,
+      raffleSettingsAndHistoryPreserved: true,
+    });
+  }
+);
+
+/**
+ * Operation 2 — Desvinculação TikTok (`POST /api/tiktok/auth/unlink`)
+ * - Revokes OAuth tokens at TikTok API v2.
+ * - Wipes the encrypted token vault (`users/{uid}/private_tokens/tiktok`) and revokes `oauth_sessions`.
+ * - Cleanly stops any active tasks/LIVE workers that depend on this user's TikTok authorization.
+ * - Preserves the GIO account (`users/{uid}`), raffle configurations, and draw history.
+ */
+app.post(
+  '/api/tiktok/auth/unlink',
+  requireFirebaseAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const authUid = req.authUid!;
+      if (req.body?.uid && String(req.body.uid).trim() !== authUid) {
+        return res.status(403).json({
+          success: false,
+          code: 'OWNERSHIP_FORBIDDEN',
+          error: 'Não é permitido desvincular a conta TikTok de outro usuário.',
+        });
+      }
+
+      const cookies = parseCookies(req);
+      const rawSessionToken = cookies[SESSION_COOKIE_NAME] || req.body?.sessionToken || '';
+
+      const outcome = await tiktokOAuthService.unlinkTikTokFromUserAccount({
+        uid: authUid,
+        sessionToken: rawSessionToken,
+      });
+
+      res.setHeader('Set-Cookie', tiktokOAuthService.formatClearSessionCookie());
+      return res.status(200).json({
+        success: true,
+        operation: 'TIKTOK_UNLINK',
+        unlinked: outcome.unlinked,
+        uid: outcome.uid,
+        previousOpenId: outcome.previousOpenId,
+        revokedAtTikTok: outcome.revokedAtTikTok,
+        revokedSessionsCount: outcome.revokedSessionsCount,
+        dependentLiveWorkersStopped: outcome.stoppedDependentWorkers,
+        releasedLiveLease: outcome.releasedLiveLease,
+        gioAccountPreserved: true,
+        raffleSettingsAndHistoryPreserved: true,
+      });
+    } catch (err: unknown) {
+      const status = err instanceof OAuthSecurityError ? err.statusCode : 500;
+      const code = err instanceof OAuthSecurityError ? err.code : 'UNLINK_ERROR';
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(status).json({ success: false, code, error: message });
+    }
+  }
 );
 
 /**
@@ -927,6 +1296,40 @@ export async function releaseWebcastLock(
     };
   }
 }
+
+// Register handler so Operation 2 (Desvinculação TikTok) cleanly stops any active TikTok LIVE
+// worker/task belonging to the unlinking user without deleting raffle configurations or history.
+tiktokOAuthService.setOnUnlinkStopWorkersHandler(async (uid: string) => {
+  return await withConnectRouteMutex(async () => {
+    let stoppedWorkers = 0;
+    let releasedLease = false;
+
+    const persistedLock = await readPersistedWebcastRuntimeState();
+    const ownsPersistedLock = Boolean(
+      persistedLock && persistedLock.shouldBeConnected && persistedLock.ownerUid === uid
+    );
+    const ownsActiveConnection =
+      activeLiveConnectionOwnerUid === uid || tiktokAdapter.getCurrentOwnerUid() === uid;
+
+    if (ownsPersistedLock || ownsActiveConnection) {
+      const releaseRes = await releaseWebcastLock(uid).catch(() => ({ released: false }));
+      releasedLease = Boolean(releaseRes.released);
+    }
+
+    if (tiktokAdapter.getCurrentOwnerUid() === uid || activeLiveConnectionOwnerUid === uid) {
+      await tiktokAdapter.disconnect(true).catch(() => {});
+      stoppedWorkers += 1;
+    }
+
+    if (activeLiveConnectionOwnerUid === uid) {
+      activeLiveConnectionOwnerUid = null;
+      activeLiveConnectionSessionId = null;
+      activeLiveConnectionFencingToken = 0;
+    }
+
+    return { stoppedWorkers, releasedLease };
+  });
+});
 
 /**
  * P1-LOCK-B3: Transactional lease renewal for the active session (Heartbeat).
@@ -3233,9 +3636,19 @@ app.post(
       }
 
       const enrichedStatus = await buildEnrichedTikTokStatus();
+      const identityStatus = await tiktokOAuthService
+        .getUserTikTokIdentityStatus(authUid)
+        .catch(() => ({ linked: true }));
       return {
         status: 200,
-        payload: { success: true, ownerUid: authUid, status: enrichedStatus },
+        payload: {
+          success: true,
+          operation: 'LIVE_DISCONNECT',
+          ownerUid: authUid,
+          status: enrichedStatus,
+          tiktokIdentityPreserved: identityStatus.linked,
+          raffleSettingsAndHistoryPreserved: true,
+        },
       };
     });
 
@@ -5626,8 +6039,11 @@ async function startServer() {
     });
   }
 
-  httpServer.on('error', (err) => {
+  httpServer.on('error', (err: any) => {
     console.error(`[GIO DA SORTE Server] Erro ao vincular servidor HTTP em ${HOST}:${PORT}:`, err);
+    if (err && err.code === 'EADDRINUSE') {
+      process.exit(1);
+    }
   });
 
   httpServer.listen(PORT, HOST, () => {

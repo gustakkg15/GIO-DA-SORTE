@@ -1,122 +1,163 @@
-# GIO DA SORTE — FASE 1.7.7.9
-## Implementação Real da Autenticação Dual OIDC + Firebase nos Workers
+# GIO DA SORTE PRO — FASE 11: IMPLEMENTAÇÃO CONSOLIDADA TIKTOK LOGIN, IDENTIDADE E AUTENTICAÇÃO MULTIUSUÁRIO (REVISADO)
 
-**Modo de Execução:** IMPLEMENTAÇÃO DE CÓDIGO E TESTES LOCAIS (Infraestrutura GCP mantida em READ-ONLY).  
-**Projeto GCP de Homologação:** `gio-sorte-homolog`  
-**Worker Service Account:** `gio-sorte-worker@gio-sorte-homolog.iam.gserviceaccount.com`  
-**Runtime Service Account:** `gio-sorte-backend-admin@gio-sorte-homolog.iam.gserviceaccount.com`  
-**Deployer:** `gustakkg15@gmail.com`  
-**Projeto de Produção (`quick-standard-pw2pc`):** 100% blindado, intacto e inacessível.
+## Resumo do Projeto
+Implementar a autenticação oficial com o TikTok Login Kit (v2) integrada ao Firebase Auth, separando explicitamente o **Fluxo de Primeiro Acesso / Login** do **Fluxo de Vinculação de Contas Existentes**, com proteção transacional contra condições de corrida, armazenamento criptografado AES-256-GCM no backend e suíte completa de testes automatizados.
 
 ---
 
-### 1. Resumo da Implementação Técnica
+## Decisões e Correções Incorporadas no Plano
 
-Foi corrigido o bloqueador normativo identificado na Fase 1.7.7.8, onde as rotas operacionais de manutenção dos sorteios (`/api/raffle/draw/sweep` e `/api/raffle/draw/recover`) utilizavam exclusivamente `requireFirebaseAuth`, rejeitando tokens OIDC emitidos pelo Cloud Scheduler (`https://accounts.google.com`).
+> [!IMPORTANT]
+> **Separação Obrigatória dos Fluxos de Autenticação e Vinculação:**
 
-A nova arquitetura implementa **Autenticação Dual Estrita**, separando criptograficamente os caminhos de chamada manual (organizador humano) e automação (worker do Google Cloud):
+1. **Fluxo 1: Primeiro Acesso / Login Direto com TikTok:**
+   - Validar a autorização OAuth no servidor e resgatar o `open_id` diretamente da API oficial do TikTok.
+   - **Se o `open_id` já estiver vinculado:** Localizar o Firebase UID correspondente e emitir um `CustomToken` para autenticar o usuário na sua conta existente.
+   - **Se o `open_id` não estiver vinculado:** Criar de forma controlada e transacional uma nova identidade GIO (usuário no Firebase Auth + documento no Firestore).
+   - **Garantia:** Impedir a criação de contas duplicadas quando o `open_id` já possuir vínculo estabelecido.
+
+2. **Fluxo 2: Vinculação de TikTok a uma Conta GIO Existente (Link Account):**
+   - **Exigência 1:** O cliente precisa possuir uma sessão Firebase Auth ativa.
+   - **Exigência 2:** Exigir reautenticação prévia (senha ou Google Auth, conforme o método principal do usuário GIO).
+   - **Exigência 3:** Validar a conta TikTok via OAuth no servidor para obter o `open_id`.
+   - **Verificação Transacional:** Confirmar se o `open_id` já pertence a outro Firebase UID. Se pertencer, **bloquear o conflito imediatamente** e impedir qualquer transferência automática ou sobrescrita silenciosa.
+
+---
+
+## 1. Visão Geral e Conceito Central
+
+- **O que faz:** Permite o login direto com o TikTok ou a vinculação segura de um perfil do TikTok a uma conta GIO pré-existente via Firebase Auth Admin SDK.
+- **Público-Alvo:** Criadores de conteúdo no TikTok LIVE, organizadores de sorteios e participantes do GIO DA SORTE PRO.
+- **Valor Principal:** Segurança total da conta e dos sorteios, rastreabilidade transacional da identidade, zero vazamento de tokens e total conformidade com o TikTok Login Kit (v2) e as regras do Firestore (Fase 10.4).
+
+---
+
+## 2. Experiência do Usuário e Design Visual
+
+- **Interface de Login / Cadastro:**
+  - Botão principal oficial **"Continuar com TikTok"**.
+  - Fluxo transparente: direcionamento ao TikTok OAuth v2 -> retorno ao callback do backend -> emissão de `CustomToken` -> `signInWithCustomToken` no cliente.
+
+- **Interface de Perfil (Vinculação de Contas):**
+  - Painel de conexões mostrando a conta TikTok vinculada (com avatar e `@username` oficiais autorizados).
+  - Botão **"Vincular Conta TikTok"**: solicita reautenticação (Google / Senha) antes de iniciar o OAuth.
+  - Em caso de conflito (`open_id` já em uso em outro UID): mensagem clara de erro em português indicando que o TikTok já está associado a outra conta GIO.
+  - Botão **"Desconectar TikTok"**: remove o vínculo de autenticação sem encerrar a conta GIO nem interromper os workers de LIVE autorizados.
+
+- **Identidade Visual:**
+  - Preservação da paleta oficial Premium Tech do GIO DA SORTE PRO (`#050D20` fundo, `#0B1730` painéis, `#101F3D` cards, `#0866F5` azul principal, `#F5B942` dourado).
+  - Respeito às regras do `frontend-design` (sem badges falsas, sem pontos pulsantes decorativos, sem pílulas soltas).
+
+---
+
+## 3. Arquitetura de Identidade e Segurança de Tokens
+
+### A. Separação Estrita de Identidades
+- **Firebase Auth UID:** Identidade única e imutável no GIO DA SORTE.
+- **TikTok `open_id`:** Identificador externo permanente da conta TikTok.
+- **TikTok `@username`:** Rótulo de exibição sujeito a alterações (nunca usado como chave primária de autenticação).
+
+### B. Proteção contra CSRF e Replay em OAuth
+- Geração de `state` criptograficamente seguro (32 bytes aleatórios).
+- Armazenamento temporário do `state` no backend associado à sessão/cookie do solicitante.
+- Validação estrita e de uso único (rejeitar `state` expirado, reutilizado ou divergente).
+
+### C. Criptografia dos Tokens TikTok
+- Armazenamento restrito na subcoleção `/users/{userId}/private_tokens/tiktok`.
+- Criptografia autenticada **AES-256-GCM** com IV único por operação.
+- Acesso do Client SDK a `/private_tokens/` estritamente bloqueado em `firestore.rules` (`allow read, write: if false;`).
+- Tokens do TikTok (`access_token`, `refresh_token`) **jamais são enviados ao navegador ou registrados em logs**.
+
+---
+
+## 4. Diagrama de Fluxos do Sistema
 
 ```
-                                  [ Requisição HTTP ]
-                                           │
-                                           ▼
-                           [ requireWorkerOrFirebaseAuth ]
-                                           │
-                     ┌─────────────────────┴─────────────────────┐
-                     │                                           │
-      [ iss: securetoken.google.com ]             [ iss: accounts.google.com ]
-                     │                                           │
-                     ▼                                           ▼
-            Caminho A: Firebase                        Caminho B: Google OIDC
-     - Firebase Admin verifyIdToken               - Google Auth OAuth2Client
-     - RSA Google certs                           - RSA Google OAuth2 certs
-     - aud: gio-sorte-homolog                     - aud: CLOUD_RUN_SERVICE_URL
-     - exp > now & checkRevoked                   - exp > now & email_verified: true
-     - req.authType = 'FIREBASE'                  - email: gio-sorte-worker@...
-     - req.authUid = token.uid                    - req.authType = 'OIDC_WORKER'
-                     │                                           │
-                     └─────────────────────┬─────────────────────┘
-                                           │
-                                           ▼
-                     ┌───────────────────────────────────────────┐
-                     │          Execução da Rota                 │
-                     │                                           │
-                     │  /api/raffle/draw/sweep:                  │
-                     │  - FIREBASE: sweep manual (caller === doc)│
-                     │  - OIDC: isInternalAuthorizedJob = true   │
-                     │    (owner extraído do precommit persistido)
-                     │                                           │
-                     │  /api/raffle/draw/recover:                │
-                     │  - FIREBASE: recover com req.authUid      │
-                     │  - OIDC: precommit autoritativo em banco  │
-                     │    (fencing lock de 60s respeitado)       │
-                     └───────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ FLUXO 1: PRIMEIRO ACESSO / LOGIN COM TIKTOK                                             │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+ Navegador                        Backend (GIO Server)                   TikTok API v2
+     │                                    │                                    │
+     │ 1. GET /api/auth/tiktok/login     │                                    │
+     ├───────────────────────────────────►│ (Gera state seguro)                │
+     │ 2. Redireciona para TikTok OAuth   │                                    │
+     │◄──────────────────────────────────┤                                    │
+     │ 3. Autoriza no TikTok             │                                    │
+     ├────────────────────────────────────────────────────────────────────────►│
+     │ 4. Callback /api/auth/tiktok/callback?code=XYZ&state=ABC               │
+     ├───────────────────────────────────►│                                    │
+     │                                    │ 5. Troca code por Token (Server)   │
+     │                                    ├───────────────────────────────────►│
+     │                                    │ 6. Obtém open_id & user.info.basic │
+     │                                    │◄───────────────────────────────────┤
+     │                                    │                                    │
+     │                                    │ 7. Busca open_id no Firestore      │
+     │                                    │    - Se EXISTE: obtém UID          │
+     │                                    │    - Se NÃO EXISTE: cria novo UID  │
+     │                                    │ 8. Gera Firebase CustomToken       │
+     │ 9. Retorna CustomToken             │                                    │
+     │◄───────────────────────────────────┤                                    │
+     │ 10. signInWithCustomToken()        │                                    │
+     ├───────────────────────────────────►│ (Sessão GIO Ativa)                 │
+
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ FLUXO 2: VINCULAÇÃO A UMA CONTA GIO EXISTENTE (LINK ACCOUNT)                           │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+ Navegador                        Backend (GIO Server)                   TikTok API v2
+     │                                    │                                    │
+     │ 1. Reautentica no GIO (Senha/Google)                                   │
+     │ 2. GET /api/auth/tiktok/link (com Auth Token Firebase)                 │
+     ├───────────────────────────────────►│ (Valida UID da sessão atual)      │
+     │ 3. Redireciona para TikTok OAuth   │                                    │
+     │◄──────────────────────────────────┤                                    │
+     │ 4. Callback /api/auth/tiktok/link/callback?code=XYZ&state=ABC          │
+     ├───────────────────────────────────►│                                    │
+     │                                    │ 5. Obtém open_id do TikTok         │
+     │                                    ├───────────────────────────────────►│
+     │                                    │◄───────────────────────────────────┤
+     │                                    │ 6. Transação no Firestore:         │
+     │                                    │    - open_id já é de outro UID?    │
+     │                                    │      -> SIM: REJEITA (Erro 409)    │
+     │                                    │      -> NÃO: Grava vínculo no UID  │
+     │ 7. Retorna Sucesso ou Conflito     │                                    │
+     │◄───────────────────────────────────┤                                    │
 ```
 
 ---
 
-### 2. Módulos Criados e Alterados
+## 5. Plano de Suíte de Testes Automatizados (30+ Cenários)
 
-| Arquivo | Status | SHA-256 | Descrição |
-|---|---|---|---|
-| `src/server/workerOidcAuth.ts` | **CRIADO** | `d13e846daf1d7d0a63fb01d40ca591beba763489646134f6dcad8c57d9712ef9` | Verificação criptográfica de tokens Google Cloud OIDC com `OAuth2Client`, validação de `iss`, `aud`, `exp`, `email_verified`, `email`, discriminador de issuer e middleware `requireWorkerOrFirebaseAuth`. |
-| `server.ts` | **MODIFICADO** | `4ab8cd20ab9fc5c4abf8a45b42269fed139a01c46c1deca8e2812e6f1244b51e` | Substituição de `requireFirebaseAuth` por `requireWorkerOrFirebaseAuth` nas rotas `/api/raffle/draw/recover` e `/api/raffle/draw/sweep`, com extração autoritativa do proprietário a partir do Firestore para chamadas de worker. |
-| `scripts/test_worker_dual_auth.ts` | **CRIADO** | `f2dd7be40f8db249a65bfdd62348793a4b63bae20a81021ee97f48e775eddaf2` | Suíte de testes automatizados com 15 cenários positivos e negativos cobrindo todo o ciclo de autenticação dual, isolamento e concorrência. |
-| `scripts/test_phase_1_7_7_8_audit.ts` | **MODIFICADO** | `c43d0c0bd61949202f8fb0fffccb5475f9fd177df5c49e602026f7cdf421f988` | Ajuste de asserção para aceitar HTTP 400 (rejeição antecipada de missing fields) ou HTTP 404 em payload vazio. |
+A nova suíte `scripts/test_phase11_tiktok_auth.ts` cobrirá:
 
----
-
-### 3. Matriz de Resultados dos Testes Automatizados (15/15 Cenários)
-
-Executado via `npx tsx scripts/test_worker_dual_auth.ts` com código de retorno 0:
-
-| # | Cenário Avaliado | Esperado | Obtido | Status | Evidência |
-|---|---|:---:|:---:|:---:|---|
-| **01** | Requisição sem token em rota protegida | 401 | 401 | ✅ PASSOU | `Code=AUTH_REQUIRED, Error="Autenticação obrigatória: envie um token Bearer válido..."` |
-| **02** | Token Firebase válido do organizador proprietário | 200 | 200 | ✅ PASSOU | `Action=MARKED_EXPIRED, TerminalEvent=EXPIRED` |
-| **03** | Token Firebase de usuário não proprietário (cross-tenant) | 403 | 403 | ✅ PASSOU | `Error="HTTP_403_FORBIDDEN_CROSS_TENANT"` |
-| **04** | Token OIDC válido da Service Account autorizada (`gio-sorte-worker@...`) | 200 | 200 | ✅ PASSOU | `Action=MARKED_EXPIRED, TerminalEvent=EXPIRED` |
-| **05** | Token OIDC de outra Service Account (`malicious-sa@evil...`) | 403 | 403 | ✅ PASSOU | `Code=OIDC_UNAUTHORIZED_CALLER, Error="Chamador OIDC não autorizado: 'malicious-sa@evil...'"` |
-| **06** | Token OIDC com audience incorreta (URL de outro serviço) | 401 | 401 | ✅ PASSOU | `Code=OIDC_INVALID_AUDIENCE, Error="Audience incompatível: esperado 'https://gio-sorte-homolog-service...'"` |
-| **07** | Token OIDC expirado (`exp <= now`) | 401 | 401 | ✅ PASSOU | `Code=OIDC_TOKEN_EXPIRED, Error="Token OIDC expirado."` |
-| **08** | Token OIDC com assinatura RSA inválida | 401 | 401 | ✅ PASSOU | `Code=OIDC_TOKEN_INVALID, Error="Assinatura criptográfica RSA do token OIDC inválida."` |
-| **09** | Token Firebase roteado corretamente via discriminador de issuer | 200 | 200 | ✅ PASSOU | `Action=NO_OP_ALREADY_SYNCED` (Sem falso positivo na verificação dual) |
-| **10** | Token OIDC de usuário pessoal comum (`unauthorized@gmail.com`) | 403 | 403 | ✅ PASSOU | `Code=OIDC_UNAUTHORIZED_CALLER, Error="Chamador OIDC não autorizado: 'unauthorized@gmail.com'"` |
-| **11** | Payload contendo apenas `{"mode": "AUTO_SWEEP"}` sem `commitmentHash` | 400 | 400 | ✅ PASSOU | `Error="INVALID_COMMITMENT_HASH"` |
-| **12** | Payload contendo apenas `{"mode": "AUTO_RECOVER"}` sem dados de identificação | 400 | 400 | ✅ PASSOU | `Error="HTTP_400_MISSING_IDEMPOTENCY_KEY"` |
-| **13** | Idempotência mantida em chamadas repetidas do worker | 200 | 200 | ✅ PASSOU | `Action=NO_OP_ALREADY_SYNCED, TerminalEvent=EXPIRED` |
-| **14** | Fencing e janela de lock respeitados (<60s rejeita 409; >60s recupera 200) | 200 | 200 | ✅ PASSOU | `Ativo(<60s): Status=409 HTTP_409_LOCK_NOT_YET_EXPIRED; Expirado(>60s): Status=200 Mode=RECOVERED_LOCK` |
-| **15** | Isolamento cross-tenant estrito mantido em Firebase e OIDC | 200 | 200 | ✅ PASSOU | `Mallory Firebase: Status=404; Worker OIDC: Status=200 (UID do cliente ignorado, precommit autoritativo)` |
+1. **OAuth & State Security (1-9):**
+   - `state` válido, `state` inválido, `state` expirado, reutilização de `state`, callback sem código, erro de recusa do TikTok, code expirado, falha de troca de token, redirect URI divergente.
+2. **Identidade e Vinculação (10-16):**
+   - Login com `open_id` já vinculado (retorna UID existente sem duplicar).
+   - Primeiro login (criação transacional de nova conta).
+   - Vinculação com sessão ativa GIO.
+   - Tentativa de vincular `open_id` já pertencente a outro UID (bloqueio de conflito 409).
+   - Tentativa de enviar `open_id` falsificado pelo frontend (rejeição).
+   - Tentativa de login por username sem OAuth (rejeição).
+   - Concorrência na vinculação do mesmo `open_id` por duas conexões paralelas (proteção transacional).
+3. **Tokens, Sessões e Isolamento (17-25):**
+   - Garantir que `access_token` e `refresh_token` nunca chegam no payload da resposta HTTP ao cliente.
+   - Garantir que tokens não são impressos em logs.
+   - Teste de rotação e refresh de token TikTok.
+   - Logout no cliente (limpa estado local sem apagar documentos no Firestore nem encerrar workers LIVE autorizados no servidor).
+   - Teste de isolamento de dados entre Usuário A e Usuário B.
+4. **Regressão de Módulos (26-30):**
+   - Execução de `test_sec01_firestore_rules.ts`.
+   - Execução de `test_server_port_resolution.ts`.
+   - Execução de `test_traditional_raffle_v2.ts`.
+   - Execução de `test_worker_dual_auth.ts`.
+   - Execução de `test_tiktok_live_pro_complete.ts`.
+   - Execução de `npx tsc --noEmit` e `compile_applet`.
 
 ---
 
-### 4. Revisão Documental da Matriz IAM e Menor Privilégio
+## 6. Verificação e Entregáveis da Fase 11
 
-Em conformidade com o pedido do proprietário, analisamos a matriz de papéis administrativos amplos (`roles/run.admin`, `roles/cloudscheduler.admin`, `roles/cloudbuild.builds.editor`):
-
-1. **`roles/run.admin` (Deployer `gustakkg15@gmail.com`):**
-   - **Status Atual:** Necessário na fase inicial de provisionamento para criação e configuração do serviço Cloud Run.
-   - **Princípio de Menor Privilégio:** Concedido exclusivamente ao deployer humano; **NUNCA** concedido a Service Accounts de runtime, worker ou build.
-   - **Evolução Futura:** Quando a esteira CI/CD automatizada for implantada em repositório Git, o papel pode ser restrito a `roles/run.developer` com `roles/iam.serviceAccountUser` delimitada à Runtime SA.
-
-2. **`roles/cloudscheduler.admin` (Deployer `gustakkg15@gmail.com`):**
-   - **Status Atual:** Utilizado na Etapa 12 pelo proprietário para registrar os 2 jobs normativos (`sweep-expired-draws` e `recover-zombie-draw-locks`).
-   - **Princípio de Menor Privilégio:** Escopo exclusivo do deployer humano. A Service Account do worker **NÃO POSSUI** esse papel (possui apenas `roles/run.invoker` no Cloud Run). O Service Agent do Scheduler recebe apenas `roles/iam.serviceAccountTokenCreator` na Worker SA para assinar os tokens OIDC.
-   - **Evolução Futura:** Após a criação dos jobs, o papel pode ser revogado e substituído por `roles/cloudscheduler.jobRunner` ou `roles/cloudscheduler.viewer`.
-
-3. **`roles/cloudbuild.builds.editor` (Deployer `gustakkg15@gmail.com`):**
-   - **Status Atual:** Permite submeter `gcloud builds submit` para compilar o contêiner multi-stage no Artifact Registry.
-   - **Princípio de Menor Privilégio:** A Service Account do Cloud Build (`${CLOUDBUILD_SA}`) recebe estritamente `roles/artifactregistry.writer` no repositório `gio-sorte-repo`.
-   - **Evolução Futura:** Pode ser delimitado a `roles/cloudbuild.builds.builder` assim que os gatilhos (triggers) forem configurados.
-
----
-
-### 5. Declaração de Conclusão e Prontidão
-
-- TypeScript (`tsc --noEmit`): **0 erros**.
-- Lint (`npm run lint`): **0 advertências / 0 erros**.
-- Build do applet (`compile_applet`): **Compilado com sucesso**.
-- Suíte de regressão tradicional (`test_traditional_raffle_v2.ts`): **24/24 cenários aprovados**.
-- Suíte de auditoria (`test_phase_1_7_7_8_audit.ts`): **11/11 cenários aprovados**.
-- Suíte de autenticação dual (`test_worker_dual_auth.ts`): **15/15 cenários aprovados**.
-- **Infraestrutura em Nuvem:** Intacta. Nenhuma chamada de provisionamento remoto realizada sem autorização expressa.
+Ao finalizar a implementação:
+- Emissão do relatório final completo com os 15 itens requeridos pelas instruções oficiais.
+- Apresentação do SHA-256 de todos os arquivos criados e modificados.
+- Confirmação expressa de ausência de deploy em ambiente de produção.

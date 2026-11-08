@@ -27,25 +27,13 @@ service cloud.firestore {
       return resource.data;
     }
 
-    // Validation for UserProfile & Backend-Verified Subscription State
+    // Validation for UserProfile — Commercial/Subscription fields are shielded from Client SDK mutation
     function isValidUserProfile(data, userId) {
       return data.uid == userId
         && data.email is string
         && data.email.size() <= 256
         && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128))
-        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1024))
-        && (
-          !('statusState' in data)
-          || data.statusState in ['FREE', 'PENDING', 'PAST_DUE', 'CANCELED', 'EXPIRED']
-          || (
-            data.statusState == 'ACTIVE'
-            && 'mpPreapprovalId' in data
-            && data.mpPreapprovalId is string
-            && data.mpPreapprovalId.size() > 0
-            && 'mpExternalReference' in data
-            && data.mpExternalReference == userId
-          )
-        );
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1024));
     }
 
     // Validation for RaffleDocument
@@ -58,15 +46,49 @@ service cloud.firestore {
         && (!('winners' in data) || data.winners is list);
     }
 
-    // User Profile & Subscription State Rules (S-03: Strict Owner-Only Access; PII & Subscription Shielding)
+    // User Profile & Subscription State Rules (S-03 & Phase 11: Strict Owner-Only Access; PII, Commercial & TikTok Identity Shielding)
     match /users/{userId} {
-      // S-03: User document is strictly private to the authenticated owner. Enumeration (list) is strictly forbidden.
       allow get: if isOwner(userId) && isValidId(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming(), userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming(), userId)
+        && (!('statusState' in incoming()) || incoming().statusState == 'FREE')
+        && (!('mpPreapprovalId' in incoming()))
+        && (!('mpExternalReference' in incoming()))
+        && (!('tier' in incoming()) || incoming().tier == 'FREE')
+        && (!('billingSubStatus' in incoming()))
+        && (!('currentPeriodStart' in incoming()))
+        && (!('currentPeriodEnd' in incoming()))
+        && (!('trialEndDate' in incoming()))
+        && (!('canceledAt' in incoming()))
+        && (!('tiktokOpenId' in incoming()))
+        && (!('tiktokIdentityDocId' in incoming()))
+        && (!('tiktokLinked' in incoming()) || incoming().tiktokLinked == false)
+        && (!('tiktokProfile' in incoming()))
+        && (!('role' in incoming()))
+        && (!('isAdmin' in incoming()));
       allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming(), userId)
-        && incoming().uid == existing().uid;
+        && incoming().uid == existing().uid
+        && (!('statusState' in incoming()) || incoming().statusState == existing().statusState)
+        && (!('mpPreapprovalId' in incoming()) || incoming().get('mpPreapprovalId', null) == existing().get('mpPreapprovalId', null))
+        && (!('mpExternalReference' in incoming()) || incoming().get('mpExternalReference', null) == existing().get('mpExternalReference', null))
+        && (!('tier' in incoming()) || incoming().get('tier', null) == existing().get('tier', null))
+        && (!('billingSubStatus' in incoming()) || incoming().get('billingSubStatus', null) == existing().get('billingSubStatus', null))
+        && (!('currentPeriodStart' in incoming()) || incoming().get('currentPeriodStart', null) == existing().get('currentPeriodStart', null))
+        && (!('currentPeriodEnd' in incoming()) || incoming().get('currentPeriodEnd', null) == existing().get('currentPeriodEnd', null))
+        && (!('trialEndDate' in incoming()) || incoming().get('trialEndDate', null) == existing().get('trialEndDate', null))
+        && (!('canceledAt' in incoming()) || incoming().get('canceledAt', null) == existing().get('canceledAt', null))
+        && (!('tiktokOpenId' in incoming()) || incoming().get('tiktokOpenId', null) == existing().get('tiktokOpenId', null))
+        && (!('tiktokIdentityDocId' in incoming()) || incoming().get('tiktokIdentityDocId', null) == existing().get('tiktokIdentityDocId', null))
+        && (!('tiktokLinked' in incoming()) || incoming().get('tiktokLinked', false) == existing().get('tiktokLinked', false))
+        && (!('tiktokProfile' in incoming()) || incoming().get('tiktokProfile', null) == existing().get('tiktokProfile', null))
+        && (!('role' in incoming()) || incoming().get('role', null) == existing().get('role', null))
+        && (!('isAdmin' in incoming()) || incoming().get('isAdmin', false) == existing().get('isAdmin', false));
       allow delete: if isOwner(userId) && isValidId(userId);
+
+      // Subcollection: Private Backend OAuth Token Vault (Strictly locked from Client SDK)
+      match /private_tokens/{tokenId} {
+        allow read, write: if false;
+      }
 
       // Subcollection: Optional public organizer profile (read-only for participants, safe public fields)
       match /public/{profileId} {
@@ -93,12 +115,17 @@ service cloud.firestore {
         }
       }
 
-    // Subcollection: Permanent organizer raffle settings
+      // Subcollection: Permanent organizer raffle settings
       match /settings/{settingId} {
         allow get, list, create, update, delete: if isOwner(userId)
           && isValidId(userId)
           && isValidId(settingId);
       }
+    }
+
+    // Phase 11 & 11.1: Authoritative TikTok Identity Index keyed by deterministic SHA-256 `tid_<64_hex>` (Strictly Backend-Only)
+    match /tiktok_identities/{identityDocId} {
+      allow read, write: if false;
     }
 
     // Public Raffles: Published by signed-in organizers for participants to search by code or host
@@ -123,19 +150,19 @@ service cloud.firestore {
     }
 
     function isParentSessionOwner(sessionId) {
-      return isSignedIn() && (
-        !('ownerUid' in get(/databases/$(database)/documents/sessions/$(sessionId)).data) ||
-        get(/databases/$(database)/documents/sessions/$(sessionId)).data.ownerUid == null ||
-        get(/databases/$(database)/documents/sessions/$(sessionId)).data.ownerUid == request.auth.uid
-      );
+      return isSignedIn()
+        && 'ownerUid' in get(/databases/$(database)/documents/sessions/$(sessionId)).data
+        && get(/databases/$(database)/documents/sessions/$(sessionId)).data.ownerUid != null
+        && get(/databases/$(database)/documents/sessions/$(sessionId)).data.ownerUid != ''
+        && get(/databases/$(database)/documents/sessions/$(sessionId)).data.ownerUid == request.auth.uid;
     }
 
     function isParentCampaignOwner(campaignId) {
-      return isSignedIn() && (
-        !('ownerUid' in get(/databases/$(database)/documents/campaigns/$(campaignId)).data) ||
-        get(/databases/$(database)/documents/campaigns/$(campaignId)).data.ownerUid == null ||
-        get(/databases/$(database)/documents/campaigns/$(campaignId)).data.ownerUid == request.auth.uid
-      );
+      return isSignedIn()
+        && 'ownerUid' in get(/databases/$(database)/documents/campaigns/$(campaignId)).data
+        && get(/databases/$(database)/documents/campaigns/$(campaignId)).data.ownerUid != null
+        && get(/databases/$(database)/documents/campaigns/$(campaignId)).data.ownerUid != ''
+        && get(/databases/$(database)/documents/campaigns/$(campaignId)).data.ownerUid == request.auth.uid;
     }
 
     // ==========================================
@@ -163,16 +190,14 @@ service cloud.firestore {
       }
     }
 
-    // Global Lifetime Participants (and participations subcollection)
+    // Global Lifetime Participants (and participations subcollection — Mutated exclusively via Admin SDK)
     match /global_participants/{tiktokUserId} {
       allow get, list: if isSignedIn();
-      allow create, update: if isSignedIn() && isValidId(tiktokUserId);
-      allow delete: if false;
+      allow create, update, delete: if false;
 
       match /{subcollection=**} {
         allow get, list: if isSignedIn();
-        allow create, update: if isSignedIn();
-        allow delete: if false;
+        allow create, update, delete: if false;
       }
     }
 
@@ -211,8 +236,8 @@ service cloud.firestore {
       match /{subcollection=**} {
         allow get, list: if isSignedIn();
         allow create: if isSignedIn()
-          && (!('ownerUid' in get(/databases/$(database)/documents/draw_snapshots/$(snapshotId)).data)
-              || get(/databases/$(database)/documents/draw_snapshots/$(snapshotId)).data.ownerUid == request.auth.uid);
+          && ('ownerUid' in get(/databases/$(database)/documents/draw_snapshots/$(snapshotId)).data)
+          && get(/databases/$(database)/documents/draw_snapshots/$(snapshotId)).data.ownerUid == request.auth.uid;
         allow update, delete: if false;
       }
     }
@@ -249,16 +274,13 @@ service cloud.firestore {
         );
     }
 
-    // Audit Logs (Append-only immutable audit trail)
+    // Audit Logs (Append-only immutable audit trail; operatorUid must equal request.auth.uid for Client SDK)
     match /audit_logs/{logId} {
-      allow get, list: if isSignedIn();
+      allow get: if isSignedIn() && (!('operatorUid' in resource.data) || resource.data.operatorUid == request.auth.uid || resource.data.operatorUid == 'SYSTEM');
+      allow list: if isSignedIn() && resource.data.operatorUid == request.auth.uid;
       allow create: if isSignedIn()
         && isValidId(logId)
-        && (
-          !('operatorUid' in incoming()) ||
-          incoming().operatorUid == request.auth.uid ||
-          incoming().operatorUid == 'SYSTEM'
-        );
+        && incoming().operatorUid == request.auth.uid;
       allow update: if false;
       allow delete: if false;
     }
@@ -281,7 +303,8 @@ service cloud.firestore {
 
     // Explicit User Document Acceptances (Registration, PRO Activation, Policy Updates)
     match /document_acceptances/{acceptanceId} {
-      allow read: if isSignedIn();
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn()
         && isValidId(acceptanceId)
         && incoming().userId == request.auth.uid;
@@ -298,23 +321,21 @@ service cloud.firestore {
 
     // LGPD Data Subject Requests (Access, Correction, Deletion, Portability, Revocation)
     match /lgpd_requests/{requestId} {
-      allow get: if isSignedIn() && (
-        !('userId' in resource.data) || resource.data.userId == request.auth.uid
-      );
-      allow list: if isSignedIn();
+      allow get: if isSignedIn() && (!('userId' in resource.data) || resource.data.userId == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isValidId(requestId)
-        && incoming().requestId == requestId;
+        && incoming().requestId == requestId
+        && (!('userId' in incoming()) || incoming().userId == request.auth.uid);
       allow update, delete: if false;
     }
 
     // Support & Help Center Tickets with Protocol
     match /support_tickets/{ticketId} {
-      allow get: if isSignedIn() && (
-        !('userId' in resource.data) || resource.data.userId == request.auth.uid
-      );
-      allow list: if isSignedIn();
+      allow get: if isSignedIn() && (!('userId' in resource.data) || resource.data.userId == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isValidId(ticketId)
-        && incoming().ticketId == ticketId;
+        && incoming().ticketId == ticketId
+        && (!('userId' in incoming()) || incoming().userId == request.auth.uid);
       allow update, delete: if false;
     }
 
@@ -341,8 +362,6 @@ service cloud.firestore {
     }
 
     // OAuth 2.0 CSRF State Store (Shared across Cloud Run instances)
-    // Enumeration (list) is strictly forbidden; only exact SHA-256 hash lookup is allowed.
-    // Enforces both numeric `expiresAt` (validated in all operations) and `ttlExpireAt` (Firestore TTL policy Timestamp).
     match /oauth_states/{stateHash} {
       allow get: if stateHash is string && stateHash.size() == 64 && stateHash.matches('^[a-f0-9]{64}$');
       allow list: if false;
@@ -358,8 +377,6 @@ service cloud.firestore {
     }
 
     // OAuth 2.0 Persistent Encrypted Sessions (AES-256-GCM encrypted tokens with exclusive 256-bit key)
-    // Enumeration (list) is strictly forbidden; only exact SHA-256 session token hash lookup is allowed.
-    // Enforces `sessionExpiresAt`, `refreshTokenExpiresAt`, and `ttlExpireAt` (Firestore TTL policy Timestamp).
     match /oauth_sessions/{sessionIdHash} {
       allow get: if sessionIdHash is string && sessionIdHash.size() == 64 && sessionIdHash.matches('^[a-f0-9]{64}$');
       allow list: if false;
@@ -403,5 +420,3 @@ service cloud.firestore {
     }
   }
 }
-
-
