@@ -20,7 +20,6 @@ import {
   Check,
   Link2,
   Unlink,
-  AtSign,
 } from 'lucide-react';
 import { UserProfile } from './UserProfile';
 import {
@@ -95,11 +94,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Phase 11: TikTok Login (Flow 1), @username Visual Lookup, and Account Linking (Flow 2)
-  const [showUsernameLookup, setShowUsernameLookup] = useState(false);
-  const [visualTikTokUsername, setVisualTikTokUsername] = useState('');
-  const [usernameLookupNotice, setUsernameLookupNotice] = useState<string | null>(null);
-
+  // Phase 11: TikTok Login (Flow 1) and Account Linking (Flow 2)
   const [linkedTikTokProfile, setLinkedTikTokProfile] = useState<{
     linked: boolean;
     openId: string | null;
@@ -485,34 +480,6 @@ export const AccountModal: React.FC<AccountModalProps> = ({
     } catch {
       setErrorMsg('Erro de conexão ao iniciar autenticação oficial com o TikTok.');
       setTiktokLoading(false);
-    }
-  };
-
-  // 5C. Phase 11 — Secondary @username Visual Lookup (Requires Official OAuth to Authenticate)
-  const handleUsernameVisualLookup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanHandle = visualTikTokUsername.replace(/^@/, '').trim();
-    if (!cleanHandle) {
-      setErrorMsg('Informe seu @usuário do TikTok para identificação visual.');
-      return;
-    }
-
-    setErrorMsg(null);
-    try {
-      const res = await fetch('/api/tiktok/auth/username-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: cleanHandle }),
-      });
-      const data = await res.json().catch(() => ({}));
-      setUsernameLookupNotice(
-        data.error ||
-          `Perfil @${cleanHandle} identificado visualmente. Por segurança, @usuário nunca autentica sozinho: clique abaixo para confirmar a propriedade via TikTok OAuth oficial.`
-      );
-    } catch {
-      setUsernameLookupNotice(
-        `Perfil @${cleanHandle} selecionado. Conclua a verificação via TikTok OAuth oficial para entrar.`
-      );
     }
   };
 
@@ -1427,7 +1394,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   </div>
                 </div>
 
-                {/* Phase 11: Primary TikTok OAuth Login + Secondary @username Visual Lookup + Google Sign-In */}
+                {/* Phase 11: Primary TikTok OAuth Login + Google Sign-In */}
                 <div className="space-y-2.5">
                   <button
                     type="button"
@@ -1440,67 +1407,6 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       {tiktokLoading ? 'Conectando ao TikTok OAuth...' : 'Continuar com TikTok (OAuth Oficial)'}
                     </span>
                   </button>
-
-                  {!showUsernameLookup ? (
-                    <button
-                      type="button"
-                      disabled={loading || tiktokLoading}
-                      onClick={() => {
-                        setShowUsernameLookup(true);
-                        setUsernameLookupNotice(null);
-                      }}
-                      className="w-full py-2 px-3 bg-[#050D20] hover:bg-[#101F3D] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#182943] font-semibold text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <AtSign className="w-3.5 h-3.5 text-[#00A9FF]" />
-                      <span>Entrar com @usuário do TikTok (Busca Visual + OAuth)</span>
-                    </button>
-                  ) : (
-                    <div className="bg-[#050D20] border border-[#182943] rounded-xl p-3 space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-[#F8FAFC] flex items-center gap-1.5">
-                          <AtSign className="w-3.5 h-3.5 text-[#00A9FF]" />
-                          Identificação Visual por @usuário
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowUsernameLookup(false);
-                            setUsernameLookupNotice(null);
-                          }}
-                          className="text-[11px] text-[#94A3B8] hover:text-[#F8FAFC]"
-                        >
-                          Fechar
-                        </button>
-                      </div>
-                      <form onSubmit={handleUsernameVisualLookup} className="flex gap-2">
-                        <input
-                          type="text"
-                          value={visualTikTokUsername}
-                          onChange={(e) => setVisualTikTokUsername(e.target.value)}
-                          placeholder="@seu_usuario_tiktok"
-                          className="flex-1 px-3 py-2 text-xs bg-[#101F3D] border border-[#182943] rounded-lg text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#00A9FF]"
-                        />
-                        <button
-                          type="submit"
-                          className="px-3 py-2 rounded-lg bg-[#101F3D] hover:bg-[#182943] border border-[#00A9FF]/40 text-[#00A9FF] font-bold text-xs transition"
-                        >
-                          Localizar
-                        </button>
-                      </form>
-                      <p className="text-[11px] text-[#94A3B8] leading-relaxed">
-                        {usernameLookupNotice ||
-                          'Por segurança, o @usuário serve apenas como identificação visual e nunca autentica a conta sozinho. A propriedade da conta é validada via TikTok OAuth 2.0.'}
-                      </p>
-                      <button
-                        type="button"
-                        disabled={tiktokLoading}
-                        onClick={handleTikTokLoginOAuth}
-                        className="w-full py-2 px-3 rounded-lg bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-bold text-xs transition"
-                      >
-                        Verificar Propriedade com TikTok OAuth
-                      </button>
-                    </div>
-                  )}
 
                   {/* Google Sign-in Alternative */}
                   <button
