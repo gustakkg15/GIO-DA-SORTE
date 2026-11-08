@@ -182,6 +182,18 @@ export interface FirestoreUserTikTokVaultDoc {
   revokedAt?: number | null;
 }
 
+export interface FirestoreRevocationAuditLogDoc {
+  auditLogId: string;
+  revocationId: string;
+  operatorUid: string;
+  operatorEmail?: string | null;
+  justification: string;
+  previousStatus: PendingRevocationStatus;
+  newStatus: PendingRevocationStatus;
+  timestamp: number;
+  action: 'ADMIN_DISCARD_TOKEN';
+}
+
 export interface TikTokIdentityResolutionResult {
   flowMode: TikTokOAuthFlowMode;
   uid: string;
@@ -199,6 +211,7 @@ export interface TokenFetcherResponse {
   ok: boolean;
   status: number;
   json: () => Promise<Record<string, any>>;
+  text?: () => Promise<string>;
 }
 
 export type HttpFetcher = (url: string, init?: RequestInit) => Promise<TokenFetcherResponse>;
@@ -222,9 +235,43 @@ export function deriveTikTokIdentityDocId(openIdOrDocId: string): string {
   return `tid_${sha256Hex(`gio_da_sorte_tiktok_identity_doc_v1:${clean}`)}`;
 }
 
-// ==========================================
-// 1.5 TRANSACTIONAL IDENTITY STORAGE ADAPTER
-// ==========================================
+export const REVOCATION_WORKER_LEASE_TTL_MS = 60 * 1000; // 60s lease TTL
+
+export type PendingRevocationStatus =
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'REVOKED'
+  | 'EXPIRED'
+  | 'FAILED'
+  | 'QUARANTINED';
+
+export interface FirestorePendingTokenRevocationDoc {
+  revocationId: string;
+  uid: string;
+  openId: string;
+  encryptedToken: EncryptedPayload;
+  attempts: number;
+  maxAttempts: number;
+  nextAttemptAt: number;
+  status: PendingRevocationStatus;
+  lastError: string | null;
+  createdAt: number;
+  updatedAt: number;
+  ttlExpireAt: Timestamp;
+  processedByInstance?: string | null;
+
+  // Lease & Fencing hardening fields (Phase 11.2.4)
+  leaseOwner?: string | null;
+  leaseExpiresAt?: number | null;
+  processingStartedAt?: number | null;
+  fencingToken?: number;
+  heartbeatAt?: number | null;
+  quarantinedAt?: number | null;
+  quarantineReason?: string | null;
+  adminDiscarded?: boolean;
+  adminDiscardedAt?: number | null;
+  adminNotes?: string | null;
+}
 
 export interface ITikTokOAuthTransactionContext {
   getState(stateHash: string): Promise<FirestoreOAuthStateDoc | null>;
@@ -254,6 +301,27 @@ export interface ITikTokOAuthStorageAdapter {
   getIdentityDirect(openIdOrDocId: string): Promise<FirestoreTikTokIdentityDoc | null>;
   getUserDocDirect(uid: string): Promise<Record<string, any> | null>;
   getUserVaultDirect(uid: string): Promise<FirestoreUserTikTokVaultDoc | null>;
+  setPendingRevocationDirect(revocationId: string, docData: FirestorePendingTokenRevocationDoc): Promise<void>;
+  getPendingRevocationDirect(revocationId: string): Promise<FirestorePendingTokenRevocationDoc | null>;
+  listPendingRevocationsDueDirect(now?: number, limit?: number): Promise<FirestorePendingTokenRevocationDoc[]>;
+  acquireRevocationLeaseDirect(
+    revocationId: string,
+    workerInstanceId: string,
+    now?: number,
+    leaseTtlMs?: number
+  ): Promise<{ acquired: boolean; doc: FirestorePendingTokenRevocationDoc | null; fencingToken: number; reason?: string }>;
+  releaseRevocationLeaseOrCommitDirect(
+    revocationId: string,
+    fencingToken: number,
+    patch: Partial<FirestorePendingTokenRevocationDoc>
+  ): Promise<{ committed: boolean; doc: FirestorePendingTokenRevocationDoc | null; error?: string }>;
+  adminDiscardQuarantinedTokenDirect(
+    revocationId: string,
+    adminUid: string,
+    notes?: string
+  ): Promise<{ discarded: boolean; doc: FirestorePendingTokenRevocationDoc | null; auditLog?: FirestoreRevocationAuditLogDoc | null; error?: string }>;
+  listRevocationAuditLogsDirect(limit?: number): Promise<FirestoreRevocationAuditLogDoc[]>;
+  deletePendingRevocationDirect(revocationId: string): Promise<void>;
   runAtomicTransaction<T>(fn: (tx: ITikTokOAuthTransactionContext) => Promise<T>): Promise<T>;
 }
 
@@ -267,6 +335,8 @@ export class InMemoryTikTokOAuthStorageAdapter implements ITikTokOAuthStorageAda
   public readonly identities = new Map<string, FirestoreTikTokIdentityDoc>();
   public readonly users = new Map<string, Record<string, any>>();
   public readonly vaults = new Map<string, FirestoreUserTikTokVaultDoc>();
+  public readonly pendingRevocations = new Map<string, FirestorePendingTokenRevocationDoc>();
+  public readonly auditLogs = new Map<string, FirestoreRevocationAuditLogDoc>();
   private txMutex: Promise<void> = Promise.resolve();
 
   private clone<V>(val: V): V {
@@ -357,6 +427,212 @@ export class InMemoryTikTokOAuthStorageAdapter implements ITikTokOAuthStorageAda
     return found ? this.clone(found) : null;
   }
 
+  public async setPendingRevocationDirect(
+    revocationId: string,
+    docData: FirestorePendingTokenRevocationDoc
+  ): Promise<void> {
+    this.pendingRevocations.set(revocationId, this.clone(docData));
+  }
+
+  public async getPendingRevocationDirect(
+    revocationId: string
+  ): Promise<FirestorePendingTokenRevocationDoc | null> {
+    const found = this.pendingRevocations.get(revocationId);
+    return found ? this.clone(found) : null;
+  }
+
+  public async listPendingRevocationsDueDirect(
+    now = Date.now(),
+    limit = 50
+  ): Promise<FirestorePendingTokenRevocationDoc[]> {
+    const due: FirestorePendingTokenRevocationDoc[] = [];
+    for (const docData of this.pendingRevocations.values()) {
+      if (docData.adminDiscarded || docData.status === 'REVOKED' || docData.status === 'QUARANTINED') {
+        continue;
+      }
+      const isPendingDue =
+        (docData.status === 'PENDING' || docData.status === 'FAILED') &&
+        docData.nextAttemptAt <= now &&
+        docData.attempts < docData.maxAttempts;
+      const isLeaseExpiredProcessing =
+        docData.status === 'PROCESSING' &&
+        typeof docData.leaseExpiresAt === 'number' &&
+        docData.leaseExpiresAt <= now;
+
+      if (isPendingDue || isLeaseExpiredProcessing) {
+        due.push(this.clone(docData));
+      }
+    }
+    due.sort((a, b) => a.nextAttemptAt - b.nextAttemptAt);
+    return due.slice(0, limit);
+  }
+
+  public async acquireRevocationLeaseDirect(
+    revocationId: string,
+    workerInstanceId: string,
+    now = Date.now(),
+    leaseTtlMs = REVOCATION_WORKER_LEASE_TTL_MS
+  ): Promise<{
+    acquired: boolean;
+    doc: FirestorePendingTokenRevocationDoc | null;
+    fencingToken: number;
+    reason?: string;
+  }> {
+    const docData = this.pendingRevocations.get(revocationId);
+    if (!docData) {
+      return { acquired: false, doc: null, fencingToken: 0, reason: 'DOC_NOT_FOUND' };
+    }
+
+    if (
+      docData.status === 'REVOKED' ||
+      docData.status === 'QUARANTINED' ||
+      docData.adminDiscarded === true
+    ) {
+      return {
+        acquired: false,
+        doc: this.clone(docData),
+        fencingToken: docData.fencingToken || 0,
+        reason: 'TERMINAL_OR_QUARANTINED',
+      };
+    }
+
+    if (docData.status === 'PROCESSING') {
+      const isLeaseActive =
+        typeof docData.leaseExpiresAt === 'number' && docData.leaseExpiresAt > now;
+      if (isLeaseActive && docData.leaseOwner !== workerInstanceId) {
+        return {
+          acquired: false,
+          doc: this.clone(docData),
+          fencingToken: docData.fencingToken || 0,
+          reason: 'ACTIVE_LEASE_HELD_BY_OTHER_WORKER',
+        };
+      }
+    }
+
+    const nextFencingToken = (docData.fencingToken || 0) + 1;
+    const updatedDoc: FirestorePendingTokenRevocationDoc = {
+      ...docData,
+      status: 'PROCESSING',
+      leaseOwner: workerInstanceId,
+      processingStartedAt: now,
+      leaseExpiresAt: now + leaseTtlMs,
+      fencingToken: nextFencingToken,
+      heartbeatAt: now,
+      updatedAt: now,
+      processedByInstance: workerInstanceId,
+    };
+
+    this.pendingRevocations.set(revocationId, this.clone(updatedDoc));
+    return {
+      acquired: true,
+      doc: this.clone(updatedDoc),
+      fencingToken: nextFencingToken,
+    };
+  }
+
+  public async releaseRevocationLeaseOrCommitDirect(
+    revocationId: string,
+    fencingToken: number,
+    patch: Partial<FirestorePendingTokenRevocationDoc>
+  ): Promise<{
+    committed: boolean;
+    doc: FirestorePendingTokenRevocationDoc | null;
+    error?: string;
+  }> {
+    const current = this.pendingRevocations.get(revocationId);
+    if (!current) {
+      return { committed: false, doc: null, error: 'DOC_NOT_FOUND' };
+    }
+
+    if (typeof current.fencingToken === 'number' && current.fencingToken !== fencingToken) {
+      return {
+        committed: false,
+        doc: this.clone(current),
+        error: `FENCING_TOKEN_MISMATCH: expected ${current.fencingToken}, got ${fencingToken}`,
+      };
+    }
+
+    const updatedDoc: FirestorePendingTokenRevocationDoc = {
+      ...current,
+      ...patch,
+      updatedAt: Date.now(),
+    };
+
+    this.pendingRevocations.set(revocationId, this.clone(updatedDoc));
+    return {
+      committed: true,
+      doc: this.clone(updatedDoc),
+    };
+  }
+
+  public async adminDiscardQuarantinedTokenDirect(
+    revocationId: string,
+    adminUid: string,
+    notes?: string
+  ): Promise<{
+    discarded: boolean;
+    doc: FirestorePendingTokenRevocationDoc | null;
+    auditLog?: FirestoreRevocationAuditLogDoc | null;
+    error?: string;
+  }> {
+    const current = this.pendingRevocations.get(revocationId);
+    if (!current) {
+      return { discarded: false, doc: null, auditLog: null, error: 'DOC_NOT_FOUND' };
+    }
+
+    const cleanNotes = String(notes || '').trim();
+    if (!cleanNotes) {
+      return { discarded: false, doc: this.clone(current), auditLog: null, error: 'JUSTIFICATION_REQUIRED' };
+    }
+
+    if (current.status !== 'QUARANTINED' && current.status !== 'FAILED') {
+      return { discarded: false, doc: this.clone(current), auditLog: null, error: 'INVALID_STATUS_FOR_DISCARD' };
+    }
+
+    const emptyCipher = createEmptyEncryptedPayload('admin_discarded');
+    const now = Date.now();
+
+    const updatedDoc: FirestorePendingTokenRevocationDoc = {
+      ...current,
+      status: 'QUARANTINED',
+      encryptedToken: emptyCipher,
+      adminDiscarded: true,
+      adminDiscardedAt: now,
+      adminNotes: `[Admin: ${adminUid}] ${cleanNotes}`,
+      updatedAt: now,
+    };
+
+    const auditLogDoc: FirestoreRevocationAuditLogDoc = {
+      auditLogId: `audit_rev_${now}_${revocationId.slice(0, 24)}`,
+      revocationId,
+      operatorUid: adminUid,
+      justification: cleanNotes,
+      previousStatus: current.status,
+      newStatus: 'QUARANTINED',
+      timestamp: now,
+      action: 'ADMIN_DISCARD_TOKEN',
+    };
+
+    this.pendingRevocations.set(revocationId, this.clone(updatedDoc));
+    this.auditLogs.set(auditLogDoc.auditLogId, this.clone(auditLogDoc));
+
+    return {
+      discarded: true,
+      doc: this.clone(updatedDoc),
+      auditLog: this.clone(auditLogDoc),
+    };
+  }
+
+  public async listRevocationAuditLogsDirect(limit = 50): Promise<FirestoreRevocationAuditLogDoc[]> {
+    const list = Array.from(this.auditLogs.values());
+    list.sort((a, b) => b.timestamp - a.timestamp);
+    return list.slice(0, limit).map((item) => this.clone(item));
+  }
+
+  public async deletePendingRevocationDirect(revocationId: string): Promise<void> {
+    this.pendingRevocations.delete(revocationId);
+  }
+
   public async runAtomicTransaction<T>(
     fn: (tx: ITikTokOAuthTransactionContext) => Promise<T>
   ): Promise<T> {
@@ -374,6 +650,8 @@ export class InMemoryTikTokOAuthStorageAdapter implements ITikTokOAuthStorageAda
     const snapIdentities = new Map(this.identities);
     const snapUsers = new Map(this.users);
     const snapVaults = new Map(this.vaults);
+    const snapPendingRevocations = new Map(this.pendingRevocations);
+    const snapAuditLogs = new Map(this.auditLogs);
 
     const txContext: ITikTokOAuthTransactionContext = {
       getState: async (stateHash) => this.getStateDirect(stateHash),
@@ -428,6 +706,10 @@ export class InMemoryTikTokOAuthStorageAdapter implements ITikTokOAuthStorageAda
       for (const [k, v] of snapUsers.entries()) this.users.set(k, v);
       this.vaults.clear();
       for (const [k, v] of snapVaults.entries()) this.vaults.set(k, v);
+      this.pendingRevocations.clear();
+      for (const [k, v] of snapPendingRevocations.entries()) this.pendingRevocations.set(k, v);
+      this.auditLogs.clear();
+      for (const [k, v] of snapAuditLogs.entries()) this.auditLogs.set(k, v);
       throw err;
     } finally {
       releaseLock();
@@ -518,6 +800,121 @@ export class FirestoreTikTokOAuthStorageAdapter implements ITikTokOAuthStorageAd
 
   public async getUserVaultDirect(uid: string): Promise<FirestoreUserTikTokVaultDoc | null> {
     return await this.identityMirror.getUserVaultDirect(uid);
+  }
+
+  public async setPendingRevocationDirect(
+    revocationId: string,
+    docData: FirestorePendingTokenRevocationDoc
+  ): Promise<void> {
+    try {
+      await setDoc(doc(db, 'pending_token_revocations', revocationId), docData);
+    } catch {
+      // Ignore client rule lock errors in unprivileged contexts
+    }
+    await this.identityMirror.setPendingRevocationDirect(revocationId, docData);
+  }
+
+  public async getPendingRevocationDirect(
+    revocationId: string
+  ): Promise<FirestorePendingTokenRevocationDoc | null> {
+    const local = await this.identityMirror.getPendingRevocationDirect(revocationId);
+    if (local) return local;
+    try {
+      const snap = await getDoc(doc(db, 'pending_token_revocations', revocationId));
+      if (snap.exists()) {
+        const data = snap.data() as FirestorePendingTokenRevocationDoc;
+        await this.identityMirror.setPendingRevocationDirect(revocationId, data);
+        return data;
+      }
+    } catch {
+      // Locked by firestore.rules
+    }
+    return null;
+  }
+
+  public async listPendingRevocationsDueDirect(
+    now = Date.now(),
+    limit = 50
+  ): Promise<FirestorePendingTokenRevocationDoc[]> {
+    return await this.identityMirror.listPendingRevocationsDueDirect(now, limit);
+  }
+
+  public async acquireRevocationLeaseDirect(
+    revocationId: string,
+    workerInstanceId: string,
+    now = Date.now(),
+    leaseTtlMs = REVOCATION_WORKER_LEASE_TTL_MS
+  ): Promise<{
+    acquired: boolean;
+    doc: FirestorePendingTokenRevocationDoc | null;
+    fencingToken: number;
+    reason?: string;
+  }> {
+    return await this.identityMirror.acquireRevocationLeaseDirect(
+      revocationId,
+      workerInstanceId,
+      now,
+      leaseTtlMs
+    );
+  }
+
+  public async releaseRevocationLeaseOrCommitDirect(
+    revocationId: string,
+    fencingToken: number,
+    patch: Partial<FirestorePendingTokenRevocationDoc>
+  ): Promise<{
+    committed: boolean;
+    doc: FirestorePendingTokenRevocationDoc | null;
+    error?: string;
+  }> {
+    return await this.identityMirror.releaseRevocationLeaseOrCommitDirect(
+      revocationId,
+      fencingToken,
+      patch
+    );
+  }
+
+  public async adminDiscardQuarantinedTokenDirect(
+    revocationId: string,
+    adminUid: string,
+    notes?: string
+  ): Promise<{
+    discarded: boolean;
+    doc: FirestorePendingTokenRevocationDoc | null;
+    auditLog?: FirestoreRevocationAuditLogDoc | null;
+    error?: string;
+  }> {
+    const res = await this.identityMirror.adminDiscardQuarantinedTokenDirect(
+      revocationId,
+      adminUid,
+      notes
+    );
+    if (res.discarded && res.doc && res.auditLog) {
+      try {
+        await setDoc(doc(db, 'pending_token_revocations', revocationId), res.doc);
+        await setDoc(doc(db, 'revocation_audit_logs', res.auditLog.auditLogId), res.auditLog);
+      } catch {
+        // Ignore unprivileged SDK lock
+      }
+    }
+    return res;
+  }
+
+  public async listRevocationAuditLogsDirect(limit = 50): Promise<FirestoreRevocationAuditLogDoc[]> {
+    return await this.identityMirror.listRevocationAuditLogsDirect(limit);
+  }
+
+  public async deletePendingRevocationDirect(revocationId: string): Promise<void> {
+    try {
+      await setDoc(
+        doc(db, 'pending_token_revocations', revocationId),
+        { status: 'EXPIRED' },
+        { merge: true }
+      );
+    } catch {
+      // Ignore client rule lock
+    }
+    await this.identityMirror.deletePendingRevocationDirect(revocationId);
   }
 
   public async runAtomicTransaction<T>(
@@ -2133,10 +2530,14 @@ export class TikTokOAuthService {
         await tx.setUserDoc(resolvedUid, updatedUserFields, true);
       } else {
         // Flow 1: LOGIN (First Access or Returning Login with TikTok)
-        if (isCurrentlyBound) {
-          // Returning user (or user who previously linked this TikTok to their GIO account):
-          // Authenticate the existing UID — NEVER create a duplicate account!
-          resolvedUid = existingIdentity!.uid;
+        // If an identity record already exists for this open_id (even if integration was previously disconnected),
+        // authenticate the original mapped UID to prevent duplicate account creation or loss of user data!
+        const existingUidToReuse = existingIdentity?.uid ? String(existingIdentity.uid).trim() : '';
+
+        if (existingUidToReuse) {
+          // Returning user (or user who previously linked/authenticated this TikTok to their GIO account):
+          // Authenticate the existing mapped UID — NEVER create a duplicate account!
+          resolvedUid = existingUidToReuse;
           isNewUser = false;
           linkedToExistingAccount = !resolvedUid.startsWith('gio_tt_');
 
@@ -2415,10 +2816,16 @@ export class TikTokOAuthService {
     }
 
     // If not yet revoked at TikTok via cookie/sessionToken, revoke using the encrypted vault token
+    let tokenToRevokePayload: EncryptedPayload | null = null;
+    let openIdForPendingRevocation = '';
     if (!revokedAtTikTok) {
       try {
         const existingVault = await this.storageAdapter.getUserVaultDirect(cleanUid);
         if (existingVault && !existingVault.revoked && existingVault.encryptedAccessToken?.ciphertext) {
+          openIdForPendingRevocation = existingVault.openId || '';
+          tokenToRevokePayload = existingVault.encryptedRefreshToken?.ciphertext
+            ? existingVault.encryptedRefreshToken
+            : existingVault.encryptedAccessToken;
           const clientKey = params.clientKeyOverride || process.env.TIKTOK_CLIENT_KEY?.trim();
           const clientSecret =
             params.clientSecretOverride || process.env.TIKTOK_CLIENT_SECRET?.trim();
@@ -2442,7 +2849,23 @@ export class TikTokOAuthService {
           }
         }
       } catch {
-        // Best-effort remote revocation; local vault wipe and session revocation always proceed
+        // Best-effort remote revocation attempt
+      }
+    }
+
+    // IF REMOTE REVOCATION FAILED and we have a valid encrypted token payload:
+    // ENQUEUE into pending_token_revocations FIRST and WAIT FOR CONFIRMATION!
+    if (!revokedAtTikTok && tokenToRevokePayload && tokenToRevokePayload.ciphertext) {
+      const userDoc = await this.storageAdapter.getUserDocDirect(cleanUid);
+      const openIdToUse = openIdForPendingRevocation || userDoc?.tiktokOpenId || '';
+      if (openIdToUse) {
+        // Enqueue document write. If this throws, execution halts and primary vault is NOT wiped!
+        await this.enqueuePendingTokenRevocation({
+          uid: cleanUid,
+          openId: openIdToUse,
+          encryptedToken: tokenToRevokePayload,
+          lastError: 'Remote revocation at TikTok API failed during unlink',
+        });
       }
     }
 
@@ -2537,6 +2960,366 @@ export class TikTokOAuthService {
       revokedSessionsCount,
       stoppedDependentWorkers,
       releasedLiveLease,
+    };
+  }
+
+  /**
+   * Enqueues a failed TikTok token revocation into `/pending_token_revocations/{revocationId}`.
+   * Safe, AES-256-GCM encrypted, retryable queue.
+   */
+  public async enqueuePendingTokenRevocation(params: {
+    uid: string;
+    openId: string;
+    encryptedToken: EncryptedPayload;
+    lastError?: string;
+  }): Promise<FirestorePendingTokenRevocationDoc> {
+    const cleanUid = String(params.uid || '').trim();
+    const cleanOpenId = String(params.openId || '').trim();
+    if (!cleanUid || !cleanOpenId) {
+      throw new OAuthSecurityError(
+        'INVALID_REVOCATION_PARAMS',
+        'UID e openId são obrigatórios para enfileirar a revogação pendente.',
+        400
+      );
+    }
+    const revocationId = `rev_${sha256Hex(`pending_revocation_v1:${cleanUid}:${cleanOpenId}`).slice(0, 32)}`;
+    const now = Date.now();
+    const ttlExpireAtMs = now + 24 * 60 * 60 * 1000;
+
+    const docData: FirestorePendingTokenRevocationDoc = {
+      revocationId,
+      uid: cleanUid,
+      openId: cleanOpenId,
+      encryptedToken: params.encryptedToken,
+      attempts: 0,
+      maxAttempts: 5,
+      nextAttemptAt: now,
+      status: 'PENDING',
+      lastError: params.lastError ? String(params.lastError) : null,
+      createdAt: now,
+      updatedAt: now,
+      ttlExpireAt: Timestamp.fromMillis(ttlExpireAtMs),
+      processedByInstance: this.instanceId,
+    };
+
+    await this.storageAdapter.setPendingRevocationDirect(revocationId, docData);
+    return docData;
+  }
+
+  /**
+   * Executes administrative discard of a quarantined or failed TikTok token revocation task.
+   * Requires non-empty justification and verified adminUid from server-side authenticated context.
+   * Discards ONLY items in QUARANTINED or FAILED status, rejecting PENDING or PROCESSING.
+   * Atomically purges token payload and records admin audit metadata.
+   */
+  public async adminDiscardQuarantinedToken(params: {
+    revocationId: string;
+    adminUid: string;
+    notes?: string;
+  }): Promise<{
+    discarded: boolean;
+    doc: FirestorePendingTokenRevocationDoc | null;
+    error?: string;
+  }> {
+    const cleanRevId = String(params.revocationId || '').trim();
+    const cleanAdminUid = String(params.adminUid || '').trim();
+    const cleanNotes = String(params.notes || '').trim();
+
+    if (!cleanRevId) {
+      throw new OAuthSecurityError('INVALID_REVOCATION_ID', 'ID da revogação pendente é obrigatório.', 400);
+    }
+    if (!cleanAdminUid) {
+      throw new OAuthSecurityError('ADMIN_UID_REQUIRED', 'UID administrativo é obrigatório.', 403);
+    }
+    if (!cleanNotes) {
+      return { discarded: false, doc: null, error: 'JUSTIFICATION_REQUIRED' };
+    }
+
+    return await this.storageAdapter.adminDiscardQuarantinedTokenDirect(
+      cleanRevId,
+      cleanAdminUid,
+      cleanNotes
+    );
+  }
+
+  /**
+   * Queries TikTok token revocation audit logs for verified server-side administrative requests.
+   * Requires non-empty verified adminUid from authenticated context.
+   */
+  public async getAdminRevocationAuditLogs(params: {
+    adminUid: string;
+    limit?: number;
+  }): Promise<{
+    logs: FirestoreRevocationAuditLogDoc[];
+  }> {
+    const cleanAdminUid = String(params.adminUid || '').trim();
+    if (!cleanAdminUid) {
+      throw new OAuthSecurityError('ADMIN_UID_REQUIRED', 'UID administrativo é obrigatório.', 403);
+    }
+    const logs = await this.storageAdapter.listRevocationAuditLogsDirect(params.limit || 50);
+    return { logs };
+  }
+
+  /**
+   * Processes due pending TikTok token revocations from the queue.
+   * Uses atomic lease acquisition (leaseOwner, leaseExpiresAt, fencingToken) and exponential backoff.
+   * Wipes token payloads ONLY upon confirmed remote revocation (REVOKED) or explicit admin discard.
+   * Preserves encrypted credentials in QUARANTINED state for FAILED/EXPIRED operational items.
+   */
+  public async processPendingTokenRevocationsBatch(options?: {
+    now?: number;
+    maxItems?: number;
+    leaseTtlMs?: number;
+    instanceIdOverride?: string;
+    clientKeyOverride?: string;
+    clientSecretOverride?: string;
+  }): Promise<{
+    processed: number;
+    succeeded: number;
+    failed: number;
+    quarantined: number;
+    expired: number;
+    fencingBlocked: number;
+  }> {
+    const now = options?.now ?? Date.now();
+    const maxItems = options?.maxItems ?? 50;
+    const leaseTtlMs = options?.leaseTtlMs ?? REVOCATION_WORKER_LEASE_TTL_MS;
+    const activeInstanceId = options?.instanceIdOverride || this.instanceId;
+
+    const dueList = await this.storageAdapter.listPendingRevocationsDueDirect(now, maxItems);
+
+    let succeeded = 0;
+    let failed = 0;
+    let quarantined = 0;
+    let expired = 0;
+    let fencingBlocked = 0;
+    const emptyCipher = createEmptyEncryptedPayload('wiped_post_revocation');
+
+    const clientKey = options?.clientKeyOverride || process.env.TIKTOK_CLIENT_KEY?.trim();
+    const clientSecret = options?.clientSecretOverride || process.env.TIKTOK_CLIENT_SECRET?.trim();
+
+    for (const item of dueList) {
+      // 1. Check retention expiration window (24 hours)
+      const isRetentionExpired =
+        now >= item.ttlExpireAt.toMillis() || now - item.createdAt >= 24 * 60 * 60 * 1000;
+
+      if (isRetentionExpired) {
+        // Acquire lease to move to QUARANTINED
+        const leaseAcquisition = await this.storageAdapter.acquireRevocationLeaseDirect(
+          item.revocationId,
+          activeInstanceId,
+          now,
+          leaseTtlMs
+        );
+        if (!leaseAcquisition.acquired) {
+          continue;
+        }
+
+        // PRESERVE encryptedToken in QUARANTINED state (do NOT wipe or claim REVOKED!)
+        const commitRes = await this.storageAdapter.releaseRevocationLeaseOrCommitDirect(
+          item.revocationId,
+          leaseAcquisition.fencingToken,
+          {
+            status: 'QUARANTINED',
+            quarantinedAt: now,
+            quarantineReason: 'RETENTION_WINDOW_24H_EXPIRED',
+            leaseOwner: null,
+            leaseExpiresAt: null,
+          }
+        );
+
+        if (commitRes.committed) {
+          expired++;
+          quarantined++;
+        } else {
+          fencingBlocked++;
+        }
+        continue;
+      }
+
+      // 2. Acquire atomic lease with fencing token
+      const leaseAcquisition = await this.storageAdapter.acquireRevocationLeaseDirect(
+        item.revocationId,
+        activeInstanceId,
+        now,
+        leaseTtlMs
+      );
+
+      if (!leaseAcquisition.acquired) {
+        // Lease held by another active worker or doc is in terminal/quarantined state
+        continue;
+      }
+
+      const activeFencingToken = leaseAcquisition.fencingToken;
+
+      // 3. Decrypt token payload (AES-256-GCM)
+      let plainToken = '';
+      try {
+        plainToken = decryptTokenAes256Gcm(item.encryptedToken);
+      } catch {
+        // Token decryption failed
+      }
+
+      let remoteOk = false;
+      let lastErrorStr = item.lastError;
+
+      if (plainToken && clientKey && clientSecret) {
+        try {
+          const res = await this.fetcher(TIKTOK_OAUTH_V2_ENDPOINTS.revoke, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'Cache-Control': 'no-cache',
+            },
+            body: new URLSearchParams({
+              client_key: clientKey,
+              client_secret: clientSecret,
+              token: plainToken,
+            }).toString(),
+          });
+
+          let resText = '';
+          try {
+            if (typeof res.text === 'function') {
+              resText = await res.text();
+            }
+          } catch {}
+          const lowerBody = resText.toLowerCase();
+
+          if (res.status === 200 && res.ok) {
+            let parsedJson: Record<string, any> | null = null;
+            try {
+              if (typeof res.json === 'function') {
+                parsedJson = await res.json().catch(() => null);
+              }
+            } catch {}
+
+            const errCode = parsedJson?.error?.code || parsedJson?.error;
+            if (!errCode || errCode === 'ok' || errCode === '0' || parsedJson?.data) {
+              remoteOk = true;
+              lastErrorStr = null;
+            } else {
+              remoteOk = false;
+              lastErrorStr = `UNCONFIRMED_REMOTE_RESPONSE: ${resText.slice(0, 100)}`;
+            }
+          } else if (res.status === 204) {
+            remoteOk = false;
+            lastErrorStr = `UNCONFIRMED_HTTP_204: ${resText.slice(0, 100)}`;
+          } else if (res.status === 400) {
+            if (
+              lowerBody.includes('already_revoked') ||
+              lowerBody.includes('token_already_revoked') ||
+              lowerBody.includes('already revoked')
+            ) {
+              remoteOk = false;
+              lastErrorStr = `UNPROVEN_ALREADY_REVOKED: ${resText.slice(0, 100)}`;
+            } else if (
+              lowerBody.includes('invalid_token') ||
+              lowerBody.includes('token_invalid') ||
+              lowerBody.includes('invalid_grant') ||
+              lowerBody.includes('token_not_found')
+            ) {
+              remoteOk = false;
+              lastErrorStr = `AMBIGUOUS_INVALID_TOKEN: ${resText.slice(0, 100)}`;
+            } else {
+              remoteOk = false;
+              lastErrorStr = `HTTP_400: ${resText.slice(0, 100)}`;
+            }
+          } else if (res.status === 401) {
+            remoteOk = false;
+            lastErrorStr = `CLIENT_AUTH_FAILED: HTTP_401:${resText.slice(0, 100)}`;
+          } else if (res.status >= 500) {
+            remoteOk = false;
+            lastErrorStr = `TIKTOK_SERVER_ERROR: HTTP_${res.status}`;
+          } else {
+            remoteOk = false;
+            lastErrorStr = `HTTP_${res.status}:${resText.slice(0, 100)}`;
+          }
+        } catch (err) {
+          remoteOk = false;
+          lastErrorStr = `TIKTOK_SERVER_ERROR: ${err instanceof Error ? err.message : String(err)}`;
+        }
+      } else if (!plainToken) {
+        lastErrorStr = 'EMPTY_OR_CORRUPT_TOKEN_PAYLOAD';
+      }
+
+      // 4. Commit results using fencing token protection
+      const commitTime = Date.now();
+      if (remoteOk) {
+        // Confirmed remote revocation at TikTok API v2: mark REVOKED and NOW wipe encrypted token
+        const commitRes = await this.storageAdapter.releaseRevocationLeaseOrCommitDirect(
+          item.revocationId,
+          activeFencingToken,
+          {
+            status: 'REVOKED',
+            encryptedToken: emptyCipher,
+            leaseOwner: null,
+            leaseExpiresAt: null,
+            lastError: null,
+          }
+        );
+        if (commitRes.committed) {
+          succeeded++;
+        } else {
+          fencingBlocked++;
+        }
+      } else {
+        const nextAttempts = item.attempts + 1;
+        if (nextAttempts >= item.maxAttempts) {
+          // Max attempts reached without confirmed revocation:
+          // Move to FAILED & QUARANTINED state — PRESERVE ENCRYPTED TOKEN payload!
+          const commitRes = await this.storageAdapter.releaseRevocationLeaseOrCommitDirect(
+            item.revocationId,
+            activeFencingToken,
+            {
+              attempts: nextAttempts,
+              status: 'FAILED',
+              quarantinedAt: commitTime,
+              quarantineReason: `MAX_ATTEMPTS_EXCEEDED:${lastErrorStr || 'UNKNOWN'}`,
+              lastError: lastErrorStr || 'MAX_ATTEMPTS_EXCEEDED',
+              leaseOwner: null,
+              leaseExpiresAt: null,
+            }
+          );
+          if (commitRes.committed) {
+            failed++;
+            quarantined++;
+          } else {
+            fencingBlocked++;
+          }
+        } else {
+          // Exponential backoff: 5m, 10m, 20m, 40m...
+          const backoffDelayMs = 5 * 60 * 1000 * Math.pow(2, nextAttempts - 1);
+          const nextAttemptAt = commitTime + backoffDelayMs;
+
+          const commitRes = await this.storageAdapter.releaseRevocationLeaseOrCommitDirect(
+            item.revocationId,
+            activeFencingToken,
+            {
+              attempts: nextAttempts,
+              nextAttemptAt,
+              status: 'PENDING',
+              lastError: lastErrorStr || 'REMOTE_REVOCATION_FAILED',
+              leaseOwner: null,
+              leaseExpiresAt: null,
+            }
+          );
+          if (commitRes.committed) {
+            failed++;
+          } else {
+            fencingBlocked++;
+          }
+        }
+      }
+    }
+
+    return {
+      processed: dueList.length,
+      succeeded,
+      failed,
+      quarantined,
+      expired,
+      fencingBlocked,
     };
   }
 

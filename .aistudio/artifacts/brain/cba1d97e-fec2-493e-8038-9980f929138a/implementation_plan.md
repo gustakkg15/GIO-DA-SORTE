@@ -1,163 +1,130 @@
-# GIO DA SORTE PRO — FASE 11: IMPLEMENTAÇÃO CONSOLIDADA TIKTOK LOGIN, IDENTIDADE E AUTENTICAÇÃO MULTIUSUÁRIO (REVISADO)
+# GIO DA SORTE PRO — FASE 11.2: PLANO ARQUITETURAL DO LOGIN TIKTOK E VÍNCULO SEGURO DE IDENTIDADE
 
-## Resumo do Projeto
-Implementar a autenticação oficial com o TikTok Login Kit (v2) integrada ao Firebase Auth, separando explicitamente o **Fluxo de Primeiro Acesso / Login** do **Fluxo de Vinculação de Contas Existentes**, com proteção transacional contra condições de corrida, armazenamento criptografado AES-256-GCM no backend e suíte completa de testes automatizados.
-
----
-
-## Decisões e Correções Incorporadas no Plano
-
-> [!IMPORTANT]
-> **Separação Obrigatória dos Fluxos de Autenticação e Vinculação:**
-
-1. **Fluxo 1: Primeiro Acesso / Login Direto com TikTok:**
-   - Validar a autorização OAuth no servidor e resgatar o `open_id` diretamente da API oficial do TikTok.
-   - **Se o `open_id` já estiver vinculado:** Localizar o Firebase UID correspondente e emitir um `CustomToken` para autenticar o usuário na sua conta existente.
-   - **Se o `open_id` não estiver vinculado:** Criar de forma controlada e transacional uma nova identidade GIO (usuário no Firebase Auth + documento no Firestore).
-   - **Garantia:** Impedir a criação de contas duplicadas quando o `open_id` já possuir vínculo estabelecido.
-
-2. **Fluxo 2: Vinculação de TikTok a uma Conta GIO Existente (Link Account):**
-   - **Exigência 1:** O cliente precisa possuir uma sessão Firebase Auth ativa.
-   - **Exigência 2:** Exigir reautenticação prévia (senha ou Google Auth, conforme o método principal do usuário GIO).
-   - **Exigência 3:** Validar a conta TikTok via OAuth no servidor para obter o `open_id`.
-   - **Verificação Transacional:** Confirmar se o `open_id` já pertence a outro Firebase UID. Se pertencer, **bloquear o conflito imediatamente** e impedir qualquer transferência automática ou sobrescrita silenciosa.
+Plano de execução arquiteturalmente revisado para o **TikTok Login Kit Web (OAuth 2.0)** no GIO DA SORTE PRO, resolvendo a separação estrita entre **Identidade de Autenticação** e **Conexão de Integração**, com tolerância a falhas parciais, rotação de chaves AES-256-GCM, cookies isolados por aba e 38 cenários de teste automatizado.
 
 ---
 
-## 1. Visão Geral e Conceito Central
+## User Review & Critical Decisions
 
-- **O que faz:** Permite o login direto com o TikTok ou a vinculação segura de um perfil do TikTok a uma conta GIO pré-existente via Firebase Auth Admin SDK.
-- **Público-Alvo:** Criadores de conteúdo no TikTok LIVE, organizadores de sorteios e participantes do GIO DA SORTE PRO.
-- **Valor Principal:** Segurança total da conta e dos sorteios, rastreabilidade transacional da identidade, zero vazamento de tokens e total conformidade com o TikTok Login Kit (v2) e as regras do Firestore (Fase 10.4).
-
----
-
-## 2. Experiência do Usuário e Design Visual
-
-- **Interface de Login / Cadastro:**
-  - Botão principal oficial **"Continuar com TikTok"**.
-  - Fluxo transparente: direcionamento ao TikTok OAuth v2 -> retorno ao callback do backend -> emissão de `CustomToken` -> `signInWithCustomToken` no cliente.
-
-- **Interface de Perfil (Vinculação de Contas):**
-  - Painel de conexões mostrando a conta TikTok vinculada (com avatar e `@username` oficiais autorizados).
-  - Botão **"Vincular Conta TikTok"**: solicita reautenticação (Google / Senha) antes de iniciar o OAuth.
-  - Em caso de conflito (`open_id` já em uso em outro UID): mensagem clara de erro em português indicando que o TikTok já está associado a outra conta GIO.
-  - Botão **"Desconectar TikTok"**: remove o vínculo de autenticação sem encerrar a conta GIO nem interromper os workers de LIVE autorizados.
-
-- **Identidade Visual:**
-  - Preservação da paleta oficial Premium Tech do GIO DA SORTE PRO (`#050D20` fundo, `#0B1730` painéis, `#101F3D` cards, `#0866F5` azul principal, `#F5B942` dourado).
-  - Respeito às regras do `frontend-design` (sem badges falsas, sem pontos pulsantes decorativos, sem pílulas soltas).
+> [!IMPORTANT] Decisões Arquiteturais e Salvaguardas da Fase 11.2:
+> 1. **Separação entre Identidade de Autenticação e Conexão de Integração**:
+>    - **Identidade de Autenticação (`/tiktok_identities/{sha256(open_id)}`)**: Mapeia o `open_id` estável ao `uid` do Firebase Auth. Permite ao usuário entrar na sua conta original do GIO DA SORTE.
+>    - **Conexão de Integração (`/users/{uid}/private_tokens/tiktok`)**: Armazena os tokens de API para recursos do GIO DA SORTE PRO.
+>    - **Desconexão da Integração**: Revoga os tokens e bloqueia novos recursos de LIVE/PRO, **mas preserva o mapeamento de autenticação** (`/tiktok_identities`). Se o usuário reconectar no futuro, **ele é reconhecido no mesmo UID original**, evitando a criação de UIDs duplicados ou perda de conta.
+>    - **Remoção Definitiva do Método de Login**: Se o usuário desejar excluir a identidade TikTok como método de autenticação, o sistema valida obrigatoriamente se existe outro método de acesso ativo (Email/Senha ou Google Auth) antes de permitir a remoção.
+> 2. **Fluxo Idempotente de Criação de Conta**:
+>    - Firebase Auth e Firestore pertencem a sistemas diferentes. Em criações simultâneas ou falhas parciais (ex: Firebase Auth criado, mas gravação Firestore falhou), a tentativa seguinte detecta a conta pelo `open_id` e conclui a amarração no mesmo UID sem criar contas órfãs.
+> 3. **Segurança de Cookie e Isolamento Multi-Aba**:
+>    - Cookie `__Host-oauth_state`: `Path=/`, sem atributo `Domain`, `HttpOnly`, `Secure` e `SameSite=Lax`.
+>    - Suporte a múltiplas abas: cada requisição utiliza um `state` único armazenado no Firestore, evitando que a abertura de nova aba sobrescreva a transação da aba anterior.
+> 4. **Cofre Criptografado com Rotação de Chaves (`keyVersion`)**:
+>    - Envelope contendo `{ cipherText, iv, authTag, keyVersion }`.
+>    - Suporte a múltiplas versões de chaves (`OAUTH_TOKEN_ENCRYPTION_KEY_V1`, `V2`). Permite descriptografar com a chave legada e recriptografar com a chave mais recente.
+> 5. **Renovação de Tokens Exclusiva do Backend**:
+>    - Endpoint `/api/auth/tiktok/refresh` restrito a chamas internas do backend/worker com chave de serviço. Clientes públicos são rejeitados com `HTTP 403`.
 
 ---
 
-## 3. Arquitetura de Identidade e Segurança de Tokens
-
-### A. Separação Estrita de Identidades
-- **Firebase Auth UID:** Identidade única e imutável no GIO DA SORTE.
-- **TikTok `open_id`:** Identificador externo permanente da conta TikTok.
-- **TikTok `@username`:** Rótulo de exibição sujeito a alterações (nunca usado como chave primária de autenticação).
-
-### B. Proteção contra CSRF e Replay em OAuth
-- Geração de `state` criptograficamente seguro (32 bytes aleatórios).
-- Armazenamento temporário do `state` no backend associado à sessão/cookie do solicitante.
-- Validação estrita e de uso único (rejeitar `state` expirado, reutilizado ou divergente).
-
-### C. Criptografia dos Tokens TikTok
-- Armazenamento restrito na subcoleção `/users/{userId}/private_tokens/tiktok`.
-- Criptografia autenticada **AES-256-GCM** com IV único por operação.
-- Acesso do Client SDK a `/private_tokens/` estritamente bloqueado em `firestore.rules` (`allow read, write: if false;`).
-- Tokens do TikTok (`access_token`, `refresh_token`) **jamais são enviados ao navegador ou registrados em logs**.
-
----
-
-## 4. Diagrama de Fluxos do Sistema
+## 1. Mapeamento Arquitetural de Dados
 
 ```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│ FLUXO 1: PRIMEIRO ACESSO / LOGIN COM TIKTOK                                             │
-└────────────────────────────────────────────────────────────────────────────────────────┘
- Navegador                        Backend (GIO Server)                   TikTok API v2
-     │                                    │                                    │
-     │ 1. GET /api/auth/tiktok/login     │                                    │
-     ├───────────────────────────────────►│ (Gera state seguro)                │
-     │ 2. Redireciona para TikTok OAuth   │                                    │
-     │◄──────────────────────────────────┤                                    │
-     │ 3. Autoriza no TikTok             │                                    │
-     ├────────────────────────────────────────────────────────────────────────►│
-     │ 4. Callback /api/auth/tiktok/callback?code=XYZ&state=ABC               │
-     ├───────────────────────────────────►│                                    │
-     │                                    │ 5. Troca code por Token (Server)   │
-     │                                    ├───────────────────────────────────►│
-     │                                    │ 6. Obtém open_id & user.info.basic │
-     │                                    │◄───────────────────────────────────┤
-     │                                    │                                    │
-     │                                    │ 7. Busca open_id no Firestore      │
-     │                                    │    - Se EXISTE: obtém UID          │
-     │                                    │    - Se NÃO EXISTE: cria novo UID  │
-     │                                    │ 8. Gera Firebase CustomToken       │
-     │ 9. Retorna CustomToken             │                                    │
-     │◄───────────────────────────────────┤                                    │
-     │ 10. signInWithCustomToken()        │                                    │
-     ├───────────────────────────────────►│ (Sessão GIO Ativa)                 │
-
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│ FLUXO 2: VINCULAÇÃO A UMA CONTA GIO EXISTENTE (LINK ACCOUNT)                           │
-└────────────────────────────────────────────────────────────────────────────────────────┘
- Navegador                        Backend (GIO Server)                   TikTok API v2
-     │                                    │                                    │
-     │ 1. Reautentica no GIO (Senha/Google)                                   │
-     │ 2. GET /api/auth/tiktok/link (com Auth Token Firebase)                 │
-     ├───────────────────────────────────►│ (Valida UID da sessão atual)      │
-     │ 3. Redireciona para TikTok OAuth   │                                    │
-     │◄──────────────────────────────────┤                                    │
-     │ 4. Callback /api/auth/tiktok/link/callback?code=XYZ&state=ABC          │
-     ├───────────────────────────────────►│                                    │
-     │                                    │ 5. Obtém open_id do TikTok         │
-     │                                    ├───────────────────────────────────►│
-     │                                    │◄───────────────────────────────────┤
-     │                                    │ 6. Transação no Firestore:         │
-     │                                    │    - open_id já é de outro UID?    │
-     │                                    │      -> SIM: REJEITA (Erro 409)    │
-     │                                    │      -> NÃO: Grava vínculo no UID  │
-     │ 7. Retorna Sucesso ou Conflito     │                                    │
-     │◄───────────────────────────────────┤                                    │
+  Identidade de Autenticação (Persistente)          Conexão de Integração (Revogável)
+ ┌────────────────────────────────────────┐       ┌──────────────────────────────────────┐
+ │ /tiktok_identities/tid_{sha256(open_id)}│      │ /users/{uid}/private_tokens/tiktok   │
+ │ - openIdHash: "fa28c33b..."            │       │ - cipherText: "..." (AES-256-GCM)   │
+ │ - uid: "gio_user_123"                  │       │ - iv: "..." (12 bytes)               │
+ │ - createdAt: 1742080000000             │       │ - authTag: "..." (16 bytes)          │
+ └───────────────────┬────────────────────┘       │ - keyVersion: "v1"                   │
+                     │                            │ - status: "ACTIVE" | "PENDING_REVOKE"│
+                     │ Mapeia ao mesmo UID        └───────────────────┬──────────────────┘
+                     ▼                                                │
+ ┌────────────────────────────────────────────────────────────────────┴─┐
+ │                       /users/{uid} (Perfil GIO)                      │
+ │ - uid: "gio_user_123"                                                │
+ │ - email: "organizador@email.com"                                     │
+ │ - tiktokLinked: true                                                 │
+ │ - tiktokProfile: { displayName: "Maria", username: "maria_live" }    │
+ └──────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 5. Plano de Suíte de Testes Automatizados (30+ Cenários)
+## 2. Endpoints e Contratos de API Backend
 
-A nova suíte `scripts/test_phase11_tiktok_auth.ts` cobrirá:
-
-1. **OAuth & State Security (1-9):**
-   - `state` válido, `state` inválido, `state` expirado, reutilização de `state`, callback sem código, erro de recusa do TikTok, code expirado, falha de troca de token, redirect URI divergente.
-2. **Identidade e Vinculação (10-16):**
-   - Login com `open_id` já vinculado (retorna UID existente sem duplicar).
-   - Primeiro login (criação transacional de nova conta).
-   - Vinculação com sessão ativa GIO.
-   - Tentativa de vincular `open_id` já pertencente a outro UID (bloqueio de conflito 409).
-   - Tentativa de enviar `open_id` falsificado pelo frontend (rejeição).
-   - Tentativa de login por username sem OAuth (rejeição).
-   - Concorrência na vinculação do mesmo `open_id` por duas conexões paralelas (proteção transacional).
-3. **Tokens, Sessões e Isolamento (17-25):**
-   - Garantir que `access_token` e `refresh_token` nunca chegam no payload da resposta HTTP ao cliente.
-   - Garantir que tokens não são impressos em logs.
-   - Teste de rotação e refresh de token TikTok.
-   - Logout no cliente (limpa estado local sem apagar documentos no Firestore nem encerrar workers LIVE autorizados no servidor).
-   - Teste de isolamento de dados entre Usuário A e Usuário B.
-4. **Regressão de Módulos (26-30):**
-   - Execução de `test_sec01_firestore_rules.ts`.
-   - Execução de `test_server_port_resolution.ts`.
-   - Execução de `test_traditional_raffle_v2.ts`.
-   - Execução de `test_worker_dual_auth.ts`.
-   - Execução de `test_tiktok_live_pro_complete.ts`.
-   - Execução de `npx tsc --noEmit` e `compile_applet`.
+- `GET /api/auth/tiktok/login`: Gera `state` de 256 bits (`purpose: 'LOGIN' | 'LINK'`), registra cookie `__Host-oauth_state` e redireciona para autorização no TikTok.
+- `GET /api/auth/tiktok/callback`: Valida `state` no cookie e Firestore, consome o `state` atomicamente, troca `code` por `open_id`, resolve a identidade e emite Firebase Custom Token.
+- `POST /api/auth/tiktok/link`: Exige Firebase ID Token do usuário logado, valida a finalidade `LINK`, e vincula a nova identidade ao UID atual sem alterar a conta principal.
+- `POST /api/auth/tiktok/unlink`: Exige confirmação. Tenta revogar os tokens na API do TikTok. Se falhar, marca o status como `PENDING_REVOKE`, remove os tokens ativos e atualiza a interface mantendo a conta GIO e rifas 100% intactas.
+- `POST /api/auth/tiktok/refresh`: Endpoint **exclusivo do backend/worker interno** com autenticação de Service Account. Rejeitado para requisições diretas de clientes públicos.
 
 ---
 
-## 6. Verificação e Entregáveis da Fase 11
+## 3. Roteiro de Implementação
 
-Ao finalizar a implementação:
-- Emissão do relatório final completo com os 15 itens requeridos pelas instruções oficiais.
-- Apresentação do SHA-256 de todos os arquivos criados e modificados.
-- Confirmação expressa de ausência de deploy em ambiente de produção.
+### Passo 1: Backend Refinement (`src/server/tiktokOAuthService.ts` & `server.ts`)
+- Implementar envelope de criptografia com `keyVersion`.
+- Implementar fluxo idempotente de criação e amarração de contas.
+- Configurar cookie `__Host-oauth_state` com isolamento multi-aba.
+- Configurar rotas e middlewares de autorização.
+
+### Passo 2: Componentes da Interface UI (`src/components/LoginModal.tsx`, `src/components/UserProfile.tsx`)
+- Adicionar botão principal **"Continuar com TikTok"** na tela de Login e Cadastro.
+- Adicionar Cartão **"Conta TikTok vinculada"** no perfil com indicador de status, avatar e ação de desconexão.
+- Adicionar modal de confirmação ao desconectar e validação de métodos de login alternativos (Email/Senha ou Google).
+
+### Passo 3: Suíte Ampliada de Testes em `scripts/test_tiktok_oauth.ts` (38 Cenários)
+Covertura total de 38 testes automatizados:
+1. Início correto do OAuth
+2. Geração segura de state (256 bits)
+3. State inválido
+4. State expirado
+5. Reutilização de state
+6. Finalidade OAuth incorreta
+7. Callback sem code
+8. Falha na troca de code
+9. Open ID válido
+10. Login de identidade já vinculada
+11. Criação de nova identidade
+12. Concorrência na criação do vínculo
+13. Tentativa de vínculo cruzado
+14. Injeção de `open_id` via Client SDK
+15. Leitura de tokens privados via Client SDK
+16. Custom Token sem OAuth validado
+17. Renovação simultânea de tokens
+18. Rotação de refresh token
+19. Falha parcial na renovação
+20. Desconexão e revogação
+21. Desconexão sem exclusão de dados do GIO
+22. Proteção contra vazamento de tokens em respostas e logs
+23. **Desconectar e reautenticar com TikTok mantendo o mesmo UID original**
+24. **Desconectar integração mantendo acesso garantido por Email/Senha ou Google**
+25. **Recuperação de falha parcial entre criação no Firebase Auth e gravação no Firestore**
+26. **Duas criações simultâneas da mesma identidade TikTok (concorrência atômica)**
+27. **Falha na revogação da API TikTok com estado PENDING_REVOKE e nova tentativa segura**
+28. **Descriptografia com chave AES legada (v1) e re-encriptação automática na chave atual (v2)**
+29. **Tentativa de acesso ao endpoint de refresh por cliente público não autorizado (HTTP 403)**
+30. **Duas transações OAuth simultâneas em abas diferentes sem colisão de estado**
+31-38. **Validações de contorno, perfis sem `@username` e sanitização de logs de erro**
+
+---
+
+## 4. Execução de Regressão Integral
+
+1. `scripts/test_official_rules_emulator.ts` (14 cenários)
+2. `scripts/test_sec01_firestore_rules.ts` (30 cenários)
+3. `scripts/test_phase11_1_security_audit.ts` (7 cenários)
+4. `scripts/test_worker_dual_auth.ts` (15 cenários)
+5. `scripts/test_traditional_raffle_v2.ts` (24 cenários)
+6. `scripts/test_tiktok_live_pro_complete.ts` (16 cenários)
+7. `scripts/test_tiktok_oauth.ts` (38 cenários)
+8. `npx tsc --noEmit` (`lint_applet`)
+9. `npm run build` (`compile_applet`)
+
+---
+
+## 5. Pendências no TikTok Developer Portal
+
+Para ativação em produção real com chaves da aplicação:
+1. **Developer Portal**: Cadastrar App Web no TikTok Developer Portal.
+2. **Redirect URI**: Registrar exatamente a URL HTTPS do callback.
+3. **Escopos**: Solicitar aprovação do escopo `user.info.basic`.

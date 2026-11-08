@@ -4950,6 +4950,118 @@ app.post('/api/admin/subscription-settings', async (req: Request, res: Response)
   }
 });
 
+/**
+ * POST /api/admin/pending-revocations/discard
+ * Protected administrative endpoint to discard a quarantined or failed TikTok token revocation task.
+ * Requires verified administrative authorization (verifyAdminRequest).
+ * Uses verified authCheck.uid as operator identity, ignoring any client-supplied adminUid.
+ * Rejects requests without non-empty justification (notes/reason) or for tasks not in QUARANTINED/FAILED status.
+ */
+app.post('/api/admin/pending-revocations/discard', async (req: Request, res: Response) => {
+  const authCheck = await verifyAdminRequest(req);
+  if (!authCheck.authorized) {
+    return res.status(authCheck.status || 401).json({
+      success: false,
+      code: authCheck.status === 401 ? 'FIREBASE_AUTH_REQUIRED' : 'ADMIN_FORBIDDEN',
+      error: authCheck.reason || 'Acesso negado: Endpoint restrito a administradores autorizados.',
+    });
+  }
+
+  try {
+    const { revocationId, notes, reason } = req.body || {};
+    const cleanRevId = String(revocationId || '').trim();
+    const cleanNotes = String(notes || reason || '').trim();
+
+    if (!cleanRevId) {
+      return res.status(400).json({
+        success: false,
+        code: 'INVALID_REVOCATION_ID',
+        error: 'ID da revogação pendente é obrigatório.',
+      });
+    }
+
+    if (!cleanNotes) {
+      return res.status(400).json({
+        success: false,
+        code: 'JUSTIFICATION_REQUIRED',
+        error: 'A justificativa para o descarte administrativo é obrigatória.',
+      });
+    }
+
+    const outcome = await tiktokOAuthService.adminDiscardQuarantinedToken({
+      revocationId: cleanRevId,
+      adminUid: String(authCheck.uid || 'admin_user'),
+      notes: cleanNotes,
+    });
+
+    if (!outcome.discarded) {
+      if (outcome.error === 'DOC_NOT_FOUND') {
+        return res.status(404).json({
+          success: false,
+          code: 'DOC_NOT_FOUND',
+          error: 'Documento de revogação pendente não encontrado.',
+        });
+      }
+      if (outcome.error === 'INVALID_STATUS_FOR_DISCARD') {
+        return res.status(409).json({
+          success: false,
+          code: 'INVALID_STATUS_FOR_DISCARD',
+          error: 'O descarte administrativo é permitido somente para tarefas nos estados QUARANTINED ou FAILED.',
+          docStatus: outcome.doc?.status,
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        code: outcome.error || 'DISCARD_FAILED',
+        error: `Falha ao descartar tarefa: ${outcome.error}`,
+      });
+    }
+
+    return res.json({
+      success: true,
+      discarded: true,
+      revocationId: cleanRevId,
+      status: outcome.doc?.status,
+      adminDiscarded: outcome.doc?.adminDiscarded,
+      adminNotes: outcome.doc?.adminNotes,
+      adminDiscardedAt: outcome.doc?.adminDiscardedAt,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return res.status(500).json({ success: false, error: message });
+  }
+});
+
+/**
+ * GET /api/admin/pending-revocations/audit-logs
+ * Protected administrative endpoint to query TikTok token revocation audit logs.
+ * Requires verified administrative authorization (verifyAdminRequest).
+ * Unauthenticated users or non-admin users receive 401 / 403.
+ */
+app.get('/api/admin/pending-revocations/audit-logs', async (req: Request, res: Response) => {
+  const authCheck = await verifyAdminRequest(req);
+  if (!authCheck.authorized) {
+    return res.status(authCheck.status || 401).json({
+      success: false,
+      code: authCheck.status === 401 ? 'FIREBASE_AUTH_REQUIRED' : 'ADMIN_FORBIDDEN',
+      error: authCheck.reason || 'Acesso negado: Endpoint restrito a administradores autorizados.',
+    });
+  }
+
+  try {
+    const outcome = await tiktokOAuthService.getAdminRevocationAuditLogs({
+      adminUid: String(authCheck.uid),
+    });
+    return res.json({
+      success: true,
+      logs: outcome.logs,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return res.status(500).json({ success: false, error: message });
+  }
+});
+
 // ==========================================
 // MERCADO PAGO RECURRING SUBSCRIPTIONS & COMMERCIAL PLANS ENDPOINTS
 // ==========================================

@@ -392,6 +392,51 @@ const checks: SecurityRuleCheck[] = [
     pathParams: { openId: 'open_id_123' },
     expectedOutcome: 'DENY',
   },
+  {
+    id: 14.5,
+    category: 'Phase 11.2.3: Pending Token Revocation Queue Locked',
+    scenario: 'Authenticated user attempting to read /pending_token_revocations/rev_123 via Client SDK',
+    collection: 'pending_token_revocations',
+    operation: 'get',
+    auth: { uid: 'user_A' },
+    resourceData: { revocationId: 'rev_123', uid: 'user_A' },
+    pathParams: { revocationId: 'rev_123' },
+    expectedOutcome: 'DENY',
+  },
+  {
+    id: 15.1,
+    category: 'Phase 11.2.8: Revocation Audit Logs Immutable',
+    scenario: 'Authenticated operator attempting direct write/update to /revocation_audit_logs/audit_123 via Client SDK',
+    collection: 'revocation_audit_logs',
+    operation: 'update',
+    auth: { uid: 'admin_user_A' },
+    resourceData: { auditLogId: 'audit_123', operatorUid: 'admin_user_A' },
+    requestData: { auditLogId: 'audit_123', operatorUid: 'tampered_operator' },
+    pathParams: { logId: 'audit_123' },
+    expectedOutcome: 'DENY',
+  },
+  {
+    id: 15.2,
+    category: 'Phase 11.2.8: Revocation Audit Logs Immutable',
+    scenario: 'Anonymous user attempting to read /revocation_audit_logs/audit_123 via Client SDK',
+    collection: 'revocation_audit_logs',
+    operation: 'get',
+    auth: null,
+    resourceData: { auditLogId: 'audit_123', operatorUid: 'admin_user_A' },
+    pathParams: { logId: 'audit_123' },
+    expectedOutcome: 'DENY',
+  },
+  {
+    id: 15.3,
+    category: 'Phase 11.2.10: Revocation Audit Logs Private',
+    scenario: 'Authenticated common user attempting to read /revocation_audit_logs/audit_123 via Client SDK',
+    collection: 'revocation_audit_logs',
+    operation: 'get',
+    auth: { uid: 'common_user_123' },
+    resourceData: { auditLogId: 'audit_123', operatorUid: 'admin_user_A' },
+    pathParams: { logId: 'audit_123' },
+    expectedOutcome: 'DENY',
+  },
 ];
 
 /**
@@ -432,7 +477,9 @@ function evaluateRule(check: SecurityRuleCheck): 'ALLOW' | 'DENY' {
     }
 
     case 'private_tokens':
-    case 'tiktok_identities': {
+    case 'tiktok_identities':
+    case 'pending_token_revocations':
+    case 'revocation_audit_logs': {
       return 'DENY';
     }
 

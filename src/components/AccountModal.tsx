@@ -22,6 +22,7 @@ import {
   Unlink,
   AtSign,
 } from 'lucide-react';
+import { UserProfile } from './UserProfile';
 import {
   auth,
   googleProvider,

@@ -128,6 +128,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Phase 11.2.3: Pending TikTok Token Revocation Queue (Strictly Backend-Only)
+    match /pending_token_revocations/{revocationId} {
+      allow read, write: if false;
+    }
+
     // Public Raffles: Published by signed-in organizers for participants to search by code or host
     match /public_raffles/{raffleCode} {
       allow get, list: if true;
@@ -412,11 +417,16 @@ service cloud.firestore {
     match /draw_ledger_public/{commitmentHash} {
       allow read: if true;
       allow write: if false;
+    }
 
-      match /{subcollection=**} {
-        allow read: if true;
-        allow write: if false;
-      }
+    // TikTok Token Revocation Queue — Strictly private to Backend Admin SDK
+    match /pending_token_revocations/{revocationId} {
+      allow read, write: if false;
+    }
+
+    // TikTok Revocation Audit Logs — Strictly Private to Backend Admin SDK (Client SDK Read/Write 100% Blocked)
+    match /revocation_audit_logs/{logId} {
+      allow read, write: if false;
     }
   }
 }
