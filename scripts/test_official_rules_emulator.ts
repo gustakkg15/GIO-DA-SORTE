@@ -1,5 +1,5 @@
 /**
- * GIO DA SORTE PRO — FASE 10.4: SUÍTE OFICIAL FIREBASE RULES UNIT TESTING (EMU-01 A EMU-11)
+ * GIO DA SORTE PRO — FASE 11.1: SUÍTE OFICIAL FIREBASE RULES UNIT TESTING (EMU-01 A EMU-11)
  * 
  * Requisitos de Isolamento:
  * - Projeto de Teste: "demo-gio-da-sorte" (estritamente isolado de qualquer ambiente real ou GCP).
@@ -56,7 +56,7 @@ function verifyPermissionDenied(err: any, scenarioId: string) {
 
 async function runOfficialRulesEmulatorSuite() {
   console.log('================================================================');
-  console.log('  GIO DA SORTE PRO — FASE 10.4: OFFICIAL FIREBASE RULES TEST');
+  console.log('  GIO DA SORTE PRO — FASE 11.1: OFFICIAL FIREBASE RULES TEST');
   console.log('  PROJETO DE ISOLAMENTO: ' + ISOLATED_PROJECT_ID);
   console.log('================================================================\n');
 
@@ -66,7 +66,7 @@ async function runOfficialRulesEmulatorSuite() {
   if (!envEmulatorHost) {
     console.error(`\n✗ [ERRO DE CONFIGURAÇÃO DE AMBIENTE]: FIRESTORE_EMULATOR_HOST não está definido.`);
     console.error('ℹ [DIAGNÓSTICO]: O container Linux do ambiente AI Studio não possui Java JRE instalado para executar o Firebase Emulator.');
-    console.error('ℹ [REGRAS DE AUDITORIA 10.4]: Conforme exigido pela normativa da Fase 10.4, a execução sem o emulador oficial ATIVO é encerrada com erro (código 1) sem declarar aprovação falsa dos cenários EMU-01 a EMU-11.\n');
+    console.error('ℹ [REGRAS DE AUDITORIA 11.1]: Conforme exigido pela normativa da Fase 11.1, a execução sem o emulador oficial ATIVO é encerrada com erro (código 1) sem declarar aprovação falsa dos cenários EMU-01 a EMU-11.\n');
     process.exit(1);
   }
 
@@ -76,7 +76,7 @@ async function runOfficialRulesEmulatorSuite() {
 
   if (!reachable) {
     console.error(`\n✗ [ERRO DE CONEXÃO]: Firestore Emulator não acessível em ${host}:${port}.`);
-    console.error('ℹ [REGRAS DE AUDITORIA 10.4]: A execução sem o emulador oficial ATIVO é encerrada com erro (código 1).\n');
+    console.error('ℹ [REGRAS DE AUDITORIA 11.1]: A execução sem o emulador oficial ATIVO é encerrada com erro (código 1).\n');
     process.exit(1);
   }
 
@@ -90,7 +90,7 @@ async function runOfficialRulesEmulatorSuite() {
 
   let testEnv: RulesTestEnvironment | null = null;
   let passedCount = 0;
-  const totalScenarios = 11;
+  const totalScenarios = 14;
 
   try {
     testEnv = await initializeTestEnvironment({
@@ -109,6 +109,7 @@ async function runOfficialRulesEmulatorSuite() {
         uid: 'user_emu_a',
         email: 'user_a@test.com',
         statusState: 'FREE',
+        tier: 'FREE',
       });
       await setupDb.doc('campaigns/camp_user_a').set({
         ownerUid: 'user_emu_a',
@@ -203,7 +204,7 @@ async function runOfficialRulesEmulatorSuite() {
       winnerName: 'Ganhador Homologado',
       drawnAt: FieldValue.serverTimestamp(),
     });
-    console.log('✓ [PASS] EMU-06: Gravação privilegiada via Admin SDK efetuada no Emulator.');
+    console.log('✓ [PASS] EMU-06: Gravação privileged via Admin SDK efetuada no Emulator.');
     passedCount++;
 
     // EMU-07: Usuário FREE tenta elevação manual para PRO/ACTIVE via Client SDK
@@ -211,6 +212,7 @@ async function runOfficialRulesEmulatorSuite() {
     const errEmu07 = await assertFails(
       userADb.doc('users/user_emu_a').update({
         statusState: 'ACTIVE',
+        tier: 'PRO',
         mpPreapprovalId: 'fake_preapp_123',
         mpExternalReference: 'user_emu_a',
       })
@@ -270,8 +272,43 @@ async function runOfficialRulesEmulatorSuite() {
     console.log('✓ [PASS] EMU-11: Log forjado como SYSTEM rejeitado; log assinado pelo próprio usuário aprovado.');
     passedCount++;
 
+    // TIKTOK-SEC-01: Autovinculação de tiktokOpenId no perfil via Client SDK bloqueada
+    console.log('\n--- [TIKTOK-SEC-01] Bloqueio de Autovinculação tiktokOpenId via Client SDK ---');
+    const errTt01 = await assertFails(
+      userADb.doc('users/user_emu_a').update({
+        tiktokOpenId: 'open_id_hacked_direct',
+      })
+    );
+    verifyPermissionDenied(errTt01, 'TIKTOK-SEC-01');
+    console.log('✓ [PASS] TIKTOK-SEC-01: Injeção direta de tiktokOpenId via Client SDK rejeitada por permission-denied.');
+    passedCount++;
+
+    // TIKTOK-SEC-02: Leitura do cofre private_tokens/tiktok via Client SDK bloqueada
+    console.log('\n--- [TIKTOK-SEC-02] Bloqueio de Leitura no Cofre private_tokens/tiktok ---');
+    const errTt02 = await assertFails(
+      userADb.doc('users/user_emu_a/private_tokens/tiktok').get()
+    );
+    verifyPermissionDenied(errTt02, 'TIKTOK-SEC-02');
+    console.log('✓ [PASS] TIKTOK-SEC-02: Leitura direta de private_tokens via Client SDK rejeitada por permission-denied.');
+    passedCount++;
+
+    // TIKTOK-SEC-03: Acesso direto à coleção tiktok_identities via Client SDK bloqueado
+    console.log('\n--- [TIKTOK-SEC-03] Bloqueio de Acesso à Coleção tiktok_identities ---');
+    const errTt03Read = await assertFails(
+      userADb.doc('tiktok_identities/tid_fa28c33b56288098').get()
+    );
+    verifyPermissionDenied(errTt03Read, 'TIKTOK-SEC-03 (Read)');
+    const errTt03Write = await assertFails(
+      userADb.doc('tiktok_identities/tid_fa28c33b56288098').set({
+        uid: 'user_emu_a',
+      })
+    );
+    verifyPermissionDenied(errTt03Write, 'TIKTOK-SEC-03 (Write)');
+    console.log('✓ [PASS] TIKTOK-SEC-03: Leitura e escrita direta em tiktok_identities rejeitadas por permission-denied.');
+    passedCount++;
+
     console.log(`\n================================================================`);
-    console.log(`  RESULTADO EMULADOR OFICIAL: ${passedCount}/${totalScenarios} cenários EMU-01 a EMU-11 APROVADOS.`);
+    console.log(`  RESULTADO EMULADOR OFICIAL: ${passedCount}/${totalScenarios} cenários (EMU-01 a EMU-11 + TIKTOK-SEC-01 a 03) APROVADOS.`);
     console.log(`================================================================\n`);
   } finally {
     if (testEnv) {
