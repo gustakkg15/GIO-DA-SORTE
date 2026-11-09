@@ -135,15 +135,43 @@ const organizerPlanStates = new Map<string, OrganizerPlanStateEntry>();
 // Session-to-owner registry (sessionId -> ownerUid)
 const sessionOwnerRegistry = new Map<string, string>();
 
-// Legacy unscoped fallback state (used only when no ownerUid is provided by legacy single-user callers)
-let activePlanTierState: SubscriptionPlanTier = 'PRO';
-let activeStatusState: SubscriptionStatusState = 'ACTIVE';
+// Legacy unscoped fallback state (fail-closed: FREE until confirmed by backend)
+let activePlanTierState: SubscriptionPlanTier = 'FREE';
+let activeStatusState: SubscriptionStatusState = 'FREE';
 let activePlanUpdatedAt: number = Date.now();
+export type PlanConfirmationState = 'LOADING' | 'UNKNOWN' | 'CONFIRMED';
+let activePlanConfirmationState: PlanConfirmationState = 'UNKNOWN';
 
 // Baseline for an ownerUid not yet explicitly registered in organizerPlanStates
-// P1-ISO-A1: Must be fail-closed (FREE / FREE) on the backend
+// P1-ISO-A1: Must be fail-closed (FREE / FREE) on the backend and frontend
 let defaultUnregisteredOwnerTier: SubscriptionPlanTier = 'FREE';
 let defaultUnregisteredOwnerStatus: SubscriptionStatusState = 'FREE';
+
+export function getPlanConfirmationState(): PlanConfirmationState {
+  return activePlanConfirmationState;
+}
+
+export function setPlanConfirmationState(state: PlanConfirmationState): void {
+  activePlanConfirmationState = state;
+  if (state !== 'CONFIRMED') {
+    activePlanTierState = 'FREE';
+    activeStatusState = 'FREE';
+    defaultUnregisteredOwnerTier = 'FREE';
+    defaultUnregisteredOwnerStatus = 'FREE';
+  }
+}
+
+export function resetClientPlanAndAuthState(): ProPlanEntitlement {
+  organizerPlanStates.clear();
+  sessionOwnerRegistry.clear();
+  activePlanTierState = 'FREE';
+  activeStatusState = 'FREE';
+  activePlanUpdatedAt = Date.now();
+  activePlanConfirmationState = 'UNKNOWN';
+  defaultUnregisteredOwnerTier = 'FREE';
+  defaultUnregisteredOwnerStatus = 'FREE';
+  return getProPlanEntitlement();
+}
 
 export function registerSessionOwner(sessionId?: string | null, ownerUid?: string | null): void {
   const cleanSessionId = sessionId ? String(sessionId).trim() : '';
@@ -165,6 +193,7 @@ export function clearOrganizerPlanStatesForTests(): void {
   activePlanTierState = 'FREE';
   activeStatusState = 'FREE';
   activePlanUpdatedAt = Date.now();
+  activePlanConfirmationState = 'UNKNOWN';
   defaultUnregisteredOwnerTier = 'FREE';
   defaultUnregisteredOwnerStatus = 'FREE';
 }
@@ -177,13 +206,13 @@ export function getProPlanEntitlement(ownerUid?: string | null): ProPlanEntitlem
     const tier = entry ? entry.tier : defaultUnregisteredOwnerTier;
     const statusState = entry ? entry.statusState : defaultUnregisteredOwnerStatus;
     const updatedAt = entry ? entry.updatedAt : activePlanUpdatedAt;
-    const isPro = tier === 'PRO' && statusState === 'ACTIVE';
+    const isPro = Boolean(entry) && tier === 'PRO' && statusState === 'ACTIVE';
     return {
-      tier,
-      planTier: tier,
-      statusState,
+      tier: isPro ? 'PRO' : 'FREE',
+      planTier: isPro ? 'PRO' : 'FREE',
+      statusState: isPro ? 'ACTIVE' : statusState === 'ACTIVE' ? 'FREE' : statusState,
       active: isPro,
-      organizerEmail: entry?.organizerEmail || (cleanOwnerUid === 'uid_organizer_alpha_001' ? 'gustakkg15@gmail.com' : undefined),
+      organizerEmail: entry?.organizerEmail,
       updatedAt,
       features: {
         liveConnection: isPro,
@@ -213,13 +242,20 @@ export function getProPlanEntitlement(ownerUid?: string | null): ProPlanEntitlem
     };
   }
 
-  const isPro = activePlanTierState === 'PRO' && activeStatusState === 'ACTIVE';
+  const isConfirmed = activePlanConfirmationState === 'CONFIRMED';
+  const isPro = isConfirmed && activePlanTierState === 'PRO' && activeStatusState === 'ACTIVE';
+  const effectiveTier: SubscriptionPlanTier = isPro ? 'PRO' : 'FREE';
+  const effectiveStatus: SubscriptionStatusState = isPro
+    ? 'ACTIVE'
+    : activeStatusState === 'ACTIVE'
+    ? 'FREE'
+    : activeStatusState;
   return {
-    tier: activePlanTierState,
-    planTier: activePlanTierState,
-    statusState: activeStatusState,
+    tier: effectiveTier,
+    planTier: effectiveTier,
+    statusState: effectiveStatus,
     active: isPro,
-    organizerEmail: 'gustakkg15@gmail.com',
+    organizerEmail: undefined,
     updatedAt: activePlanUpdatedAt,
     features: {
       liveConnection: isPro,
@@ -249,6 +285,7 @@ export function setProPlanTier(
 
   const now = Date.now();
   const cleanOwnerUid = ownerUid ? String(ownerUid).trim() : '';
+  activePlanConfirmationState = 'CONFIRMED';
 
   if (cleanOwnerUid) {
     organizerPlanStates.set(cleanOwnerUid, {
@@ -281,6 +318,11 @@ export function assertProPlanActive(operationName = 'TikTok LIVE PRO', ownerUid?
   if (isServer && !cleanOwnerUid) {
     throw new Error(
       `PRO_PLAN_REQUIRED: A operação "${operationName}" exige identificação explícita do organizador (ownerUid) no servidor.`
+    );
+  }
+  if (!isServer && activePlanConfirmationState !== 'CONFIRMED' && !cleanOwnerUid) {
+    throw new Error(
+      `PRO_PLAN_REQUIRED: A operação "${operationName}" exige confirmação do plano PRO pelo servidor (estado atual: ${activePlanConfirmationState}).`
     );
   }
   const entitlement = cleanOwnerUid ? getProPlanEntitlement(cleanOwnerUid) : getProPlanEntitlement();
@@ -2459,7 +2501,7 @@ export interface LegacyOwnershipMigrationReport {
 
 /**
  * Inspects legacy records across `sessions`, `campaigns`, `draw_snapshots`, and `draws`.
- * - Never uses a hardcoded email fallback (`gustakkg15@gmail.com` is NEVER assumed automatically).
+ * - Never uses a hardcoded email fallback (no organizer email is ever assumed automatically).
  * - Only classifies a record as `VERIFIABLE_EVIDENCE` when a real Firebase UID from `/users/{uid}` is
  *   proven by documentary fields (`userId`, `uid`, `createdByUid`), verified audit_logs actor/details,
  *   or a parent session/campaign/snapshot that already has a proven `ownerUid`.

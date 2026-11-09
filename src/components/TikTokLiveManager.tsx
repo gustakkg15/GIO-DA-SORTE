@@ -80,6 +80,8 @@ import {
   getAuthBearerHeaders,
   getOrganizerRaffleDefaults,
   saveOrganizerRaffleDefaults,
+  resetClientPlanAndAuthState,
+  setPlanConfirmationState,
 } from '../utils/tiktokLiveService.js';
 import { auth, onAuthStateChanged } from '../firebase.js';
 import {
@@ -114,6 +116,7 @@ interface TikTokLiveManagerProps {
   onToggleSound: () => void;
   onOpenVictoryCard?: (winner: Winner) => void;
   isAdminAuthorized?: boolean;
+  onOpenSubscription?: () => void;
   adminLabel?: string;
   initialProTab?: 'feed' | 'motor1' | 'motor2' | 'audit' | 'monitor';
   initialPlatformMode?: 'live_pro' | 'traditional_comments';
@@ -182,7 +185,8 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
   soundEnabled,
   onToggleSound,
   onOpenVictoryCard,
-  isAdminAuthorized = true,
+  isAdminAuthorized = false,
+  onOpenSubscription,
   adminLabel = 'Organizador / Admin Autorizado',
   initialProTab = 'feed',
   initialPlatformMode = 'live_pro',
@@ -214,14 +218,41 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
   useEffect(() => {
     setActiveProTab(initialProTab);
     if (initialProTab === 'motor2') {
+      setPlatformMode('live_pro');
       setIsAdvancedOpen(true);
       setAdvancedTab('campaigns');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const el = document.getElementById('multi-live-campaigns-section') || document.getElementById('advanced-resources-container');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            (el as HTMLElement).focus?.({ preventScroll: true });
+          }
+        });
+      });
     } else if (initialProTab === 'monitor') {
+      setPlatformMode('live_pro');
       setIsAdvancedOpen(true);
       setAdvancedTab('monitor');
+      requestAnimationFrame(() => {
+        const el = document.getElementById('advanced-resources-container');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
     } else if (initialProTab === 'audit') {
+      setPlatformMode('live_pro');
       setIsAdvancedOpen(true);
       setAdvancedTab('history');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const el = document.getElementById('live-history-audit-section') || document.getElementById('advanced-resources-container');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            (el as HTMLElement).focus?.({ preventScroll: true });
+          }
+        });
+      });
     }
   }, [initialProTab]);
 
@@ -540,14 +571,23 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
 
     getAuthBearerHeaders()
       .then((authHeaders) => fetch('/api/tiktok/plan/status', { headers: { ...authHeaders } }))
-      .then((r) => r.json())
-      .then((data) => {
-        if (data && data.tier) {
-          setPlanEntitlement(data);
-          setProPlanTier(data.tier, data.statusState);
+      .then(async (r) => {
+        const activeUid = auth.currentUser?.uid;
+        if (r.ok) {
+          const data = await r.json();
+          if (data && data.tier) {
+            const confirmed = setProPlanTier(data.tier, data.statusState, activeUid);
+            setPlanEntitlement({ ...confirmed, ...data, active: confirmed.active });
+          }
+        } else if (r.status === 401 || r.status === 403) {
+          const freeEnt = setProPlanTier('FREE', 'FREE', activeUid);
+          setPlanEntitlement(freeEnt);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        setPlanConfirmationState('UNKNOWN');
+        setPlanEntitlement(getProPlanEntitlement(auth.currentUser?.uid));
+      });
 
     window.addEventListener('message', handlePopupMessage);
     return () => window.removeEventListener('message', handlePopupMessage);
@@ -978,6 +1018,8 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
       setDiagDeniedForUid((prevDenied) => (prevDenied && prevDenied !== nextUid ? null : prevDenied));
       if (!nextUid) {
         setDiagDeniedForUid(null);
+        setPerfDiagnostics(null);
+        setPlanEntitlement(resetClientPlanAndAuthState());
       }
     });
     return () => {
@@ -1643,42 +1685,71 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
     }
   };
 
-  // Handler: Switch / Validate PRO Plan Tier on the Backend
+  // Handler: Switch / Validate PRO Plan Tier on the Backend (Admin Only — Never Fall Back to Local PRO)
   const handleSwitchPlanTier = async (targetTier: SubscriptionPlanTier) => {
-    setIsUpdatingPlan(true);
-    try {
-      const authHeaders = await getAuthBearerHeaders();
-      const res = await fetch('/api/tiktok/plan/tier', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-gio-admin-access': 'authorized',
-          ...authHeaders,
-        },
-        body: JSON.stringify({ tier: targetTier }),
-      });
-      const data = await res.json();
-      if (data.entitlement) {
-        setPlanEntitlement(data.entitlement);
-        setProPlanTier(data.entitlement.tier);
-      } else {
-        const fallback = setProPlanTier(targetTier);
-        setPlanEntitlement(fallback);
+    const activeUid = auth.currentUser?.uid;
+    if (!isAdminAuthorized || !activeUid) {
+      setPlanEntitlement(getProPlanEntitlement(activeUid));
+      if (targetTier === 'PRO' && onOpenSubscription) {
+        onOpenSubscription();
       }
       setSystemNotice({
-        type: targetTier === 'PRO' ? 'success' : 'warning',
-        text:
-          data.message ||
-          (targetTier === 'PRO'
-            ? 'Plano TIKTOK LIVE PRO validado no backend.'
-            : 'Plano alterado para FREE no backend. As automações LIVE foram bloqueadas.'),
-      });
-    } catch (err) {
-      const fallback = setProPlanTier(targetTier);
-      setPlanEntitlement(fallback);
-      setSystemNotice({
         type: 'warning',
-        text: `Plano atualizado localmente (${targetTier}): ${(err as Error).message}`,
+        text: 'A ativação do Plano PRO exige assinatura ativa confirmada pelo servidor. Acesse Planos & Assinatura para iniciar seu teste grátis de 3 dias.',
+      });
+      return;
+    }
+
+    setIsUpdatingPlan(true);
+    try {
+      const authHeaders = await getAuthBearerHeaders({
+        'Content-Type': 'application/json',
+      });
+      if (!authHeaders.Authorization) {
+        setPlanEntitlement(getProPlanEntitlement(activeUid));
+        setSystemNotice({
+          type: 'error',
+          text: 'Autenticação obrigatória: faça login novamente para validar sua permissão no servidor.',
+        });
+        return;
+      }
+      const res = await fetch('/api/tiktok/plan/tier', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ uid: activeUid, tier: targetTier }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.entitlement) {
+        const confirmed = setProPlanTier(
+          data.entitlement.tier,
+          data.entitlement.statusState,
+          activeUid
+        );
+        setPlanEntitlement({ ...confirmed, ...data.entitlement, active: confirmed.active });
+        setSystemNotice({
+          type: confirmed.tier === 'PRO' ? 'success' : 'warning',
+          text:
+            data.message ||
+            (confirmed.tier === 'PRO'
+              ? 'Plano TIKTOK LIVE PRO confirmado pelo servidor.'
+              : 'Plano alterado para FREE no backend. As automações LIVE foram bloqueadas.'),
+        });
+      } else {
+        // Fail-closed: HTTP 401/403/400 never grants PRO locally
+        setPlanEntitlement(getProPlanEntitlement(activeUid));
+        setSystemNotice({
+          type: 'error',
+          text:
+            data?.error ||
+            `Operação negada pelo servidor (HTTP ${res.status}). Nenhum privilégio PRO foi concedido localmente.`,
+        });
+      }
+    } catch {
+      // Fail-closed: network errors never grant PRO locally
+      setPlanEntitlement(getProPlanEntitlement(activeUid));
+      setSystemNotice({
+        type: 'error',
+        text: 'Falha de comunicação com o servidor. Nenhum privilégio PRO foi concedido localmente.',
       });
     } finally {
       setIsUpdatingPlan(false);
@@ -2064,12 +2135,12 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <button
-              onClick={() => handleSwitchPlanTier('PRO')}
+              onClick={() => (onOpenSubscription ? onOpenSubscription() : handleSwitchPlanTier('PRO'))}
               disabled={isUpdatingPlan}
               className="gio-btn-pro px-5 py-2.5 text-xs"
             >
               <Crown className="w-4 h-4 text-[#FFFFFF]" />
-              <span>Ativar e Validar Plano PRO</span>
+              <span>Ver Planos e Começar 3 Dias Grátis</span>
             </button>
             <button
               onClick={() => {
@@ -2139,6 +2210,15 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                   setPlatformMode('live_pro');
                   setIsAdvancedOpen(true);
                   setAdvancedTab('campaigns');
+                  requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                      const el = document.getElementById('multi-live-campaigns-section') || document.getElementById('advanced-resources-container');
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        (el as HTMLElement).focus?.({ preventScroll: true });
+                      }
+                    });
+                  });
                 }}
                 className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 ${
                   isAdvancedOpen && advancedTab === 'campaigns' && platformMode === 'live_pro'
@@ -2156,6 +2236,15 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                   setPlatformMode('live_pro');
                   setIsAdvancedOpen(true);
                   setAdvancedTab('history');
+                  requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                      const el = document.getElementById('live-history-audit-section') || document.getElementById('advanced-resources-container');
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        (el as HTMLElement).focus?.({ preventScroll: true });
+                      }
+                    });
+                  });
                 }}
                 className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 ${
                   isAdvancedOpen && advancedTab === 'history' && platformMode === 'live_pro'
@@ -2757,7 +2846,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
           {/* ==========================================================
               BLOCO 5 — RECURSOS AVANÇADOS (RECOLHÍVEL, FECHADO POR PADRÃO)
               ========================================================== */}
-          <section className="rounded-xl bg-[#10141E] border border-[#161C2C] overflow-hidden">
+          <section id="advanced-resources-container" className="rounded-xl bg-[#10141E] border border-[#161C2C] overflow-hidden">
             <button
               type="button"
               onClick={() => setIsAdvancedOpen((prev) => !prev)}
@@ -2856,7 +2945,12 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
 
                 {/* 1. SUB-TAB: MULTI-LIVE CAMPAIGNS (MOTOR 2) */}
                 {advancedTab === 'campaigns' && (
-                  <div className="space-y-5">
+                  <div
+                    id="multi-live-campaigns-section"
+                    tabIndex={-1}
+                    aria-label="Campanhas Multi-LIVE Acumuladas"
+                    className="space-y-5 focus:outline-none focus:ring-1 focus:ring-[#B9FC01]/40 rounded-xl p-0.5"
+                  >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
                         <h3 className="text-sm font-semibold text-[#FFFFFF]">
@@ -3348,46 +3442,48 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                       </div>
                     </div>
 
-                    {/* Backend Plan Entitlement Verification Control */}
-                    <div className="p-4 rounded-xl bg-[#10141E] border border-[#161C2C] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div>
-                        <h4 className="text-xs font-semibold text-[#FFFFFF]">
-                          Validação de Permissão de Plano no Servidor
-                        </h4>
-                        <p className="text-xs text-[#94A3B8]">
-                          Status atual no backend:{' '}
-                          <strong className="text-[#20C997] font-mono">
-                            {planEntitlement.active ? 'PRO ATIVO' : 'FREE'}
-                          </strong>
-                        </p>
+                    {/* Backend Plan Entitlement Verification Control (Admin Only) */}
+                    {isAdminAuthorized && (
+                      <div className="p-4 rounded-xl bg-[#10141E] border border-[#161C2C] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <h4 className="text-xs font-semibold text-[#FFFFFF]">
+                            Validação de Permissão de Plano no Servidor (Admin)
+                          </h4>
+                          <p className="text-xs text-[#94A3B8]">
+                            Status atual no backend:{' '}
+                            <strong className="text-[#20C997] font-mono">
+                              {planEntitlement.active ? 'PRO ATIVO' : 'FREE'}
+                            </strong>
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleSwitchPlanTier('PRO')}
+                            disabled={isUpdatingPlan}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+                              planEntitlement.tier === 'PRO'
+                                ? 'bg-[#B9FC01] text-[#080A0F] font-bold shadow-sm shadow-[#B9FC01]/25'
+                                : 'bg-[#10141E] text-[#94A3B8] border border-[#161C2C]'
+                            }`}
+                          >
+                            <Crown className={`w-3.5 h-3.5 ${planEntitlement.tier === 'PRO' ? 'text-[#080A0F]' : 'text-[#B9FC01]'}`} />
+                            <span>Plano PRO</span>
+                          </button>
+                          <button
+                            onClick={() => handleSwitchPlanTier('FREE')}
+                            disabled={isUpdatingPlan}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+                              planEntitlement.tier === 'FREE'
+                                ? 'bg-[#F05262] text-[#FFFFFF]'
+                                : 'bg-[#10141E] text-[#94A3B8] border border-[#161C2C]'
+                            }`}
+                          >
+                            <Lock className="w-3.5 h-3.5" />
+                            <span>Testar Bloqueio FREE</span>
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleSwitchPlanTier('PRO')}
-                          disabled={isUpdatingPlan}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
-                            planEntitlement.tier === 'PRO'
-                              ? 'bg-[#B9FC01] text-[#080A0F] font-bold shadow-sm shadow-[#B9FC01]/25'
-                              : 'bg-[#10141E] text-[#94A3B8] border border-[#161C2C]'
-                          }`}
-                        >
-                          <Crown className={`w-3.5 h-3.5 ${planEntitlement.tier === 'PRO' ? 'text-[#080A0F]' : 'text-[#B9FC01]'}`} />
-                          <span>Plano PRO</span>
-                        </button>
-                        <button
-                          onClick={() => handleSwitchPlanTier('FREE')}
-                          disabled={isUpdatingPlan}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
-                            planEntitlement.tier === 'FREE'
-                              ? 'bg-[#F05262] text-[#FFFFFF]'
-                              : 'bg-[#10141E] text-[#94A3B8] border border-[#161C2C]'
-                          }`}
-                        >
-                          <Lock className="w-3.5 h-3.5" />
-                          <span>Testar Bloqueio FREE</span>
-                        </button>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 )}
 
@@ -3442,7 +3538,12 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
 
                 {/* 4. SUB-TAB: SNAPSHOTS, HISTÓRICO DE SORTEIOS & AUDITORIA */}
                 {advancedTab === 'history' && (
-                  <div className="space-y-6">
+                  <div
+                    id="live-history-audit-section"
+                    tabIndex={-1}
+                    aria-label="Histórico de Sorteios e Auditoria"
+                    className="space-y-6 focus:outline-none focus:ring-1 focus:ring-[#B9FC01]/40 rounded-xl p-0.5"
+                  >
                     {/* Completed Draws History for this LIVE Session */}
                     <div className="p-4 rounded-xl bg-[#10141E] border border-[#161C2C] space-y-3">
                       <h3 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-2">

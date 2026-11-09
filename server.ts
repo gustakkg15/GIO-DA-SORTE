@@ -4816,14 +4816,108 @@ app.post('/api/legal/documents/publish', async (req: Request, res: Response) => 
   }
 });
 
+async function authorizeComplianceReadRequest(req: Request): Promise<{
+  allowed: boolean;
+  status: 200 | 400 | 401 | 403;
+  code?: string;
+  error?: string;
+  targetUserId?: string;
+}> {
+  const rawUserId = req.query.userId;
+  const hasUserIdParam =
+    rawUserId !== undefined &&
+    rawUserId !== null &&
+    String(rawUserId).trim() !== '';
+  const requestedUserId = hasUserIdParam ? String(rawUserId).trim() : undefined;
+
+  // Cenário A — Listagem global (sem parâmetro userId): exige administrador autenticado e autorizado no servidor
+  if (!requestedUserId) {
+    const adminCheck = await verifyAdminRequest(req);
+    if (!adminCheck.authorized) {
+      const status = (adminCheck.status as 400 | 401 | 403) || 401;
+      return {
+        allowed: false,
+        status,
+        code: status === 401 ? 'FIREBASE_AUTH_REQUIRED' : 'ADMIN_FORBIDDEN',
+        error:
+          adminCheck.reason ||
+          'Acesso negado: a listagem global exige autenticação administrativa verificada no servidor.',
+      };
+    }
+    return {
+      allowed: true,
+      status: 200,
+      targetUserId: undefined,
+    };
+  }
+
+  // Cenário B — Consulta individual (com parâmetro userId): exige Firebase ID Token válido (titular === userId ou Admin autorizado)
+  if (req.headers['x-gio-unauthorized-test'] === 'true') {
+    return {
+      allowed: false,
+      status: 401,
+      code: 'FIREBASE_AUTH_REQUIRED',
+      error: 'Autenticação obrigatória via cabeçalho Authorization: Bearer <Firebase ID Token>.',
+    };
+  }
+
+  const authResult = await verifyAuthenticatedFirebaseUser(req);
+  if (!authResult.authenticated || !authResult.uid) {
+    const status = (authResult.status as 400 | 401) || 401;
+    return {
+      allowed: false,
+      status,
+      code: authResult.code || 'FIREBASE_AUTH_REQUIRED',
+      error:
+        authResult.reason ||
+        'Autenticação obrigatória: envie um Firebase ID Token válido no cabeçalho Authorization: Bearer <token>.',
+    };
+  }
+
+  const authenticatedUid = authResult.uid;
+  if (authenticatedUid === requestedUserId) {
+    return {
+      allowed: true,
+      status: 200,
+      targetUserId: authenticatedUid,
+    };
+  }
+
+  // Consulta cruzada: permitida exclusivamente se o chamador autenticado for administrador confirmado pelo servidor
+  const adminCheck = await verifyAdminRequest(req);
+  if (adminCheck.authorized) {
+    return {
+      allowed: true,
+      status: 200,
+      targetUserId: requestedUserId,
+    };
+  }
+
+  return {
+    allowed: false,
+    status: 403,
+    code: 'OWNERSHIP_FORBIDDEN',
+    error: 'Acesso negado: não é permitido consultar registros pertencentes a outro usuário.',
+  };
+}
+
 app.get('/api/legal/acceptances', async (req: Request, res: Response) => {
+  const access = await authorizeComplianceReadRequest(req);
+  if (!access.allowed) {
+    return res.status(access.status).json({
+      success: false,
+      code: access.code,
+      error: access.error,
+    });
+  }
   try {
-    const userId = req.query.userId ? String(req.query.userId) : undefined;
-    const acceptances = await fetchAllDocumentAcceptances(userId);
+    const acceptances = await fetchAllDocumentAcceptances(access.targetUserId);
     res.json({ success: true, count: acceptances.length, acceptances });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ error: message });
+  } catch {
+    res.status(500).json({
+      success: false,
+      error: 'Não foi possível consultar os registros de aceite no momento.',
+    });
   }
 });
 
@@ -4889,13 +4983,22 @@ app.post('/api/cookies/consent', async (req: Request, res: Response) => {
 });
 
 app.get('/api/lgpd/requests', async (req: Request, res: Response) => {
+  const access = await authorizeComplianceReadRequest(req);
+  if (!access.allowed) {
+    return res.status(access.status).json({
+      success: false,
+      code: access.code,
+      error: access.error,
+    });
+  }
   try {
-    const userId = req.query.userId ? String(req.query.userId) : undefined;
-    const requests = await fetchLgpdRequests(userId);
+    const requests = await fetchLgpdRequests(access.targetUserId);
     res.json({ success: true, count: requests.length, requests });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ error: message });
+  } catch {
+    res.status(500).json({
+      success: false,
+      error: 'Não foi possível consultar as solicitações LGPD no momento.',
+    });
   }
 });
 
@@ -4945,13 +5048,22 @@ app.patch('/api/lgpd/requests/:requestId', async (req: Request, res: Response) =
 });
 
 app.get('/api/support/tickets', async (req: Request, res: Response) => {
+  const access = await authorizeComplianceReadRequest(req);
+  if (!access.allowed) {
+    return res.status(access.status).json({
+      success: false,
+      code: access.code,
+      error: access.error,
+    });
+  }
   try {
-    const userId = req.query.userId ? String(req.query.userId) : undefined;
-    const tickets = await fetchSupportTickets(userId);
+    const tickets = await fetchSupportTickets(access.targetUserId);
     res.json({ success: true, count: tickets.length, tickets });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ error: message });
+  } catch {
+    res.status(500).json({
+      success: false,
+      error: 'Não foi possível consultar os chamados de suporte no momento.',
+    });
   }
 });
 

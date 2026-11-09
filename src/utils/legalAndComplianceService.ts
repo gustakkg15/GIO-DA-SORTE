@@ -781,8 +781,10 @@ export async function saveLegalDocumentDraft(
     try {
       const authHeaders = await getAuthBearerHeaders({
         'Content-Type': 'application/json',
-        'x-gio-admin-access': 'authorized',
       });
+      if (!authHeaders.Authorization) {
+        throw new Error('Autenticação administrativa obrigatória.');
+      }
       await fetch('/api/legal/documents/draft', {
         method: 'POST',
         headers: authHeaders,
@@ -873,8 +875,10 @@ export async function publishLegalDocumentVersion(
     try {
       const authHeaders = await getAuthBearerHeaders({
         'Content-Type': 'application/json',
-        'x-gio-admin-access': 'authorized',
       });
+      if (!authHeaders.Authorization) {
+        throw new Error('Autenticação administrativa obrigatória.');
+      }
       await fetch('/api/legal/documents/publish', {
         method: 'POST',
         headers: authHeaders,
@@ -955,9 +959,10 @@ export async function recordDocumentAcceptance(params: {
 
   if (isBrowserRuntime) {
     try {
+      const authHeaders = await getAuthBearerHeaders({ 'Content-Type': 'application/json' });
       await fetch('/api/legal/acceptances', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify(record),
       });
     } catch {}
@@ -966,24 +971,40 @@ export async function recordDocumentAcceptance(params: {
   return record;
 }
 
-export async function fetchAllDocumentAcceptances(userId?: string): Promise<DocumentAcceptanceRecord[]> {
-  const localList = safeReadLocal<DocumentAcceptanceRecord[]>(STORAGE_KEYS.ACCEPTANCES, []);
-  const map = new Map<string, DocumentAcceptanceRecord>();
+export async function fetchAllDocumentAcceptances(
+  userId?: string,
+  options?: { isAdminGlobal?: boolean }
+): Promise<DocumentAcceptanceRecord[]> {
+  const cleanUserId =
+    userId && !['visitante', 'anon', 'usuario', 'titular'].includes(userId.trim())
+      ? userId.trim()
+      : undefined;
+  const allowGlobal = Boolean(options?.isAdminGlobal);
 
-  for (const item of localList) {
-    if (!userId || item.userId === userId) {
-      map.set(item.acceptanceId, item);
-    }
+  if (isBrowserRuntime && !cleanUserId && !allowGlobal) {
+    return [];
   }
 
+  const map = new Map<string, DocumentAcceptanceRecord>();
+
   if (isBrowserRuntime) {
+    const authHeaders = await getAuthBearerHeaders();
+    if (!authHeaders.Authorization) {
+      return [];
+    }
     try {
-      const res = await fetch(`/api/legal/acceptances${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`);
+      const query = cleanUserId ? `?userId=${encodeURIComponent(cleanUserId)}` : '';
+      const res = await fetch(`/api/legal/acceptances${query}`, {
+        headers: authHeaders,
+      });
+      if (res.status === 401 || res.status === 403) {
+        return [];
+      }
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.acceptances)) {
           for (const acc of data.acceptances as DocumentAcceptanceRecord[]) {
-            if (!userId || acc.userId === userId) {
+            if (cleanUserId ? acc.userId === cleanUserId : allowGlobal) {
               map.set(acc.acceptanceId, acc);
             }
           }
@@ -992,11 +1013,18 @@ export async function fetchAllDocumentAcceptances(userId?: string): Promise<Docu
     } catch {}
   }
 
+  const localList = safeReadLocal<DocumentAcceptanceRecord[]>(STORAGE_KEYS.ACCEPTANCES, []);
+  for (const item of localList) {
+    if (cleanUserId ? item.userId === cleanUserId : !isBrowserRuntime || allowGlobal) {
+      map.set(item.acceptanceId, item);
+    }
+  }
+
   try {
     const snap = await getDocs(collection(db, 'document_acceptances'));
     snap.forEach((d) => {
       const data = d.data() as DocumentAcceptanceRecord;
-      if (data && data.acceptanceId && (!userId || data.userId === userId)) {
+      if (data && data.acceptanceId && (cleanUserId ? data.userId === cleanUserId : !isBrowserRuntime || allowGlobal)) {
         map.set(data.acceptanceId, data);
       }
     });
@@ -1063,7 +1091,10 @@ export async function saveCookieConsentChoice(
   return record;
 }
 
-export async function fetchAllCookieConsentLogs(): Promise<CookieConsentRecord[]> {
+export async function fetchAllCookieConsentLogs(options?: { isAdminGlobal?: boolean }): Promise<CookieConsentRecord[]> {
+  if (isBrowserRuntime && options?.isAdminGlobal === false) {
+    return [];
+  }
   const localLogs = safeReadLocal<CookieConsentRecord[]>(STORAGE_KEYS.COOKIE_CONSENT_LOGS, []);
   const map = new Map<string, CookieConsentRecord>();
   for (const l of localLogs) {
@@ -1120,9 +1151,10 @@ export async function createLgpdRequest(params: {
 
   if (isBrowserRuntime) {
     try {
+      const authHeaders = await getAuthBearerHeaders({ 'Content-Type': 'application/json' });
       await fetch('/api/lgpd/requests', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify(record),
       });
     } catch {}
@@ -1131,24 +1163,40 @@ export async function createLgpdRequest(params: {
   return record;
 }
 
-export async function fetchLgpdRequests(userId?: string): Promise<LgpdRequestRecord[]> {
-  const localList = safeReadLocal<LgpdRequestRecord[]>(STORAGE_KEYS.LGPD_REQUESTS, []);
-  const map = new Map<string, LgpdRequestRecord>();
+export async function fetchLgpdRequests(
+  userId?: string,
+  options?: { isAdminGlobal?: boolean }
+): Promise<LgpdRequestRecord[]> {
+  const cleanUserId =
+    userId && !['visitante', 'anon', 'usuario', 'titular'].includes(userId.trim())
+      ? userId.trim()
+      : undefined;
+  const allowGlobal = Boolean(options?.isAdminGlobal);
 
-  for (const item of localList) {
-    if (!userId || item.userId === userId) {
-      map.set(item.requestId, item);
-    }
+  if (isBrowserRuntime && !cleanUserId && !allowGlobal) {
+    return [];
   }
 
+  const map = new Map<string, LgpdRequestRecord>();
+
   if (isBrowserRuntime) {
+    const authHeaders = await getAuthBearerHeaders();
+    if (!authHeaders.Authorization) {
+      return [];
+    }
     try {
-      const res = await fetch(`/api/lgpd/requests${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`);
+      const query = cleanUserId ? `?userId=${encodeURIComponent(cleanUserId)}` : '';
+      const res = await fetch(`/api/lgpd/requests${query}`, {
+        headers: authHeaders,
+      });
+      if (res.status === 401 || res.status === 403) {
+        return [];
+      }
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.requests)) {
           for (const r of data.requests as LgpdRequestRecord[]) {
-            if (!userId || r.userId === userId) {
+            if (cleanUserId ? r.userId === cleanUserId : allowGlobal) {
               map.set(r.requestId, r);
             }
           }
@@ -1157,11 +1205,18 @@ export async function fetchLgpdRequests(userId?: string): Promise<LgpdRequestRec
     } catch {}
   }
 
+  const localList = safeReadLocal<LgpdRequestRecord[]>(STORAGE_KEYS.LGPD_REQUESTS, []);
+  for (const item of localList) {
+    if (cleanUserId ? item.userId === cleanUserId : !isBrowserRuntime || allowGlobal) {
+      map.set(item.requestId, item);
+    }
+  }
+
   try {
     const snap = await getDocs(collection(db, 'lgpd_requests'));
     snap.forEach((d) => {
       const data = d.data() as LgpdRequestRecord;
-      if (data && data.requestId && (!userId || data.userId === userId)) {
+      if (data && data.requestId && (cleanUserId ? data.userId === cleanUserId : !isBrowserRuntime || allowGlobal)) {
         map.set(data.requestId, data);
       }
     });
@@ -1176,7 +1231,7 @@ export async function updateLgpdRequestStatusAdmin(
   adminResponse: string,
   handledBy: string
 ): Promise<LgpdRequestRecord | null> {
-  const all = await fetchLgpdRequests();
+  const all = await fetchLgpdRequests(undefined, { isAdminGlobal: true });
   const target = all.find((r) => r.requestId === requestId);
   if (!target) return null;
 
@@ -1199,8 +1254,10 @@ export async function updateLgpdRequestStatusAdmin(
     try {
       const authHeaders = await getAuthBearerHeaders({
         'Content-Type': 'application/json',
-        'x-gio-admin-access': 'authorized',
       });
+      if (!authHeaders.Authorization) {
+        throw new Error('Autenticação administrativa obrigatória.');
+      }
       await fetch(`/api/lgpd/requests/${encodeURIComponent(requestId)}`, {
         method: 'PATCH',
         headers: authHeaders,
@@ -1251,9 +1308,10 @@ export async function createSupportTicket(params: {
 
   if (isBrowserRuntime) {
     try {
+      const authHeaders = await getAuthBearerHeaders({ 'Content-Type': 'application/json' });
       await fetch('/api/support/tickets', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify(record),
       });
     } catch {}
@@ -1262,24 +1320,40 @@ export async function createSupportTicket(params: {
   return record;
 }
 
-export async function fetchSupportTickets(userId?: string): Promise<SupportTicketRecord[]> {
-  const localList = safeReadLocal<SupportTicketRecord[]>(STORAGE_KEYS.SUPPORT_TICKETS, []);
-  const map = new Map<string, SupportTicketRecord>();
+export async function fetchSupportTickets(
+  userId?: string,
+  options?: { isAdminGlobal?: boolean }
+): Promise<SupportTicketRecord[]> {
+  const cleanUserId =
+    userId && !['visitante', 'anon', 'usuario', 'titular'].includes(userId.trim())
+      ? userId.trim()
+      : undefined;
+  const allowGlobal = Boolean(options?.isAdminGlobal);
 
-  for (const item of localList) {
-    if (!userId || item.userId === userId) {
-      map.set(item.ticketId, item);
-    }
+  if (isBrowserRuntime && !cleanUserId && !allowGlobal) {
+    return [];
   }
 
+  const map = new Map<string, SupportTicketRecord>();
+
   if (isBrowserRuntime) {
+    const authHeaders = await getAuthBearerHeaders();
+    if (!authHeaders.Authorization) {
+      return [];
+    }
     try {
-      const res = await fetch(`/api/support/tickets${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`);
+      const query = cleanUserId ? `?userId=${encodeURIComponent(cleanUserId)}` : '';
+      const res = await fetch(`/api/support/tickets${query}`, {
+        headers: authHeaders,
+      });
+      if (res.status === 401 || res.status === 403) {
+        return [];
+      }
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.tickets)) {
           for (const t of data.tickets as SupportTicketRecord[]) {
-            if (!userId || t.userId === userId) {
+            if (cleanUserId ? t.userId === cleanUserId : allowGlobal) {
               map.set(t.ticketId, t);
             }
           }
@@ -1288,11 +1362,18 @@ export async function fetchSupportTickets(userId?: string): Promise<SupportTicke
     } catch {}
   }
 
+  const localList = safeReadLocal<SupportTicketRecord[]>(STORAGE_KEYS.SUPPORT_TICKETS, []);
+  for (const item of localList) {
+    if (cleanUserId ? item.userId === cleanUserId : !isBrowserRuntime || allowGlobal) {
+      map.set(item.ticketId, item);
+    }
+  }
+
   try {
     const snap = await getDocs(collection(db, 'support_tickets'));
     snap.forEach((d) => {
       const data = d.data() as SupportTicketRecord;
-      if (data && data.ticketId && (!userId || data.userId === userId)) {
+      if (data && data.ticketId && (cleanUserId ? data.userId === cleanUserId : !isBrowserRuntime || allowGlobal)) {
         map.set(data.ticketId, data);
       }
     });
@@ -1306,7 +1387,7 @@ export async function updateSupportTicketAdmin(
   status: SupportTicketStatus,
   adminReply: string
 ): Promise<SupportTicketRecord | null> {
-  const all = await fetchSupportTickets();
+  const all = await fetchSupportTickets(undefined, { isAdminGlobal: true });
   const target = all.find((t) => t.ticketId === ticketId);
   if (!target) return null;
 
@@ -1328,8 +1409,10 @@ export async function updateSupportTicketAdmin(
     try {
       const authHeaders = await getAuthBearerHeaders({
         'Content-Type': 'application/json',
-        'x-gio-admin-access': 'authorized',
       });
+      if (!authHeaders.Authorization) {
+        throw new Error('Autenticação administrativa obrigatória.');
+      }
       await fetch(`/api/support/tickets/${encodeURIComponent(ticketId)}`, {
         method: 'PATCH',
         headers: authHeaders,
@@ -1396,8 +1479,10 @@ export async function saveCompanyLegalSettings(
     try {
       const authHeaders = await getAuthBearerHeaders({
         'Content-Type': 'application/json',
-        'x-gio-admin-access': 'authorized',
       });
+      if (!authHeaders.Authorization) {
+        throw new Error('Autenticação administrativa obrigatória.');
+      }
       await fetch('/api/admin/company-settings', {
         method: 'POST',
         headers: authHeaders,
@@ -1479,8 +1564,10 @@ export async function saveCommercialSubscriptionConfig(
     try {
       const authHeaders = await getAuthBearerHeaders({
         'Content-Type': 'application/json',
-        'x-gio-admin-access': 'authorized',
       });
+      if (!authHeaders.Authorization) {
+        throw new Error('Autenticação administrativa obrigatória.');
+      }
       await fetch('/api/admin/subscription-settings', {
         method: 'POST',
         headers: authHeaders,
@@ -1493,9 +1580,23 @@ export async function saveCommercialSubscriptionConfig(
 }
 
 export function getLocalSubscriptionState(): SubscriptionStatusState {
-  return safeReadLocal<SubscriptionStatusState>(STORAGE_KEYS.SUBSCRIPTION_STATE, 'ACTIVE');
+  const state = safeReadLocal<SubscriptionStatusState>(STORAGE_KEYS.SUBSCRIPTION_STATE, 'FREE');
+  // Never allow unverified local storage to self-promote to ACTIVE
+  return state === 'ACTIVE' ? 'FREE' : state;
 }
 
 export function setLocalSubscriptionState(state: SubscriptionStatusState): void {
   safeWriteLocal(STORAGE_KEYS.SUBSCRIPTION_STATE, state);
 }
+
+export function clearComplianceSessionCacheOnLogout(): void {
+  if (!isBrowserRuntime) return;
+  try {
+    window.localStorage.removeItem(STORAGE_KEYS.ACCEPTANCES);
+    window.localStorage.removeItem(STORAGE_KEYS.LGPD_REQUESTS);
+    window.localStorage.removeItem(STORAGE_KEYS.SUPPORT_TICKETS);
+    window.localStorage.removeItem(STORAGE_KEYS.COOKIE_CONSENT_LOGS);
+    window.localStorage.removeItem(STORAGE_KEYS.SUBSCRIPTION_STATE);
+  } catch {}
+}
+

@@ -19,6 +19,13 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.get('admin', false) == true ||
+        request.auth.token.get('role', '') == 'admin'
+      );
+    }
+
     function incoming() {
       return request.resource.data;
     }
@@ -308,12 +315,29 @@ service cloud.firestore {
 
     // Explicit User Document Acceptances (Registration, PRO Activation, Policy Updates)
     match /document_acceptances/{acceptanceId} {
-      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && (
+        ('userId' in resource.data && resource.data.userId == request.auth.uid) ||
+        isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        ('userId' in resource.data && resource.data.userId == request.auth.uid) ||
+        isAdmin()
+      );
       allow create: if isSignedIn()
         && isValidId(acceptanceId)
-        && incoming().userId == request.auth.uid;
-      allow update, delete: if false;
+        && ('userId' in incoming())
+        && incoming().userId is string
+        && (incoming().userId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn()
+        && isValidId(acceptanceId)
+        && ('userId' in existing())
+        && ('userId' in incoming())
+        && incoming().userId == existing().userId
+        && (existing().userId == request.auth.uid || isAdmin())
+        && incoming().acceptanceId == existing().acceptanceId
+        && incoming().documentId == existing().documentId
+        && incoming().version == existing().version;
+      allow delete: if false;
     }
 
     // LGPD Cookie Consent Records
@@ -326,22 +350,54 @@ service cloud.firestore {
 
     // LGPD Data Subject Requests (Access, Correction, Deletion, Portability, Revocation)
     match /lgpd_requests/{requestId} {
-      allow get: if isSignedIn() && (!('userId' in resource.data) || resource.data.userId == request.auth.uid);
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isValidId(requestId)
+      allow get: if isSignedIn() && (
+        ('userId' in resource.data && resource.data.userId == request.auth.uid) ||
+        isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        ('userId' in resource.data && resource.data.userId == request.auth.uid) ||
+        isAdmin()
+      );
+      allow create: if isSignedIn()
+        && isValidId(requestId)
         && incoming().requestId == requestId
-        && (!('userId' in incoming()) || incoming().userId == request.auth.uid);
-      allow update, delete: if false;
+        && ('userId' in incoming())
+        && incoming().userId is string
+        && (incoming().userId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn()
+        && isValidId(requestId)
+        && ('userId' in existing())
+        && ('userId' in incoming())
+        && incoming().userId == existing().userId
+        && incoming().requestId == existing().requestId
+        && (existing().userId == request.auth.uid || isAdmin());
+      allow delete: if false;
     }
 
     // Support & Help Center Tickets with Protocol
     match /support_tickets/{ticketId} {
-      allow get: if isSignedIn() && (!('userId' in resource.data) || resource.data.userId == request.auth.uid);
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isValidId(ticketId)
+      allow get: if isSignedIn() && (
+        ('userId' in resource.data && resource.data.userId == request.auth.uid) ||
+        isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        ('userId' in resource.data && resource.data.userId == request.auth.uid) ||
+        isAdmin()
+      );
+      allow create: if isSignedIn()
+        && isValidId(ticketId)
         && incoming().ticketId == ticketId
-        && (!('userId' in incoming()) || incoming().userId == request.auth.uid);
-      allow update, delete: if false;
+        && ('userId' in incoming())
+        && incoming().userId is string
+        && (incoming().userId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn()
+        && isValidId(ticketId)
+        && ('userId' in existing())
+        && ('userId' in incoming())
+        && incoming().userId == existing().userId
+        && incoming().ticketId == existing().ticketId
+        && (existing().userId == request.auth.uid || isAdmin());
+      allow delete: if false;
     }
 
     // Configurable Company & Legal Settings (Admin - mutated exclusively via backend)

@@ -48,6 +48,7 @@ interface SubscriptionPlanViewProps {
   userId?: string;
   userEmail?: string;
   emailVerified?: boolean;
+  isAdminAuthorized?: boolean;
 }
 
 interface AdminSummaryPayload {
@@ -147,12 +148,20 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
   userId = '',
   userEmail = '',
   emailVerified = false,
+  isAdminAuthorized = false,
 }) => {
   const [activeViewTab, setActiveViewTab] = useState<'plans' | 'admin'>('plans');
   const [isUpdating, setIsUpdating] = useState(false);
-  const [statusState, setStatusState] = useState<SubscriptionStatusState>(() =>
-    entitlement.active ? 'ACTIVE' : getLocalSubscriptionState() || 'FREE'
-  );
+  const [statusState, setStatusState] = useState<SubscriptionStatusState>(() => {
+    if (entitlement.active && entitlement.tier === 'PRO' && entitlement.statusState === 'ACTIVE') {
+      return 'ACTIVE';
+    }
+    const localState = getLocalSubscriptionState();
+    if (entitlement.statusState && entitlement.statusState !== 'ACTIVE') {
+      return entitlement.statusState;
+    }
+    return localState && localState !== 'ACTIVE' ? localState : 'FREE';
+  });
   const [commercialConfig, setCommercialConfig] = useState<CommercialSubscriptionConfig | null>(null);
   const [officialPlans, setOfficialPlans] = useState<{
     monthly: OfficialSubscriptionPlanDefinition;
@@ -218,8 +227,16 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
   }, [effectiveUid]);
 
   const loadAdminSummary = useCallback(async () => {
+    if (!isAdminAuthorized) {
+      setAdminSummary(null);
+      return;
+    }
     try {
-      const authHeaders = await getAuthBearerHeaders({ 'x-gio-admin-access': 'authorized' });
+      const authHeaders = await getAuthBearerHeaders();
+      if (!authHeaders.Authorization) {
+        setAdminSummary(null);
+        return;
+      }
       const res = await fetch('/api/subscriptions/admin/summary', {
         headers: authHeaders,
       });
@@ -231,11 +248,13 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
             setHomologationReport(data.summary.homologationReport);
           }
         }
+      } else {
+        setAdminSummary(null);
       }
     } catch {
-      // ignore
+      setAdminSummary(null);
     }
-  }, []);
+  }, [isAdminAuthorized]);
 
   useEffect(() => {
     loadSubscriptionData();
@@ -243,21 +262,37 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
   }, [loadSubscriptionData, loadAdminSummary]);
 
   useEffect(() => {
+    if (!isAdminAuthorized && activeViewTab === 'admin') {
+      setActiveViewTab('plans');
+    }
+  }, [isAdminAuthorized, activeViewTab]);
+
+  useEffect(() => {
+    if (!effectiveUid) {
+      setUserSubscription(null);
+      setAdminSummary(null);
+      setConfirmedEmailInput('');
+      setConfirmEmailOwnership(false);
+      setStatusState('FREE');
+      return;
+    }
     if (userEmail) {
       setConfirmedEmailInput(userEmail);
     }
     if (emailVerified) {
       setConfirmEmailOwnership(true);
     }
-  }, [userEmail, emailVerified]);
+  }, [effectiveUid, userEmail, emailVerified]);
 
   useEffect(() => {
-    if (entitlement.active && entitlement.tier === 'PRO') {
+    if (entitlement.active && entitlement.tier === 'PRO' && entitlement.statusState === 'ACTIVE') {
       setStatusState('ACTIVE');
+    } else if (entitlement.statusState && entitlement.statusState !== 'ACTIVE') {
+      setStatusState(entitlement.statusState);
     } else if (statusState === 'ACTIVE') {
       setStatusState('FREE');
     }
-  }, [entitlement.active, entitlement.tier, statusState]);
+  }, [entitlement.active, entitlement.tier, entitlement.statusState, statusState]);
 
   const handleVerifyPreapproval = useCallback(
     async (preapprovalIdToVerify?: string) => {
@@ -501,30 +536,62 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
     target: SubscriptionPlanTier,
     targetState?: SubscriptionStatusState
   ) => {
+    if (!isAdminAuthorized || !effectiveUid) {
+      setNotice({
+        type: 'warning',
+        text: 'Acesso negado: o simulador administrativo exige autenticação de administrador confirmada pelo servidor.',
+      });
+      return;
+    }
     setIsUpdating(true);
     setNotice(null);
     try {
       const nextState: SubscriptionStatusState =
         targetState || (target === 'PRO' ? 'ACTIVE' : 'FREE');
 
-      setStatusState(nextState);
-      setLocalSubscriptionState(nextState);
-
       const authHeaders = await getAuthBearerHeaders({
         'Content-Type': 'application/json',
-        'x-gio-admin-access': 'authorized',
       });
+      if (!authHeaders.Authorization) {
+        setNotice({
+          type: 'warning',
+          text: 'Token de autenticação ausente. Não foi possível alterar o estado no servidor.',
+        });
+        return;
+      }
 
-      await fetch('/api/tiktok/plan/tier', {
+      const res = await fetch('/api/tiktok/plan/tier', {
         method: 'POST',
         headers: authHeaders,
-        body: JSON.stringify({ tier: target, statusState: nextState }),
-      }).catch(() => {});
+        body: JSON.stringify({ uid: effectiveUid, tier: target, statusState: nextState }),
+      });
+      const data = await res.json().catch(() => ({}));
 
-      await onSwitchPlan(target, nextState);
+      if (!res.ok || !data?.entitlement) {
+        setNotice({
+          type: 'warning',
+          text:
+            data?.error ||
+            'Operação negada pelo servidor (HTTP ' +
+              res.status +
+              '). Nenhum privilégio PRO foi concedido localmente.',
+        });
+        return;
+      }
+
+      const confirmedState: SubscriptionStatusState =
+        data.entitlement.statusState || nextState;
+      setStatusState(confirmedState);
+      setLocalSubscriptionState(confirmedState === 'ACTIVE' ? 'FREE' : confirmedState);
+      await onSwitchPlan(data.entitlement.tier, confirmedState);
       setNotice({
         type: 'info',
-        text: `[Simulador Admin] Estado de permissão atualizado no servidor: ${nextState} (Plano ${target}).`,
+        text: `[Simulador Admin] Estado de permissão confirmado pelo servidor: ${confirmedState} (Plano ${data.entitlement.tier}).`,
+      });
+    } catch {
+      setNotice({
+        type: 'warning',
+        text: 'Falha de comunicação com o servidor. Nenhum privilégio foi concedido localmente.',
       });
     } finally {
       setIsUpdating(false);
@@ -532,12 +599,25 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
   };
 
   const handleSaveAdminPlans = async () => {
+    if (!isAdminAuthorized) {
+      setNotice({
+        type: 'warning',
+        text: 'Acesso negado: somente administradores autenticados podem alterar planos comerciais.',
+      });
+      return;
+    }
     setIsSavingAdminPlans(true);
     try {
       const authHeaders = await getAuthBearerHeaders({
         'Content-Type': 'application/json',
-        'x-gio-admin-access': 'authorized',
       });
+      if (!authHeaders.Authorization) {
+        setNotice({
+          type: 'warning',
+          text: 'Autenticação administrativa obrigatória.',
+        });
+        return;
+      }
       const res = await fetch('/api/subscriptions/admin/plans', {
         method: 'POST',
         headers: authHeaders,
@@ -545,7 +625,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
           monthlyPrice: Number(editMonthlyPrice),
           annualPrice: Number(editAnnualPrice),
           trialOfferEnabled: editTrialEnabled,
-          adminEmail: userEmail || 'gustakkg15@gmail.com',
+          adminEmail: userEmail || 'admin',
         }),
       });
       const data = await res.json();
@@ -568,12 +648,25 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
   };
 
   const handleRunHomologationCheck = async () => {
+    if (!isAdminAuthorized) {
+      setNotice({
+        type: 'warning',
+        text: 'Acesso negado: somente administradores autenticados podem executar diagnósticos de homologação.',
+      });
+      return;
+    }
     setIsRunningHomologation(true);
     try {
       const authHeaders = await getAuthBearerHeaders({
         'Content-Type': 'application/json',
-        'x-gio-admin-access': 'authorized',
       });
+      if (!authHeaders.Authorization) {
+        setNotice({
+          type: 'warning',
+          text: 'Autenticação administrativa obrigatória.',
+        });
+        return;
+      }
       const res = await fetch('/api/subscriptions/admin/homologation/verify', {
         method: 'POST',
         headers: authHeaders,
@@ -697,18 +790,20 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
             <CreditCard className="w-4 h-4" />
             <span>Planos & Minha Assinatura</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveViewTab('admin')}
-            className={`px-4 py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 ${
-              activeViewTab === 'admin'
-                ? 'gio-btn-pro shadow-xs'
-                : 'text-[#B9FC01] hover:bg-white/[0.05] border border-[#B9FC01]/30'
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-            <span>Diagnóstico & Homologação MP</span>
-          </button>
+          {isAdminAuthorized && (
+            <button
+              type="button"
+              onClick={() => setActiveViewTab('admin')}
+              className={`px-4 py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 ${
+                activeViewTab === 'admin'
+                  ? 'gio-btn-pro shadow-xs'
+                  : 'text-[#B9FC01] hover:bg-white/[0.05] border border-[#B9FC01]/30'
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              <span>Diagnóstico & Homologação MP</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -755,33 +850,45 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#FFFFFF]">
-                  {isPro
-                    ? 'Recursos PRO Liberados nesta Sessão · Checkout Externo em Homologação'
-                    : 'Proteção de Pagamento Ativa · Checkout Mercado Pago em Homologação'}
+                  {isAdminAuthorized
+                    ? (isPro
+                        ? 'Recursos PRO Liberados nesta Sessão · Checkout Externo em Homologação'
+                        : 'Proteção de Pagamento Ativa · Checkout Mercado Pago em Homologação')
+                    : (isPro
+                        ? 'Recursos PRO Ativos · Acesso Liberado'
+                        : 'Plano Gratuito Ativo · Teste de 3 Dias Disponível')}
                 </span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#10141E] text-[#94A3B8] border border-[#161C2C]">
-                  Gateway: {homologationReport?.status || 'PENDING_CREDENTIALS'}
-                </span>
+                {isAdminAuthorized && (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#10141E] text-[#94A3B8] border border-[#161C2C]">
+                    Gateway: {homologationReport?.status || 'PENDING_CREDENTIALS'}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-[#94A3B8] leading-relaxed">
-                {isPro
-                  ? 'Seu acesso aos módulos TikTok LIVE PRO e Sorteador de Comentários já está ativo. Novas contratações externas via Mercado Pago permanecem em modo seguro de homologação (nenhuma cobrança externa é gerada).'
-                  : homologationReport?.blockReason ||
-                    'A contratação financeira automática aguarda a conclusão das etapas de homologação da API do Mercado Pago. Nenhuma cobrança é realizada ou simulada.'}
+                {isAdminAuthorized
+                  ? (isPro
+                      ? 'Seu acesso aos módulos TikTok LIVE PRO e Sorteador de Comentários já está ativo. Novas contratações externas via Mercado Pago permanecem em modo seguro de homologação (nenhuma cobrança externa é gerada).'
+                      : homologationReport?.blockReason ||
+                        'A contratação financeira automática aguarda a conclusão das etapas de homologação da API do Mercado Pago. Nenhuma cobrança é realizada ou simulada.')
+                  : (isPro
+                      ? 'Você tem acesso completo aos recursos da plataforma GIO DA SORTE PRO nesta conta.'
+                      : 'Experimente os recursos exclusivos do Plano PRO com 3 dias de avaliação gratuita sem compromisso.')}
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setActiveViewTab('admin')}
-            className="px-3.5 py-2 rounded-xl bg-[#10141E] hover:bg-[#161C2C] text-[#B9FC01] border border-[#B9FC01]/35 text-xs font-semibold shrink-0 transition"
-          >
-            Ver Status Técnico MP
-          </button>
+          {isAdminAuthorized && (
+            <button
+              type="button"
+              onClick={() => setActiveViewTab('admin')}
+              className="px-3.5 py-2 rounded-xl bg-[#10141E] hover:bg-[#161C2C] text-[#B9FC01] border border-[#B9FC01]/35 text-xs font-semibold shrink-0 transition"
+            >
+              Ver Status Técnico MP
+            </button>
+          )}
         </div>
       )}
 
-      {activeViewTab === 'plans' ? (
+      {activeViewTab === 'plans' || !isAdminAuthorized ? (
         <>
           {/* 3-Column Commercial Plans Grid: FREE | PRO MENSAL | PRO ANUAL */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
@@ -1091,13 +1198,21 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
 
               <div className="p-3.5 rounded-xl bg-[#080A0F] border border-[#161C2C]">
                 <span className="text-[10px] font-mono uppercase text-[#94A3B8] block">
-                  Status Interno & Mercado Pago
+                  {isAdminAuthorized ? 'Status Interno & Mercado Pago' : 'Situação da Assinatura'}
                 </span>
                 <span className="font-mono font-bold text-[#F5B942] text-sm block mt-0.5">
-                  {userSubscription?.statusState || statusState} ({userSubscription?.billingSubStatus || 'FREE_TIER'})
+                  {isAdminAuthorized
+                    ? `${userSubscription?.statusState || statusState} (${userSubscription?.billingSubStatus || 'FREE_TIER'})`
+                    : isPro
+                    ? 'Ativa (Acesso PRO Liberado)'
+                    : 'Plano Gratuito (FREE)'}
                 </span>
                 <span className="text-[11px] font-mono text-[#94A3B8]">
-                  Remoto MP: {userSubscription?.remoteMpStatus || 'nenhum'}
+                  {isAdminAuthorized
+                    ? `Remoto MP: ${userSubscription?.remoteMpStatus || 'nenhum'}`
+                    : isPro
+                    ? 'Recursos exclusivos liberados'
+                    : 'Sem cobrança recorrente ativa'}
                 </span>
               </div>
 
@@ -1129,7 +1244,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                     ? 'Cancelada (Sem cobranças futuras)'
                     : formatDatePtBr(userSubscription?.nextPaymentDate)}
                 </span>
-                {userSubscription?.mpPreapprovalId && (
+                {isAdminAuthorized && userSubscription?.mpPreapprovalId && (
                   <span className="text-[10px] font-mono text-[#94A3B8] block mt-0.5 truncate">
                     ID MP: {userSubscription.mpPreapprovalId}
                   </span>
@@ -1137,26 +1252,28 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
               </div>
             </div>
 
-            {/* Bilateral Verification Input & Self-Service Cancellation Action */}
+            {/* Bilateral Verification Input (Admin Only) & Self-Service Cancellation Action */}
             <div className="pt-3 border-t border-[#161C2C] flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1">
-                <input
-                  type="text"
-                  value={verifyPreapprovalInput}
-                  onChange={(e) => setVerifyPreapprovalInput(e.target.value)}
-                  placeholder="ID da assinatura Mercado Pago (preapproval_id) para verificar no backend..."
-                  className="flex-1 px-3.5 py-2 rounded-xl bg-[#080A0F] border border-[#161C2C] text-xs font-mono text-[#FFFFFF] placeholder:text-[#94A3B8]"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleVerifyPreapproval()}
-                  disabled={isVerifyingPreapproval}
-                  className="px-4 py-2 rounded-xl bg-[#0131CD]/20 hover:bg-[#0131CD]/30 text-[#FFFFFF] border border-[#0131CD]/40 text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isVerifyingPreapproval ? 'animate-spin' : ''}`} />
-                  <span>Verificar Assinatura (GET /preapproval)</span>
-                </button>
-              </div>
+              {isAdminAuthorized && (
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1">
+                  <input
+                    type="text"
+                    value={verifyPreapprovalInput}
+                    onChange={(e) => setVerifyPreapprovalInput(e.target.value)}
+                    placeholder="ID da assinatura Mercado Pago (preapproval_id) para verificar no backend..."
+                    className="flex-1 px-3.5 py-2 rounded-xl bg-[#080A0F] border border-[#161C2C] text-xs font-mono text-[#FFFFFF] placeholder:text-[#94A3B8]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleVerifyPreapproval()}
+                    disabled={isVerifyingPreapproval}
+                    className="px-4 py-2 rounded-xl bg-[#0131CD]/20 hover:bg-[#0131CD]/30 text-[#FFFFFF] border border-[#0131CD]/40 text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isVerifyingPreapproval ? 'animate-spin' : ''}`} />
+                    <span>Verificar Assinatura (GET /preapproval)</span>
+                  </button>
+                </div>
+              )}
 
               {userSubscription &&
                 (userSubscription.statusState === 'ACTIVE' ||

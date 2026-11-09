@@ -45,7 +45,10 @@ import {
   getProPlanEntitlement,
   setProPlanTier,
   getAuthBearerHeaders,
+  resetClientPlanAndAuthState,
+  setPlanConfirmationState,
 } from './utils/tiktokLiveService';
+import { clearComplianceSessionCacheOnLogout } from './utils/legalAndComplianceService';
 import { tiktokConnector, tiktokEventBus } from './utils/tiktokConnector';
 import { AppNavigationTab } from './components/Header';
 import { Sidebar } from './components/layout/Sidebar';
@@ -245,9 +248,58 @@ export default function App() {
 
   // Firebase Auth State (declared before refreshPlatformStatus)
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const [isAdminAuthorized, setIsAdminAuthorized] = useState<boolean>(false);
+  const adminVerificationReqIdRef = useRef<number>(0);
+
+  const verifyAdminStatusWithBackend = useCallback(async (user: FirebaseUser | null): Promise<boolean> => {
+    const reqId = ++adminVerificationReqIdRef.current;
+    // Immediately clear previous admin authorization state
+    setIsAdminAuthorized(false);
+
+    if (!user) {
+      return false;
+    }
+
+    try {
+      const idToken = await user.getIdToken();
+      if (!idToken || reqId !== adminVerificationReqIdRef.current) {
+        setIsAdminAuthorized(false);
+        return false;
+      }
+
+      const res = await fetch('/api/subscriptions/admin/summary', {
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+        },
+      });
+
+      // Avoid race conditions if user switched while request was in-flight
+      if (reqId !== adminVerificationReqIdRef.current) {
+        return false;
+      }
+
+      const verified = res.ok;
+      setIsAdminAuthorized(verified);
+      return verified;
+    } catch {
+      if (reqId === adminVerificationReqIdRef.current) {
+        setIsAdminAuthorized(false);
+      }
+      return false;
+    }
+  }, []);
 
   const refreshPlatformStatus = useCallback(async () => {
     const activeUid = currentUser?.uid || auth.currentUser?.uid;
+    if (!activeUid) {
+      const freeEnt = resetClientPlanAndAuthState();
+      setPlanEntitlement(freeEnt);
+      setIsAdminAuthorized(false);
+      await fetchAndSyncTikTokStatus();
+      setLiveSessionsSummary([]);
+      return;
+    }
+
     try {
       const authHeaders = await getAuthBearerHeaders();
       const planRes = await fetch('/api/tiktok/plan/status', {
@@ -256,20 +308,20 @@ export default function App() {
       if (planRes.ok) {
         const planData = await planRes.json();
         if (planData && planData.tier) {
-          setPlanEntitlement(planData);
-          setProPlanTier(planData.tier, planData.statusState, activeUid);
+          const confirmed = setProPlanTier(planData.tier, planData.statusState, activeUid);
+          setPlanEntitlement({ ...confirmed, ...planData, active: confirmed.active });
         }
+      } else if (planRes.status === 401 || planRes.status === 403) {
+        const freeEnt = setProPlanTier('FREE', 'FREE', activeUid);
+        setPlanEntitlement(freeEnt);
       }
     } catch {
-      // Fallback to local service state
+      // Fail-closed: network errors never promote to PRO
+      setPlanConfirmationState('UNKNOWN');
+      setPlanEntitlement(getProPlanEntitlement(activeUid));
     }
 
     await fetchAndSyncTikTokStatus();
-
-    if (!activeUid) {
-      setLiveSessionsSummary([]);
-      return;
-    }
 
     try {
       const authHeaders = await getAuthBearerHeaders();
@@ -353,33 +405,46 @@ export default function App() {
 
   const handleSwitchPlanTier = useCallback(
     async (tier: SubscriptionPlanTier, statusState?: SubscriptionStatusState) => {
+      const activeUid = currentUser?.uid || auth.currentUser?.uid;
+      if (!activeUid || !isAdminAuthorized) {
+        // Non-admin or unauthenticated callers cannot mutate plan tier locally or via admin endpoint
+        setPlanEntitlement(getProPlanEntitlement(activeUid));
+        return;
+      }
       setIsUpdatingPlan(true);
       try {
         const authHeaders = await getAuthBearerHeaders({
           'Content-Type': 'application/json',
-          'x-admin-authorized': 'true',
         });
+        if (!authHeaders.Authorization) {
+          setPlanEntitlement(getProPlanEntitlement(activeUid));
+          return;
+        }
         const res = await fetch('/api/tiktok/plan/tier', {
           method: 'POST',
           headers: authHeaders,
-          body: JSON.stringify({ tier, statusState }),
+          body: JSON.stringify({ uid: activeUid, tier, statusState }),
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (res.ok && data.entitlement) {
-          setPlanEntitlement(data.entitlement);
-          setProPlanTier(data.entitlement.tier, data.entitlement.statusState);
+          const confirmed = setProPlanTier(
+            data.entitlement.tier,
+            data.entitlement.statusState,
+            activeUid
+          );
+          setPlanEntitlement({ ...confirmed, ...data.entitlement, active: confirmed.active });
         } else {
-          const fallback = setProPlanTier(tier, statusState);
-          setPlanEntitlement(fallback);
+          // Fail-closed: HTTP 401/403/400 never grants PRO locally
+          setPlanEntitlement(getProPlanEntitlement(activeUid));
         }
       } catch {
-        const fallback = setProPlanTier(tier, statusState);
-        setPlanEntitlement(fallback);
+        // Fail-closed: network errors never grant PRO locally
+        setPlanEntitlement(getProPlanEntitlement(activeUid));
       } finally {
         setIsUpdatingPlan(false);
       }
     },
-    []
+    [currentUser, isAdminAuthorized]
   );
 
   // Cloud Sync & Account Modal State
@@ -470,8 +535,14 @@ export default function App() {
   // Auth state listener (R-03: Loads authoritative state from backend API, never clobbering governance fields)
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      // Immediately invalidate any in-flight verification and clear previous admin privileges
+      adminVerificationReqIdRef.current++;
+      setIsAdminAuthorized(false);
+
       setCurrentUser(user);
       if (user) {
+        setPlanConfirmationState('LOADING');
+        await verifyAdminStatusWithBackend(user);
         const userRef = doc(db, 'users', user.uid);
         try {
           await setDoc(
@@ -542,12 +613,18 @@ export default function App() {
           console.warn('Initial authoritative raffle fetch notice:', err);
         }
       } else {
+        adminVerificationReqIdRef.current++;
+        setIsAdminAuthorized(false);
+        const freeEnt = resetClientPlanAndAuthState();
+        setPlanEntitlement(freeEnt);
+        clearComplianceSessionCacheOnLogout();
         setLiveSessionsSummary([]);
+        setLegalInitialPortalTab((prev) => (prev === 'admin_legal' ? 'documents' : prev));
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [verifyAdminStatusWithBackend]);
 
   // R-03: Save to Cloud Function — NEVER writes to `users/{uid}/raffles/default` via Client SDK
   // and NEVER sends `participants`, `winners`, or governance fields (`rosterVersion`, `drawSequence`,
@@ -1143,7 +1220,9 @@ export default function App() {
       setTiktokInitialMode('live_pro');
       setTiktokInitialTab(subTab);
       setActiveTab('tiktok');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (subTab === 'feed') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     },
     []
   );
@@ -1615,6 +1694,8 @@ export default function App() {
             soundEnabled={soundActive}
             onToggleSound={handleToggleSound}
             onOpenVictoryCard={(w) => setSelectedWinnerForCard(w)}
+            isAdminAuthorized={isAdminAuthorized}
+            onOpenSubscription={() => setActiveTab('subscription')}
             adminLabel={currentUser?.email || currentUser?.displayName || 'Organizador Autorizado'}
             initialProTab={tiktokInitialTab}
             initialPlatformMode={tiktokInitialMode}
@@ -1741,7 +1822,7 @@ export default function App() {
           <SubscriptionPlanView
             entitlement={planEntitlement}
             onSwitchPlan={(tier, state) => handleSwitchPlanTier(tier, state)}
-            onNavigateToLivePro={() => handleOpenLiveProTab('feed')}
+            onNavigateToLivePro={() => handleOpenLiveProTab('motor2')}
             onNavigateToParticipants={() => {
               setActiveTab('search');
               setParticipantsSubTab('manage');
@@ -1750,6 +1831,7 @@ export default function App() {
             userId={currentUser?.uid}
             userEmail={currentUser?.email || undefined}
             emailVerified={Boolean(currentUser?.emailVerified)}
+            isAdminAuthorized={isAdminAuthorized}
           />
         )}
 
@@ -1761,7 +1843,7 @@ export default function App() {
             userId={currentUser?.uid}
             userEmail={currentUser?.email || undefined}
             userName={currentUser?.displayName || undefined}
-            isAdminAuthorized={true}
+            isAdminAuthorized={isAdminAuthorized}
             onOpenCookieSettings={() => setIsCookiePreferencesOpen(true)}
           />
         )}
@@ -1906,7 +1988,7 @@ export default function App() {
                 userId={currentUser?.uid}
                 userEmail={currentUser?.email || undefined}
                 userName={currentUser?.displayName || undefined}
-                isAdminAuthorized={true}
+                isAdminAuthorized={isAdminAuthorized}
                 onOpenCookieSettings={() => setIsCookiePreferencesOpen(true)}
               />
             )}

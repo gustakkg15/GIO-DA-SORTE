@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { User as FirebaseUser } from 'firebase/auth';
 import {
   LayoutDashboard,
@@ -100,6 +100,74 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentUser,
   onOpenAccount,
 }) => {
+  const drawerRef = useRef<HTMLElement>(null);
+  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    if (document.activeElement instanceof HTMLElement) {
+      previouslyFocusedElementRef.current = document.activeElement;
+    }
+
+    const frameId = requestAnimationFrame(() => {
+      if (drawerRef.current) {
+        const focusables = drawerRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusables.length > 0) {
+          focusables[0].focus();
+        }
+      }
+    });
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onCloseMobile();
+        return;
+      }
+
+      if (e.key === 'Tab' && drawerRef.current) {
+        const focusables = Array.from(
+          drawerRef.current.querySelectorAll<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          )
+        ).filter((el) => !el.hasAttribute('disabled') && el.offsetParent !== null);
+
+        if (focusables.length === 0) {
+          e.preventDefault();
+          return;
+        }
+
+        const firstElement = focusables[0];
+        const lastElement = focusables[focusables.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            e.preventDefault();
+            lastElement.focus();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            e.preventDefault();
+            firstElement.focus();
+          }
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      document.removeEventListener('keydown', handleKeyDown);
+      if (previouslyFocusedElementRef.current && typeof previouslyFocusedElementRef.current.focus === 'function') {
+        previouslyFocusedElementRef.current.focus();
+      }
+    };
+  }, [mobileOpen, onCloseMobile]);
+
   const normalizedActiveTab: AppNavigationTab =
     activeTab === 'legal' || activeTab === 'help' || activeTab === 'support'
       ? 'settings'
@@ -121,7 +189,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         type="button"
         onClick={() => handleItemClick(item.id)}
         title={isCompact ? `${item.label} — ${item.description}` : undefined}
-        className={`w-full flex items-center gap-3 rounded-xl transition-all duration-150 group relative btn-tactile ${
+        className={`w-full flex items-center gap-3 rounded-xl transition-all duration-150 group relative btn-tactile focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01] ${
           isCompact ? 'justify-center px-2 py-2.5' : 'px-3 py-2.5'
         } ${
           isActive
@@ -229,7 +297,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               type="button"
               onClick={onCloseMobile}
-              className="lg:hidden p-2 rounded-xl text-slate-400 hover:text-white hover:bg-[#10141E] border border-transparent hover:border-white/10 transition-colors"
+              className="lg:hidden min-w-[44px] min-h-[44px] p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-[#10141E] border border-transparent hover:border-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01] inline-flex items-center justify-center"
               aria-label="Fechar menu lateral"
             >
               <X className="w-5 h-5" />
@@ -375,7 +443,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
             aria-hidden="true"
           />
 
-          <aside className="relative w-[280px] max-w-[85vw] h-full bg-[#080A0F] border-r border-white/[0.08] shadow-2xl flex flex-col z-10 animate-fade-in">
+          <aside
+            ref={drawerRef}
+            id="mobile-navigation-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu de navegação lateral móvel"
+            tabIndex={-1}
+            className="relative w-[280px] max-w-[85vw] h-full bg-[#080A0F] border-r border-white/[0.08] shadow-2xl flex flex-col z-10 animate-fade-in focus:outline-none"
+          >
             {renderNavContent(true)}
           </aside>
         </div>

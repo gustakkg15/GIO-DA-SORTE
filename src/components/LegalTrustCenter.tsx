@@ -101,7 +101,7 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
   onOpenCookieSettings,
 }) => {
   const [portalTab, setPortalTab] = useState<'documents' | 'privacy_lgpd' | 'help_support' | 'admin_legal'>(
-    initialPortalTab
+    initialPortalTab === 'admin_legal' && !isAdminAuthorized ? 'documents' : initialPortalTab
   );
   const [selectedSlug, setSelectedSlug] = useState<LegalDocumentSlug>(initialSlug);
   const [documents, setDocuments] = useState<LegalDocument[]>([]);
@@ -164,33 +164,75 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
   }, [initialSlug]);
 
   useEffect(() => {
+    if (initialPortalTab === 'admin_legal' && !isAdminAuthorized) {
+      setPortalTab('documents');
+      return;
+    }
     setPortalTab(initialPortalTab);
-  }, [initialPortalTab]);
+  }, [initialPortalTab, isAdminAuthorized]);
+
+  useEffect(() => {
+    if (!isAdminAuthorized && portalTab === 'admin_legal') {
+      setPortalTab('documents');
+    }
+  }, [isAdminAuthorized, portalTab]);
+
+  useEffect(() => {
+    setLgpdName(userName || '');
+    setLgpdEmail(userEmail || '');
+    setSupName(userName || '');
+    setSupEmail(userEmail || '');
+  }, [userName, userEmail]);
+
+  const authenticatedUid =
+    userId && !['visitante', 'anon', 'usuario', 'titular'].includes(userId.trim())
+      ? userId.trim()
+      : '';
 
   const loadAllComplianceData = async () => {
-    const [docs, vers, accs, cLogs, lgpds, sups, comp, comm] = await Promise.all([
+    const [docs, vers, comp, comm] = await Promise.all([
       fetchAllLegalDocuments(),
       fetchDocumentVersionHistory(),
-      fetchAllDocumentAcceptances(),
-      fetchAllCookieConsentLogs(),
-      fetchLgpdRequests(),
-      fetchSupportTickets(),
       fetchCompanyLegalSettings(),
       fetchCommercialSubscriptionConfig(),
     ]);
     setDocuments(docs);
     setVersionHistory(vers);
-    setAcceptances(accs);
-    setCookieLogs(cLogs);
-    setLgpdRequests(lgpds);
-    setSupportTickets(sups);
     setCompanySettings(comp);
     setCommercialConfig(comm);
+
+    if (isAdminAuthorized) {
+      const [accs, cLogs, lgpds, sups] = await Promise.all([
+        fetchAllDocumentAcceptances(undefined, { isAdminGlobal: true }),
+        fetchAllCookieConsentLogs({ isAdminGlobal: true }),
+        fetchLgpdRequests(undefined, { isAdminGlobal: true }),
+        fetchSupportTickets(undefined, { isAdminGlobal: true }),
+      ]);
+      setAcceptances(accs);
+      setCookieLogs(cLogs);
+      setLgpdRequests(lgpds);
+      setSupportTickets(sups);
+    } else if (authenticatedUid) {
+      const [accs, lgpds, sups] = await Promise.all([
+        fetchAllDocumentAcceptances(authenticatedUid),
+        fetchLgpdRequests(authenticatedUid),
+        fetchSupportTickets(authenticatedUid),
+      ]);
+      setAcceptances(accs);
+      setCookieLogs([]);
+      setLgpdRequests(lgpds);
+      setSupportTickets(sups);
+    } else {
+      setAcceptances([]);
+      setCookieLogs([]);
+      setLgpdRequests([]);
+      setSupportTickets([]);
+    }
   };
 
   useEffect(() => {
     loadAllComplianceData();
-  }, []);
+  }, [authenticatedUid, isAdminAuthorized]);
 
   // Sync admin editor fields when editSlug or documents change
   useEffect(() => {
@@ -234,15 +276,22 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
 
   const handleAcceptActiveDocument = async () => {
     if (!activeDocument) return;
-    await recordDocumentAcceptance({
+    const created = await recordDocumentAcceptance({
       userId,
       userEmail,
       documentId: activeDocument.slug,
       version: activeDocument.version,
       context: 'PAINEL_LEGAL',
     });
-    const updated = await fetchAllDocumentAcceptances();
-    setAcceptances(updated);
+    if (isAdminAuthorized) {
+      const updated = await fetchAllDocumentAcceptances(undefined, { isAdminGlobal: true });
+      setAcceptances(updated);
+    } else if (authenticatedUid) {
+      const updated = await fetchAllDocumentAcceptances(authenticatedUid);
+      setAcceptances(updated);
+    } else {
+      setAcceptances((prev) => [created, ...prev]);
+    }
     setFeedbackBanner({
       type: 'success',
       text: `Aceite registrado com sucesso para "${activeDocument.title}" (versão ${activeDocument.version})!`,
@@ -310,6 +359,13 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
   };
 
   const handleSaveDraftAdmin = async () => {
+    if (!isAdminAuthorized) {
+      setFeedbackBanner({
+        type: 'error',
+        text: 'Acesso negado: somente administradores autenticados podem salvar rascunhos jurídicos.',
+      });
+      return;
+    }
     await saveLegalDocumentDraft(editSlug, editVersion, editSummary, editSections);
     await loadAllComplianceData();
     setFeedbackBanner({
@@ -319,6 +375,13 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
   };
 
   const handlePublishNewVersionAdmin = async () => {
+    if (!isAdminAuthorized) {
+      setFeedbackBanner({
+        type: 'error',
+        text: 'Acesso negado: somente administradores autenticados podem publicar novas versões.',
+      });
+      return;
+    }
     const effTs = editEffectiveDate ? new Date(editEffectiveDate).getTime() : Date.now();
     await publishLegalDocumentVersion(
       editSlug,
@@ -338,6 +401,13 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
 
   const handleSaveCompanySettingsAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdminAuthorized) {
+      setFeedbackBanner({
+        type: 'error',
+        text: 'Acesso negado: somente administradores autenticados podem alterar dados empresariais.',
+      });
+      return;
+    }
     if (!companySettings) return;
     await saveCompanyLegalSettings(companySettings, userEmail || 'admin');
     await loadAllComplianceData();
@@ -349,6 +419,13 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
 
   const handleSaveCommercialConfigAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdminAuthorized) {
+      setFeedbackBanner({
+        type: 'error',
+        text: 'Acesso negado: somente administradores autenticados podem alterar parâmetros comerciais.',
+      });
+      return;
+    }
     if (!commercialConfig) return;
     await saveCommercialSubscriptionConfig(commercialConfig);
     await loadAllComplianceData();
@@ -1609,12 +1686,13 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
               {adminSubTab === 'commercial' && commercialConfig && (
                 <form
                   onSubmit={async (e) => {
+                    if (!isAdminAuthorized) return;
                     await handleSaveCommercialConfigAdmin(e);
                     try {
                       const authHeaders = await getAuthBearerHeaders({
                         'Content-Type': 'application/json',
-                        'x-gio-admin-access': 'authorized',
                       });
+                      if (!authHeaders.Authorization) return;
                       await fetch('/api/subscriptions/admin/plans', {
                         method: 'POST',
                         headers: authHeaders,
@@ -1622,7 +1700,7 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
                           monthlyPrice: Number(commercialConfig.monthlyPrice ?? 29.9),
                           annualPrice: Number(commercialConfig.annualPrice ?? 199.9),
                           trialOfferEnabled: Boolean(commercialConfig.trialOfferEnabled ?? true),
-                          adminEmail: userEmail || 'gustakkg15@gmail.com',
+                          adminEmail: userEmail || 'admin',
                         }),
                       });
                     } catch {
