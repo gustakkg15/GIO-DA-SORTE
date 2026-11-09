@@ -62,8 +62,8 @@ const STATUS_BADGE_STYLES: Record<
     label: 'DEGRADADO',
   },
   DISCONNECTED: {
-    bg: 'bg-[#0B1730]',
-    border: 'border-[#182943]',
+    bg: 'bg-[#10141E]',
+    border: 'border-[#161C2C]',
     text: 'text-[#94A3B8]',
     dot: 'bg-[#94A3B8]',
     label: 'DESCONECTADO',
@@ -76,8 +76,8 @@ const STATUS_BADGE_STYLES: Record<
     label: 'ERRO',
   },
   UNKNOWN: {
-    bg: 'bg-[#101F3D]',
-    border: 'border-[#182943]',
+    bg: 'bg-[#10141E]',
+    border: 'border-[#161C2C]',
     text: 'text-[#94A3B8]',
     dot: 'bg-[#94A3B8]',
     label: 'AGUARDANDO',
@@ -98,14 +98,14 @@ const MilestoneCard: React.FC<{
 }> = ({ title, subtitle, accentColor, milestone }) => {
   const titleColorMap = {
     gold: 'text-[#F5B942]',
-    sapphire: 'text-[#00A9FF]',
+    sapphire: 'text-[#B9FC01]',
     emerald: 'text-[#20C997]',
-    cyan: 'text-[#35B9F5]',
+    cyan: 'text-[#B9FC01]',
   };
 
   return (
-    <div className="p-4 rounded-lg border border-[#182943] bg-[#0B1730] space-y-2.5">
-      <div className="flex items-center justify-between gap-2 border-b border-[#182943] pb-2">
+    <div className="p-4 rounded-lg border border-[#161C2C] bg-[#10141E] space-y-2.5">
+      <div className="flex items-center justify-between gap-2 border-b border-[#161C2C] pb-2">
         <div>
           <h4 className={`text-xs font-semibold ${titleColorMap[accentColor]}`}>
             {title}
@@ -126,14 +126,14 @@ const MilestoneCard: React.FC<{
       ) : (
         <div className="space-y-1.5 text-xs">
           <div className="flex items-center justify-between gap-2">
-            <span className="font-semibold text-[#F8FAFC] truncate">{milestone.displayHandle}</span>
+            <span className="font-semibold text-[#FFFFFF] truncate">{milestone.displayHandle}</span>
             <span className="font-mono font-semibold text-[#F5B942] tabular-nums">
               +{milestone.coinsGranted} moedas
             </span>
           </div>
           <div className="flex items-center justify-between text-[11px] text-[#94A3B8]">
             <span>
-              {milestone.giftName} <strong className="font-mono text-[#F8FAFC]">({milestone.repeatCount}x)</strong>
+              {milestone.giftName} <strong className="font-mono text-[#FFFFFF]">({milestone.repeatCount}x)</strong>
             </span>
             {milestone.latencyMs !== undefined && (
               <span className="font-mono text-[#20C997] tabular-nums">{milestone.latencyMs} ms</span>
@@ -145,7 +145,7 @@ const MilestoneCard: React.FC<{
               {milestone.ticketNumbers.length > 5 ? ` (+${milestone.ticketNumbers.length - 5})` : ''}
             </div>
           )}
-          <div className="pt-1.5 border-t border-[#182943] text-[10px] font-mono text-[#94A3B8] space-y-0.5">
+          <div className="pt-1.5 border-t border-[#161C2C] text-[10px] font-mono text-[#94A3B8] space-y-0.5">
             <div className="truncate">ID: {milestone.eventId}</div>
             <div>
               Timestamp:{' '}
@@ -369,11 +369,11 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
 
   if (!isAdminAuthorized) {
     return (
-      <div className="p-8 rounded-xl bg-[#101F3D] border border-[#182943] text-center space-y-4">
-        <div className="w-12 h-12 rounded-xl bg-[#0B1730] border border-[#182943] flex items-center justify-center mx-auto text-[#F5B942]">
+      <div className="p-8 rounded-xl bg-[#10141E] border border-[#161C2C] text-center space-y-4">
+        <div className="w-12 h-12 rounded-xl bg-[#10141E] border border-[#161C2C] flex items-center justify-center mx-auto text-[#F5B942]">
           <Lock className="w-6 h-6" />
         </div>
-        <h2 className="text-lg font-semibold text-[#F8FAFC]">
+        <h2 className="text-lg font-semibold text-[#FFFFFF]">
           Monitor Técnico — Acesso Restrito
         </h2>
         <p className="text-xs text-[#94A3B8] max-w-md mx-auto">
@@ -395,16 +395,16 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
   );
 
   return (
-    <div className="space-y-6 rounded-xl p-5 sm:p-6 bg-[#101F3D] border border-[#182943] text-[#F8FAFC]">
+    <div className="space-y-6 rounded-xl p-5 sm:p-6 bg-[#10141E] border border-[#161C2C] text-[#FFFFFF]">
       {/* HEADER */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#182943] pb-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#161C2C] pb-4">
         <div className="flex items-start sm:items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#0B1730] border border-[#182943] flex items-center justify-center shrink-0">
-            <Activity className="w-5 h-5 text-[#00A9FF]" />
+          <div className="w-10 h-10 rounded-lg bg-[#10141E] border border-[#161C2C] flex items-center justify-center shrink-0">
+            <Activity className="w-5 h-5 text-[#B9FC01]" />
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-base sm:text-lg font-semibold text-[#F8FAFC]">
+              <h2 className="text-base sm:text-lg font-semibold text-[#FFFFFF]">
                 Monitor Técnico e Recuperação SSE
               </h2>
               <span className="text-xs text-[#94A3B8]">
@@ -418,32 +418,32 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0B1730] border border-[#182943] text-xs font-mono text-[#94A3B8]">
-            <Clock className="w-3.5 h-3.5 text-[#00A9FF]" />
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#10141E] border border-[#161C2C] text-xs font-mono text-[#94A3B8]">
+            <Clock className="w-3.5 h-3.5 text-[#B9FC01]" />
             <span>Atualização:</span>
             <select
               value={autoRefreshMs}
               onChange={(e) => setAutoRefreshMs(Number(e.target.value))}
-              className="bg-transparent text-[#F8FAFC] font-semibold focus:outline-none"
+              className="bg-transparent text-[#FFFFFF] font-semibold focus:outline-none focus:ring-2 focus:ring-[#B9FC01]/40 rounded"
             >
-              <option value={1000} className="bg-[#0B1730]">1s</option>
-              <option value={2000} className="bg-[#0B1730]">2s</option>
-              <option value={5000} className="bg-[#0B1730]">5s</option>
+              <option value={1000} className="bg-[#10141E]">1s</option>
+              <option value={2000} className="bg-[#10141E]">2s</option>
+              <option value={5000} className="bg-[#10141E]">5s</option>
             </select>
           </div>
 
           <button
             onClick={fetchSnapshot}
-            className="px-3 py-2 rounded-lg bg-[#0B1730] hover:bg-[#182943] border border-[#182943] text-xs font-medium text-[#F8FAFC] transition flex items-center gap-1.5"
+            className="px-3 py-2 rounded-lg bg-[#10141E] hover:bg-[#161C2C] border border-[#161C2C] text-xs font-medium text-[#FFFFFF] transition flex items-center gap-1.5"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-[#00A9FF] ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-[#B9FC01] ${isLoading ? 'animate-spin' : ''}`} />
             <span>Atualizar Agora</span>
           </button>
 
           <button
             onClick={onTriggerQueueRecovery}
             disabled={isRecoveringQueue}
-            className="px-3.5 py-2 rounded-lg bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-semibold text-xs transition flex items-center gap-1.5 disabled:opacity-50"
+            className="px-3.5 py-2 rounded-lg bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-semibold text-xs transition flex items-center gap-1.5 disabled:opacity-50"
           >
             <Zap className="w-3.5 h-3.5" />
             <span>{isRecoveringQueue ? 'Recuperando WAL...' : 'Forçar Sincronização WAL'}</span>
@@ -452,17 +452,17 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
       </div>
 
       {/* MONITOR NAVIGATION TABS */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#182943] pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#161C2C] pb-3">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveTab('telemetry')}
             className={`px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 ${
               activeTab === 'telemetry'
-                ? 'bg-[#0866F5]/15 text-[#F8FAFC] border border-[#00A9FF]/50'
-                : 'bg-[#0B1730] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#182943]'
+                ? 'bg-[#0131CD]/15 text-[#FFFFFF] border border-[#0131CD]/50'
+                : 'bg-[#10141E] text-[#94A3B8] hover:text-[#FFFFFF] border border-[#161C2C]'
             }`}
           >
-            <Activity className="w-4 h-4 text-[#00A9FF]" />
+            <Activity className="w-4 h-4 text-[#B9FC01]" />
             <span>Métricas Operacionais e Telemetria</span>
           </button>
 
@@ -470,8 +470,8 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
             onClick={() => setActiveTab('debugger')}
             className={`px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 ${
               activeTab === 'debugger'
-                ? 'bg-[#F5B942]/15 text-[#F8FAFC] border border-[#F5B942]/50'
-                : 'bg-[#0B1730] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#182943]'
+                ? 'bg-[#F5B942]/15 text-[#FFFFFF] border border-[#F5B942]/50'
+                : 'bg-[#10141E] text-[#94A3B8] hover:text-[#FFFFFF] border border-[#161C2C]'
             }`}
           >
             <Bug className="w-4 h-4 text-[#F5B942]" />
@@ -486,16 +486,16 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={handleClearBuffer}
-              className="px-3 py-1.5 rounded-lg bg-[#0B1730] hover:bg-[#182943] border border-[#182943] text-xs font-mono text-[#94A3B8] hover:text-[#F8FAFC] transition flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-lg bg-[#10141E] hover:bg-[#161C2C] border border-[#161C2C] text-xs font-mono text-[#94A3B8] hover:text-[#FFFFFF] transition flex items-center gap-1.5"
             >
               <Trash2 className="w-3.5 h-3.5 text-[#F05262]" />
               <span>Esvaziar Buffer ({diagStats?.inMemoryBufferSize ?? 0}/2000)</span>
             </button>
             <button
               onClick={() => fetchDiagnosticData()}
-              className="px-3 py-1.5 rounded-lg bg-[#0B1730] hover:bg-[#182943] border border-[#182943] text-xs font-mono text-[#F8FAFC] transition flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-lg bg-[#10141E] hover:bg-[#161C2C] border border-[#161C2C] text-xs font-mono text-[#FFFFFF] transition flex items-center gap-1.5"
             >
-              <RefreshCw className={`w-3.5 h-3.5 text-[#00A9FF] ${isLoadingDiag ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 text-[#B9FC01] ${isLoadingDiag ? 'animate-spin' : ''}`} />
               <span>Atualizar Eventos</span>
             </button>
           </div>
@@ -505,19 +505,19 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
       {activeTab === 'telemetry' && (
         <>
           {errorMsg && (
-            <div className="p-3 rounded-lg bg-[#F05262]/15 border border-[#F05262]/40 text-xs text-[#F8FAFC] flex items-center gap-2">
+            <div className="p-3 rounded-lg bg-[#F05262]/15 border border-[#F05262]/40 text-xs text-[#FFFFFF] flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-[#F05262] shrink-0" />
               <span>Falha ao consultar telemetria administrativa: {errorMsg}</span>
             </div>
           )}
 
           {/* CLOCK DISCIPLINE & SESSION METADATA BANNER */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3.5 rounded-lg bg-[#0B1730] border border-[#182943] text-xs">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3.5 rounded-lg bg-[#10141E] border border-[#161C2C] text-xs">
             <div className="flex items-center gap-2.5">
-              <Radio className="w-4 h-4 text-[#00A9FF] shrink-0" />
+              <Radio className="w-4 h-4 text-[#B9FC01] shrink-0" />
               <div>
                 <span className="text-[11px] text-[#94A3B8] block">Sessão monitorada</span>
-                <span className="font-mono font-semibold text-[#F8FAFC]">
+                <span className="font-mono font-semibold text-[#FFFFFF]">
                   {snapshot?.sessionId || sessionId} (@{snapshot?.roomUsername || roomUsername})
                 </span>
               </div>
@@ -526,7 +526,7 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
               <Clock className="w-4 h-4 text-[#F5B942] shrink-0" />
               <div>
                 <span className="text-[11px] text-[#94A3B8] block">Medição de duração</span>
-                <span className="font-mono font-semibold text-[#F8FAFC]">
+                <span className="font-mono font-semibold text-[#FFFFFF]">
                   Relógio Monotônico (performance.now)
                 </span>
               </div>
@@ -545,8 +545,8 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
           {/* SECTION 1: REAL-TIME THROUGHPUT & QUEUE INDICATORS */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold text-[#F8FAFC] flex items-center gap-2">
-                <Zap className="w-4 h-4 text-[#00A9FF]" />
+              <h3 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-2">
+                <Zap className="w-4 h-4 text-[#B9FC01]" />
                 <span>1. Indicadores de Vazão (Eventos/s) e Saúde da Fila em Tempo Real</span>
               </h3>
               <span className="text-[11px] font-mono text-[#94A3B8] tabular-nums">
@@ -555,9 +555,9 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              <div className="p-3.5 rounded-lg bg-[#0B1730] border border-[#182943]">
+              <div className="p-3.5 rounded-lg bg-[#10141E] border border-[#161C2C]">
                 <span className="text-[11px] text-[#94A3B8] block">Recebidos / s</span>
-                <p className="text-xl font-mono font-bold text-[#F8FAFC] tabular-nums mt-0.5">
+                <p className="text-xl font-mono font-bold text-[#FFFFFF] tabular-nums mt-0.5">
                   {snapshot?.rates.receivedEps ?? 0}/s
                 </p>
                 <span className="text-[10px] font-mono text-[#94A3B8] tabular-nums">
@@ -565,9 +565,9 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-lg bg-[#0B1730] border border-[#182943]">
+              <div className="p-3.5 rounded-lg bg-[#10141E] border border-[#161C2C]">
                 <span className="text-[11px] text-[#94A3B8] block">Processados / s</span>
-                <p className="text-xl font-mono font-bold text-[#F8FAFC] tabular-nums mt-0.5">
+                <p className="text-xl font-mono font-bold text-[#FFFFFF] tabular-nums mt-0.5">
                   {snapshot?.rates.processedEps ?? 0}/s
                 </p>
                 <span className="text-[10px] font-mono text-[#94A3B8] tabular-nums">
@@ -575,7 +575,7 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-lg bg-[#0B1730] border border-[#182943]">
+              <div className="p-3.5 rounded-lg bg-[#10141E] border border-[#161C2C]">
                 <span className="text-[11px] text-[#94A3B8] block">Persistidos / s</span>
                 <p className="text-xl font-mono font-bold text-[#20C997] tabular-nums mt-0.5">
                   {snapshot?.rates.persistedEps ?? 0}/s
@@ -585,7 +585,7 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-lg bg-[#0B1730] border border-[#182943]">
+              <div className="p-3.5 rounded-lg bg-[#10141E] border border-[#161C2C]">
                 <span className="text-[11px] text-[#94A3B8] block">Transmitidos SSE / s</span>
                 <p className="text-xl font-mono font-bold text-[#F5B942] tabular-nums mt-0.5">
                   {snapshot?.rates.transmittedEps ?? 0}/s
@@ -595,7 +595,7 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-lg bg-[#0B1730] border border-[#182943]">
+              <div className="p-3.5 rounded-lg bg-[#10141E] border border-[#161C2C]">
                 <span className="text-[11px] text-[#94A3B8] block">Fila Pendente (Idade)</span>
                 <p className="text-xl font-mono font-bold text-[#F5B942] tabular-nums mt-0.5">
                   {snapshot?.totals.pendingInQueue ?? 0}
@@ -605,9 +605,9 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-lg bg-[#0B1730] border border-[#182943]">
+              <div className="p-3.5 rounded-lg bg-[#10141E] border border-[#161C2C]">
                 <span className="text-[11px] text-[#94A3B8] block">Retransmissões / Falhas</span>
-                <p className="text-xl font-mono font-bold text-[#F8FAFC] tabular-nums mt-0.5">
+                <p className="text-xl font-mono font-bold text-[#FFFFFF] tabular-nums mt-0.5">
                   {snapshot?.totals.technicalRetransmissionsDetected ?? 0}{' '}
                   <span className="text-xs font-normal text-[#94A3B8]">dup</span>
                 </p>
@@ -620,14 +620,14 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
 
           {/* SECTION 1B: 6-STAGE LATENCY PERCENTILES TABLE */}
           <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-[#F8FAFC] flex items-center gap-2">
-              <Clock className="w-4 h-4 text-[#00A9FF]" />
+            <h3 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-2">
+              <Clock className="w-4 h-4 text-[#B9FC01]" />
               <span>Latências por Etapa do Pipeline (Percentis p50, p95 e p99 — Relógio Monotônico)</span>
             </h3>
 
-            <div className="overflow-x-auto rounded-lg border border-[#182943] bg-[#0B1730]">
+            <div className="overflow-x-auto rounded-lg border border-[#161C2C] bg-[#10141E]">
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#050D20] text-[#F8FAFC] font-semibold border-b border-[#182943]">
+                <thead className="bg-[#080A0F] text-[#FFFFFF] font-semibold border-b border-[#161C2C]">
                   <tr>
                     <th className="py-2.5 px-4">Etapa de Latência</th>
                     <th className="py-2.5 px-4 text-right font-mono">p50 (Mediana)</th>
@@ -638,17 +638,17 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                     <th className="py-2.5 px-4 text-right font-mono">Amostras</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#182943] font-mono tabular-nums">
+                <tbody className="divide-y divide-[#161C2C] font-mono tabular-nums">
                   {[
                     {
                       label: '1. Recebimento pelo Servidor (Webcast → Adapter)',
                       stat: snapshot?.latencies.serverReceive,
-                      color: 'text-[#F8FAFC]',
+                      color: 'text-[#FFFFFF]',
                     },
                     {
                       label: '2. Processamento e Normalização (Adapter → WAL)',
                       stat: snapshot?.latencies.processing,
-                      color: 'text-[#F8FAFC]',
+                      color: 'text-[#FFFFFF]',
                     },
                     {
                       label: '3. Persistência Atômica no Firestore (WAL → Commit)',
@@ -663,7 +663,7 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                     {
                       label: '5. Recebimento no Navegador → Renderização Visual (React DOM)',
                       stat: snapshot?.latencies.browserRender,
-                      color: 'text-[#F8FAFC]',
+                      color: 'text-[#FFFFFF]',
                     },
                     {
                       label: '6. Latência Total End-to-End (Captura Servidor → Feed Renderizado)',
@@ -671,8 +671,8 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                       color: 'text-[#20C997] font-semibold',
                     },
                   ].map((row) => (
-                    <tr key={row.label} className="hover:bg-[#101F3D] transition">
-                      <td className="py-2.5 px-4 font-sans font-medium text-[#F8FAFC]">{row.label}</td>
+                    <tr key={row.label} className="hover:bg-[#10141E] transition">
+                      <td className="py-2.5 px-4 font-sans font-medium text-[#FFFFFF]">{row.label}</td>
                       <td className={`py-2.5 px-4 text-right ${row.color}`}>{row.stat?.p50 ?? 0} ms</td>
                       <td className={`py-2.5 px-4 text-right ${row.color}`}>{row.stat?.p95 ?? 0} ms</td>
                       <td className={`py-2.5 px-4 text-right ${row.color}`}>{row.stat?.p99 ?? 0} ms</td>
@@ -688,19 +688,19 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
 
           {/* SECTION 3A: HISTORICAL CHARTS */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="p-4 rounded-lg bg-[#0B1730] border border-[#182943] space-y-3">
+            <div className="p-4 rounded-lg bg-[#10141E] border border-[#161C2C] space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="text-xs font-semibold text-[#F8FAFC]">
+                <h4 className="text-xs font-semibold text-[#FFFFFF]">
                   Gráfico Histórico: Taxa de Eventos / Segundo
                 </h4>
                 <div className="flex items-center gap-3 text-[10px] font-mono">
-                  <span className="text-[#00A9FF]">● Recebidos</span>
+                  <span className="text-[#B9FC01]">● Recebidos</span>
                   <span className="text-[#20C997]">● Persistidos</span>
                   <span className="text-[#F5B942]">● SSE</span>
                 </div>
               </div>
 
-              <div className="h-36 w-full bg-[#050D20] rounded-lg border border-[#182943] p-2 flex items-end gap-1 overflow-hidden">
+              <div className="h-36 w-full bg-[#080A0F] rounded-lg border border-[#161C2C] p-2 flex items-end gap-1 overflow-hidden">
                 {timeSeries.length === 0 ? (
                   <div className="w-full h-full flex items-center justify-center text-xs text-[#94A3B8] font-mono">
                     Coletando amostras em tempo real...
@@ -716,7 +716,7 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                         className="flex-1 h-full flex items-end justify-center gap-[1px]"
                         title={`${new Date(pt.timestamp).toLocaleTimeString('pt-BR')} — Rec: ${pt.receivedEps}/s | Pers: ${pt.persistedEps}/s | SSE: ${pt.transmittedEps}/s`}
                       >
-                        <div style={{ height: `${recvH}%` }} className="w-1/3 bg-[#00A9FF]/80 rounded-t" />
+                        <div style={{ height: `${recvH}%` }} className="w-1/3 bg-[#B9FC01]/80 rounded-t" />
                         <div style={{ height: `${persH}%` }} className="w-1/3 bg-[#20C997] rounded-t" />
                         <div style={{ height: `${sseH}%` }} className="w-1/3 bg-[#F5B942] rounded-t" />
                       </div>
@@ -726,9 +726,9 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
               </div>
             </div>
 
-            <div className="p-4 rounded-lg bg-[#0B1730] border border-[#182943] space-y-3">
+            <div className="p-4 rounded-lg bg-[#10141E] border border-[#161C2C] space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="text-xs font-semibold text-[#F8FAFC]">
+                <h4 className="text-xs font-semibold text-[#FFFFFF]">
                   Gráfico Histórico: Latência End-to-End (p50 / p95 / p99)
                 </h4>
                 <div className="flex items-center gap-3 text-[10px] font-mono">
@@ -738,7 +738,7 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                 </div>
               </div>
 
-              <div className="h-36 w-full bg-[#050D20] rounded-lg border border-[#182943] p-2 flex items-end gap-1 overflow-hidden">
+              <div className="h-36 w-full bg-[#080A0F] rounded-lg border border-[#161C2C] p-2 flex items-end gap-1 overflow-hidden">
                 {timeSeries.length === 0 ? (
                   <div className="w-full h-full flex items-center justify-center text-xs text-[#94A3B8] font-mono">
                     Coletando amostras de latência...
@@ -767,8 +767,8 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
 
           {/* SECTION 3B: 4 MILESTONE EVENT CARDS */}
           <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-[#F8FAFC] flex items-center gap-2">
-              <Layers className="w-4 h-4 text-[#00A9FF]" />
+            <h3 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-2">
+              <Layers className="w-4 h-4 text-[#B9FC01]" />
               <span>Rastreabilidade Individual dos 4 Eventos-Marco (Pipeline Persist-Before-SSE)</span>
             </h3>
 
@@ -803,8 +803,8 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
           {/* SECTION 2: 9-COMPONENT VERIFIED DIAGNOSTIC MATRIX */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold text-[#F8FAFC] flex items-center gap-2">
-                <Server className="w-4 h-4 text-[#00A9FF]" />
+              <h3 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-2">
+                <Server className="w-4 h-4 text-[#B9FC01]" />
                 <span>2. Diagnóstico Verificado por Componente (9 Subsistemas Independentes)</span>
               </h3>
               <span className="text-[11px] text-[#94A3B8]">
@@ -818,11 +818,11 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                 return (
                   <div
                     key={comp.id}
-                    className="p-4 rounded-lg bg-[#0B1730] border border-[#182943] flex flex-col justify-between gap-2.5"
+                    className="p-4 rounded-lg bg-[#10141E] border border-[#161C2C] flex flex-col justify-between gap-2.5"
                   >
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-[#F8FAFC]">{comp.name}</span>
+                        <span className="text-xs font-semibold text-[#FFFFFF]">{comp.name}</span>
                         <span
                           className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-semibold border ${st.bg} ${st.border} ${st.text}`}
                         >
@@ -834,9 +834,9 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                     </div>
 
                     {comp.metrics && (
-                      <div className="pt-2 border-t border-[#182943] flex flex-wrap items-center gap-2 text-[10px] font-mono text-[#94A3B8]">
+                      <div className="pt-2 border-t border-[#161C2C] flex flex-wrap items-center gap-2 text-[10px] font-mono text-[#94A3B8]">
                         {Object.entries(comp.metrics).map(([k, v]) => (
-                          <span key={k} className="px-1.5 py-0.5 rounded bg-[#050D20] text-[#F8FAFC] border border-[#182943]">
+                          <span key={k} className="px-1.5 py-0.5 rounded bg-[#080A0F] text-[#FFFFFF] border border-[#161C2C]">
                             {k}: <strong>{String(v)}</strong>
                           </span>
                         ))}
@@ -850,14 +850,14 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
 
           {/* SECTION 4: 6-STAGE EVENT LOSS DIAGNOSTIC CLASSIFIER */}
           <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-[#F8FAFC] flex items-center gap-2">
+            <h3 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-[#20C997]" />
               <span>4. Diagnóstico e Classificador de Perda de Eventos (6 Estágios)</span>
             </h3>
 
-            <div className="overflow-x-auto rounded-lg border border-[#182943] bg-[#0B1730]">
+            <div className="overflow-x-auto rounded-lg border border-[#161C2C] bg-[#10141E]">
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#050D20] text-[#F8FAFC] font-semibold border-b border-[#182943]">
+                <thead className="bg-[#080A0F] text-[#FFFFFF] font-semibold border-b border-[#161C2C]">
                   <tr>
                     <th className="py-2.5 px-4">Estágio de Classificação</th>
                     <th className="py-2.5 px-4 text-center">Status</th>
@@ -866,19 +866,19 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                     <th className="py-2.5 px-4">Diagnóstico Técnico</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#182943]">
+                <tbody className="divide-y divide-[#161C2C]">
                   {(snapshot?.lossClassification || []).map((stage) => (
-                    <tr key={stage.stage} className="hover:bg-[#101F3D] transition">
-                      <td className="py-2.5 px-4 font-medium text-[#F8FAFC] whitespace-nowrap">{stage.label}</td>
+                    <tr key={stage.stage} className="hover:bg-[#10141E] transition">
+                      <td className="py-2.5 px-4 font-medium text-[#FFFFFF] whitespace-nowrap">{stage.label}</td>
                       <td className="py-2.5 px-4 text-center">
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold border ${
                             stage.status === 'OK'
                               ? 'bg-[#20C997]/15 border-[#20C997]/40 text-[#20C997]'
                               : stage.status === 'IN_FLIGHT'
-                              ? 'bg-[#0866F5]/15 border-[#00A9FF]/40 text-[#00A9FF]'
+                              ? 'bg-[#0131CD]/15 border-[#0131CD]/40 text-[#FFFFFF]'
                               : stage.status === 'UNVERIFIABLE_AT_ORIGIN'
-                              ? 'bg-[#101F3D] border-[#182943] text-[#94A3B8]'
+                              ? 'bg-[#10141E] border-[#161C2C] text-[#94A3B8]'
                               : stage.status === 'WARNING'
                               ? 'bg-[#F5B942]/15 border-[#F5B942]/40 text-[#F5B942]'
                               : 'bg-[#F05262]/15 border-[#F05262]/40 text-[#F05262]'
@@ -887,7 +887,7 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                           {stage.status}
                         </span>
                       </td>
-                      <td className="py-2.5 px-4 text-right font-mono text-[#F8FAFC] tabular-nums">
+                      <td className="py-2.5 px-4 text-right font-mono text-[#FFFFFF] tabular-nums">
                         {stage.inFlightCount}
                       </td>
                       <td className="py-2.5 px-4 text-right font-mono font-semibold text-[#F5B942] tabular-nums">
@@ -903,10 +903,10 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
 
           {/* SECTION 5: DURABLE SSE RECOVERY CURSORS & QUEUE INSPECTOR */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="p-4 rounded-lg bg-[#0B1730] border border-[#182943] space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#182943] pb-2.5">
+            <div className="p-4 rounded-lg bg-[#10141E] border border-[#161C2C] space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#161C2C] pb-2.5">
                 <div>
-                  <h4 className="text-xs font-semibold text-[#F8FAFC]">
+                  <h4 className="text-xs font-semibold text-[#FFFFFF]">
                     Cursores SSE por Cliente e Janela de Retenção Outbox
                   </h4>
                   <p className="text-[11px] text-[#94A3B8]">
@@ -920,13 +920,13 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                     type="number"
                     value={retentionInput}
                     onChange={(e) => setRetentionInput(e.target.value)}
-                    className="w-20 px-2 py-1 rounded bg-[#050D20] border border-[#182943] text-xs font-mono text-[#F8FAFC]"
+                    className="w-20 px-2 py-1 rounded bg-[#080A0F] border border-[#161C2C] text-xs font-mono text-[#FFFFFF]"
                     title="Máximo de eventos retidos por sessão para replay SSE"
                   />
                   <button
                     onClick={handleSaveRetention}
                     disabled={isUpdatingRetention}
-                    className="px-2.5 py-1 rounded bg-[#101F3D] hover:bg-[#182943] border border-[#182943] text-[#F8FAFC] text-[11px] font-medium transition"
+                    className="px-2.5 py-1 rounded bg-[#10141E] hover:bg-[#161C2C] border border-[#161C2C] text-[#FFFFFF] text-[11px] font-medium transition"
                   >
                     Salvar Retenção
                   </button>
@@ -942,7 +942,7 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                   {(snapshot?.sseRecovery.activeClients || []).map((client) => (
                     <div
                       key={`${client.sessionId}_${client.clientId}`}
-                      className="p-2.5 rounded-lg bg-[#050D20] border border-[#182943] flex items-center justify-between gap-2 text-xs font-mono"
+                      className="p-2.5 rounded-lg bg-[#080A0F] border border-[#161C2C] flex items-center justify-between gap-2 text-xs font-mono"
                     >
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
@@ -951,7 +951,7 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                               client.disconnectedAt ? 'bg-[#F5B942]' : 'bg-[#20C997]'
                             }`}
                           />
-                          <span className="text-[#F8FAFC] font-semibold truncate">{client.clientId}</span>
+                          <span className="text-[#FFFFFF] font-semibold truncate">{client.clientId}</span>
                         </div>
                         <span className="text-[10px] text-[#94A3B8] block">
                           Reconexões: {client.reconnectCount} · Último ACK: {formatUtcTime(client.lastAckAt)}
@@ -969,10 +969,10 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
               )}
             </div>
 
-            <div className="p-4 rounded-lg bg-[#0B1730] border border-[#182943] space-y-3">
-              <div className="flex items-center justify-between border-b border-[#182943] pb-2.5">
+            <div className="p-4 rounded-lg bg-[#10141E] border border-[#161C2C] space-y-3">
+              <div className="flex items-center justify-between border-b border-[#161C2C] pb-2.5">
                 <div>
-                  <h4 className="text-xs font-semibold text-[#F8FAFC]">
+                  <h4 className="text-xs font-semibold text-[#FFFFFF]">
                     Inspetor da Fila de Eventos (WAL e Outbox)
                   </h4>
                   <p className="text-[11px] text-[#94A3B8]">
@@ -993,7 +993,7 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                   {(snapshot?.queueItems || []).slice(0, 15).map((item) => (
                     <div
                       key={item.walId}
-                      className="p-2 rounded-lg bg-[#050D20] border border-[#182943] flex items-center justify-between gap-2 text-xs"
+                      className="p-2 rounded-lg bg-[#080A0F] border border-[#161C2C] flex items-center justify-between gap-2 text-xs"
                     >
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
@@ -1002,7 +1002,7 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                               #{item.sequenceNumber}
                             </span>
                           )}
-                          <span className="font-semibold text-[#F8FAFC] truncate">{item.displayHandle}</span>
+                          <span className="font-semibold text-[#FFFFFF] truncate">{item.displayHandle}</span>
                           <span className="text-[#94A3B8] truncate">({item.giftName})</span>
                         </div>
                         <span className="text-[10px] font-mono text-[#94A3B8] block truncate">
@@ -1032,8 +1032,8 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
 
           {/* SECTION 6: RECONNECTION HISTORY & RECENT ERRORS */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="p-4 rounded-lg bg-[#0B1730] border border-[#182943] space-y-2.5">
-              <h4 className="text-xs font-semibold text-[#F8FAFC]">
+            <div className="p-4 rounded-lg bg-[#10141E] border border-[#161C2C] space-y-2.5">
+              <h4 className="text-xs font-semibold text-[#FFFFFF]">
                 Histórico de Reconexões e Retomadas SSE ({(snapshot?.reconnectHistory || []).length})
               </h4>
               {(snapshot?.reconnectHistory || []).length === 0 ? (
@@ -1045,13 +1045,13 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                   {(snapshot?.reconnectHistory || []).map((rec) => (
                     <div
                       key={rec.id}
-                      className="p-2 rounded bg-[#050D20] border border-[#182943] flex items-center justify-between gap-2"
+                      className="p-2 rounded bg-[#080A0F] border border-[#161C2C] flex items-center justify-between gap-2"
                     >
                       <div className="min-w-0">
                         <span className="text-[10px] font-semibold text-[#F5B942] mr-1.5">
                           [{rec.source}]
                         </span>
-                        <span className="text-[#F8FAFC]">{rec.reason}</span>
+                        <span className="text-[#FFFFFF]">{rec.reason}</span>
                       </div>
                       <span className="text-[10px] text-[#94A3B8] shrink-0">{formatUtcTime(rec.timestamp)}</span>
                     </div>
@@ -1060,8 +1060,8 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
               )}
             </div>
 
-            <div className="p-4 rounded-lg bg-[#0B1730] border border-[#182943] space-y-2.5">
-              <h4 className="text-xs font-semibold text-[#F8FAFC]">
+            <div className="p-4 rounded-lg bg-[#10141E] border border-[#161C2C] space-y-2.5">
+              <h4 className="text-xs font-semibold text-[#FFFFFF]">
                 Registro de Erros e Alertas Recentes ({(snapshot?.recentErrors || []).length})
               </h4>
               {(snapshot?.recentErrors || []).length === 0 ? (
@@ -1079,7 +1079,7 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                         <span className="text-[10px] font-semibold uppercase text-[#F05262] mr-1.5">
                           [{err.component}]
                         </span>
-                        <span className="text-[#F8FAFC]">{err.message}</span>
+                        <span className="text-[#FFFFFF]">{err.message}</span>
                       </div>
                       <span className="text-[10px] text-[#94A3B8] shrink-0">{formatUtcTime(err.timestamp)}</span>
                     </div>
@@ -1094,14 +1094,14 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
       {/* TAB 2: LIVE EVENT DEBUGGER */}
       {activeTab === 'debugger' && (
         <div className="space-y-6">
-          <div className="p-4 rounded-lg bg-[#0B1730] border border-[#182943] space-y-3">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[#182943] pb-3">
+          <div className="p-4 rounded-lg bg-[#10141E] border border-[#161C2C] space-y-3">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[#161C2C] pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-[#050D20] border border-[#182943] text-[#F5B942]">
+                <div className="p-2 rounded-lg bg-[#080A0F] border border-[#161C2C] text-[#F5B942]">
                   <Bug className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-[#F8FAFC] flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-[#FFFFFF] flex items-center gap-2">
                     <span>Diagnóstico Condicional de Eventos TikTok LIVE</span>
                     <span
                       className={`text-xs font-mono font-semibold ${
@@ -1123,8 +1123,8 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                   disabled={isTogglingDebug || !diagStats?.debugMasterEnvActive}
                   className={`px-4 py-2 rounded-lg font-semibold text-xs transition flex items-center gap-2 ${
                     diagStats?.debugRuntimeActive
-                      ? 'bg-[#F05262]/20 hover:bg-[#F05262]/30 border border-[#F05262]/40 text-[#F8FAFC]'
-                      : 'bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] disabled:opacity-40 disabled:cursor-not-allowed'
+                      ? 'bg-[#F05262]/20 hover:bg-[#F05262]/30 border border-[#F05262]/40 text-[#FFFFFF]'
+                      : 'bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] disabled:opacity-40 disabled:cursor-not-allowed'
                   }`}
                 >
                   {isTogglingDebug ? (
@@ -1142,14 +1142,14 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-              <div className="p-3 rounded-lg bg-[#050D20] border border-[#182943] flex items-start gap-2.5">
+              <div className="p-3 rounded-lg bg-[#080A0F] border border-[#161C2C] flex items-start gap-2.5">
                 {diagStats?.debugMasterEnvActive ? (
                   <ShieldCheck className="w-4 h-4 text-[#20C997] shrink-0 mt-0.5" />
                 ) : (
                   <ShieldAlert className="w-4 h-4 text-[#F5B942] shrink-0 mt-0.5" />
                 )}
                 <div>
-                  <span className="font-semibold block font-mono text-[11px] text-[#F8FAFC]">
+                  <span className="font-semibold block font-mono text-[11px] text-[#FFFFFF]">
                     CHAVE-MESTRA: TIKTOK_LIVE_DEBUG = {diagStats?.debugMasterEnvActive ? 'true' : 'false'}
                   </span>
                   <span className="text-[11px] text-[#94A3B8]">
@@ -1160,17 +1160,17 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                 </div>
               </div>
 
-              <div className="p-3 rounded-lg bg-[#050D20] border border-[#182943] text-xs flex items-start gap-2.5">
-                <Database className="w-4 h-4 text-[#00A9FF] shrink-0 mt-0.5" />
+              <div className="p-3 rounded-lg bg-[#080A0F] border border-[#161C2C] text-xs flex items-start gap-2.5">
+                <Database className="w-4 h-4 text-[#B9FC01] shrink-0 mt-0.5" />
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold font-mono text-[11px] text-[#F8FAFC]">RETENÇÃO E POLÍTICA TTL (24H)</span>
+                    <span className="font-semibold font-mono text-[11px] text-[#FFFFFF]">RETENÇÃO E POLÍTICA TTL (24H)</span>
                     <span className="text-[10px] font-mono text-[#F5B942]">
                       {diagStats?.firestoreTtlStatus || 'PENDING_GCP_POLICY_SETUP'}
                     </span>
                   </div>
                   <span className="text-[11px] text-[#94A3B8]">
-                    Coleção dedicada <code className="text-[#F8FAFC]">tiktok_live_diagnostic_events</code> com campo <code className="text-[#F8FAFC]">ttlExpireAt</code>.
+                    Coleção dedicada <code className="text-[#FFFFFF]">tiktok_live_diagnostic_events</code> com campo <code className="text-[#FFFFFF]">ttlExpireAt</code>.
                   </span>
                 </div>
               </div>
@@ -1180,8 +1180,8 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
               <div
                 className={`p-2.5 rounded-lg text-xs flex items-center gap-2 ${
                   toggleFeedback.type === 'success'
-                    ? 'bg-[#20C997]/15 border border-[#20C997]/40 text-[#F8FAFC]'
-                    : 'bg-[#F05262]/15 border border-[#F05262]/40 text-[#F8FAFC]'
+                    ? 'bg-[#20C997]/15 border border-[#20C997]/40 text-[#FFFFFF]'
+                    : 'bg-[#F05262]/15 border border-[#F05262]/40 text-[#FFFFFF]'
                 }`}
               >
                 {toggleFeedback.type === 'success' ? (
@@ -1196,15 +1196,15 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
 
           {/* 2. DIAGNOSTIC KPIS GRID */}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
-            <div className="p-3 rounded-lg bg-[#0B1730] border border-[#182943]">
+            <div className="p-3 rounded-lg bg-[#10141E] border border-[#161C2C]">
               <span className="text-[10px] text-[#94A3B8] block">Total Capturados</span>
-              <p className="text-lg font-mono font-bold text-[#F8FAFC] tabular-nums mt-0.5">
+              <p className="text-lg font-mono font-bold text-[#FFFFFF] tabular-nums mt-0.5">
                 {diagStats?.totalEventsCaptured ?? 0}
               </p>
               <span className="text-[10px] font-mono text-[#94A3B8]">Buffer: {diagStats?.inMemoryBufferSize ?? 0}/2000</span>
             </div>
 
-            <div className="p-3 rounded-lg bg-[#0B1730] border border-[#182943]">
+            <div className="p-3 rounded-lg bg-[#10141E] border border-[#161C2C]">
               <span className="text-[10px] text-[#94A3B8] block">Presentes Válidos</span>
               <p className="text-lg font-mono font-bold text-[#20C997] tabular-nums mt-0.5">
                 {diagStats?.validGiftsProcessed ?? 0}
@@ -1212,7 +1212,7 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
               <span className="text-[10px] font-mono text-[#94A3B8]">Aceitos</span>
             </div>
 
-            <div className="p-3 rounded-lg bg-[#0B1730] border border-[#182943]">
+            <div className="p-3 rounded-lg bg-[#10141E] border border-[#161C2C]">
               <span className="text-[10px] text-[#94A3B8] block">Retransmissões</span>
               <p className="text-lg font-mono font-bold text-[#F5B942] tabular-nums mt-0.5">
                 {diagStats?.blockedDuplicatesCount ?? 0}
@@ -1220,15 +1220,15 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
               <span className="text-[10px] font-mono text-[#94A3B8]">Bloqueadas</span>
             </div>
 
-            <div className="p-3 rounded-lg bg-[#0B1730] border border-[#182943]">
+            <div className="p-3 rounded-lg bg-[#10141E] border border-[#161C2C]">
               <span className="text-[10px] text-[#94A3B8] block">Com @Arroba</span>
-              <p className="text-lg font-mono font-bold text-[#F8FAFC] tabular-nums mt-0.5">
+              <p className="text-lg font-mono font-bold text-[#FFFFFF] tabular-nums mt-0.5">
                 {diagStats?.eventsWithHandleAvailable ?? 0}
               </p>
               <span className="text-[10px] font-mono text-[#94A3B8]">uniqueId ok</span>
             </div>
 
-            <div className="p-3 rounded-lg bg-[#0B1730] border border-[#182943]">
+            <div className="p-3 rounded-lg bg-[#10141E] border border-[#161C2C]">
               <span className="text-[10px] text-[#94A3B8] block">Sem @Arroba</span>
               <p className="text-lg font-mono font-bold text-[#F5B942] tabular-nums mt-0.5">
                 {diagStats?.eventsWithoutHandleAvailable ?? 0}
@@ -1236,15 +1236,15 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
               <span className="text-[10px] font-mono text-[#94A3B8]">Limitação</span>
             </div>
 
-            <div className="p-3 rounded-lg bg-[#0B1730] border border-[#182943]">
+            <div className="p-3 rounded-lg bg-[#10141E] border border-[#161C2C]">
               <span className="text-[10px] text-[#94A3B8] block">Sem ID Numérico</span>
-              <p className="text-lg font-mono font-bold text-[#F8FAFC] tabular-nums mt-0.5">
+              <p className="text-lg font-mono font-bold text-[#FFFFFF] tabular-nums mt-0.5">
                 {diagStats?.eventsWithoutSenderId ?? 0}
               </p>
               <span className="text-[10px] font-mono text-[#94A3B8]">ID gerado</span>
             </div>
 
-            <div className="p-3 rounded-lg bg-[#0B1730] border border-[#182943]">
+            <div className="p-3 rounded-lg bg-[#10141E] border border-[#161C2C]">
               <span className="text-[10px] text-[#94A3B8] block">Falhas BD</span>
               <p className="text-lg font-mono font-bold text-[#F05262] tabular-nums mt-0.5">
                 {diagStats?.persistenceFailuresCount ?? 0}
@@ -1252,7 +1252,7 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
               <span className="text-[10px] font-mono text-[#94A3B8]">Isoladas</span>
             </div>
 
-            <div className="p-3 rounded-lg bg-[#0B1730] border border-[#182943]">
+            <div className="p-3 rounded-lg bg-[#10141E] border border-[#161C2C]">
               <span className="text-[10px] text-[#94A3B8] block">Combos / Streaks</span>
               <p className="text-lg font-mono font-bold text-[#F5B942] tabular-nums mt-0.5">
                 {diagStats?.comboEventsCount ?? 0}
@@ -1262,7 +1262,7 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
           </div>
 
           {/* 3. FILTERS & SEARCH BAR */}
-          <div className="p-3 rounded-lg bg-[#0B1730] border border-[#182943] flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="p-3 rounded-lg bg-[#10141E] border border-[#161C2C] flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex flex-wrap items-center gap-2 grow">
               <div className="relative min-w-[200px] grow sm:grow-0">
                 <Search className="w-3.5 h-3.5 text-[#94A3B8] absolute left-2.5 top-2.5" />
@@ -1271,53 +1271,53 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                   placeholder="Buscar por @usuário, nome ou ID..."
                   value={diagFilterUser}
                   onChange={(e) => setDiagFilterUser(e.target.value)}
-                  className="w-full bg-[#050D20] border border-[#182943] rounded-lg pl-8 pr-3 py-1.5 text-xs text-[#F8FAFC] placeholder-[#94A3B8]/60 focus:outline-none focus:border-[#00A9FF]"
+                  className="w-full bg-[#080A0F] border border-[#161C2C] rounded-lg pl-8 pr-3 py-1.5 text-xs text-[#FFFFFF] placeholder-[#94A3B8]/60 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35"
                 />
               </div>
 
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#050D20] border border-[#182943]">
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#080A0F] border border-[#161C2C]">
                 <span className="text-[#94A3B8] font-mono text-[10px]">Origem:</span>
                 <select
                   value={diagFilterOrigin}
                   onChange={(e) => setDiagFilterOrigin(e.target.value)}
-                  className="bg-transparent text-[#F8FAFC] font-semibold focus:outline-none cursor-pointer"
+                  className="bg-transparent text-[#FFFFFF] font-semibold focus:outline-none focus:ring-2 focus:ring-[#B9FC01]/40 rounded cursor-pointer"
                 >
-                  <option value="ALL" className="bg-[#0B1730]">Todas as Origens</option>
-                  <option value="LIVE_REAL" className="bg-[#0B1730]">LIVE_REAL (TikTok Webcast)</option>
-                  <option value="SIMULATED_TEST" className="bg-[#0B1730]">SIMULATED_TEST (Testes)</option>
+                  <option value="ALL" className="bg-[#10141E]">Todas as Origens</option>
+                  <option value="LIVE_REAL" className="bg-[#10141E]">LIVE_REAL (TikTok Webcast)</option>
+                  <option value="SIMULATED_TEST" className="bg-[#10141E]">SIMULATED_TEST (Testes)</option>
                 </select>
               </div>
 
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#050D20] border border-[#182943]">
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#080A0F] border border-[#161C2C]">
                 <span className="text-[#94A3B8] font-mono text-[10px]">Status:</span>
                 <select
                   value={diagFilterStatus}
                   onChange={(e) => setDiagFilterStatus(e.target.value)}
-                  className="bg-transparent text-[#F8FAFC] font-semibold focus:outline-none cursor-pointer"
+                  className="bg-transparent text-[#FFFFFF] font-semibold focus:outline-none focus:ring-2 focus:ring-[#B9FC01]/40 rounded cursor-pointer"
                 >
-                  <option value="ALL" className="bg-[#0B1730]">Todos os Status</option>
-                  <option value="ACCEPTED" className="bg-[#0B1730]">Aceitos</option>
-                  <option value="DUPLICATE" className="bg-[#0B1730]">Duplicados / Retransmitidos</option>
-                  <option value="REJECTED" className="bg-[#0B1730]">Rejeitados</option>
+                  <option value="ALL" className="bg-[#10141E]">Todos os Status</option>
+                  <option value="ACCEPTED" className="bg-[#10141E]">Aceitos</option>
+                  <option value="DUPLICATE" className="bg-[#10141E]">Duplicados / Retransmitidos</option>
+                  <option value="REJECTED" className="bg-[#10141E]">Rejeitados</option>
                 </select>
               </div>
             </div>
 
             <button
               onClick={() => fetchDiagnosticData()}
-              className="px-3 py-1.5 rounded-lg bg-[#101F3D] hover:bg-[#182943] border border-[#182943] text-[#F8FAFC] font-semibold text-xs flex items-center gap-1.5 transition"
+              className="px-3 py-1.5 rounded-lg bg-[#10141E] hover:bg-[#161C2C] border border-[#161C2C] text-[#FFFFFF] font-semibold text-xs flex items-center gap-1.5 transition"
             >
-              <Filter className="w-3.5 h-3.5 text-[#00A9FF]" />
+              <Filter className="w-3.5 h-3.5 text-[#B9FC01]" />
               <span>Filtrar</span>
             </button>
           </div>
 
           {/* 4. DIAGNOSTIC EVENTS TABLE */}
-          <div className="p-4 rounded-lg bg-[#0B1730] border border-[#182943] space-y-3">
-            <div className="flex items-center justify-between border-b border-[#182943] pb-2.5">
+          <div className="p-4 rounded-lg bg-[#10141E] border border-[#161C2C] space-y-3">
+            <div className="flex items-center justify-between border-b border-[#161C2C] pb-2.5">
               <div>
-                <h4 className="text-xs font-semibold text-[#F8FAFC] flex items-center gap-2">
-                  <Terminal className="w-4 h-4 text-[#00A9FF]" />
+                <h4 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-2">
+                  <Terminal className="w-4 h-4 text-[#B9FC01]" />
                   <span>Eventos Diagnosticados ({diagEvents.length})</span>
                 </h4>
                 <p className="text-[11px] text-[#94A3B8]">
@@ -1343,7 +1343,7 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="text-[11px] font-semibold text-[#F8FAFC] bg-[#050D20] border-b border-[#182943]">
+                  <thead className="text-[11px] font-semibold text-[#FFFFFF] bg-[#080A0F] border-b border-[#161C2C]">
                     <tr>
                       <th className="py-2.5 px-3">Trace ID</th>
                       <th className="py-2.5 px-3">Timestamp (UTC)</th>
@@ -1355,15 +1355,15 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                       <th className="py-2.5 px-3 text-right">Ação</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#182943] font-mono">
+                  <tbody className="divide-y divide-[#161C2C] font-mono">
                     {diagEvents.map((ev) => {
                       const isSelected = selectedTrace?.traceId === ev.traceId;
                       return (
                         <tr
                           key={ev.traceId}
                           onClick={() => setSelectedTrace(ev)}
-                          className={`cursor-pointer transition hover:bg-[#101F3D] ${
-                            isSelected ? 'bg-[#101F3D] border-l-2 border-l-[#00A9FF]' : ''
+                          className={`cursor-pointer transition hover:bg-[#10141E] ${
+                            isSelected ? 'bg-[#10141E] border-l-2 border-l-[#0131CD]' : ''
                           }`}
                         >
                           <td className="py-2.5 px-3 text-[#F5B942] font-semibold truncate max-w-[140px]">
@@ -1372,11 +1372,11 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                           <td className="py-2.5 px-3 text-[#94A3B8] text-[11px]">
                             {formatUtcTime(ev.timestamp)}
                           </td>
-                          <td className="py-2.5 px-3 text-[#F8FAFC]">
+                          <td className="py-2.5 px-3 text-[#FFFFFF]">
                             {ev.origin}
                           </td>
                           <td className="py-2.5 px-3">
-                            <div className="font-sans font-semibold text-[#F8FAFC] truncate max-w-[160px]">
+                            <div className="font-sans font-semibold text-[#FFFFFF] truncate max-w-[160px]">
                               {ev.stageC.resultingHandle}
                             </div>
                             <span className="text-[10px] text-[#94A3B8] block truncate max-w-[160px]">
@@ -1384,13 +1384,13 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                             </span>
                           </td>
                           <td className="py-2.5 px-3">
-                            <span className="text-[#F8FAFC] font-semibold">{ev.stageC.giftName}</span>{' '}
+                            <span className="text-[#FFFFFF] font-semibold">{ev.stageC.giftName}</span>{' '}
                             <span className="text-[#94A3B8]">({ev.stageC.repeatCount}x)</span>
                             <span className="text-[#20C997] text-[10px] block">
                               +{ev.stageE.coinsGranted} moedas ({ev.stageE.ticketsGenerated} bilhetes)
                             </span>
                           </td>
-                          <td className="py-2.5 px-3 text-[11px] text-[#F8FAFC]">
+                          <td className="py-2.5 px-3 text-[11px] text-[#FFFFFF]">
                             {ev.stageD.reason}
                           </td>
                           <td className="py-2.5 px-3">
@@ -1417,9 +1417,9 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                                 e.stopPropagation();
                                 setSelectedTrace(ev);
                               }}
-                              className="px-2.5 py-1 rounded bg-[#050D20] hover:bg-[#182943] border border-[#182943] text-[10px] font-semibold text-[#F8FAFC] transition flex items-center gap-1 ml-auto"
+                              className="px-2.5 py-1 rounded bg-[#080A0F] hover:bg-[#161C2C] border border-[#161C2C] text-[10px] font-semibold text-[#FFFFFF] transition flex items-center gap-1 ml-auto"
                             >
-                              <Eye className="w-3 h-3 text-[#00A9FF]" />
+                              <Eye className="w-3 h-3 text-[#B9FC01]" />
                               <span>Inspecionar</span>
                             </button>
                           </td>
@@ -1434,20 +1434,20 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
 
           {/* 5. 6-STAGE DEEP INSPECTION PANEL */}
           {selectedTrace && (
-            <div className="p-5 rounded-xl bg-[#0B1730] border border-[#00A9FF]/50 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#182943] pb-3">
+            <div className="p-5 rounded-xl bg-[#10141E] border border-[#0131CD]/50 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#161C2C] pb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-lg bg-[#050D20] border border-[#182943] text-[#00A9FF]">
+                  <div className="p-2 rounded-lg bg-[#080A0F] border border-[#161C2C] text-[#B9FC01]">
                     <FileText className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold text-[#F8FAFC]">
+                      <h3 className="text-sm font-semibold text-[#FFFFFF]">
                         Inspeção do Trace: <span className="font-mono text-[#F5B942]">{selectedTrace.traceId}</span>
                       </h3>
                       <button
                         onClick={() => copyToClipboard(selectedTrace.traceId, selectedTrace.traceId)}
-                        className="p-1 rounded bg-[#050D20] hover:bg-[#182943] text-[#94A3B8] hover:text-[#F8FAFC]"
+                        className="p-1 rounded bg-[#080A0F] hover:bg-[#161C2C] text-[#94A3B8] hover:text-[#FFFFFF]"
                         title="Copiar Trace ID"
                       >
                         {copiedTraceId === selectedTrace.traceId ? (
@@ -1465,7 +1465,7 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
 
                 <button
                   onClick={() => setSelectedTrace(null)}
-                  className="px-3 py-1.5 rounded-lg bg-[#050D20] hover:bg-[#182943] border border-[#182943] text-xs font-mono text-[#F8FAFC] self-start sm:self-auto"
+                  className="px-3 py-1.5 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] border border-[#161C2C] text-xs font-mono text-[#FFFFFF] self-start sm:self-auto"
                 >
                   Fechar Inspeção
                 </button>
@@ -1473,9 +1473,9 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
                 {/* ETAPA A */}
-                <div className="p-4 rounded-lg bg-[#101F3D] border border-[#182943] space-y-2.5">
-                  <div className="flex items-center justify-between border-b border-[#182943] pb-2">
-                    <span className="text-xs font-semibold text-[#F8FAFC]">
+                <div className="p-4 rounded-lg bg-[#10141E] border border-[#161C2C] space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-[#161C2C] pb-2">
+                    <span className="text-xs font-semibold text-[#FFFFFF]">
                       A. Payload Original
                     </span>
                     <span className="text-[10px] font-mono text-[#94A3B8]">
@@ -1487,8 +1487,8 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                       <span>Sanitizados: <strong className="text-[#20C997]">{selectedTrace.stageA.sanitizedFieldsCount}</strong></span>
                       <span>Truncado: <strong>{selectedTrace.stageA.isTruncated ? 'SIM' : 'NÃO'}</strong></span>
                     </div>
-                    <div className="bg-[#050D20] p-2.5 rounded border border-[#182943] text-[10px] overflow-x-auto max-h-56">
-                      <pre className="text-[#F8FAFC]">
+                    <div className="bg-[#080A0F] p-2.5 rounded border border-[#161C2C] text-[10px] overflow-x-auto max-h-56">
+                      <pre className="text-[#FFFFFF]">
                         {JSON.stringify(selectedTrace.stageA.rawPayload, null, 2)}
                       </pre>
                     </div>
@@ -1496,9 +1496,9 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                 </div>
 
                 {/* ETAPA B */}
-                <div className="p-4 rounded-lg bg-[#101F3D] border border-[#182943] space-y-2.5">
-                  <div className="flex items-center justify-between border-b border-[#182943] pb-2">
-                    <span className="text-xs font-semibold text-[#F8FAFC]">
+                <div className="p-4 rounded-lg bg-[#10141E] border border-[#161C2C] space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-[#161C2C] pb-2">
+                    <span className="text-xs font-semibold text-[#FFFFFF]">
                       B. Identidade Extraída
                     </span>
                     <span className="text-[10px] font-mono text-[#20C997]">
@@ -1506,14 +1506,14 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                     </span>
                   </div>
                   <div className="text-xs font-mono space-y-1.5 text-[#94A3B8]">
-                    <div className="p-2 rounded bg-[#050D20] border border-[#182943] space-y-1">
-                      <div><span>userId:</span> <strong className="text-[#F8FAFC]">{selectedTrace.stageB.userId || 'N/A'}</strong></div>
-                      <div><span>uniqueId:</span> <strong className="text-[#F8FAFC]">{selectedTrace.stageB.uniqueId || 'N/A'}</strong></div>
-                      <div><span>nickname:</span> <strong className="text-[#F8FAFC]">{selectedTrace.stageB.nickname || 'N/A'}</strong></div>
+                    <div className="p-2 rounded bg-[#080A0F] border border-[#161C2C] space-y-1">
+                      <div><span>userId:</span> <strong className="text-[#FFFFFF]">{selectedTrace.stageB.userId || 'N/A'}</strong></div>
+                      <div><span>uniqueId:</span> <strong className="text-[#FFFFFF]">{selectedTrace.stageB.uniqueId || 'N/A'}</strong></div>
+                      <div><span>nickname:</span> <strong className="text-[#FFFFFF]">{selectedTrace.stageB.nickname || 'N/A'}</strong></div>
                       <div><span>secUid:</span> <span className="text-[10px] truncate block">{selectedTrace.stageB.secUid || 'N/A'}</span></div>
                     </div>
                     <div className="text-[10px] space-y-1 pt-1">
-                      <div>Encontrados: <span className="text-[#F8FAFC]">{selectedTrace.stageB.rawFieldsFound?.join(', ') || 'Nenhum'}</span></div>
+                      <div>Encontrados: <span className="text-[#FFFFFF]">{selectedTrace.stageB.rawFieldsFound?.join(', ') || 'Nenhum'}</span></div>
                       <div>Ausentes: <span>{selectedTrace.stageB.rawFieldsMissing?.join(', ') || 'Nenhum'}</span></div>
                       <div className="text-[#20C997] font-semibold text-[10px] pt-1">
                         ✓ Conta OAuth do anfitrião (@{selectedTrace.roomUsername}) isolada
@@ -1523,16 +1523,16 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                 </div>
 
                 {/* ETAPA C */}
-                <div className="p-4 rounded-lg bg-[#101F3D] border border-[#182943] space-y-2.5">
-                  <div className="flex items-center justify-between border-b border-[#182943] pb-2">
-                    <span className="text-xs font-semibold text-[#F8FAFC]">
+                <div className="p-4 rounded-lg bg-[#10141E] border border-[#161C2C] space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-[#161C2C] pb-2">
+                    <span className="text-xs font-semibold text-[#FFFFFF]">
                       C. Normalização
                     </span>
                     <span className="text-[10px] font-mono text-[#94A3B8]">ID Canônico</span>
                   </div>
-                  <div className="text-xs font-mono space-y-1.5 p-2 rounded bg-[#050D20] border border-[#182943] text-[#94A3B8]">
-                    <div><span>stableId:</span> <strong className="text-[#F8FAFC]">{selectedTrace.stageC.stableId}</strong></div>
-                    <div><span>displayHandle:</span> <strong className="text-[#F8FAFC]">{selectedTrace.stageC.resultingHandle}</strong></div>
+                  <div className="text-xs font-mono space-y-1.5 p-2 rounded bg-[#080A0F] border border-[#161C2C] text-[#94A3B8]">
+                    <div><span>stableId:</span> <strong className="text-[#FFFFFF]">{selectedTrace.stageC.stableId}</strong></div>
+                    <div><span>displayHandle:</span> <strong className="text-[#FFFFFF]">{selectedTrace.stageC.resultingHandle}</strong></div>
                     <div><span>presente:</span> <strong className="text-[#20C997]">{selectedTrace.stageC.giftName} (#{selectedTrace.stageC.giftId})</strong></div>
                     <div><span>repeatCount:</span> <strong className="text-[#F5B942]">{selectedTrace.stageC.repeatCount}x</strong> (final: {selectedTrace.stageC.repeatEnd ? 'Sim' : 'Não'})</div>
                     <div><span>groupId:</span> <span className="text-[10px] block truncate">{selectedTrace.stageC.groupId}</span></div>
@@ -1540,35 +1540,35 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                 </div>
 
                 {/* ETAPA D */}
-                <div className="p-4 rounded-lg bg-[#101F3D] border border-[#182943] space-y-2.5">
-                  <div className="flex items-center justify-between border-b border-[#182943] pb-2">
-                    <span className="text-xs font-semibold text-[#F8FAFC]">
+                <div className="p-4 rounded-lg bg-[#10141E] border border-[#161C2C] space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-[#161C2C] pb-2">
+                    <span className="text-xs font-semibold text-[#FFFFFF]">
                       D. Deduplicação
                     </span>
                     <span className="text-[10px] font-mono font-semibold text-[#20C997]">
                       {selectedTrace.stageD.accepted ? 'ACEITO' : 'REJEITADO / DUP'}
                     </span>
                   </div>
-                  <div className="text-xs font-mono space-y-1.5 p-2 rounded bg-[#050D20] border border-[#182943] text-[#94A3B8]">
-                    <div><span>motivo:</span> <strong className="text-[#F8FAFC]">{selectedTrace.stageD.reason}</strong></div>
+                  <div className="text-xs font-mono space-y-1.5 p-2 rounded bg-[#080A0F] border border-[#161C2C] text-[#94A3B8]">
+                    <div><span>motivo:</span> <strong className="text-[#FFFFFF]">{selectedTrace.stageD.reason}</strong></div>
                     <div><span>duplicata:</span> <strong className={selectedTrace.stageD.isDuplicate ? 'text-[#F05262]' : 'text-[#20C997]'}>{selectedTrace.stageD.isDuplicate ? 'SIM' : 'NÃO'}</strong></div>
-                    <div><span>tipo combo:</span> <span className="text-[#F8FAFC]">{selectedTrace.stageD.isComboContinuation ? 'Continuação de Combo' : selectedTrace.stageD.isComboFinalization ? 'Finalização de Combo' : 'Presente Individual'}</span></div>
+                    <div><span>tipo combo:</span> <span className="text-[#FFFFFF]">{selectedTrace.stageD.isComboContinuation ? 'Continuação de Combo' : selectedTrace.stageD.isComboFinalization ? 'Finalização de Combo' : 'Presente Individual'}</span></div>
                     <div><span>streakKey:</span> <span className="text-[10px] block truncate">{selectedTrace.stageD.streakKey || 'N/A'}</span></div>
                   </div>
                 </div>
 
                 {/* ETAPA E */}
-                <div className="p-4 rounded-lg bg-[#101F3D] border border-[#182943] space-y-2.5">
-                  <div className="flex items-center justify-between border-b border-[#182943] pb-2">
-                    <span className="text-xs font-semibold text-[#F8FAFC]">
+                <div className="p-4 rounded-lg bg-[#10141E] border border-[#161C2C] space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-[#161C2C] pb-2">
+                    <span className="text-xs font-semibold text-[#FFFFFF]">
                       E. Contabilização
                     </span>
                     <span className="text-[10px] font-mono text-[#F5B942] font-semibold">
                       +{selectedTrace.stageE.coinsGranted} moedas
                     </span>
                   </div>
-                  <div className="text-xs font-mono space-y-1.5 p-2 rounded bg-[#050D20] border border-[#182943] text-[#94A3B8]">
-                    <div><span>delta incremental:</span> <strong className="text-[#F8FAFC]">+{selectedTrace.stageE.deltaCount} presentes</strong></div>
+                  <div className="text-xs font-mono space-y-1.5 p-2 rounded bg-[#080A0F] border border-[#161C2C] text-[#94A3B8]">
+                    <div><span>delta incremental:</span> <strong className="text-[#FFFFFF]">+{selectedTrace.stageE.deltaCount} presentes</strong></div>
                     <div><span>moedas concedidas:</span> <strong className="text-[#F5B942]">+{selectedTrace.stageE.coinsGranted}</strong></div>
                     <div><span>bilhetes gerados:</span> <strong className="text-[#20C997]">{selectedTrace.stageE.ticketsGenerated}</strong></div>
                     <div><span>números bilhetes:</span> <span className="text-[#20C997] text-[10px] block truncate">{selectedTrace.stageE.ticketNumbers?.join(', ') || 'Nenhum bilhete emitido'}</span></div>
@@ -1577,20 +1577,20 @@ export const LiveSystemMonitor: React.FC<LiveSystemMonitorProps> = ({
                 </div>
 
                 {/* ETAPA F */}
-                <div className="p-4 rounded-lg bg-[#101F3D] border border-[#182943] space-y-2.5">
-                  <div className="flex items-center justify-between border-b border-[#182943] pb-2">
-                    <span className="text-xs font-semibold text-[#F8FAFC]">
+                <div className="p-4 rounded-lg bg-[#10141E] border border-[#161C2C] space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-[#161C2C] pb-2">
+                    <span className="text-xs font-semibold text-[#FFFFFF]">
                       F. Persistência e SSE
                     </span>
                     <span className="text-[10px] font-mono font-semibold text-[#20C997]">
                       {selectedTrace.stageF.status}
                     </span>
                   </div>
-                  <div className="text-xs font-mono space-y-1.5 p-2 rounded bg-[#050D20] border border-[#182943] text-[#94A3B8]">
-                    <div><span>doc Firestore:</span> <span className="text-[10px] text-[#F8FAFC] block truncate">{selectedTrace.stageF.firestoreDocId || 'N/A'}</span></div>
-                    <div><span>latência recepção:</span> <span className="text-[#F8FAFC]">{selectedTrace.stageF.serverReceiveLatencyMs ?? '—'} ms</span></div>
-                    <div><span>latência processamento:</span> <span className="text-[#F8FAFC]">{selectedTrace.stageF.processingLatencyMs ?? '—'} ms</span></div>
-                    <div><span>latência gravação BD:</span> <span className="text-[#F8FAFC]">{selectedTrace.stageF.persistenceLatencyMs ?? '—'} ms</span></div>
+                  <div className="text-xs font-mono space-y-1.5 p-2 rounded bg-[#080A0F] border border-[#161C2C] text-[#94A3B8]">
+                    <div><span>doc Firestore:</span> <span className="text-[10px] text-[#FFFFFF] block truncate">{selectedTrace.stageF.firestoreDocId || 'N/A'}</span></div>
+                    <div><span>latência recepção:</span> <span className="text-[#FFFFFF]">{selectedTrace.stageF.serverReceiveLatencyMs ?? '—'} ms</span></div>
+                    <div><span>latência processamento:</span> <span className="text-[#FFFFFF]">{selectedTrace.stageF.processingLatencyMs ?? '—'} ms</span></div>
+                    <div><span>latência gravação BD:</span> <span className="text-[#FFFFFF]">{selectedTrace.stageF.persistenceLatencyMs ?? '—'} ms</span></div>
                     <div><span>latência total trace:</span> <strong className="text-[#20C997]">{selectedTrace.stageF.totalTraceLatencyMs ?? '—'} ms</strong></div>
                     {selectedTrace.stageF.error && (
                       <div className="text-[#F05262] text-[10px]"><span>erro:</span> {selectedTrace.stageF.error}</div>

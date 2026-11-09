@@ -113,7 +113,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 type="button"
                 onClick={() => handleTabClick('dashboard')}
-                className="text-left flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E11D48] rounded-lg group"
+                className="text-left flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080A0F] rounded-lg group"
               >
                 <span className="font-display font-black text-base sm:text-lg tracking-tight text-white group-hover:text-[#FDA4AF] transition-colors">
                   GIO DA SORTE
@@ -137,7 +137,7 @@ export const Header: React.FC<HeaderProps> = ({
                     key={item.id}
                     type="button"
                     onClick={() => handleTabClick(item.id)}
-                    className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap shrink-0 flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E11D48] ${
+                    className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap shrink-0 flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080A0F] ${
                       isActive
                         ? item.isProHighlight
                           ? 'bg-gradient-to-r from-[#1E3A8A] to-[#E11D48]/40 text-white ring-1 ring-[#E11D48]/70 font-bold'
@@ -209,7 +209,7 @@ export const Header: React.FC<HeaderProps> = ({
                   {soundEnabled ? (
                     <Volume2 className="w-4 h-4 text-sky-400" />
                   ) : (
-                    <VolumeX className="w-4 h-4 text-slate-500" />
+                    <VolumeX className="w-4 h-4 text-[#94A3B8]" />
                   )}
                 </button>
 

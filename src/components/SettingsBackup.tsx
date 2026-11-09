@@ -29,6 +29,7 @@ interface SettingsBackupProps {
   onResetCoinsOnly: () => void;
   onOpenAuditReport?: () => void;
   rosterHash?: string;
+  compact?: boolean;
 }
 
 export const SettingsBackup: React.FC<SettingsBackupProps> = ({
@@ -42,6 +43,7 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
   onResetCoinsOnly,
   onOpenAuditReport,
   rosterHash,
+  compact = false,
 }) => {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [backupJsonText, setBackupJsonText] = useState('');
@@ -153,15 +155,21 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
 
   return (
     <div className="w-full space-y-6 animate-fade-in">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div
+        className={
+          compact
+            ? 'grid grid-cols-1 gap-5 items-start'
+            : 'grid grid-cols-1 lg:grid-cols-12 gap-6 items-start'
+        }
+      >
         {/* Left Column (7 cols): Regras de Conversão, Série, Contagem e Estilo Visual */}
-        <div className="lg:col-span-7 gio-card p-6 space-y-5">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-[#182943]">
-            <div className="w-9 h-9 rounded-xl bg-[#0866F5]/20 border border-[#00A9FF]/35 flex items-center justify-center text-[#00A9FF]">
+        <div className={`${compact ? 'p-4 sm:p-5' : 'lg:col-span-7 p-6'} gio-card space-y-5`}>
+          <div className="flex items-center gap-2.5 pb-3 border-b border-[#161C2C]">
+            <div className="w-9 h-9 rounded-xl bg-[#0131CD]/20 border border-[#0131CD]/35 flex items-center justify-center text-[#FFFFFF]">
               <Settings className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="font-bold text-base sm:text-lg text-[#F8FAFC]">
+              <h2 className="font-bold text-base sm:text-lg text-[#FFFFFF]">
                 Regras Matemáticas e Parâmetros da Série
               </h2>
               <p className="text-xs text-[#94A3B8]">
@@ -253,11 +261,11 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
           </div>
 
           {/* Countdown Setting */}
-          <div className="pt-4 border-t border-[#182943] space-y-2.5">
+          <div className="pt-4 border-t border-[#161C2C] space-y-2.5">
             <label className="block text-xs font-semibold text-[#94A3B8]">
               Contagem Regressiva antes da Revelação
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className={compact ? 'grid grid-cols-2 gap-2.5' : 'grid grid-cols-2 sm:grid-cols-4 gap-2.5'}>
               {[
                 { val: 10, label: '10 segundos', desc: 'Suspense completo' },
                 { val: 5, label: '5 segundos', desc: 'Rápido e dinâmico' },
@@ -272,11 +280,11 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
                     onClick={() => onUpdateSettings({ countdownSeconds: item.val })}
                     className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
                       active
-                        ? 'bg-[#0866F5]/20 border-[#00A9FF] text-[#F8FAFC]'
-                        : 'bg-[#0B1730] border-[#182943] text-[#94A3B8] hover:text-[#F8FAFC] hover:border-[#0866F5]/50'
+                        ? 'bg-[#0131CD]/20 border-[#0131CD] text-[#FFFFFF]'
+                        : 'bg-[#10141E] border-[#161C2C] text-[#94A3B8] hover:text-[#FFFFFF] hover:border-[#0131CD]/50'
                     }`}
                   >
-                    <span className={`text-xs font-bold ${active ? 'text-[#00A9FF]' : 'text-[#F8FAFC]'}`}>
+                    <span className={`text-xs font-bold ${active ? 'text-[#B9FC01]' : 'text-[#FFFFFF]'}`}>
                       {item.label}
                     </span>
                     <span className="text-[10px] text-[#94A3B8] mt-1">{item.desc}</span>
@@ -287,12 +295,12 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
           </div>
 
           {/* Color Scheme / Visual Theme */}
-          <div className="pt-4 border-t border-[#182943] space-y-2.5">
+          <div className="pt-4 border-t border-[#161C2C] space-y-2.5">
             <div className="flex items-center justify-between">
               <label className="block text-xs font-semibold text-[#94A3B8]">
                 Estilo Visual da Plataforma
               </label>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md border bg-[#0B1730] border-[#182943] text-[#00A9FF]">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md border bg-[#10141E] border-[#161C2C] text-[#B9FC01]">
                 {settings.themeMode === 'neon' ? 'Destaque Elevado' : 'Dark Tech Navy (Oficial)'}
               </span>
             </div>
@@ -306,12 +314,12 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
                 }}
                 className={`p-3.5 rounded-xl border text-left transition flex items-start justify-between ${
                   settings.themeMode !== 'neon'
-                    ? 'bg-[#0866F5]/20 border-[#00A9FF]'
-                    : 'bg-[#0B1730] border-[#182943] hover:border-[#0866F5]/50 text-[#94A3B8]'
+                    ? 'bg-[#0131CD]/20 border-[#0131CD]'
+                    : 'bg-[#10141E] border-[#161C2C] hover:border-[#0131CD]/50 text-[#94A3B8]'
                 }`}
               >
                 <div>
-                  <span className="font-bold text-xs text-[#F8FAFC] block">
+                  <span className="font-bold text-xs text-[#FFFFFF] block">
                     Oficial (Dark Tech Navy)
                   </span>
                   <span className="text-[11px] text-[#94A3B8]">
@@ -319,7 +327,7 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
                   </span>
                 </div>
                 {settings.themeMode !== 'neon' && (
-                  <CheckCircle2 className="w-4 h-4 text-[#00A9FF] shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-4 h-4 text-[#B9FC01] shrink-0 mt-0.5" />
                 )}
               </button>
 
@@ -331,20 +339,20 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
                 }}
                 className={`p-3.5 rounded-xl border text-left transition flex items-start justify-between ${
                   settings.themeMode === 'neon'
-                    ? 'bg-[#0866F5]/20 border-[#00A9FF]'
-                    : 'bg-[#0B1730] border-[#182943] hover:border-[#0866F5]/50 text-[#94A3B8]'
+                    ? 'bg-[#0131CD]/20 border-[#0131CD]'
+                    : 'bg-[#10141E] border-[#161C2C] hover:border-[#0131CD]/50 text-[#94A3B8]'
                 }`}
               >
                 <div>
-                  <span className="font-bold text-xs text-[#F8FAFC] flex items-center gap-1.5">
-                    Destaque de Transmissão <Sparkles className="w-3.5 h-3.5 text-[#00A9FF] inline" />
+                  <span className="font-bold text-xs text-[#FFFFFF] flex items-center gap-1.5">
+                    Destaque de Transmissão <Sparkles className="w-3.5 h-3.5 text-[#B9FC01] inline" />
                   </span>
                   <span className="text-[11px] text-[#94A3B8]">
                     Contraste acentuado para lives e telões
                   </span>
                 </div>
                 {settings.themeMode === 'neon' && (
-                  <CheckCircle2 className="w-4 h-4 text-[#00A9FF] shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-4 h-4 text-[#B9FC01] shrink-0 mt-0.5" />
                 )}
               </button>
             </div>
@@ -358,9 +366,9 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
                   onUpdateSettings({ seed: Math.floor(Math.random() * 4294967295) + 1 });
                   notify('Números reembaralhados com nova semente!');
                 }}
-                className="gio-btn-secondary px-3.5 py-2 text-xs"
+                className="gio-btn-secondary min-h-[38px] px-3.5 py-2 text-xs"
               >
-                <Shuffle className="w-3.5 h-3.5 text-[#00A9FF]" />
+                <Shuffle className="w-3.5 h-3.5 text-[#B9FC01]" />
                 <span>Gerar Nova Semente de Embaralhamento</span>
               </button>
             </div>
@@ -368,15 +376,15 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
         </div>
 
         {/* Right Column (5 cols): Identificação Pública + Backup & Manutenção */}
-        <div className="lg:col-span-5 space-y-6">
+        <div className={compact ? 'space-y-5' : 'lg:col-span-5 space-y-6'}>
           {/* Host Public Identification */}
-          <div className="gio-card p-6 space-y-4">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-[#182943]">
-              <div className="w-9 h-9 rounded-xl bg-[#00A9FF]/15 border border-[#00A9FF]/35 flex items-center justify-center text-[#00A9FF]">
+          <div className={`gio-card ${compact ? 'p-4 sm:p-5' : 'p-6'} space-y-4`}>
+            <div className="flex items-center gap-2.5 pb-3 border-b border-[#161C2C]">
+              <div className="w-9 h-9 rounded-xl bg-[#0131CD]/20 border border-[#0131CD]/35 flex items-center justify-center text-[#FFFFFF]">
                 <User className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="font-bold text-base text-[#F8FAFC]">
+                <h2 className="font-bold text-base text-[#FFFFFF]">
                   Identificação Pública do Sorteio
                 </h2>
                 <p className="text-xs text-[#94A3B8]">
@@ -424,7 +432,7 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
                       onUpdateSettings({ raffleCode: e.target.value.toUpperCase().trim() })
                     }
                     placeholder="Ex: GIO-7492"
-                    className="gio-input font-mono font-bold text-[#00A9FF] uppercase tabular-nums"
+                    className="gio-input font-mono font-bold text-[#B9FC01] uppercase tabular-nums"
                   />
                   <button
                     type="button"
@@ -433,9 +441,9 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
                       onUpdateSettings({ raffleCode: newCode });
                       notify(`Novo código gerado: #${newCode}`);
                     }}
-                    className="gio-btn-secondary px-3.5 py-2 text-xs shrink-0"
+                    className="gio-btn-secondary min-h-[38px] px-3.5 py-2 text-xs shrink-0"
                   >
-                    <RefreshCw className="w-3.5 h-3.5 text-[#00A9FF]" />
+                    <RefreshCw className="w-3.5 h-3.5 text-[#B9FC01]" />
                     <span>Novo</span>
                   </button>
                 </div>
@@ -444,23 +452,23 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
           </div>
 
           {/* Backup and Export Card */}
-          <div className="gio-card p-6 space-y-4">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-[#182943]">
+          <div className={`gio-card ${compact ? 'p-4 sm:p-5' : 'p-6'} space-y-4`}>
+            <div className="flex items-center gap-2.5 pb-3 border-b border-[#161C2C]">
               <div className="w-9 h-9 rounded-xl bg-[#20C997]/15 border border-[#20C997]/35 flex items-center justify-center text-[#20C997]">
                 <Download className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="font-bold text-base text-[#F8FAFC]">Backup, Exportação e Restauro</h2>
+                <h2 className="font-bold text-base text-[#FFFFFF]">Backup, Exportação e Restauro</h2>
                 <p className="text-xs text-[#94A3B8]">
                   Salve cópias de segurança locais ou emita o laudo PDF
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-[#0B1730] border border-[#182943] text-xs text-[#F8FAFC]">
+            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-[#10141E] border border-[#161C2C] text-xs text-[#FFFFFF]">
               <Zap className="w-4 h-4 text-[#20C997] shrink-0" />
               <span className="text-[11px] text-[#94A3B8]">
-                <strong className="text-[#F8FAFC]">Persistência Automática Ativa:</strong> todas as alterações são salvas instantaneamente neste navegador.
+                <strong className="text-[#FFFFFF]">Persistência Automática Ativa:</strong> todas as alterações são salvas instantaneamente neste navegador.
               </span>
             </div>
 
@@ -468,26 +476,26 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
               <button
                 type="button"
                 onClick={handleDownloadPdf}
-                className="gio-btn-primary py-3 px-4 text-xs"
+                className="gio-btn-primary min-h-[40px] py-3 px-4 text-xs"
               >
                 <FileText className="w-4 h-4" />
                 <span>Exportar Laudo Oficial PDF (Hash SHA-256)</span>
               </button>
 
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className={compact ? 'grid grid-cols-1 sm:grid-cols-2 gap-2.5' : 'grid grid-cols-2 gap-2.5'}>
                 <button
                   type="button"
                   onClick={handleDownloadBackup}
-                  className="gio-btn-secondary py-2.5 px-3 text-xs"
+                  className="gio-btn-secondary min-h-[38px] py-2.5 px-3 text-xs"
                 >
-                  <Download className="w-3.5 h-3.5 text-[#00A9FF]" />
+                  <Download className="w-3.5 h-3.5 text-[#B9FC01]" />
                   <span>Backup (.json)</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleDownloadCsv}
-                  className="gio-btn-secondary py-2.5 px-3 text-xs"
+                  className="gio-btn-secondary min-h-[38px] py-2.5 px-3 text-xs"
                 >
                   <FileText className="w-3.5 h-3.5 text-[#20C997]" />
                   <span>Planilha (.csv)</span>
@@ -496,13 +504,13 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
             </div>
 
             {/* Restore options */}
-            <div className="pt-3 border-t border-[#182943] space-y-2.5">
-              <div className="flex items-center justify-between">
+            <div className="pt-3 border-t border-[#161C2C] space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-semibold text-[#94A3B8]">Restaurar de Backup</span>
                 <button
                   type="button"
                   onClick={() => setIsJsonDrawerOpen(!isJsonDrawerOpen)}
-                  className="text-xs text-[#00A9FF] hover:underline font-medium"
+                  className="min-h-[36px] px-3 py-1.5 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] border border-[#161C2C] text-xs text-[#B9FC01] hover:underline font-medium inline-flex items-center justify-center transition"
                 >
                   {isJsonDrawerOpen ? 'Fechar texto JSON' : 'Colar JSON manualmente'}
                 </button>
@@ -513,7 +521,7 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
                 type="file"
                 accept=".json"
                 onChange={handleFileRestore}
-                className="text-xs text-[#94A3B8] file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#0866F5] file:text-[#F8FAFC] hover:file:bg-[#00A9FF] cursor-pointer w-full"
+                className="text-xs text-[#94A3B8] file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#0131CD] file:text-[#FFFFFF] hover:file:brightness-110 cursor-pointer w-full"
               />
 
               {isJsonDrawerOpen && (
@@ -529,7 +537,7 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
                     <button
                       type="button"
                       onClick={() => handleRestoreJson(backupJsonText)}
-                      className="gio-btn-primary px-3 py-1.5 text-xs"
+                      className="gio-btn-primary min-h-[38px] px-3.5 py-2 text-xs"
                     >
                       Restaurar do Texto
                     </button>
@@ -547,7 +555,7 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
           </div>
 
           {/* Utility Maintenance Card */}
-          <div className="gio-card p-5 space-y-3">
+          <div className={`gio-card ${compact ? 'p-4 sm:p-5' : 'p-5'} space-y-3`}>
             <div className="text-xs font-bold uppercase tracking-wider text-[#94A3B8]">
               Manutenção Rápida da Lista
             </div>
@@ -555,16 +563,16 @@ export const SettingsBackup: React.FC<SettingsBackupProps> = ({
               <button
                 type="button"
                 onClick={onResetCoinsOnly}
-                className="gio-btn-secondary px-3 py-2 text-xs"
+                className="gio-btn-secondary min-h-[38px] px-3.5 py-2 text-xs"
               >
                 Zerar moedas de todos
               </button>
               <button
                 type="button"
                 onClick={onResetToSample}
-                className="gio-btn-secondary px-3 py-2 text-xs text-[#00A9FF]"
+                className="gio-btn-secondary min-h-[38px] px-3.5 py-2 text-xs text-[#B9FC01]"
               >
-                <Sparkles className="w-3.5 h-3.5 text-[#00A9FF]" />
+                <Sparkles className="w-3.5 h-3.5 text-[#B9FC01]" />
                 <span>Carregar Lista de Exemplo</span>
               </button>
             </div>

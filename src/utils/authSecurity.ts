@@ -138,6 +138,23 @@ export function getGenericAuthErrorMessage(
     return 'Falha de conexão com os servidores de autenticação. Verifique sua conexão com a internet.';
   }
 
+  // Domain authorization, popup blocker and OAuth provider errors
+  if (rawMsg.includes('auth/unauthorized-domain')) {
+    return 'O domínio gustakkg15.github.io precisa ser adicionado aos Authorized Domains no Firebase Console para habilitar o login Google.';
+  }
+
+  if (rawMsg.includes('auth/popup-blocked')) {
+    return 'A janela de autenticação foi bloqueada pelo navegador do celular. Por favor, permita popups para este site e tente novamente.';
+  }
+
+  if (rawMsg.includes('auth/operation-not-allowed')) {
+    return 'O método de login solicitado não está habilitado no Firebase Console.';
+  }
+
+  if (rawMsg.includes('auth/unauthorized-continue-uri')) {
+    return 'A URL de redirecionamento do aplicativo não está autorizada no Firebase Console.';
+  }
+
   // Generic fallback without exposing internal code or PII
   return 'Não foi possível concluir a operação no momento. Tente novamente mais tarde.';
 }

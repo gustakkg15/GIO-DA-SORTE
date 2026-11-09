@@ -21,7 +21,7 @@ O Google AI Studio Build pode não carregar automaticamente pastas `.agents/skil
 
 ---
 
-## 2. As 10 Skills Profissionais de Design e Frontend (GitHub Open-Source)
+## 2. As 11 Skills Profissionais de Design e Frontend (GitHub Open-Source)
 
 Integradas e adaptadas com rigor à identidade visual e stack técnico do GIO DA SORTE PRO:
 
@@ -37,6 +37,7 @@ Integradas e adaptadas com rigor à identidade visual e stack técnico do GIO DA
 | 8 | `accessibility` | `danielteles/awesome-agent-skills` | MIT | WCAG 2.1 AA, navegação completa por teclado, anéis de foco visíveis, contraste >= 4.5:1 e semântica ARIA. |
 | 9 | `vercel-react-best-practices` | `vercel-labs/agent-skills` | Apache-2.0 / MIT | Co-localização de estado, limpeza de `useEffect`, hooks performáticos, prevenção de re-renders e tipagem estrita. |
 | 10 | `web-performance` | `danielteles/awesome-agent-skills` | MIT | Metas de Core Web Vitals (LCP <= 1.8s, INP <= 100ms, CLS <= 0.05), prevenção de layout shift e otimização Vite. |
+| 11 | `unslop` | `heydamir/unslop` (Damir Sokolovsky - [@heydamir](https://x.com/heydamir) / [heydamir.design/unslop](https://heydamir.design/unslop)) | CC BY 4.0 | Auditoria e eliminação de AI slop, refinamento pass-by-pass (spacing, color, icons, copy, type, layout, details, visuals, motion), story video de transformação. |
 
 ---
 

@@ -2273,26 +2273,31 @@ export async function endLiveSessionCollection(
 
 /**
  * Fetch all recorded LIVE sessions ordered by startedAt descending.
- * When an authenticated ownerUid is present, scopes history strictly to the owner's records (or legacy records not owned by another UID).
+ * Strictly requires an authenticated ownerUid and returns ONLY sessions where `s.ownerUid === resolvedOwnerUid`.
+ * Unauthenticated callers receive an empty list, and demo/unowned sessions without `ownerUid` are never mixed in.
  */
 export async function fetchAllLiveSessions(
   limitCount = 50,
-  ownerUid?: string
+  ownerUid?: string | null
 ): Promise<TikTokLiveSession[]> {
   const resolvedOwnerUid = resolveCurrentOwnerUid(ownerUid);
+  if (!resolvedOwnerUid) {
+    return [];
+  }
+  const effectiveLimit = Math.max(1, Math.min(200, Math.floor(Number(limitCount) || 50)));
   const colRef = collection(db, 'sessions');
-  const q = query(colRef, orderBy('startedAt', 'desc'), limit(limitCount));
+  const q = query(colRef, orderBy('startedAt', 'desc'));
   const snap = await getDocs(q);
   const list: TikTokLiveSession[] = [];
   snap.forEach((d) => {
+    if (list.length >= effectiveLimit) return;
     const s = d.data() as TikTokLiveSession;
-    if (resolvedOwnerUid) {
-      if (s.ownerUid && s.ownerUid !== resolvedOwnerUid) {
-        return; // Strictly exclude sessions belonging to another UID
-      }
-      if (ownerUid && s.ownerUid !== resolvedOwnerUid) {
-        return; // When explicit ownerUid filter is passed, require exact match
-      }
+    const recordOwner = s.ownerUid ? String(s.ownerUid).trim() : '';
+    if (!recordOwner || recordOwner !== resolvedOwnerUid) {
+      return; // Strictly exclude unowned/demo sessions and sessions belonging to any other UID
+    }
+    if ((s as unknown as { isDemo?: boolean }).isDemo === true) {
+      return; // Never mix demo sessions into real authenticated user queries
     }
     list.push(s);
   });

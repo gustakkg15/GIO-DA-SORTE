@@ -22,13 +22,13 @@ export const PrintSheetModal: React.FC<PrintSheetModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#050D20]/85 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-[#0B1730] border border-[#182943] rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up">
+    <div className="fixed inset-0 z-50 bg-[#080A0F]/85 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+      <div className="bg-[#10141E] border border-[#161C2C] rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up">
         {/* Modal Controls (Hidden in print) */}
-        <div className="p-4 sm:p-5 border-b border-[#182943] flex items-center justify-between bg-[#050D20] print:hidden">
+        <div className="p-4 sm:p-5 border-b border-[#161C2C] flex items-center justify-between bg-[#080A0F] print:hidden">
           <div className="flex items-center gap-2">
-            <Printer className="w-5 h-5 text-[#00A9FF]" />
-            <span className="font-display font-bold text-base text-[#F8FAFC]">
+            <Printer className="w-5 h-5 text-[#B9FC01]" />
+            <span className="font-display font-bold text-base text-[#FFFFFF]">
               Folha Oficial de Conferência · GIO DA SORTE
             </span>
           </div>
@@ -37,7 +37,7 @@ export const PrintSheetModal: React.FC<PrintSheetModalProps> = ({
             <button
               type="button"
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-bold text-xs rounded-xl shadow-md transition"
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs rounded-xl shadow-md transition"
             >
               <Printer className="w-4 h-4" />
               <span>Imprimir / Salvar PDF</span>
@@ -45,7 +45,7 @@ export const PrintSheetModal: React.FC<PrintSheetModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#101F3D] rounded-lg transition"
+              className="p-2 text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#10141E] rounded-lg transition"
             >
               <X className="w-5 h-5" />
             </button>

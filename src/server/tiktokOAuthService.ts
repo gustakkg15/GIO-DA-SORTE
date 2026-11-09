@@ -14,10 +14,15 @@ import { db } from '../firebase.ts';
 // 1. EXPLICIT DOMAIN & REDIRECT URI ALLOWLIST
 // ==========================================
 
+export const CLOUD_RUN_APP_ORIGIN =
+  'https://gio-da-sorte-1042651147403.europe-west2.run.app';
+export const PROD_APP_ORIGIN = CLOUD_RUN_APP_ORIGIN;
+export const PREVIEW_APP_ORIGIN =
+  'https://ais-pre-bodr7wggvyyl4p2jtskel4-749434257827.europe-west2.run.app';
 export const DEV_APP_ORIGIN =
   'https://ais-dev-bodr7wggvyyl4p2jtskel4-749434257827.europe-west2.run.app';
-export const PROD_APP_ORIGIN =
-  'https://ais-pre-bodr7wggvyyl4p2jtskel4-749434257827.europe-west2.run.app';
+export const GITHUB_PAGES_ORIGIN =
+  'https://gustakkg15.github.io';
 
 export const OAUTH_CALLBACK_PATH = '/auth/tiktok/callback';
 export const SESSION_COOKIE_NAME = 'gio_tiktok_session';
@@ -31,7 +36,9 @@ export const TOKEN_AUTO_REFRESH_WINDOW_MS = 5 * 60 * 1000; // 5 minutes before e
  * Arbitrary Host or X-Forwarded-Host headers are NEVER trusted unless they match this list.
  */
 export const ALLOWED_HTTPS_ORIGINS: ReadonlySet<string> = new Set([
-  PROD_APP_ORIGIN,
+  CLOUD_RUN_APP_ORIGIN,
+  GITHUB_PAGES_ORIGIN,
+  PREVIEW_APP_ORIGIN,
   DEV_APP_ORIGIN,
 ]);
 

@@ -71,7 +71,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const statusBadge = () => {
     if (!linkedTikTokProfile.linked) {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#101F3D] text-[#94A3B8] border border-[#182943]">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#10141E] text-[#94A3B8] border border-[#161C2C]">
           <Unlink className="w-3 h-3 text-[#94A3B8]" /> DESCONECTADO
         </span>
       );
@@ -90,27 +90,27 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   return (
     <div className="space-y-4">
       {/* Primary Account Info Banner */}
-      <div className="bg-[#101F3D] border border-[#182943] rounded-2xl p-4 flex items-center gap-4">
+      <div className="bg-[#10141E] border border-[#161C2C] rounded-2xl p-4 flex items-center gap-4">
         {currentUser.photoURL ? (
           <img
             src={currentUser.photoURL}
             alt={currentUser.displayName || 'Avatar'}
             referrerPolicy="no-referrer"
-            className="w-14 h-14 rounded-full border-2 border-[#00A9FF]/50 object-cover shrink-0 shadow-lg"
+            className="w-14 h-14 rounded-full border-2 border-[#0131CD]/50 object-cover shrink-0 shadow-lg"
           />
         ) : (
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#0866F5] to-[#00A9FF] text-[#F8FAFC] font-bold flex items-center justify-center text-xl shrink-0 border border-[#35B9F5]/40 shadow-lg">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#0131CD] to-[#0131CD] text-[#FFFFFF] font-bold flex items-center justify-center text-xl shrink-0 border border-[#0131CD]/40 shadow-lg">
             {currentUser.displayName ? currentUser.displayName[0].toUpperCase() : 'G'}
           </div>
         )}
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="font-bold text-[#F8FAFC] text-base truncate">
+            <h3 className="font-bold text-[#FFFFFF] text-base truncate">
               {currentUser.displayName || 'Sorteador GIO'}
             </h3>
             {isTikTokControlledUser && (
-              <span className="bg-[#00A9FF]/15 text-[#00A9FF] border border-[#00A9FF]/40 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+              <span className="bg-[#0131CD]/20 text-[#FFFFFF] border border-[#0131CD]/40 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
                 TikTok Auth
               </span>
             )}
@@ -125,11 +125,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       </div>
 
       {/* Dedicated TikTok Linked Account Card */}
-      <div className="bg-[#101F3D] border border-[#182943] rounded-2xl p-4 space-y-3.5">
-        <div className="flex items-center justify-between pb-2 border-b border-[#182943]">
+      <div className="bg-[#10141E] border border-[#161C2C] rounded-2xl p-4 space-y-3.5">
+        <div className="flex items-center justify-between pb-2 border-b border-[#161C2C]">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-[#00A9FF]" />
-            <h4 className="font-bold text-sm text-[#F8FAFC]">Conta TikTok Vinculada</h4>
+            <Sparkles className="w-4 h-4 text-[#B9FC01]" />
+            <h4 className="font-bold text-sm text-[#FFFFFF]">Conta TikTok Vinculada</h4>
           </div>
           {statusBadge()}
         </div>
@@ -149,26 +149,26 @@ export const UserProfile: React.FC<UserProfileProps> = ({
 
         {linkedTikTokProfile.linked ? (
           <div className="space-y-3">
-            <div className="bg-[#050D20] border border-[#182943] rounded-xl p-3 flex items-center gap-3">
+            <div className="bg-[#080A0F] border border-[#161C2C] rounded-xl p-3 flex items-center gap-3">
               {linkedTikTokProfile.avatarUrl ? (
                 <img
                   src={linkedTikTokProfile.avatarUrl}
                   alt={linkedTikTokProfile.displayName || 'TikTok Avatar'}
                   referrerPolicy="no-referrer"
-                  className="w-10 h-10 rounded-full border border-[#00A9FF]/40 object-cover shrink-0"
+                  className="w-10 h-10 rounded-full border border-[#0131CD]/40 object-cover shrink-0"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-[#0866F5]/20 text-[#00A9FF] border border-[#00A9FF]/30 flex items-center justify-center font-bold text-sm shrink-0">
+                <div className="w-10 h-10 rounded-full bg-[#0131CD]/20 text-[#FFFFFF] border border-[#0131CD]/30 flex items-center justify-center font-bold text-sm shrink-0">
                   TT
                 </div>
               )}
 
               <div className="min-w-0 flex-1">
-                <div className="font-bold text-xs text-[#F8FAFC] truncate">
+                <div className="font-bold text-xs text-[#FFFFFF] truncate">
                   {linkedTikTokProfile.displayName || 'Criador TikTok'}
                 </div>
                 {handleDisplay && (
-                  <div className="text-xs font-semibold text-[#00A9FF] truncate">{handleDisplay}</div>
+                  <div className="text-xs font-semibold text-[#B9FC01] truncate">{handleDisplay}</div>
                 )}
                 <div className="text-[11px] text-[#94A3B8] truncate mt-0.5">
                   Escopo: {linkedTikTokProfile.scope || 'user.info.basic'}
@@ -200,7 +200,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               type="button"
               disabled={loading}
               onClick={onStartLinkFlow}
-              className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#0866F5] to-[#00A9FF] hover:brightness-110 text-[#F8FAFC] font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-[#0866F5]/25 transition active:scale-95 disabled:opacity-50"
+              className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#0131CD] to-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-[#0131CD]/25 transition active:scale-95 disabled:opacity-50"
             >
               <Link2 className="w-4 h-4" />
               <span>Conectar Conta TikTok (OAuth 2.0)</span>
@@ -214,21 +214,21 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-[#050D20]/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-50 bg-[#080A0F]/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
         >
-          <div className="bg-[#0B1730] border border-[#F05262]/50 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-scale-in">
+          <div className="bg-[#10141E] border border-[#F05262]/50 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-scale-in">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-[#F05262]/15 border border-[#F05262]/40 flex items-center justify-center text-[#F05262] shrink-0">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-bold text-sm text-[#F8FAFC]">Desconectar TikTok?</h4>
+                <h4 className="font-bold text-sm text-[#FFFFFF]">Desconectar TikTok?</h4>
                 <p className="text-[11px] text-[#94A3B8]">Esta ação revoga o token de API oficial.</p>
               </div>
             </div>
 
-            <div className="bg-[#050D20] border border-[#182943] rounded-xl p-3 text-xs text-[#94A3B8] space-y-1.5 leading-relaxed">
-              <p className="text-[#F8FAFC] font-semibold">O que acontece ao desconectar:</p>
+            <div className="bg-[#080A0F] border border-[#161C2C] rounded-xl p-3 text-xs text-[#94A3B8] space-y-1.5 leading-relaxed">
+              <p className="text-[#FFFFFF] font-semibold">O que acontece ao desconectar:</p>
               <ul className="list-disc pl-4 space-y-1">
                 <li>Sua conta GIO e plano continuam 100% preservados.</li>
                 <li>Seus sorteios, bilhetes e histórico não serão excluídos.</li>
@@ -241,7 +241,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                 type="button"
                 disabled={disconnecting}
                 onClick={() => setShowConfirmDisconnect(false)}
-                className="py-2.5 px-3 rounded-xl bg-[#101F3D] hover:bg-[#182943] text-[#F8FAFC] text-xs font-bold transition border border-[#182943]"
+                className="py-2.5 px-3 rounded-xl bg-[#10141E] hover:bg-[#161C2C] text-[#FFFFFF] text-xs font-bold transition border border-[#161C2C]"
               >
                 Cancelar
               </button>
@@ -249,7 +249,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                 type="button"
                 disabled={disconnecting}
                 onClick={handleConfirmDisconnect}
-                className="py-2.5 px-3 rounded-xl bg-[#F05262] hover:brightness-110 text-[#F8FAFC] text-xs font-bold transition shadow-lg shadow-[#F05262]/30 flex items-center justify-center gap-1.5 disabled:opacity-50"
+                className="py-2.5 px-3 rounded-xl bg-[#F05262] hover:brightness-110 text-[#FFFFFF] text-xs font-bold transition shadow-lg shadow-[#F05262]/30 flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 {disconnecting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Unlink className="w-3.5 h-3.5" />}
                 <span>{disconnecting ? 'Desconectando...' : 'Sim, Desconectar'}</span>

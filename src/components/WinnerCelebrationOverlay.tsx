@@ -125,12 +125,12 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-0 z-[70] bg-[#050D20]/95 backdrop-blur-2xl flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fade-in"
+      className="fixed inset-0 z-[70] bg-[#080A0F]/95 backdrop-blur-2xl flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fade-in"
     >
       {/* Background Ambient Glow Lights */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-b from-[#0866F5]/30 via-[#00A9FF]/20 to-transparent rounded-full blur-3xl animate-pulse" />
-        <div className="absolute -bottom-40 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-t from-[#F5B942]/20 via-[#00A9FF]/20 to-transparent rounded-full blur-3xl" />
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-b from-[#0131CD]/30 via-[#0131CD]/20 to-transparent rounded-full blur-3xl animate-pulse" />
+        <div className="absolute -bottom-40 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-t from-[#F5B942]/20 via-[#0131CD]/20 to-transparent rounded-full blur-3xl" />
       </div>
 
       {/* Close Button Top Right */}
@@ -138,7 +138,7 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
         type="button"
         onClick={onClose}
         aria-label="Fechar celebração"
-        className="absolute top-4 right-4 z-50 min-w-[44px] min-h-[44px] p-2.5 flex items-center justify-center text-[#94A3B8] hover:text-[#F8FAFC] bg-[#101F3D] hover:bg-[#182943] border border-[#182943] rounded-2xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00A9FF]"
+        className="absolute top-4 right-4 z-50 min-w-[44px] min-h-[44px] p-2.5 flex items-center justify-center text-[#94A3B8] hover:text-[#FFFFFF] bg-[#10141E] hover:bg-[#161C2C] border border-[#161C2C] rounded-2xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080A0F]"
       >
         <X className="w-5 h-5" />
       </button>
@@ -146,14 +146,14 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
       {/* Main Fullscreen Showcase Card */}
       <div className="relative z-10 max-w-2xl w-full my-auto text-center space-y-6 py-6 animate-slide-up">
         {/* Kicker Badge em Ouro Nobre */}
-        <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#101F3D] border border-[#F5B942]/60 text-[#F5B942] text-xs sm:text-sm font-bold uppercase tracking-widest shadow-xl">
+        <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#10141E] border border-[#F5B942]/60 text-[#F5B942] text-xs sm:text-sm font-bold uppercase tracking-widest shadow-xl">
           <Trophy className="w-4 h-4 text-[#F5B942] fill-[#F5B942]" />
           <span>Vencedor Oficial do Sorteio</span>
-          <Sparkles className="w-4 h-4 text-[#00A9FF]" />
+          <Sparkles className="w-4 h-4 text-[#B9FC01]" />
         </div>
 
         {/* Prize Showcase Card */}
-        <div className="bg-[#101F3D]/95 border border-[#F5B942]/40 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden ring-1 ring-white/10">
+        <div className="bg-[#10141E]/95 border border-[#F5B942]/40 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden ring-1 ring-white/10">
           <div className="space-y-4">
             <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#F5B942] bg-[#F5B942]/15 border border-[#F5B942]/30 px-3.5 py-1 rounded-full inline-block">
               Prêmio Conquistado
@@ -163,7 +163,7 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
             <div className="flex justify-center">
               {prizeImage ? (
                 <div className="relative group">
-                  <div className="absolute -inset-1.5 bg-gradient-to-r from-[#0866F5] via-[#00A9FF] to-[#F5B942] rounded-2xl blur-md opacity-60 transition duration-300" />
+                  <div className="absolute -inset-1.5 bg-gradient-to-r from-[#0131CD] via-[#0131CD] to-[#F5B942] rounded-2xl blur-md opacity-60 transition duration-300" />
                   <img
                     src={prizeImage}
                     alt={prizeTitle}
@@ -171,8 +171,8 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
                   />
                 </div>
               ) : (
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-[#0866F5] to-[#0B1730] border border-[#00A9FF]/40 flex items-center justify-center text-white shadow-xl mx-auto">
-                  <Gift className="w-10 h-10 sm:w-12 sm:h-12 text-[#00A9FF] stroke-[2]" />
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-[#0131CD] to-[#10141E] border border-[#0131CD]/40 flex items-center justify-center text-white shadow-xl mx-auto">
+                  <Gift className="w-10 h-10 sm:w-12 sm:h-12 text-[#B9FC01] stroke-[2]" />
                 </div>
               )}
             </div>
@@ -190,21 +190,21 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
             aria-hidden="true"
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] sm:w-[500px] md:w-[620px] h-[200px] pointer-events-none -z-10"
           >
-            <div className="w-full h-full rounded-full blur-3xl opacity-60 bg-gradient-to-r from-[#0866F5]/40 via-[#00A9FF]/30 to-[#F5B942]/25" />
+            <div className="w-full h-full rounded-full blur-3xl opacity-60 bg-gradient-to-r from-[#0131CD]/40 via-[#0131CD]/30 to-[#F5B942]/25" />
           </div>
 
-          <div className="font-mono text-xs uppercase font-bold tracking-widest text-[#00A9FF] relative z-10 flex items-center justify-center gap-2">
+          <div className="font-mono text-xs uppercase font-bold tracking-widest text-[#B9FC01] relative z-10 flex items-center justify-center gap-2">
             <Sparkles className="w-3.5 h-3.5 text-[#F5B942]" />
             <span>Contemplado na Mesa Oficial</span>
             <Sparkles className="w-3.5 h-3.5 text-[#F5B942]" />
           </div>
 
-          <div className="relative z-10 font-display font-extrabold text-4xl sm:text-6xl md:text-7xl text-white tracking-tight break-words drop-shadow-[0_10px_35px_rgba(8,102,245,0.5)]">
+          <div className="relative z-10 font-display font-extrabold text-4xl sm:text-6xl md:text-7xl text-white tracking-tight break-words drop-shadow-[0_10px_35px_rgba(1, 49, 205,0.5)]">
             {winner.name}
           </div>
 
           {/* Ticket Number Badge */}
-          <div className="relative z-10 inline-flex items-center gap-3 bg-[#0866F5] px-7 py-3 rounded-2xl border border-white/20 shadow-2xl shadow-blue-600/30">
+          <div className="relative z-10 inline-flex items-center gap-3 bg-[#0131CD] px-7 py-3 rounded-2xl border border-white/20 shadow-2xl shadow-blue-600/30">
             <Award className="w-5 h-5 text-[#F5B942]" />
             <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-white">
               Bilhete Premiado:
@@ -229,7 +229,7 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
               onClose();
               onOpenVictoryCard(winner);
             }}
-            className="flex-1 min-w-[170px] min-h-[46px] px-5 py-2.5 rounded-xl bg-[#0866F5] hover:bg-[#0b72ff] text-white font-bold text-xs sm:text-sm shadow-xl transition active:scale-95 flex items-center justify-center gap-2 border border-white/15"
+            className="flex-1 min-w-[170px] min-h-[46px] px-5 py-2.5 rounded-xl bg-[#0131CD] hover:bg-[#0b72ff] text-white font-bold text-xs sm:text-sm shadow-xl transition active:scale-95 flex items-center justify-center gap-2 border border-white/15"
           >
             <ImageIcon className="w-4 h-4 text-white" />
             <span>Gerar Card VIP</span>
@@ -263,7 +263,7 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
           <button
             type="button"
             onClick={handleCopyText}
-            className="min-h-[46px] px-4 py-2.5 rounded-xl bg-[#101F3D] hover:bg-[#14274E] text-white font-bold text-xs sm:text-sm border border-white/10 transition active:scale-95 flex items-center justify-center gap-1.5"
+            className="min-h-[46px] px-4 py-2.5 rounded-xl bg-[#10141E] hover:bg-[#161C2C] text-white font-bold text-xs sm:text-sm border border-white/10 transition active:scale-95 flex items-center justify-center gap-1.5"
           >
             {copied ? (
               <>
@@ -272,7 +272,7 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
               </>
             ) : (
               <>
-                <Copy className="w-4 h-4 text-[#00A9FF]" />
+                <Copy className="w-4 h-4 text-[#B9FC01]" />
                 <span>Copiar</span>
               </>
             )}
@@ -285,9 +285,9 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
             type="button"
             onClick={handleFireFireworks}
             title="Disparar bateria de fogos de artifício com partículas tsParticles"
-            className="px-4 py-2 rounded-xl bg-[#101F3D] hover:bg-[#14274E] border border-white/10 text-[#00A9FF] font-semibold text-xs transition active:scale-95 flex items-center gap-2"
+            className="px-4 py-2 rounded-xl bg-[#10141E] hover:bg-[#161C2C] border border-white/10 text-[#B9FC01] font-semibold text-xs transition active:scale-95 flex items-center gap-2"
           >
-            <Flame className="w-4 h-4 text-[#00A9FF]" />
+            <Flame className="w-4 h-4 text-[#B9FC01]" />
             <span>Fogos de Artifício</span>
           </button>
 
@@ -295,7 +295,7 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
             type="button"
             onClick={handleFireMoreConfetti}
             title="Disparar chuva de confetes com tsParticles"
-            className="px-4 py-2 rounded-xl bg-[#101F3D] hover:bg-[#14274E] border border-[#F5B942]/30 text-[#F5B942] font-semibold text-xs transition active:scale-95 flex items-center gap-2"
+            className="px-4 py-2 rounded-xl bg-[#10141E] hover:bg-[#161C2C] border border-[#F5B942]/30 text-[#F5B942] font-semibold text-xs transition active:scale-95 flex items-center gap-2"
           >
             <Sparkles className="w-4 h-4 text-[#F5B942]" />
             <span>Chuva de Confetes</span>

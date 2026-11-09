@@ -164,13 +164,13 @@ const GiftAvatarCell: React.FC<{
         src={avatarUrl}
         alt={cleanName || cleanUser || 'Participante'}
         onError={() => setImgError(true)}
-        className="w-8 h-8 rounded-full object-cover border border-[#182943] shrink-0 bg-[#050D20]"
+        className="w-8 h-8 rounded-full object-cover border border-[#161C2C] shrink-0 bg-[#080A0F]"
       />
     );
   }
 
   return (
-    <div className="w-8 h-8 rounded-full bg-[#101F3D] border border-[#182943] text-[#F8FAFC] font-semibold text-xs flex items-center justify-center shrink-0">
+    <div className="w-8 h-8 rounded-full bg-[#10141E] border border-[#161C2C] text-[#FFFFFF] font-semibold text-xs flex items-center justify-center shrink-0">
       {initial}
     </div>
   );
@@ -510,6 +510,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
 
     const ALLOWED_POPUP_ORIGINS = new Set([
       window.location.origin,
+      'https://gio-da-sorte-1042651147403.europe-west2.run.app',
       'https://ais-dev-bodr7wggvyyl4p2jtskel4-749434257827.europe-west2.run.app',
       'https://ais-pre-bodr7wggvyyl4p2jtskel4-749434257827.europe-west2.run.app',
     ]);
@@ -580,17 +581,24 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
           'Moedas enviadas em presentes durante a transmissão convertem-se automaticamente em bilhetes numerados.'
       );
 
+      const currentOwnerUid = auth.currentUser?.uid;
       const [parts, allSess, draws, events, streaks, logs, tickets] = await Promise.all([
         fetchSessionParticipants(sid),
-        fetchAllLiveSessions(40),
-        fetchSessionDraws(sid),
+        fetchAllLiveSessions(40, currentOwnerUid),
+        fetchSessionDraws(sid, currentOwnerUid),
         fetchRecentSessionEvents(sid, 40),
         fetchSessionStreaks(sid),
         fetchRecentAuditLogs(30),
         fetchSessionTickets(sid, 600),
       ]);
       setSessionParticipants(parts);
-      setAllSessions(allSess.length > 0 ? allSess : [sess]);
+      setAllSessions(
+        allSess.length > 0
+          ? allSess
+          : currentOwnerUid && sess.ownerUid === currentOwnerUid
+          ? [sess]
+          : []
+      );
       setSessionDraws(draws);
       setPersistedSessionEvents(events);
       setPersistedSessionStreaks(streaks);
@@ -2033,25 +2041,25 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
   const totalParticipantsValue = sessionParticipants.length;
 
   return (
-    <div className="space-y-6 text-[#F8FAFC]">
+    <div className="space-y-6 text-[#FFFFFF]">
       {(!planEntitlement.active || planEntitlement.tier !== 'PRO' || planEntitlement.statusState !== 'ACTIVE') &&
       (activeProTab !== 'audit' || platformMode === 'traditional_comments') ? (
         /* PRO PLAN EXCLUSIVE GATE (VALIDATED ON BACKEND) */
-        <div className="p-8 rounded-2xl bg-[#101F3D] border border-[#8B7CFF]/35 text-center space-y-5 shadow-[0_12px_32px_rgba(139,124,255,0.1)]">
-          <div className="w-14 h-14 rounded-2xl bg-[#8B7CFF]/15 border border-[#8B7CFF]/40 text-[#C4B5FD] mx-auto flex items-center justify-center">
+        <div className="p-8 rounded-2xl bg-[#10141E] border border-[#B9FC01]/35 text-center space-y-5 shadow-[0_12px_32px_rgba(185, 252, 1,0.1)]">
+          <div className="w-14 h-14 rounded-2xl bg-[#B9FC01]/15 border border-[#B9FC01]/40 text-[#B9FC01] mx-auto flex items-center justify-center">
             <Lock className="w-7 h-7" />
           </div>
           <div className="max-w-xl mx-auto space-y-2">
             <span className="gio-badge-pro mx-auto">
               Exclusivo Plano PRO · Validação Backend Ativa
             </span>
-            <h2 className="text-xl sm:text-2xl font-bold text-[#F8FAFC] tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#FFFFFF] tracking-tight">
               {platformMode === 'traditional_comments'
                 ? 'Sorteador de Comentários do TikTok — Exclusivo PRO'
                 : 'Módulos TikTok LIVE PRO Bloqueados no Plano FREE'}
             </h2>
             <p className="text-xs sm:text-sm text-[#94A3B8] leading-relaxed">
-              As ferramentas da área TikTok LIVE — incluindo a conexão em tempo real para <strong className="text-[#F8FAFC]">Sorteio por Presentes LIVE</strong>, contabilização automática de moedas em bilhetes, campanhas acumuladas e o <strong className="text-[#F8FAFC]">Sorteio por Comentários TikTok</strong> com auditoria criptográfica — são exclusivas dos assinantes do plano <strong className="text-[#C4B5FD]">PRO</strong>.
+              As ferramentas da área TikTok LIVE — incluindo a conexão em tempo real para <strong className="text-[#FFFFFF]">Sorteio por Presentes LIVE</strong>, contabilização automática de moedas em bilhetes, campanhas acumuladas e o <strong className="text-[#FFFFFF]">Sorteio por Comentários TikTok</strong> com auditoria criptográfica — são exclusivas dos assinantes do plano <strong className="text-[#B9FC01]">PRO</strong>.
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
@@ -2060,7 +2068,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
               disabled={isUpdatingPlan}
               className="gio-btn-pro px-5 py-2.5 text-xs"
             >
-              <Crown className="w-4 h-4 text-[#F8FAFC]" />
+              <Crown className="w-4 h-4 text-[#FFFFFF]" />
               <span>Ativar e Validar Plano PRO</span>
             </button>
             <button
@@ -2070,9 +2078,9 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                 setIsAdvancedOpen(true);
                 setAdvancedTab('history');
               }}
-              className="px-4 py-2.5 rounded-xl font-medium text-xs text-[#F8FAFC] bg-[#0B1730] hover:bg-[#182943] border border-[#182943] transition flex items-center gap-1.5"
+              className="px-4 py-2.5 rounded-xl font-medium text-xs text-[#FFFFFF] bg-[#10141E] hover:bg-[#161C2C] border border-[#161C2C] transition flex items-center gap-1.5"
             >
-              <Users className="w-4 h-4 text-[#00A9FF]" />
+              <Users className="w-4 h-4 text-[#B9FC01]" />
               <span>Consultar Histórico e Participantes Salvos</span>
             </button>
           </div>
@@ -2083,15 +2091,15 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
            ============================================================== */
         <div className="space-y-6">
           {/* Top Modality Navigation Bar */}
-          <div className="p-2 rounded-xl bg-[#101F3D] border border-[#182943] flex flex-wrap items-center justify-between gap-2">
+          <div className="p-2 rounded-xl bg-[#10141E] border border-[#161C2C] flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => setPlatformMode('live_pro')}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 ${
+                className={`min-h-[38px] px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 ${
                   platformMode === 'live_pro'
-                    ? 'bg-[#0866F5] text-[#F8FAFC] shadow-sm shadow-[#0866F5]/20'
-                    : 'bg-[#0B1730] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#182943]'
+                    ? 'bg-[#0131CD] text-[#FFFFFF] shadow-sm shadow-[#0131CD]/20'
+                    : 'bg-[#10141E] text-[#94A3B8] hover:text-[#FFFFFF] border border-[#161C2C]'
                 }`}
               >
                 <Gift className="w-4 h-4" />
@@ -2104,15 +2112,21 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                   setActiveProTab('feed');
                   setPlatformMode('traditional_comments');
                 }}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 ${
+                className={`min-h-[38px] px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 ${
                   platformMode === 'traditional_comments'
-                    ? 'bg-[#8B7CFF] text-[#F8FAFC] shadow-sm shadow-[#8B7CFF]/25'
-                    : 'bg-[#0B1730] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#182943]'
+                    ? 'bg-[#B9FC01] text-[#080A0F] font-bold shadow-sm shadow-[#B9FC01]/25'
+                    : 'bg-[#080A0F] text-[#94A3B8] hover:text-[#FFFFFF] border border-[#161C2C]'
                 }`}
               >
                 <MessageSquare className="w-4 h-4" />
                 <span>2. Sorteio por Comentários</span>
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#8B7CFF]/25 text-[#C4B5FD] border border-[#8B7CFF]/40">
+                <span
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                    platformMode === 'traditional_comments'
+                      ? 'bg-[#080A0F]/20 text-[#080A0F] border-[#080A0F]/30'
+                      : 'bg-[#B9FC01]/20 text-[#B9FC01] border-[#B9FC01]/40'
+                  }`}
+                >
                   PRO
                 </span>
               </button>
@@ -2126,13 +2140,13 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                   setIsAdvancedOpen(true);
                   setAdvancedTab('campaigns');
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 ${
+                className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 ${
                   isAdvancedOpen && advancedTab === 'campaigns' && platformMode === 'live_pro'
-                    ? 'bg-[#182943] text-[#F8FAFC] border border-[#00A9FF]/60'
-                    : 'bg-[#0B1730] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#182943]'
+                    ? 'bg-[#161C2C] text-[#FFFFFF] border border-[#0131CD]/60'
+                    : 'bg-[#10141E] text-[#94A3B8] hover:text-[#FFFFFF] border border-[#161C2C]'
                 }`}
               >
-                <Layers className="w-3.5 h-3.5 text-[#00A9FF]" />
+                <Layers className="w-3.5 h-3.5 text-[#B9FC01]" />
                 <span>Multi-LIVE</span>
               </button>
 
@@ -2143,13 +2157,13 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                   setIsAdvancedOpen(true);
                   setAdvancedTab('history');
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 ${
+                className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 ${
                   isAdvancedOpen && advancedTab === 'history' && platformMode === 'live_pro'
-                    ? 'bg-[#182943] text-[#F8FAFC] border border-[#00A9FF]/60'
-                    : 'bg-[#0B1730] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#182943]'
+                    ? 'bg-[#161C2C] text-[#FFFFFF] border border-[#0131CD]/60'
+                    : 'bg-[#10141E] text-[#94A3B8] hover:text-[#FFFFFF] border border-[#161C2C]'
                 }`}
               >
-                <History className="w-3.5 h-3.5 text-[#00A9FF]" />
+                <History className="w-3.5 h-3.5 text-[#B9FC01]" />
                 <span>Histórico</span>
               </button>
             </div>
@@ -2157,14 +2171,14 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
 
           {platformMode === 'traditional_comments' ? (
             <div className="space-y-5">
-              <div className="p-4 rounded-xl bg-[#101F3D] border border-[#182943] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="p-4 rounded-xl bg-[#10141E] border border-[#161C2C] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="gio-badge-pro">TIKTOK LIVE PRO</span>
                     <span className="text-xs text-[#94A3B8]">·</span>
                     <span className="text-xs font-semibold text-[#20C997]">Auditoria Criptográfica CSPRNG</span>
                   </div>
-                  <h2 className="text-base font-semibold text-[#F8FAFC] mt-1">
+                  <h2 className="text-base font-semibold text-[#FFFFFF] mt-1">
                     Sorteio por Comentários TikTok
                   </h2>
                   <p className="text-xs text-[#94A3B8]">
@@ -2173,9 +2187,9 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                 </div>
                 <button
                   onClick={() => setPlatformMode('live_pro')}
-                  className="px-4 py-2 rounded-lg bg-[#0B1730] hover:bg-[#182943] border border-[#182943] text-[#F8FAFC] font-semibold text-xs transition flex items-center gap-2 self-start sm:self-auto"
+                  className="min-h-[38px] px-4 py-2 rounded-lg bg-[#10141E] hover:bg-[#161C2C] border border-[#161C2C] text-[#FFFFFF] font-semibold text-xs transition flex items-center gap-2 self-start sm:self-auto"
                 >
-                  <Gift className="w-4 h-4 text-[#00A9FF]" />
+                  <Gift className="w-4 h-4 text-[#B9FC01]" />
                   <span>Ir para Presentes LIVE</span>
                 </button>
               </div>
@@ -2193,12 +2207,12 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                   ========================================================== */}
               <section
                 id="tiktok-live-connection-section"
-                className="p-5 sm:p-6 rounded-xl bg-[#101F3D] border border-[#182943] space-y-4"
+                className="p-5 sm:p-6 rounded-xl bg-[#10141E] border border-[#161C2C] space-y-4"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2.5">
-                      <h1 className="text-lg sm:text-xl font-bold text-[#F8FAFC] tracking-tight">
+                      <h1 className="text-lg sm:text-xl font-bold text-[#FFFFFF] tracking-tight">
                         TikTok LIVE
                       </h1>
                       <span className="gio-badge-pro">PRO</span>
@@ -2217,7 +2231,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                       <span className={`w-2 h-2 rounded-full ${connMeta.dotClass}`} />
                       <span>{connMeta.label}</span>
                       {connMeta.state === 'CONNECTED' && connectionStatus.roomUsername && (
-                        <span className="font-mono text-[#F8FAFC]">
+                        <span className="font-mono text-[#FFFFFF]">
                           · @{connectionStatus.roomUsername.replace(/^@+/, '')}
                         </span>
                       )}
@@ -2247,7 +2261,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                       placeholder="usuario_da_live"
                       disabled={connectionStatus.state === 'CONNECTED'}
                       aria-label="Usuário da transmissão TikTok LIVE"
-                      className="w-full pl-8 pr-3.5 py-2.5 rounded-lg bg-[#050D20] border border-[#182943] text-sm font-medium text-[#F8FAFC] placeholder-[#94A3B8]/50 focus:outline-none focus:border-[#00A9FF] disabled:opacity-60"
+                      className="w-full pl-8 pr-3.5 py-2.5 rounded-lg bg-[#080A0F] border border-[#161C2C] text-sm font-medium text-[#FFFFFF] placeholder-[#94A3B8]/50 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 disabled:opacity-60"
                     />
                   </div>
 
@@ -2255,7 +2269,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                     {connectionStatus.state === 'CONNECTED' || connectionStatus.state === 'RECONNECTING' ? (
                       <button
                         onClick={handleDisconnect}
-                        className="flex-1 py-2.5 px-4 rounded-lg font-semibold text-xs text-[#F8FAFC] bg-[#F05262]/20 hover:bg-[#F05262]/30 border border-[#F05262]/40 transition flex items-center justify-center gap-2"
+                        className="flex-1 min-h-[38px] py-2.5 px-4 rounded-lg font-semibold text-xs text-[#FFFFFF] bg-[#F05262]/20 hover:bg-[#F05262]/30 border border-[#F05262]/40 transition flex items-center justify-center gap-2"
                       >
                         <Square className="w-3.5 h-3.5 text-[#F05262]" />
                         <span>Desconectar da LIVE</span>
@@ -2264,7 +2278,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                       <button
                         onClick={handleConnect}
                         disabled={isConnecting}
-                        className="flex-1 py-2.5 px-4 rounded-lg font-semibold text-xs text-[#F8FAFC] bg-[#0866F5] hover:bg-[#00A9FF] transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-[#0866F5]/20"
+                        className="flex-1 min-h-[38px] py-2.5 px-4 rounded-lg font-semibold text-xs text-[#FFFFFF] bg-[#0131CD] hover:brightness-110 transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-[#0131CD]/20"
                       >
                         {isConnecting ? (
                           <RotateCw className="w-3.5 h-3.5 animate-spin" />
@@ -2277,16 +2291,16 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
 
                     <button
                       onClick={handleProbeLive}
-                      className="py-2.5 px-3.5 rounded-lg font-medium text-xs text-[#F8FAFC] bg-[#0B1730] hover:bg-[#182943] border border-[#182943] transition flex items-center justify-center gap-1.5 shrink-0"
+                      className="min-h-[38px] py-2.5 px-3.5 rounded-lg font-medium text-xs text-[#FFFFFF] bg-[#10141E] hover:bg-[#161C2C] border border-[#161C2C] transition flex items-center justify-center gap-1.5 shrink-0"
                     >
-                      <Eye className="w-3.5 h-3.5 text-[#00A9FF]" />
+                      <Eye className="w-3.5 h-3.5 text-[#B9FC01]" />
                       <span>Verificar Sala</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Campaign Pre-selection & Organizer Defaults Control Row */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center pt-2 border-t border-[#182943]">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center pt-2 border-t border-[#161C2C]">
                   <div className="md:col-span-8 flex flex-col sm:flex-row sm:items-center gap-2">
                     <label className="text-xs text-[#94A3B8] shrink-0 font-medium">
                       Vincular à Campanha:
@@ -2300,7 +2314,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                         const found = campaigns.find((c) => c.campaignId === cid) || null;
                         setSelectedCampaign(found);
                       }}
-                      className="flex-1 px-3 py-2 rounded-lg bg-[#050D20] border border-[#182943] text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF] disabled:opacity-60"
+                      className="flex-1 min-h-[38px] px-3 py-2 rounded-lg bg-[#080A0F] border border-[#161C2C] text-xs text-[#FFFFFF] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 disabled:opacity-60"
                     >
                       <option value="">Sorteio Avulso (sem campanha vinculada)</option>
                       {activeSession?.campaignId &&
@@ -2327,7 +2341,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                     <button
                       type="button"
                       onClick={() => setIsOrganizerConfigModalOpen(true)}
-                      className="w-full sm:w-auto py-2 px-3 rounded-lg bg-[#0B1730] hover:bg-[#182943] text-[#F5B942] border border-[#182943] text-xs font-medium flex items-center justify-center gap-1.5 transition"
+                      className="w-full sm:w-auto min-h-[36px] py-2 px-3 rounded-lg bg-[#10141E] hover:bg-[#161C2C] text-[#F5B942] border border-[#161C2C] text-xs font-medium flex items-center justify-center gap-1.5 transition"
                     >
                       <Settings className="w-3.5 h-3.5 text-[#F5B942]" />
                       <span>Configuração Permanente</span>
@@ -2336,12 +2350,12 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                 </div>
 
                 {/* Clear Distinction: OAuth Identity vs Live Room Connection */}
-                <div className="pt-2 border-t border-[#182943] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-[#94A3B8]">
+                <div className="pt-2 border-t border-[#161C2C] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-[#94A3B8]">
                   <span>
-                    Captura em tempo real via leitura da sala pública (<code className="text-[#F8FAFC] font-mono">tiktok-live-connector</code>). A conta OAuth identifica apenas o organizador e não substitui a conexão da sala.
+                    Captura em tempo real via leitura da sala pública (<code className="text-[#FFFFFF] font-mono">tiktok-live-connector</code>). A conta OAuth identifica apenas o organizador e não substitui a conexão da sala.
                   </span>
                   {connectionStatus.viewerCount ? (
-                    <span className="font-mono text-[#F8FAFC] shrink-0">
+                    <span className="font-mono text-[#FFFFFF] shrink-0">
                       {connectionStatus.viewerCount.toLocaleString('pt-BR')} espectadores na sala
                     </span>
                   ) : null}
@@ -2352,21 +2366,22 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                   <div
                     className={`p-3 rounded-lg border text-xs flex items-center justify-between gap-2 ${
                       systemNotice.type === 'success'
-                        ? 'bg-[#20C997]/15 border-[#20C997]/40 text-[#F8FAFC]'
+                        ? 'bg-[#20C997]/15 border-[#20C997]/40 text-[#FFFFFF]'
                         : systemNotice.type === 'error'
-                        ? 'bg-[#F05262]/15 border-[#F05262]/40 text-[#F8FAFC]'
+                        ? 'bg-[#F05262]/15 border-[#F05262]/40 text-[#FFFFFF]'
                         : systemNotice.type === 'warning'
-                        ? 'bg-[#F5B942]/15 border-[#F5B942]/40 text-[#F8FAFC]'
-                        : 'bg-[#0B1730] border-[#182943] text-[#F8FAFC]'
+                        ? 'bg-[#F5B942]/15 border-[#F5B942]/40 text-[#FFFFFF]'
+                        : 'bg-[#10141E] border-[#161C2C] text-[#FFFFFF]'
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <Info className="w-4 h-4 shrink-0 text-[#00A9FF]" />
+                      <Info className="w-4 h-4 shrink-0 text-[#B9FC01]" />
                       <span>{systemNotice.text}</span>
                     </div>
                     <button
                       onClick={() => setSystemNotice(null)}
-                      className="text-xs text-[#94A3B8] hover:text-[#F8FAFC] px-1.5 py-0.5 rounded"
+                      aria-label="Fechar aviso do sistema"
+                      className="min-w-[32px] min-h-[32px] inline-flex items-center justify-center text-xs text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C] px-2 py-1 rounded-lg transition shrink-0"
                     >
                       ✕
                     </button>
@@ -2377,8 +2392,8 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                   <div
                     className={`p-3 rounded-lg border text-xs flex items-center justify-between gap-2 ${
                       probeResult.isLive
-                        ? 'bg-[#20C997]/15 border-[#20C997]/40 text-[#F8FAFC]'
-                        : 'bg-[#F5B942]/15 border-[#F5B942]/40 text-[#F8FAFC]'
+                        ? 'bg-[#20C997]/15 border-[#20C997]/40 text-[#FFFFFF]'
+                        : 'bg-[#F5B942]/15 border-[#F5B942]/40 text-[#FFFFFF]'
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -2387,7 +2402,8 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                     </div>
                     <button
                       onClick={() => setProbeResult(null)}
-                      className="text-xs text-[#94A3B8] hover:text-[#F8FAFC] px-1.5 py-0.5 rounded"
+                      aria-label="Fechar resultado de verificação"
+                      className="min-w-[32px] min-h-[32px] inline-flex items-center justify-center text-xs text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C] px-2 py-1 rounded-lg transition shrink-0"
                     >
                       ✕
                     </button>
@@ -2395,7 +2411,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                 )}
 
                 {connectionStatus.warning && (
-                  <div className="p-3 rounded-lg bg-[#F5B942]/15 border border-[#F5B942]/40 text-xs text-[#F8FAFC] flex items-center gap-2">
+                  <div className="p-3 rounded-lg bg-[#F5B942]/15 border border-[#F5B942]/40 text-xs text-[#FFFFFF] flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 shrink-0 text-[#F5B942]" />
                     <span>{connectionStatus.warning}</span>
                   </div>
@@ -2467,16 +2483,16 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
 
               {/* Expandable Session Rule Configuration Form (triggered from Arena Header) */}
               {editingRate && (
-                <section className="p-5 rounded-xl bg-[#101F3D] border border-[#182943] space-y-4 animate-in fade-in">
-                  <div className="flex items-center justify-between pb-2 border-b border-[#182943]">
-                    <h3 className="text-sm font-semibold text-[#F8FAFC] flex items-center gap-2">
+                <section className="p-5 rounded-xl bg-[#10141E] border border-[#161C2C] space-y-4 animate-in fade-in">
+                  <div className="flex items-center justify-between pb-2 border-b border-[#161C2C]">
+                    <h3 className="text-sm font-semibold text-[#FFFFFF] flex items-center gap-2">
                       <Settings className="w-4 h-4 text-[#F5B942]" />
                       <span>Regras de Conversão e Elegibilidade da Sessão ({currentSessionId})</span>
                     </h3>
                     <button
                       type="button"
                       onClick={() => setEditingRate(false)}
-                      className="text-xs text-[#94A3B8] hover:text-[#F8FAFC]"
+                      className="min-h-[36px] px-3 py-1.5 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] border border-[#161C2C] inline-flex items-center justify-center text-xs text-[#94A3B8] hover:text-[#FFFFFF] transition"
                     >
                       Fechar
                     </button>
@@ -2484,7 +2500,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-[#F8FAFC] mb-1">
+                      <label className="block text-xs font-medium text-[#FFFFFF] mb-1">
                         Nome do Sorteio da Sessão
                       </label>
                       <input
@@ -2492,12 +2508,12 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                         value={raffleTitleInput}
                         onChange={(e) => setRaffleTitleInput(e.target.value)}
                         placeholder="Ex: Sorteio Oficial da LIVE"
-                        className="w-full px-3 py-2 rounded-lg bg-[#050D20] border border-[#182943] text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
+                        className="w-full px-3 py-2 rounded-lg bg-[#080A0F] border border-[#161C2C] text-xs text-[#FFFFFF] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-[#F8FAFC] mb-1">
+                      <label className="block text-xs font-medium text-[#FFFFFF] mb-1">
                         Prêmio em Disputa
                       </label>
                       <input
@@ -2505,7 +2521,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                         value={motor1PrizeInput}
                         onChange={(e) => setMotor1PrizeInput(e.target.value)}
                         placeholder="Ex: Pix R$ 500 ou iPhone"
-                        className="w-full px-3 py-2 rounded-lg bg-[#050D20] border border-[#182943] text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
+                        className="w-full px-3 py-2 rounded-lg bg-[#080A0F] border border-[#161C2C] text-xs text-[#FFFFFF] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35"
                       />
                     </div>
 
@@ -2519,7 +2535,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                         value={newRateValue}
                         onChange={(e) => setNewRateValue(e.target.value)}
                         placeholder="100"
-                        className="w-full px-3 py-2 rounded-lg bg-[#050D20] border border-[#F5B942]/60 text-xs font-mono font-semibold text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
+                        className="w-full px-3 py-2 rounded-lg bg-[#080A0F] border border-[#F5B942]/60 text-xs font-mono font-semibold text-[#FFFFFF] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35"
                       />
                     </div>
 
@@ -2533,7 +2549,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                         value={minCoinsPerGiftInput}
                         onChange={(e) => setMinCoinsPerGiftInput(e.target.value)}
                         placeholder="1"
-                        className="w-full px-3 py-2 rounded-lg bg-[#050D20] border border-[#182943] text-xs font-mono text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
+                        className="w-full px-3 py-2 rounded-lg bg-[#080A0F] border border-[#161C2C] text-xs font-mono text-[#FFFFFF] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35"
                       />
                     </div>
 
@@ -2547,7 +2563,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                         value={maxTicketsPerUserInput}
                         onChange={(e) => setMaxTicketsPerUserInput(e.target.value)}
                         placeholder="Sem limite"
-                        className="w-full px-3 py-2 rounded-lg bg-[#050D20] border border-[#182943] text-xs font-mono text-[#F8FAFC] placeholder-[#94A3B8]/50 focus:outline-none focus:border-[#00A9FF]"
+                        className="w-full px-3 py-2 rounded-lg bg-[#080A0F] border border-[#161C2C] text-xs font-mono text-[#FFFFFF] placeholder-[#94A3B8]/50 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35"
                       />
                     </div>
 
@@ -2561,7 +2577,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                         value={maxTotalTicketsInput}
                         onChange={(e) => setMaxTotalTicketsInput(e.target.value)}
                         placeholder="Sem limite"
-                        className="w-full px-3 py-2 rounded-lg bg-[#050D20] border border-[#182943] text-xs font-mono text-[#F8FAFC] placeholder-[#94A3B8]/50 focus:outline-none focus:border-[#00A9FF]"
+                        className="w-full px-3 py-2 rounded-lg bg-[#080A0F] border border-[#161C2C] text-xs font-mono text-[#FFFFFF] placeholder-[#94A3B8]/50 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35"
                       />
                     </div>
                   </div>
@@ -2575,39 +2591,42 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                         type="text"
                         value={participationRulesNotesInput}
                         onChange={(e) => setParticipationRulesNotesInput(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg bg-[#050D20] border border-[#182943] text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
+                        className="w-full px-3 py-2 rounded-lg bg-[#080A0F] border border-[#161C2C] text-xs text-[#FFFFFF] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35"
                       />
                     </div>
 
-                    <div className="sm:col-span-4 flex items-center gap-2 pt-4">
+                    <div className="sm:col-span-4 min-h-[36px] flex items-center gap-2.5 pt-2 sm:pt-4">
                       <input
                         id="allow-dup-winners"
                         type="checkbox"
                         checked={allowDuplicateWinnersInput}
                         onChange={(e) => setAllowDuplicateWinnersInput(e.target.checked)}
-                        className="rounded border-[#182943] bg-[#050D20] text-[#0866F5]"
+                        className="w-4 h-4 rounded border-[#161C2C] bg-[#080A0F] text-[#0131CD] cursor-pointer shrink-0"
                       />
-                      <label htmlFor="allow-dup-winners" className="text-xs text-[#F8FAFC] cursor-pointer">
+                      <label
+                        htmlFor="allow-dup-winners"
+                        className="min-h-[36px] inline-flex items-center text-xs text-[#FFFFFF] cursor-pointer py-1"
+                      >
                         Permitir múltiplos prêmios ao mesmo usuário
                       </label>
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-[#182943]">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-[#161C2C]">
                     <span className="text-[11px] text-[#94A3B8]">
                       Bilhetes já emitidos permanecem inalterados. A nova regra vale imediatamente para os próximos presentes.
                     </span>
                     <div className="flex items-center gap-2 self-end sm:self-auto">
                       <button
                         onClick={() => setEditingRate(false)}
-                        className="px-3 py-2 text-xs text-[#94A3B8] hover:text-[#F8FAFC]"
+                        className="min-h-[36px] px-3.5 py-2 rounded-lg text-xs text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C] inline-flex items-center justify-center transition"
                       >
                         Cancelar
                       </button>
                       <button
                         onClick={handleSaveSessionRulesAndConfig}
                         disabled={isSavingSessionRules}
-                        className="px-4 py-2 rounded-lg bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-semibold text-xs transition flex items-center gap-1.5 disabled:opacity-50"
+                        className="min-h-[36px] px-4 py-2 rounded-lg bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-semibold text-xs transition inline-flex items-center justify-center gap-1.5 disabled:opacity-50"
                       >
                         <Check className="w-3.5 h-3.5" />
                         <span>{isSavingSessionRules ? 'Salvando...' : 'Salvar Regra'}</span>
@@ -2620,14 +2639,14 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
               {/* ==========================================================
                   BLOCO 3 — FEED DE PRESENTES RECEBIDOS EM TEMPO REAL (COM ANIMAÇÕES E COMBOS)
                   ========================================================== */}
-              <section className="p-5 sm:p-6 rounded-xl bg-[#101F3D] border border-[#182943] space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#182943] pb-4">
+              <section className="p-5 sm:p-6 rounded-xl bg-[#10141E] border border-[#161C2C] space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#161C2C] pb-4">
                   <div className="flex flex-wrap items-center gap-3">
-                    <h2 className="text-base font-semibold text-[#F8FAFC] flex items-center gap-2">
-                      <Gift className="w-4 h-4 text-[#00A9FF]" />
+                    <h2 className="text-base font-semibold text-[#FFFFFF] flex items-center gap-2">
+                      <Gift className="w-4 h-4 text-[#B9FC01]" />
                       <span>Presentes Recebidos em Tempo Real</span>
                     </h2>
-                    <span className="px-2.5 py-0.5 rounded-md bg-[#0B1730] border border-[#182943] text-xs font-mono text-[#20C997] tabular-nums">
+                    <span className="px-2.5 py-0.5 rounded-md bg-[#080A0F] border border-[#161C2C] text-xs font-mono text-[#20C997] tabular-nums">
                       {unifiedGiftRows.length} evento(s)
                     </span>
                   </div>
@@ -2637,9 +2656,9 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                 </div>
 
                 {unifiedGiftRows.length === 0 ? (
-                  <div className="py-12 px-4 text-center rounded-lg bg-[#0B1730] border border-[#182943] space-y-2">
+                  <div className="py-12 px-4 text-center rounded-lg bg-[#080A0F] border border-[#161C2C] space-y-2">
                     <Gift className="w-7 h-7 mx-auto text-[#94A3B8]" />
-                    <p className="text-sm font-medium text-[#F8FAFC]">
+                    <p className="text-sm font-medium text-[#FFFFFF]">
                       Nenhum presente recebido nesta transmissão ainda
                     </p>
                     <p className="text-xs text-[#94A3B8] max-w-md mx-auto">
@@ -2647,9 +2666,9 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                     </p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto rounded-lg border border-[#182943] bg-[#0B1730]">
+                  <div className="overflow-x-auto rounded-lg border border-[#161C2C] bg-[#10141E]">
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-[#050D20] text-[#94A3B8] font-medium border-b border-[#182943]">
+                      <thead className="bg-[#080A0F] text-[#94A3B8] font-medium border-b border-[#161C2C]">
                         <tr>
                           <th className="py-3 px-4">Participante</th>
                           <th className="py-3 px-4">@username</th>
@@ -2659,7 +2678,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                           <th className="py-3 px-4 text-right">Horário</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#182943]">
+                      <tbody className="divide-y divide-[#161C2C]">
                         {unifiedGiftRows.map((item) => {
                           const isHandleValid =
                             item.handleAvailable &&
@@ -2676,7 +2695,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                             <tr
                               key={item.eventKey}
                               data-event-key={item.eventKey}
-                              className="hover:bg-[#101F3D] transition"
+                              className="hover:bg-[#161C2C]/60 transition"
                             >
                               <td className="py-3 px-4">
                                 <div className="flex items-center gap-2.5">
@@ -2686,7 +2705,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                                     username={item.username}
                                     handleAvailable={item.handleAvailable}
                                   />
-                                  <span className="font-medium text-[#F8FAFC] truncate max-w-[160px]">
+                                  <span className="font-medium text-[#FFFFFF] truncate max-w-[160px]">
                                     {item.nickname || handleText}
                                   </span>
                                 </div>
@@ -2696,7 +2715,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                               </td>
                               <td className="py-3 px-4">
                                 <div className="flex items-center gap-1.5">
-                                  <span className="font-medium text-[#F8FAFC]">{item.giftName}</span>
+                                  <span className="font-medium text-[#FFFFFF]">{item.giftName}</span>
                                   <span className="font-mono text-[#94A3B8]">
                                     +{item.deltaCount || 1} un.
                                   </span>
@@ -2738,19 +2757,19 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
           {/* ==========================================================
               BLOCO 5 — RECURSOS AVANÇADOS (RECOLHÍVEL, FECHADO POR PADRÃO)
               ========================================================== */}
-          <section className="rounded-xl bg-[#101F3D] border border-[#182943] overflow-hidden">
+          <section className="rounded-xl bg-[#10141E] border border-[#161C2C] overflow-hidden">
             <button
               type="button"
               onClick={() => setIsAdvancedOpen((prev) => !prev)}
               aria-expanded={isAdvancedOpen}
-              className="w-full px-5 sm:px-6 py-4 flex items-center justify-between text-left hover:bg-[#182943]/60 transition"
+              className="w-full px-5 sm:px-6 py-4 flex items-center justify-between text-left hover:bg-[#161C2C]/60 transition"
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[#0B1730] border border-[#182943] flex items-center justify-center text-[#00A9FF]">
+                <div className="w-8 h-8 rounded-lg bg-[#10141E] border border-[#161C2C] flex items-center justify-center text-[#B9FC01]">
                   <Sliders className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-semibold text-[#F8FAFC]">
+                  <h2 className="text-sm font-semibold text-[#FFFFFF]">
                     Recursos Avançados
                   </h2>
                   <p className="text-xs text-[#94A3B8]">
@@ -2761,37 +2780,37 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
               <div className="flex items-center gap-2 text-xs font-medium text-[#94A3B8] shrink-0">
                 <span>{isAdvancedOpen ? 'Recolher' : 'Expandir'}</span>
                 {isAdvancedOpen ? (
-                  <ChevronUp className="w-4 h-4 text-[#F8FAFC]" />
+                  <ChevronUp className="w-4 h-4 text-[#FFFFFF]" />
                 ) : (
-                  <ChevronDown className="w-4 h-4 text-[#F8FAFC]" />
+                  <ChevronDown className="w-4 h-4 text-[#FFFFFF]" />
                 )}
               </div>
             </button>
 
             {isAdvancedOpen && (
-              <div className="p-5 sm:p-6 border-t border-[#182943] space-y-6 bg-[#050D20]/40">
+              <div className="p-5 sm:p-6 border-t border-[#161C2C] space-y-6 bg-[#080A0F]/40">
                 {/* Sub-navigation inside Advanced Resources */}
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#182943] pb-3">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#161C2C] pb-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <button
                       onClick={() => setAdvancedTab('campaigns')}
-                      className={`px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center gap-2 ${
+                      className={`min-h-[36px] px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center gap-2 ${
                         advancedTab === 'campaigns'
-                          ? 'bg-[#182943] text-[#F8FAFC] border border-[#00A9FF]/50'
-                          : 'bg-[#0B1730] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#182943]'
+                          ? 'bg-[#161C2C] text-[#FFFFFF] border border-[#0131CD]/50'
+                          : 'bg-[#10141E] text-[#94A3B8] hover:text-[#FFFFFF] border border-[#161C2C]'
                       }`}
                     >
-                      <Layers className="w-3.5 h-3.5 text-[#00A9FF]" />
+                      <Layers className="w-3.5 h-3.5 text-[#B9FC01]" />
                       <span>Várias Transmissões (Multi-LIVE)</span>
                       <span className="font-mono text-[11px] text-[#F5B942]">{campaigns.length}</span>
                     </button>
 
                     <button
                       onClick={() => setAdvancedTab('oauth')}
-                      className={`px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center gap-2 ${
+                      className={`min-h-[36px] px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center gap-2 ${
                         advancedTab === 'oauth'
-                          ? 'bg-[#182943] text-[#F8FAFC] border border-[#00A9FF]/50'
-                          : 'bg-[#0B1730] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#182943]'
+                          ? 'bg-[#161C2C] text-[#FFFFFF] border border-[#0131CD]/50'
+                          : 'bg-[#10141E] text-[#94A3B8] hover:text-[#FFFFFF] border border-[#161C2C]'
                       }`}
                     >
                       <ShieldCheck className="w-3.5 h-3.5 text-[#20C997]" />
@@ -2800,10 +2819,10 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
 
                     <button
                       onClick={() => setAdvancedTab('monitor')}
-                      className={`px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center gap-2 ${
+                      className={`min-h-[36px] px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center gap-2 ${
                         advancedTab === 'monitor'
-                          ? 'bg-[#182943] text-[#F8FAFC] border border-[#00A9FF]/50'
-                          : 'bg-[#0B1730] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#182943]'
+                          ? 'bg-[#161C2C] text-[#FFFFFF] border border-[#0131CD]/50'
+                          : 'bg-[#10141E] text-[#94A3B8] hover:text-[#FFFFFF] border border-[#161C2C]'
                       }`}
                     >
                       <Activity className="w-3.5 h-3.5 text-[#F5B942]" />
@@ -2812,13 +2831,13 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
 
                     <button
                       onClick={() => setAdvancedTab('history')}
-                      className={`px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center gap-2 ${
+                      className={`min-h-[36px] px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center gap-2 ${
                         advancedTab === 'history'
-                          ? 'bg-[#182943] text-[#F8FAFC] border border-[#00A9FF]/50'
-                          : 'bg-[#0B1730] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#182943]'
+                          ? 'bg-[#161C2C] text-[#FFFFFF] border border-[#0131CD]/50'
+                          : 'bg-[#10141E] text-[#94A3B8] hover:text-[#FFFFFF] border border-[#161C2C]'
                       }`}
                     >
-                      <History className="w-3.5 h-3.5 text-[#00A9FF]" />
+                      <History className="w-3.5 h-3.5 text-[#B9FC01]" />
                       <span>Snapshots, Histórico e Auditoria</span>
                     </button>
                   </div>
@@ -2827,7 +2846,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                   <div className="flex flex-wrap items-center gap-2">
                     <button
                       onClick={() => setPlatformMode('traditional_comments')}
-                      className="px-3 py-1.5 rounded-lg bg-[#0B1730] hover:bg-[#182943] border border-[#182943] text-xs text-[#94A3B8] hover:text-[#F8FAFC] transition flex items-center gap-1.5"
+                      className="min-h-[36px] px-3 py-1.5 rounded-lg bg-[#10141E] hover:bg-[#161C2C] border border-[#161C2C] text-xs text-[#94A3B8] hover:text-[#FFFFFF] transition flex items-center gap-1.5"
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
                       <span>Sorteador de Comentários</span>
@@ -2840,7 +2859,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                   <div className="space-y-5">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
-                        <h3 className="text-sm font-semibold text-[#F8FAFC]">
+                        <h3 className="text-sm font-semibold text-[#FFFFFF]">
                           Gerenciar Várias Transmissões (Campanhas Multi-LIVE — Motor 2)
                         </h3>
                         <p className="text-xs text-[#94A3B8]">
@@ -2850,7 +2869,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
 
                       <button
                         onClick={() => setIsCreateCampaignModalOpen(true)}
-                        className="px-4 py-2 rounded-lg font-semibold text-xs text-[#F8FAFC] bg-[#0866F5] hover:bg-[#00A9FF] transition flex items-center gap-1.5 self-start sm:self-auto"
+                        className="min-h-[38px] px-4 py-2 rounded-lg font-semibold text-xs text-[#FFFFFF] bg-[#0131CD] hover:brightness-110 transition flex items-center gap-1.5 self-start sm:self-auto"
                       >
                         <Plus className="w-4 h-4" />
                         <span>Nova Campanha Multi-LIVE</span>
@@ -2858,12 +2877,12 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                     </div>
 
                     {campaigns.length === 0 ? (
-                      <div className="py-10 text-center rounded-lg bg-[#0B1730] border border-[#182943] text-[#94A3B8] text-xs space-y-3">
+                      <div className="py-10 text-center rounded-lg bg-[#080A0F] border border-[#161C2C] text-[#94A3B8] text-xs space-y-3">
                         <Layers className="w-7 h-7 mx-auto text-[#94A3B8]" />
                         <p>Nenhuma campanha acumulada criada ainda.</p>
                         <button
                           onClick={() => setIsCreateCampaignModalOpen(true)}
-                          className="px-3.5 py-2 rounded-lg bg-[#101F3D] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] text-xs font-medium"
+                          className="min-h-[38px] px-3.5 py-2 rounded-lg bg-[#161C2C] hover:bg-[#0131CD]/25 text-[#FFFFFF] border border-[#161C2C] text-xs font-medium inline-flex items-center justify-center transition"
                         >
                           Criar Primeira Campanha
                         </button>
@@ -2880,16 +2899,16 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                           return (
                             <div
                               key={camp.campaignId}
-                              className="p-5 rounded-xl bg-[#0B1730] border border-[#182943] space-y-4"
+                              className="p-5 rounded-xl bg-[#10141E] border border-[#161C2C] space-y-4"
                             >
                               <div className="flex items-start justify-between gap-2">
                                 <div>
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <h4 className="text-sm font-semibold text-[#F8FAFC]">{camp.title}</h4>
+                                    <h4 className="text-sm font-semibold text-[#FFFFFF]">{camp.title}</h4>
                                     <span className="text-xs font-mono text-[#20C997]">
                                       · {camp.status}
                                     </span>
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#101F3D] text-[#F5B942] border border-[#182943]">
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#080A0F] text-[#F5B942] border border-[#161C2C]">
                                       {camp.campaignMode === 'RECURRING_CUMULATIVE'
                                         ? 'Recorrente Acumulativa'
                                         : camp.campaignMode === 'RECURRING_RESET'
@@ -2898,7 +2917,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                                     </span>
                                     {(camp.campaignMode === 'RECURRING_RESET' ||
                                       camp.campaignMode === 'RECURRING_CUMULATIVE') && (
-                                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#050D20] text-[#00A9FF] border border-[#00A9FF]/40 font-bold">
+                                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#080A0F] text-[#B9FC01] border border-[#0131CD]/40 font-bold">
                                         Ciclo #{camp.currentCycleIndex || 1}
                                       </span>
                                     )}
@@ -2925,14 +2944,14 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                                       setEditCampRulesInput(camp.rulesSummary || camp.description || '');
                                     }
                                   }}
-                                  className="text-xs text-[#94A3B8] hover:text-[#F8FAFC] px-2 py-1 rounded bg-[#101F3D] border border-[#182943]"
+                                  className="min-h-[36px] text-xs text-[#94A3B8] hover:text-[#FFFFFF] px-3 py-1.5 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] border border-[#161C2C] inline-flex items-center justify-center transition shrink-0"
                                 >
                                   {isEditingThisCamp ? 'Fechar' : 'Regras'}
                                 </button>
                               </div>
 
                               {isEditingThisCamp && (
-                                <div className="p-3 rounded-lg bg-[#101F3D] border border-[#182943] space-y-3 text-xs">
+                                <div className="p-3 rounded-lg bg-[#080A0F] border border-[#161C2C] space-y-3 text-xs">
                                   <div className="grid grid-cols-3 gap-2">
                                     <div>
                                       <label className="block text-[10px] text-[#94A3B8] mb-1">Moedas/Bilhete</label>
@@ -2941,7 +2960,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                                         min={1}
                                         value={editCampRateInput}
                                         onChange={(e) => setEditCampRateInput(e.target.value)}
-                                        className="w-full px-2 py-1.5 rounded bg-[#050D20] border border-[#182943] text-xs font-mono text-[#F8FAFC]"
+                                        className="w-full px-2 py-1.5 rounded bg-[#080A0F] border border-[#161C2C] text-xs font-mono text-[#FFFFFF]"
                                       />
                                     </div>
                                     <div>
@@ -2952,7 +2971,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                                         value={editCampMaxUserInput}
                                         onChange={(e) => setEditCampMaxUserInput(e.target.value)}
                                         placeholder="Livre"
-                                        className="w-full px-2 py-1.5 rounded bg-[#050D20] border border-[#182943] text-xs font-mono text-[#F8FAFC]"
+                                        className="w-full px-2 py-1.5 rounded bg-[#080A0F] border border-[#161C2C] text-xs font-mono text-[#FFFFFF]"
                                       />
                                     </div>
                                     <div>
@@ -2963,14 +2982,14 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                                         value={editCampMaxTotalInput}
                                         onChange={(e) => setEditCampMaxTotalInput(e.target.value)}
                                         placeholder="Livre"
-                                        className="w-full px-2 py-1.5 rounded bg-[#050D20] border border-[#182943] text-xs font-mono text-[#F8FAFC]"
+                                        className="w-full px-2 py-1.5 rounded bg-[#080A0F] border border-[#161C2C] text-xs font-mono text-[#FFFFFF]"
                                       />
                                     </div>
                                   </div>
                                   <div className="flex justify-end">
                                     <button
                                       onClick={() => handleSaveCampaignRules(camp.campaignId)}
-                                      className="px-3 py-1.5 rounded bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-semibold text-xs transition"
+                                      className="min-h-[36px] px-3.5 py-1.5 rounded-lg bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-semibold text-xs inline-flex items-center justify-center transition"
                                     >
                                       Salvar Regras da Campanha
                                     </button>
@@ -2978,7 +2997,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                                 </div>
                               )}
 
-                              <div className="grid grid-cols-2 gap-2 text-xs p-3 rounded-lg bg-[#101F3D] border border-[#182943]">
+                              <div className="grid grid-cols-2 gap-2 text-xs p-3 rounded-lg bg-[#080A0F] border border-[#161C2C]">
                                 <div>
                                   <span className="text-[11px] text-[#94A3B8]">Prêmio</span>
                                   <p className="font-semibold text-[#F5B942] truncate">{camp.prizeName}</p>
@@ -3000,14 +3019,14 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                               </div>
 
                               {campSessions.length > 0 && (
-                                <div className="p-2.5 rounded-lg bg-[#101F3D] border border-[#182943] space-y-1">
+                                <div className="p-2.5 rounded-lg bg-[#080A0F] border border-[#161C2C] space-y-1">
                                   <span className="text-[11px] font-medium text-[#94A3B8]">
                                     Transmissões Vinculadas ({campSessions.length}):
                                   </span>
                                   <div className="space-y-1 max-h-24 overflow-y-auto">
                                     {campSessions.map((cs) => (
                                       <div key={cs.sessionId} className="flex items-center justify-between text-[11px]">
-                                        <span className="font-mono text-[#F8FAFC] truncate">{cs.sessionId}</span>
+                                        <span className="font-mono text-[#FFFFFF] truncate">{cs.sessionId}</span>
                                         <span className="font-mono text-[#20C997]">{cs.indexedTicketsCount} bilhetes</span>
                                       </div>
                                     ))}
@@ -3016,7 +3035,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                               )}
 
                               {campDraws.length > 0 && (
-                                <div className="p-3 rounded-lg bg-[#101F3D] border border-[#20C997]/40 space-y-1.5 text-xs">
+                                <div className="p-3 rounded-lg bg-[#080A0F] border border-[#20C997]/40 space-y-1.5 text-xs">
                                   <div className="flex items-center justify-between">
                                     <span className="text-[11px] font-semibold text-[#20C997]">
                                       Resultado Oficial da Campanha
@@ -3040,13 +3059,13 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                                           campaignId: camp.campaignId,
                                         });
                                       }}
-                                      className="text-[11px] font-medium text-[#00A9FF] hover:underline flex items-center gap-1"
+                                      className="min-h-[32px] px-2.5 py-1 rounded-lg bg-[#10141E] hover:bg-[#161C2C] border border-[#161C2C] text-[11px] font-medium text-[#B9FC01] hover:underline inline-flex items-center gap-1 transition"
                                     >
                                       <Download className="w-3 h-3" />
                                       <span>Baixar PDF</span>
                                     </button>
                                   </div>
-                                  <p className="font-semibold text-[#F8FAFC]">
+                                  <p className="font-semibold text-[#FFFFFF]">
                                     Ganhador(a): @{campDraws[0].winnerName} · Bilhete #{campDraws[0].winningTicketNumber}
                                   </p>
                                   <p className="text-[10px] font-mono text-[#94A3B8] truncate">
@@ -3055,7 +3074,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                                 </div>
                               )}
 
-                              <div className="pt-2 border-t border-[#182943] space-y-2">
+                              <div className="pt-2 border-t border-[#161C2C] space-y-2">
                                 {camp.status === 'OPEN' && (
                                   <div className="flex items-center gap-2">
                                     <select
@@ -3066,7 +3085,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                                           [camp.campaignId]: e.target.value,
                                         }))
                                       }
-                                      className="flex-1 px-2.5 py-1.5 rounded-lg bg-[#050D20] border border-[#182943] text-xs font-mono text-[#F8FAFC]"
+                                      className="flex-1 min-h-[36px] px-2.5 py-1.5 rounded-lg bg-[#080A0F] border border-[#161C2C] text-xs font-mono text-[#FFFFFF]"
                                     >
                                       {allSessions.map((s) => (
                                         <option key={s.sessionId} value={s.sessionId}>
@@ -3091,7 +3110,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                                             });
                                           });
                                       }}
-                                      className="px-3 py-1.5 rounded-lg bg-[#101F3D] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] text-xs font-medium shrink-0"
+                                      className="min-h-[36px] px-3 py-1.5 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] text-[#FFFFFF] border border-[#161C2C] text-xs font-medium shrink-0 inline-flex items-center justify-center transition"
                                     >
                                       + Acumular LIVE
                                     </button>
@@ -3106,7 +3125,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                                         handleFreezeCampaign(camp.campaignId);
                                       }}
                                       disabled={camp.totalAccumulatedTickets === 0}
-                                      className="w-full py-2 rounded-lg bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-semibold text-xs transition disabled:opacity-45"
+                                      className="w-full py-2 rounded-lg bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-semibold text-xs transition disabled:opacity-45"
                                     >
                                       Congelar Lista Final e Sortear
                                     </button>
@@ -3124,7 +3143,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                                           }
                                         }
                                       }}
-                                      className="w-full py-2 rounded-lg bg-[#F5B942] text-[#050D20] font-semibold text-xs"
+                                      className="w-full py-2 rounded-lg bg-[#F5B942] text-[#080A0F] font-semibold text-xs"
                                     >
                                       Abrir Mesa de Sorteio Congelada
                                     </button>
@@ -3176,7 +3195,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                                               });
                                             }
                                           }}
-                                          className="w-full py-1.5 px-3 rounded-lg bg-[#101F3D] hover:bg-[#182943] text-[#00A9FF] border border-[#182943] font-semibold text-xs transition flex items-center justify-center gap-1.5"
+                                          className="w-full py-1.5 px-3 rounded-lg bg-[#10141E] hover:bg-[#161C2C] text-[#B9FC01] border border-[#161C2C] font-semibold text-xs transition flex items-center justify-center gap-1.5"
                                         >
                                           <RotateCw className="w-3.5 h-3.5" />
                                           <span>Abrir Próximo Ciclo (Ciclo #{(camp.currentCycleIndex || 1) + 1})</span>
@@ -3197,21 +3216,21 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                 {/* 2. SUB-TAB: CONTA TIKTOK, OAUTH 2.0 & BACKUP */}
                 {advancedTab === 'oauth' && (
                   <div className="space-y-4">
-                    <div className="p-4 rounded-xl bg-[#0B1730] border border-[#182943] space-y-4">
+                    <div className="p-4 rounded-xl bg-[#10141E] border border-[#161C2C] space-y-4">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
-                          <h3 className="text-sm font-semibold text-[#F8FAFC]">
+                          <h3 className="text-sm font-semibold text-[#FFFFFF]">
                             Autenticação de Conta TikTok (Login Kit OAuth 2.0)
                           </h3>
                           <p className="text-xs text-[#94A3B8]">
-                            Opcional: autentica a identidade básica do organizador (<code className="font-mono text-[#F8FAFC]">user.info.basic</code>). Não substitui nem interfere na leitura da transmissão ao vivo.
+                            Opcional: autentica a identidade básica do organizador (<code className="font-mono text-[#FFFFFF]">user.info.basic</code>). Não substitui nem interfere na leitura da transmissão ao vivo.
                           </p>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
                           <button
                             onClick={handleTikTokOAuthLogin}
-                            className="py-2 px-3.5 rounded-lg text-xs font-medium bg-[#101F3D] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] transition flex items-center gap-1.5"
+                            className="py-2 px-3.5 rounded-lg text-xs font-medium bg-[#10141E] hover:bg-[#161C2C] text-[#FFFFFF] border border-[#161C2C] transition flex items-center gap-1.5"
                           >
                             {oauthUser?.avatar_url ? (
                               <img
@@ -3220,7 +3239,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                                 className="w-4 h-4 rounded-full object-cover"
                               />
                             ) : (
-                              <ExternalLink className="w-3.5 h-3.5 text-[#00A9FF]" />
+                              <ExternalLink className="w-3.5 h-3.5 text-[#B9FC01]" />
                             )}
                             <span>
                               {oauthUser
@@ -3240,7 +3259,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
 
                           <button
                             onClick={handleRunOAuthDiagnostic}
-                            className="py-2 px-3 rounded-lg text-xs font-medium bg-[#101F3D] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] transition flex items-center gap-1.5"
+                            className="py-2 px-3 rounded-lg text-xs font-medium bg-[#10141E] hover:bg-[#161C2C] text-[#FFFFFF] border border-[#161C2C] transition flex items-center gap-1.5"
                           >
                             <ShieldCheck className="w-3.5 h-3.5 text-[#20C997]" />
                             <span>Diagnóstico OAuth</span>
@@ -3248,7 +3267,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
 
                           <button
                             onClick={handleDownloadBackupJson}
-                            className="py-2 px-3 rounded-lg text-xs font-medium bg-[#101F3D] hover:bg-[#182943] text-[#00A9FF] border border-[#182943] transition flex items-center gap-1.5"
+                            className="py-2 px-3 rounded-lg text-xs font-medium bg-[#10141E] hover:bg-[#161C2C] text-[#B9FC01] border border-[#161C2C] transition flex items-center gap-1.5"
                           >
                             <Download className="w-3.5 h-3.5" />
                             <span>Backup JSON</span>
@@ -3256,7 +3275,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                         </div>
                       </div>
 
-                      <div className="p-3.5 rounded-lg bg-[#101F3D] border border-[#182943] grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
+                      <div className="p-3.5 rounded-lg bg-[#10141E] border border-[#161C2C] grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
                         <div>
                           <span className="text-[11px] text-[#94A3B8] block">Status Login Kit</span>
                           <span
@@ -3264,7 +3283,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                               oauthUser
                                 ? 'text-[#20C997]'
                                 : oauthStatus.canInitiateAuthFlow
-                                ? 'text-[#F8FAFC]'
+                                ? 'text-[#FFFFFF]'
                                 : 'text-[#F5B942]'
                             }`}
                           >
@@ -3277,13 +3296,13 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                         </div>
                         <div>
                           <span className="text-[11px] text-[#94A3B8] block">Nome de Exibição</span>
-                          <span className="font-semibold text-[#F8FAFC] truncate block">
+                          <span className="font-semibold text-[#FFFFFF] truncate block">
                             {oauthUser?.display_name || 'Não autenticado'}
                           </span>
                         </div>
                         <div>
                           <span className="text-[11px] text-[#94A3B8] block">@username (OAuth)</span>
-                          <span className="font-mono text-[#F8FAFC] truncate block">
+                          <span className="font-mono text-[#FFFFFF] truncate block">
                             {oauthUser?.username
                               ? `@${oauthUser.username.replace(/^@/, '')}`
                               : oauthUser
@@ -3293,7 +3312,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                         </div>
                         <div>
                           <span className="text-[11px] text-[#94A3B8] block">Avatar Oficial</span>
-                          <span className="text-[#F8FAFC] flex items-center gap-1.5">
+                          <span className="text-[#FFFFFF] flex items-center gap-1.5">
                             {oauthUser?.avatar_url ? (
                               <>
                                 <img
@@ -3320,7 +3339,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                         </div>
                         <div>
                           <span className="text-[11px] text-[#94A3B8] block">Criptografia de Sessão</span>
-                          <span className="font-mono text-[#F8FAFC]">
+                          <span className="font-mono text-[#FFFFFF]">
                             {oauthUser
                               ? oauthStatus.sessionState || 'ACTIVE (AES-256-GCM)'
                               : oauthStatus.sessionState || 'DISCONNECTED'}
@@ -3330,9 +3349,9 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                     </div>
 
                     {/* Backend Plan Entitlement Verification Control */}
-                    <div className="p-4 rounded-xl bg-[#0B1730] border border-[#182943] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="p-4 rounded-xl bg-[#10141E] border border-[#161C2C] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
-                        <h4 className="text-xs font-semibold text-[#F8FAFC]">
+                        <h4 className="text-xs font-semibold text-[#FFFFFF]">
                           Validação de Permissão de Plano no Servidor
                         </h4>
                         <p className="text-xs text-[#94A3B8]">
@@ -3348,11 +3367,11 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                           disabled={isUpdatingPlan}
                           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
                             planEntitlement.tier === 'PRO'
-                              ? 'bg-[#8B7CFF] text-[#F8FAFC] shadow-sm shadow-[#8B7CFF]/25'
-                              : 'bg-[#101F3D] text-[#94A3B8] border border-[#182943]'
+                              ? 'bg-[#B9FC01] text-[#080A0F] font-bold shadow-sm shadow-[#B9FC01]/25'
+                              : 'bg-[#10141E] text-[#94A3B8] border border-[#161C2C]'
                           }`}
                         >
-                          <Crown className="w-3.5 h-3.5 text-[#C4B5FD]" />
+                          <Crown className={`w-3.5 h-3.5 ${planEntitlement.tier === 'PRO' ? 'text-[#080A0F]' : 'text-[#B9FC01]'}`} />
                           <span>Plano PRO</span>
                         </button>
                         <button
@@ -3360,8 +3379,8 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                           disabled={isUpdatingPlan}
                           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
                             planEntitlement.tier === 'FREE'
-                              ? 'bg-[#F05262] text-[#F8FAFC]'
-                              : 'bg-[#101F3D] text-[#94A3B8] border border-[#182943]'
+                              ? 'bg-[#F05262] text-[#FFFFFF]'
+                              : 'bg-[#10141E] text-[#94A3B8] border border-[#161C2C]'
                           }`}
                         >
                           <Lock className="w-3.5 h-3.5" />
@@ -3375,11 +3394,11 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                 {/* 3. SUB-TAB: MONITOR TÉCNICO, FILA WAL E RECUPERAÇÃO SSE */}
                 {advancedTab === 'monitor' && (
                   <div className="space-y-4">
-                    <div className="p-4 rounded-xl bg-[#0B1730] border border-[#182943] flex flex-wrap items-center justify-between gap-3">
+                    <div className="p-4 rounded-xl bg-[#10141E] border border-[#161C2C] flex flex-wrap items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <ShieldCheck className="w-4 h-4 text-[#20C997]" />
                         <div className="text-xs">
-                          <span className="font-semibold text-[#F8FAFC]">
+                          <span className="font-semibold text-[#FFFFFF]">
                             Fila Durável WAL e EventBus Anti-Duplicação
                           </span>
                           <span className="text-[#94A3B8] font-mono ml-2">
@@ -3391,15 +3410,15 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                       <div className="flex items-center gap-2">
                         <button
                           onClick={refreshDiagnostics}
-                          className="px-3 py-1.5 rounded-lg bg-[#101F3D] hover:bg-[#182943] text-xs font-medium text-[#F8FAFC] border border-[#182943] transition flex items-center gap-1.5"
+                          className="px-3 py-1.5 rounded-lg bg-[#10141E] hover:bg-[#161C2C] text-xs font-medium text-[#FFFFFF] border border-[#161C2C] transition flex items-center gap-1.5"
                         >
-                          <RotateCw className="w-3.5 h-3.5 text-[#00A9FF]" />
+                          <RotateCw className="w-3.5 h-3.5 text-[#B9FC01]" />
                           <span>Atualizar Diagnóstico</span>
                         </button>
                         <button
                           onClick={handleRecoverQueue}
                           disabled={isRecoveringQueue}
-                          className="px-3 py-1.5 rounded-lg bg-[#0866F5]/15 hover:bg-[#0866F5]/25 text-xs font-semibold text-[#00A9FF] border border-[#00A9FF]/40 transition flex items-center gap-1.5 disabled:opacity-50"
+                          className="px-3 py-1.5 rounded-lg bg-[#0131CD]/15 hover:bg-[#0131CD]/25 text-xs font-semibold text-[#FFFFFF] border border-[#0131CD]/40 transition flex items-center gap-1.5 disabled:opacity-50"
                         >
                           <RotateCw className={`w-3.5 h-3.5 ${isRecoveringQueue ? 'animate-spin' : ''}`} />
                           <span>Sincronizar Fila WAL</span>
@@ -3425,8 +3444,8 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                 {advancedTab === 'history' && (
                   <div className="space-y-6">
                     {/* Completed Draws History for this LIVE Session */}
-                    <div className="p-4 rounded-xl bg-[#0B1730] border border-[#182943] space-y-3">
-                      <h3 className="text-xs font-semibold text-[#F8FAFC] flex items-center gap-2">
+                    <div className="p-4 rounded-xl bg-[#10141E] border border-[#161C2C] space-y-3">
+                      <h3 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-2">
                         <Trophy className="w-4 h-4 text-[#F5B942]" />
                         <span>Histórico de Sorteios desta LIVE ({sessionDraws.length})</span>
                       </h3>
@@ -3440,25 +3459,25 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                           {sessionDraws.map((d) => (
                             <div
                               key={d.drawId}
-                              className="p-3.5 rounded-lg bg-[#101F3D] border border-[#182943] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                              className="p-3.5 rounded-lg bg-[#10141E] border border-[#161C2C] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                             >
                               <div className="space-y-1">
                                 <div className="flex flex-wrap items-center gap-2">
-                                  <span className="font-mono font-semibold text-[#00A9FF] text-sm">
+                                  <span className="font-mono font-semibold text-[#B9FC01] text-sm">
                                     Bilhete #{d.winningTicketNumber}
                                   </span>
-                                  <span className="font-semibold text-[#F8FAFC]">@{d.winnerName}</span>
+                                  <span className="font-semibold text-[#FFFFFF]">@{d.winnerName}</span>
                                   <span className="text-[#F5B942] font-medium">· {d.prizeName}</span>
                                   <span
                                     className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
                                       d.deliveryStatus === 'DELIVERED'
                                         ? 'bg-[#20C997]/20 text-[#20C997] border-[#20C997]/40'
                                         : d.deliveryStatus === 'CONTACTED'
-                                        ? 'bg-[#0866F5]/20 text-[#00A9FF] border-[#00A9FF]/40'
+                                        ? 'bg-[#0131CD]/25 text-[#FFFFFF] border-[#0131CD]/50'
                                         : d.deliveryStatus === 'UNCLAIMED_EXPIRED'
                                         ? 'bg-[#F05262]/20 text-[#F05262] border-[#F05262]/40'
                                         : d.deliveryStatus === 'REDRAWN'
-                                        ? 'bg-[#35B9F5]/20 text-[#35B9F5] border-[#35B9F5]/40'
+                                        ? 'bg-[#161C2C] text-[#B9FC01] border-[#B9FC01]/40'
                                         : 'bg-[#F5B942]/20 text-[#F5B942] border-[#F5B942]/40'
                                     }`}
                                   >
@@ -3500,9 +3519,9 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                                       sessionId: currentSessionId,
                                     })
                                   }
-                                  className="px-2.5 py-1.5 rounded-lg bg-[#050D20] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] font-medium text-xs flex items-center gap-1"
+                                  className="px-2.5 py-1.5 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] text-[#FFFFFF] border border-[#161C2C] font-medium text-xs flex items-center gap-1"
                                 >
-                                  <Download className="w-3 h-3 text-[#00A9FF]" />
+                                  <Download className="w-3 h-3 text-[#B9FC01]" />
                                   <span>Certificado PDF</span>
                                 </button>
                               </div>
@@ -3514,9 +3533,9 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
 
                     {/* Persisted Combo Streaks & Complete Event Log */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      <div className="p-4 rounded-xl bg-[#0B1730] border border-[#182943] space-y-3">
+                      <div className="p-4 rounded-xl bg-[#10141E] border border-[#161C2C] space-y-3">
                         <div className="flex items-center justify-between">
-                          <h4 className="text-xs font-semibold text-[#F8FAFC] flex items-center gap-1.5">
+                          <h4 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-1.5">
                             <Flame className="w-4 h-4 text-[#F5B942]" />
                             <span>Combos / Streaks Persistidos ({persistedSessionStreaks.length})</span>
                           </h4>
@@ -3531,10 +3550,10 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                             {persistedSessionStreaks.slice(0, 20).map((st) => (
                               <div
                                 key={st.streakKey}
-                                className="p-2.5 rounded-lg bg-[#101F3D] border border-[#182943] flex items-center justify-between text-xs"
+                                className="p-2.5 rounded-lg bg-[#10141E] border border-[#161C2C] flex items-center justify-between text-xs"
                               >
                                 <div className="truncate">
-                                  <span className="font-mono text-[#F8FAFC] font-medium">{st.streakKey}</span>
+                                  <span className="font-mono text-[#FFFFFF] font-medium">{st.streakKey}</span>
                                   <p className="text-[11px] text-[#94A3B8]">
                                     Último repeatCount: <strong className="text-[#F5B942]">{st.lastProcessedRepeatCount}x</strong>
                                   </p>
@@ -3551,10 +3570,10 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                         )}
                       </div>
 
-                      <div className="p-4 rounded-xl bg-[#0B1730] border border-[#182943] space-y-3">
+                      <div className="p-4 rounded-xl bg-[#10141E] border border-[#161C2C] space-y-3">
                         <div className="flex items-center justify-between">
-                          <h4 className="text-xs font-semibold text-[#F8FAFC] flex items-center gap-1.5">
-                            <History className="w-4 h-4 text-[#00A9FF]" />
+                          <h4 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-1.5">
+                            <History className="w-4 h-4 text-[#B9FC01]" />
                             <span>Eventos Persistidos no Firestore ({persistedSessionEvents.length})</span>
                           </h4>
                           <span className="text-[11px] font-mono text-[#94A3B8]">Idempotente</span>
@@ -3574,11 +3593,11 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                               return (
                                 <div
                                   key={ev.eventId}
-                                  className="p-2.5 rounded-lg bg-[#101F3D] border border-[#182943] flex items-center justify-between text-xs"
+                                  className="p-2.5 rounded-lg bg-[#10141E] border border-[#161C2C] flex items-center justify-between text-xs"
                                 >
                                   <div className="truncate">
-                                    <span className="font-semibold text-[#F8FAFC]">{evHandle}</span>{' '}
-                                    <span className="text-[#00A9FF] font-medium">{ev.giftName}</span>{' '}
+                                    <span className="font-semibold text-[#FFFFFF]">{evHandle}</span>{' '}
+                                    <span className="text-[#B9FC01] font-medium">{ev.giftName}</span>{' '}
                                     <span className="text-[#94A3B8] font-mono">
                                       (+{ev.deltaCount} / {ev.repeatCount}x)
                                     </span>
@@ -3602,9 +3621,9 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
 
                     {/* Room Member Presence & Cryptographic Operational Audit Trail */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      <div className="p-4 rounded-xl bg-[#0B1730] border border-[#182943] space-y-2">
+                      <div className="p-4 rounded-xl bg-[#10141E] border border-[#161C2C] space-y-2">
                         <div className="flex items-center justify-between">
-                          <h4 className="text-xs font-semibold text-[#F8FAFC] flex items-center gap-1.5">
+                          <h4 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-1.5">
                             <UserCheck className="w-3.5 h-3.5 text-[#20C997]" />
                             <span>Entrada / Saída na Sala em Tempo Real</span>
                           </h4>
@@ -3623,7 +3642,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                               .map((m) => (
                                 <span
                                   key={m.eventId}
-                                  className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#101F3D] text-[#F8FAFC] border border-[#182943]"
+                                  className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#10141E] text-[#FFFFFF] border border-[#161C2C]"
                                 >
                                   {m.action === 'JOINED' ? '→' : '←'} @{m.username}
                                 </span>
@@ -3632,8 +3651,8 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                         )}
                       </div>
 
-                      <div className="p-4 rounded-xl bg-[#0B1730] border border-[#182943] space-y-2">
-                        <h4 className="text-xs font-semibold text-[#F8FAFC]">
+                      <div className="p-4 rounded-xl bg-[#10141E] border border-[#161C2C] space-y-2">
+                        <h4 className="text-xs font-semibold text-[#FFFFFF]">
                           Trilha de Auditoria Operacional ({auditLogs.length} registros recentes)
                         </h4>
                         {auditLogs.length === 0 ? (
@@ -3641,10 +3660,10 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                         ) : (
                           <div className="space-y-1 max-h-28 overflow-y-auto font-mono text-[11px] text-[#94A3B8]">
                             {auditLogs.slice(0, 15).map((log) => (
-                              <div key={log.logId} className="flex items-center justify-between py-1 border-b border-[#182943]">
+                              <div key={log.logId} className="flex items-center justify-between py-1 border-b border-[#161C2C]">
                                 <span className="truncate">
-                                  <strong className="text-[#00A9FF]">[{log.category}]</strong>{' '}
-                                  <span className="text-[#F8FAFC]">{log.action}</span>
+                                  <strong className="text-[#B9FC01]">[{log.category}]</strong>{' '}
+                                  <span className="text-[#FFFFFF]">{log.action}</span>
                                 </span>
                                 <span className="text-[#94A3B8] shrink-0 ml-2">
                                   {new Date(log.timestamp).toLocaleTimeString('pt-BR')}
@@ -3663,11 +3682,11 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
 
           {/* Drilldown Modal if participant selected */}
           {selectedGlobalParticipant && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#050D20]/85 backdrop-blur-sm">
-              <div className="w-full max-w-lg bg-[#101F3D] border border-[#182943] rounded-xl p-6 space-y-4 max-h-[85vh] overflow-y-auto">
-                <div className="flex items-center justify-between border-b border-[#182943] pb-3">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#080A0F]/85 backdrop-blur-sm">
+              <div className="w-full max-w-lg bg-[#10141E] border border-[#161C2C] rounded-xl p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+                <div className="flex items-center justify-between border-b border-[#161C2C] pb-3">
                   <div>
-                    <h3 className="text-base font-semibold text-[#F8FAFC]">
+                    <h3 className="text-base font-semibold text-[#FFFFFF]">
                       @{selectedGlobalParticipant.global.currentUsername}
                     </h3>
                     <p className="text-xs text-[#94A3B8] font-mono">
@@ -3676,13 +3695,13 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                   </div>
                   <button
                     onClick={() => setSelectedGlobalParticipant(null)}
-                    className="text-xs text-[#94A3B8] hover:text-[#F8FAFC] px-2 py-1 rounded bg-[#050D20] border border-[#182943]"
+                    className="text-xs text-[#94A3B8] hover:text-[#FFFFFF] px-2 py-1 rounded bg-[#080A0F] border border-[#161C2C]"
                   >
                     Fechar
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 p-3.5 rounded-lg bg-[#050D20] border border-[#182943] text-xs">
+                <div className="grid grid-cols-2 gap-3 p-3.5 rounded-lg bg-[#080A0F] border border-[#161C2C] text-xs">
                   <div>
                     <span className="text-[11px] text-[#94A3B8]">Moedas Vitalícias</span>
                     <p className="text-lg font-mono font-semibold text-[#F5B942] tabular-nums">
@@ -3691,28 +3710,28 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                   </div>
                   <div>
                     <span className="text-[11px] text-[#94A3B8]">Bilhetes Vitalícios</span>
-                    <p className="text-lg font-mono font-semibold text-[#00A9FF] tabular-nums">
+                    <p className="text-lg font-mono font-semibold text-[#B9FC01] tabular-nums">
                       {selectedGlobalParticipant.global.totalTicketsLifetime.toLocaleString('pt-BR')}
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <h4 className="text-xs font-semibold text-[#F8FAFC]">
+                  <h4 className="text-xs font-semibold text-[#FFFFFF]">
                     Transmissões Participadas ({selectedGlobalParticipant.participations.length})
                   </h4>
                   <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                     {selectedGlobalParticipant.participations.map((part) => (
                       <div
                         key={part.sessionId}
-                        className="p-2.5 rounded-lg bg-[#050D20] border border-[#182943] flex items-center justify-between text-xs"
+                        className="p-2.5 rounded-lg bg-[#080A0F] border border-[#161C2C] flex items-center justify-between text-xs"
                       >
-                        <span className="font-mono text-[#F8FAFC] truncate max-w-[200px]">
+                        <span className="font-mono text-[#FFFFFF] truncate max-w-[200px]">
                           {part.sessionId}
                         </span>
                         <div className="text-right font-mono tabular-nums">
                           <span className="text-[#F5B942] font-semibold">{part.coinsContributed} moedas</span>
-                          <span className="text-[#00A9FF] text-[11px] ml-2">({part.ticketsIssued} bilhetes)</span>
+                          <span className="text-[#B9FC01] text-[11px] ml-2">({part.ticketsIssued} bilhetes)</span>
                         </div>
                       </div>
                     ))}
@@ -3782,13 +3801,13 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
 
       {/* ORGANIZER PERMANENT CONFIG MODAL */}
       {isOrganizerConfigModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#050D20]/85 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative w-full max-w-xl bg-[#101F3D] border border-[#182943] rounded-xl shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-[#182943]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#080A0F]/85 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-xl bg-[#10141E] border border-[#161C2C] rounded-xl shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-[#161C2C]">
               <div className="flex items-center gap-2.5">
                 <Settings className="w-5 h-5 text-[#F5B942]" />
                 <div>
-                  <h3 className="text-base font-semibold text-[#F8FAFC]">
+                  <h3 className="text-base font-semibold text-[#FFFFFF]">
                     Configuração Permanente do Sorteio
                   </h3>
                   <p className="text-xs text-[#94A3B8]">
@@ -3799,7 +3818,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
               <button
                 type="button"
                 onClick={() => setIsOrganizerConfigModalOpen(false)}
-                className="text-[#94A3B8] hover:text-[#F8FAFC] p-1 rounded-lg"
+                className="text-[#94A3B8] hover:text-[#FFFFFF] p-1 rounded-lg"
               >
                 ✕
               </button>
@@ -3808,7 +3827,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
             <div className="space-y-3.5 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-[#F8FAFC] mb-1">
+                  <label className="block text-xs font-medium text-[#FFFFFF] mb-1">
                     Nome Padrão do Sorteio
                   </label>
                   <input
@@ -3816,12 +3835,12 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                     value={defRaffleTitle}
                     onChange={(e) => setDefRaffleTitle(e.target.value)}
                     placeholder="Ex: Sorteio Oficial da LIVE"
-                    className="w-full px-3 py-2 rounded-lg bg-[#050D20] border border-[#182943] text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
+                    className="w-full px-3 py-2 rounded-lg bg-[#080A0F] border border-[#161C2C] text-[#FFFFFF] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-[#F8FAFC] mb-1">
+                  <label className="block text-xs font-medium text-[#FFFFFF] mb-1">
                     Nome Padrão do Prêmio
                   </label>
                   <input
@@ -3829,14 +3848,14 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                     value={defPrizeName}
                     onChange={(e) => setDefPrizeName(e.target.value)}
                     placeholder="Ex: Prêmio Especial da LIVE"
-                    className="w-full px-3 py-2 rounded-lg bg-[#050D20] border border-[#182943] text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
+                    className="w-full px-3 py-2 rounded-lg bg-[#080A0F] border border-[#161C2C] text-[#FFFFFF] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-[#F8FAFC] mb-1">
+                  <label className="block text-xs font-medium text-[#FFFFFF] mb-1">
                     Taxa (Moedas = 1 Bilhete)
                   </label>
                   <input
@@ -3844,12 +3863,12 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                     min={1}
                     value={defRate}
                     onChange={(e) => setDefRate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-[#050D20] border border-[#182943] text-[#F8FAFC] font-mono font-semibold focus:outline-none focus:border-[#00A9FF]"
+                    className="w-full px-3 py-2 rounded-lg bg-[#080A0F] border border-[#161C2C] text-[#FFFFFF] font-mono font-semibold focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-[#F8FAFC] mb-1">
+                  <label className="block text-xs font-medium text-[#FFFFFF] mb-1">
                     Mínimo Moedas / Presente
                   </label>
                   <input
@@ -3857,12 +3876,12 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                     min={1}
                     value={defMinCoins}
                     onChange={(e) => setDefMinCoins(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-[#050D20] border border-[#182943] text-[#F8FAFC] font-mono focus:outline-none focus:border-[#00A9FF]"
+                    className="w-full px-3 py-2 rounded-lg bg-[#080A0F] border border-[#161C2C] text-[#FFFFFF] font-mono focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-[#F8FAFC] mb-1">
+                  <label className="block text-xs font-medium text-[#FFFFFF] mb-1">
                     Máx. Bilhetes / Usuário
                   </label>
                   <input
@@ -3871,13 +3890,13 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                     value={defMaxUserTickets}
                     onChange={(e) => setDefMaxUserTickets(e.target.value)}
                     placeholder="Sem limite"
-                    className="w-full px-3 py-2 rounded-lg bg-[#050D20] border border-[#182943] text-[#F8FAFC] font-mono focus:outline-none focus:border-[#00A9FF]"
+                    className="w-full px-3 py-2 rounded-lg bg-[#080A0F] border border-[#161C2C] text-[#FFFFFF] font-mono focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#F8FAFC] mb-1">
+                <label className="block text-xs font-medium text-[#FFFFFF] mb-1">
                   Limite Total de Bilhetes da Sessão (opcional)
                 </label>
                 <input
@@ -3886,40 +3905,40 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                   value={defMaxTotalTickets}
                   onChange={(e) => setDefMaxTotalTickets(e.target.value)}
                   placeholder="Sem limite geral"
-                  className="w-full px-3 py-2 rounded-lg bg-[#050D20] border border-[#182943] text-[#F8FAFC] font-mono focus:outline-none focus:border-[#00A9FF]"
+                  className="w-full px-3 py-2 rounded-lg bg-[#080A0F] border border-[#161C2C] text-[#FFFFFF] font-mono focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35"
                 />
               </div>
 
               <div className="pt-2">
-                <label className="flex items-center gap-2 cursor-pointer text-xs text-[#F8FAFC]">
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-[#FFFFFF]">
                   <input
                     type="checkbox"
                     checked={defAllowDuplicateWinners}
                     onChange={(e) => setDefAllowDuplicateWinners(e.target.checked)}
-                    className="w-4 h-4 rounded border-[#182943] bg-[#050D20] text-[#0866F5] focus:ring-0 focus:ring-offset-0"
+                    className="w-4 h-4 rounded border-[#161C2C] bg-[#080A0F] text-[#0131CD] focus:ring-2 focus:ring-[#B9FC01] focus:ring-offset-1 focus:ring-offset-[#080A0F]"
                   />
                   <span>Permitir ganhadores repetidos entre sorteios da mesma transmissão</span>
                 </label>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#F8FAFC] mb-1">
+                <label className="block text-xs font-medium text-[#FFFFFF] mb-1">
                   Regulamento Padrão e Instruções ao Espectador
                 </label>
                 <textarea
                   rows={2}
                   value={defRulesNotes}
                   onChange={(e) => setDefRulesNotes(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-[#050D20] border border-[#182943] text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
+                  className="w-full px-3 py-2 rounded-lg bg-[#080A0F] border border-[#161C2C] text-[#FFFFFF] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#182943]">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#161C2C]">
               <button
                 type="button"
                 onClick={() => setIsOrganizerConfigModalOpen(false)}
-                className="px-4 py-2 rounded-lg bg-[#050D20] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] text-xs font-medium transition"
+                className="px-4 py-2 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] text-[#FFFFFF] border border-[#161C2C] text-xs font-medium transition"
               >
                 Cancelar
               </button>
@@ -3927,7 +3946,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                 type="button"
                 disabled={isSavingOrganizerDefaults}
                 onClick={handleSaveOrganizerDefaults}
-                className="px-4 py-2 rounded-lg bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-50 shadow-sm shadow-[#0866F5]/25"
+                className="px-4 py-2 rounded-lg bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-50 shadow-sm shadow-[#0131CD]/25"
               >
                 {isSavingOrganizerDefaults ? 'Gravando...' : 'Salvar Configuração Permanente'}
               </button>

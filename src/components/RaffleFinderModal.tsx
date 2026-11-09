@@ -121,16 +121,16 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#050D20]/85 backdrop-blur-md animate-fade-in">
-      <div className="bg-[#101F3D] border border-[#182943] w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-slide-up">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#080A0F]/85 backdrop-blur-md animate-fade-in">
+      <div className="bg-[#10141E] border border-[#161C2C] w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-slide-up">
         {/* Header */}
-        <div className="p-5 border-b border-[#182943] flex items-center justify-between bg-[#0B1730]">
+        <div className="p-5 border-b border-[#161C2C] flex items-center justify-between bg-[#10141E]">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-[#0866F5]/20 border border-[#00A9FF]/40 flex items-center justify-center text-[#00A9FF]">
+            <div className="w-10 h-10 rounded-xl bg-[#0131CD]/20 border border-[#0131CD]/40 flex items-center justify-center text-[#FFFFFF]">
               <Search className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-display font-bold text-lg text-[#F8FAFC]">Encontrar Sorteio do Sorteador</h3>
+              <h3 className="font-display font-bold text-lg text-[#FFFFFF]">Encontrar Sorteio do Sorteador</h3>
               <p className="text-xs text-[#94A3B8]">
                 Conecte-se para ver seus bilhetes no sorteio do seu streamer ou organizador
               </p>
@@ -139,14 +139,14 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="text-[#94A3B8] hover:text-[#F8FAFC] p-2 rounded-xl hover:bg-[#182943] transition"
+            className="text-[#94A3B8] hover:text-[#FFFFFF] p-2 rounded-xl hover:bg-[#161C2C] transition"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab Switcher */}
-        <div className="p-3 bg-[#0B1730]/80 border-b border-[#182943] flex items-center justify-center gap-2">
+        <div className="p-3 bg-[#10141E]/80 border-b border-[#161C2C] flex items-center justify-center gap-2">
           <button
             type="button"
             onClick={() => {
@@ -155,8 +155,8 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
             }}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
               activeTab === 'code'
-                ? 'bg-[#0866F5] text-[#F8FAFC] shadow-sm'
-                : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#182943]'
+                ? 'bg-[#0131CD] text-[#FFFFFF] shadow-sm'
+                : 'text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C]'
             }`}
           >
             <Hash className="w-3.5 h-3.5" />
@@ -172,8 +172,8 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
             }}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
               activeTab === 'search'
-                ? 'bg-[#0866F5] text-[#F8FAFC] shadow-sm'
-                : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#182943]'
+                ? 'bg-[#0131CD] text-[#FFFFFF] shadow-sm'
+                : 'text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C]'
             }`}
           >
             <User className="w-3.5 h-3.5" />
@@ -188,8 +188,8 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
             }}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
               activeTab === 'history'
-                ? 'bg-[#0866F5] text-[#F8FAFC] shadow-sm'
-                : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#182943]'
+                ? 'bg-[#0131CD] text-[#FFFFFF] shadow-sm'
+                : 'text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C]'
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
@@ -216,7 +216,7 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
           {activeTab === 'code' && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-[#F8FAFC] block">
+                <label className="text-xs font-bold uppercase tracking-wider text-[#FFFFFF] block">
                   Código do Sorteio ou Link Direto
                 </label>
                 <div className="relative">
@@ -225,7 +225,7 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
                     value={inputCode}
                     onChange={(e) => setInputCode(e.target.value)}
                     placeholder="Ex: GIO-7492 ou cole o link enviado"
-                    className="w-full bg-[#0B1730] border border-[#182943] focus:border-[#00A9FF] rounded-xl px-4 py-3 text-sm text-[#F8FAFC] placeholder:text-[#94A3B8]/50 font-mono uppercase focus:outline-none transition"
+                    className="w-full bg-[#10141E] border border-[#161C2C] focus:border-[#B9FC01] rounded-xl px-4 py-3 text-sm text-[#FFFFFF] placeholder:text-[#94A3B8]/50 font-mono uppercase focus:outline-none focus:ring-2 focus:ring-[#B9FC01]/40 rounded transition"
                     onKeyDown={(e) => e.key === 'Enter' && handleConnectByCode()}
                   />
                 </div>
@@ -238,7 +238,7 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
                 type="button"
                 onClick={() => handleConnectByCode()}
                 disabled={loading || !inputCode.trim()}
-                className="w-full py-3 bg-[#0866F5] hover:bg-[#00A9FF] disabled:opacity-50 text-[#F8FAFC] font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg transition active:scale-98"
+                className="w-full py-3 bg-[#0131CD] hover:brightness-110 disabled:opacity-50 text-[#FFFFFF] font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg transition active:scale-98"
               >
                 {loading ? (
                   <>
@@ -254,10 +254,10 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
               </button>
 
               {/* Quick tip */}
-              <div className="p-4 bg-[#0B1730] rounded-xl border border-[#182943] text-xs text-[#94A3B8] space-y-1.5">
-                <span className="font-bold text-[#00A9FF] block">Dica para Participantes:</span>
+              <div className="p-4 bg-[#10141E] rounded-xl border border-[#161C2C] text-xs text-[#94A3B8] space-y-1.5">
+                <span className="font-bold text-[#B9FC01] block">Dica para Participantes:</span>
                 <p>
-                  Quando seu sorteador envia um link com <code className="text-[#F8FAFC] font-mono">?sorteio=GIO-XXXX</code>, o app abre automaticamente no sorteio dele sem você precisar digitar nada!
+                  Quando seu sorteador envia um link com <code className="text-[#FFFFFF] font-mono">?sorteio=GIO-XXXX</code>, o app abre automaticamente no sorteio dele sem você precisar digitar nada!
                 </p>
               </div>
             </div>
@@ -272,7 +272,7 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Nome do canal, streamer ou título..."
-                    className="w-full bg-[#0B1730] border border-[#182943] focus:border-[#00A9FF] rounded-xl pl-9 pr-3 py-2.5 text-xs text-[#F8FAFC] placeholder:text-[#94A3B8]/50 focus:outline-none transition"
+                    className="w-full bg-[#10141E] border border-[#161C2C] focus:border-[#B9FC01] rounded-xl pl-9 pr-3 py-2.5 text-xs text-[#FFFFFF] placeholder:text-[#94A3B8]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FC01]/40 rounded transition"
                     onKeyDown={(e) => e.key === 'Enter' && handleSearchByName()}
                   />
                   <Search className="w-4 h-4 text-[#94A3B8] absolute left-3 top-3" />
@@ -281,7 +281,7 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
                   type="button"
                   onClick={handleSearchByName}
                   disabled={loading}
-                  className="px-4 py-2.5 bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-bold text-xs rounded-xl transition shrink-0"
+                  className="px-4 py-2.5 bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs rounded-xl transition shrink-0"
                 >
                   Buscar
                 </button>
@@ -294,16 +294,16 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
                     <div
                       key={r.code}
                       onClick={() => handleConnectByCode(r.code)}
-                      className={`p-3.5 bg-[#0B1730] hover:bg-[#182943] border ${
-                        currentCode === r.code ? 'border-[#00A9FF] ring-1 ring-[#00A9FF]' : 'border-[#182943]'
+                      className={`p-3.5 bg-[#10141E] hover:bg-[#161C2C] border ${
+                        currentCode === r.code ? 'border-[#0131CD] ring-1 ring-[#0131CD]' : 'border-[#161C2C]'
                       } rounded-xl flex items-center justify-between gap-3 cursor-pointer transition group`}
                     >
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-sm text-[#F8FAFC] group-hover:text-[#00A9FF] transition">
+                          <span className="font-bold text-sm text-[#FFFFFF] group-hover:text-[#B9FC01] transition">
                             {r.organizerName}
                           </span>
-                          <span className="text-[10px] font-mono font-bold bg-[#0866F5]/20 border border-[#00A9FF]/40 text-[#35B9F5] px-2 py-0.5 rounded-full">
+                          <span className="text-[10px] font-mono font-bold bg-[#0131CD]/20 border border-[#0131CD]/40 text-[#FFFFFF] px-2 py-0.5 rounded-full">
                             #{r.code}
                           </span>
                         </div>
@@ -312,7 +312,7 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
                           {r.participants.length} participantes · Taxa: {r.settings.rate} moedas
                         </span>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-[#94A3B8] group-hover:text-[#F8FAFC] transition" />
+                      <ChevronRight className="w-4 h-4 text-[#94A3B8] group-hover:text-[#FFFFFF] transition" />
                     </div>
                   ))
                 ) : (
@@ -331,16 +331,16 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
                   <div
                     key={r.code}
                     onClick={() => handleConnectByCode(r.code)}
-                    className={`p-3.5 bg-[#0B1730] hover:bg-[#182943] border ${
-                      currentCode === r.code ? 'border-[#00A9FF] ring-1 ring-[#00A9FF]' : 'border-[#182943]'
+                    className={`p-3.5 bg-[#10141E] hover:bg-[#161C2C] border ${
+                      currentCode === r.code ? 'border-[#0131CD] ring-1 ring-[#0131CD]' : 'border-[#161C2C]'
                     } rounded-xl flex items-center justify-between gap-3 cursor-pointer transition group`}
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-[#F8FAFC] group-hover:text-[#00A9FF] transition">
+                        <span className="font-bold text-sm text-[#FFFFFF] group-hover:text-[#B9FC01] transition">
                           {r.organizerName}
                         </span>
-                        <span className="text-[10px] font-mono font-bold bg-[#182943] text-[#F8FAFC] px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-mono font-bold bg-[#161C2C] text-[#FFFFFF] px-2 py-0.5 rounded-full">
                           #{r.code}
                         </span>
                         {currentCode === r.code && (
@@ -356,12 +356,12 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
                       <button
                         type="button"
                         onClick={(e) => handleRemoveHistory(r.code, e)}
-                        className="text-[#94A3B8] hover:text-[#F05262] p-1.5 rounded-lg hover:bg-[#101F3D] transition"
+                        className="text-[#94A3B8] hover:text-[#F05262] p-1.5 rounded-lg hover:bg-[#10141E] transition"
                         title="Remover do histórico"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
-                      <ChevronRight className="w-4 h-4 text-[#94A3B8] group-hover:text-[#F8FAFC] transition" />
+                      <ChevronRight className="w-4 h-4 text-[#94A3B8] group-hover:text-[#FFFFFF] transition" />
                     </div>
                   </div>
                 ))
@@ -380,7 +380,7 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
 
         {/* Footer with Reset to Local */}
         {isViewingExternal && onResetToLocal && (
-          <div className="p-4 border-t border-[#182943] bg-[#0B1730] flex items-center justify-between">
+          <div className="p-4 border-t border-[#161C2C] bg-[#10141E] flex items-center justify-between">
             <span className="text-xs text-[#94A3B8]">Quer voltar ao seu próprio sorteio?</span>
             <button
               type="button"
@@ -388,7 +388,7 @@ export const RaffleFinderModal: React.FC<RaffleFinderModalProps> = ({
                 onResetToLocal();
                 onClose();
               }}
-              className="px-3 py-1.5 bg-[#182943] hover:bg-[#0866F5] text-[#F8FAFC] text-xs font-bold rounded-xl transition"
+              className="px-3 py-1.5 bg-[#161C2C] hover:bg-[#0131CD] text-[#FFFFFF] text-xs font-bold rounded-xl transition"
             >
               Voltar ao Meu Sorteio
             </button>

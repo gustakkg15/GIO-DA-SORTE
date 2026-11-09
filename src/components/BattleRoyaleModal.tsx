@@ -126,16 +126,16 @@ export const BattleRoyaleModal: React.FC<BattleRoyaleModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#050D20]/95 backdrop-blur-xl flex flex-col justify-between p-3 sm:p-6 overflow-y-auto animate-fade-in">
+    <div className="fixed inset-0 z-50 bg-[#080A0F]/95 backdrop-blur-xl flex flex-col justify-between p-3 sm:p-6 overflow-y-auto animate-fade-in">
       <div className="animate-slide-up max-w-5xl mx-auto w-full flex flex-col flex-1 justify-between space-y-4">
         {/* Top Header */}
-        <div className="flex items-center justify-between w-full pb-3 sm:pb-4 border-b border-[#182943] gap-2 shrink-0">
+        <div className="flex items-center justify-between w-full pb-3 sm:pb-4 border-b border-[#161C2C] gap-2 shrink-0">
           <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#F5B942]/20 border border-[#F5B942]/40 text-[#F5B942] font-bold flex items-center justify-center shadow-lg shrink-0">
               <Flame className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
-              <h2 className="font-display font-bold text-lg sm:text-xl text-[#F8FAFC] truncate">Battle Royale</h2>
+              <h2 className="font-display font-bold text-lg sm:text-xl text-[#FFFFFF] truncate">Battle Royale</h2>
               <p className="text-[11px] sm:text-xs text-[#94A3B8] truncate">Eliminatória por fases até o campeão</p>
             </div>
           </div>
@@ -146,7 +146,7 @@ export const BattleRoyaleModal: React.FC<BattleRoyaleModalProps> = ({
               onClick={handleReset}
               title="Reiniciar torneio"
               aria-label="Reiniciar torneio eliminatório"
-              className="min-w-[40px] min-h-[40px] p-2 flex items-center justify-center text-[#94A3B8] hover:text-[#F8FAFC] bg-[#101F3D] border border-[#182943] rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00A9FF]"
+              className="min-w-[40px] min-h-[40px] p-2 flex items-center justify-center text-[#94A3B8] hover:text-[#FFFFFF] bg-[#10141E] border border-[#161C2C] rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080A0F]"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
@@ -155,7 +155,7 @@ export const BattleRoyaleModal: React.FC<BattleRoyaleModalProps> = ({
               onClick={onClose}
               title="Fechar torneio"
               aria-label="Fechar torneio eliminatório"
-              className="min-w-[40px] min-h-[40px] p-2 flex items-center justify-center text-[#94A3B8] hover:text-[#F8FAFC] bg-[#101F3D] border border-[#182943] rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00A9FF]"
+              className="min-w-[40px] min-h-[40px] p-2 flex items-center justify-center text-[#94A3B8] hover:text-[#FFFFFF] bg-[#10141E] border border-[#161C2C] rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080A0F]"
             >
               <X className="w-5 h-5" />
             </button>
@@ -166,7 +166,7 @@ export const BattleRoyaleModal: React.FC<BattleRoyaleModalProps> = ({
         <div className="max-w-4xl w-full mx-auto my-auto py-6 space-y-6">
           {/* Round HUD */}
           <div className="text-center space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#101F3D] border border-[#00A9FF]/40 text-[#00A9FF] text-xs font-bold uppercase tracking-wider">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#10141E] border border-[#0131CD]/40 text-[#B9FC01] text-xs font-bold uppercase tracking-wider">
               <ShieldAlert className="w-3.5 h-3.5 text-[#F5B942]" />
               <span className="font-mono tabular-nums">
                 {champion
@@ -175,7 +175,7 @@ export const BattleRoyaleModal: React.FC<BattleRoyaleModalProps> = ({
               </span>
             </div>
 
-            <h3 className="font-display font-bold text-3xl sm:text-4xl text-[#F8FAFC] tracking-tight">
+            <h3 className="font-display font-bold text-3xl sm:text-4xl text-[#FFFFFF] tracking-tight">
               {champion
                 ? 'TEMOS UM GRANDE CAMPEÃO!'
                 : survivorsList.length === 2
@@ -188,13 +188,13 @@ export const BattleRoyaleModal: React.FC<BattleRoyaleModalProps> = ({
 
           {/* Champion Reveal Card */}
           {champion ? (
-            <div className="bg-[#101F3D] border-2 border-[#F5B942] text-[#F8FAFC] rounded-2xl p-8 sm:p-12 text-center shadow-2xl max-w-xl mx-auto space-y-4 ring-4 ring-[#F5B942]/20 animate-in zoom-in-95 duration-300">
+            <div className="bg-[#10141E] border-2 border-[#F5B942] text-[#FFFFFF] rounded-2xl p-8 sm:p-12 text-center shadow-2xl max-w-xl mx-auto space-y-4 ring-4 ring-[#F5B942]/20 animate-in zoom-in-95 duration-300">
               <Trophy className="w-16 h-16 mx-auto text-[#F5B942] drop-shadow-md" />
               <div className="text-xs font-bold uppercase tracking-widest text-[#F5B942]">Vencedor Supremo</div>
-              <div className="text-4xl sm:text-5xl font-display font-bold text-[#F8FAFC] tracking-tight">
+              <div className="text-4xl sm:text-5xl font-display font-bold text-[#FFFFFF] tracking-tight">
                 {champion.name}
               </div>
-              <div className="font-mono font-bold text-2xl text-[#00A9FF] tabular-nums">Bilhete Premiado: #{champion.number}</div>
+              <div className="font-mono font-bold text-2xl text-[#B9FC01] tabular-nums">Bilhete Premiado: #{champion.number}</div>
               <p className="text-xs font-medium text-[#94A3B8]">
                 Sobreviveu a todas as etapas eliminatórias do Battle Royale!
               </p>
@@ -206,9 +206,9 @@ export const BattleRoyaleModal: React.FC<BattleRoyaleModalProps> = ({
                 {survivorsList.map((contender) => (
                   <div
                     key={contender.id}
-                    className="bg-[#101F3D] border border-[#182943] rounded-xl p-3 flex flex-col justify-between transition-all"
+                    className="bg-[#10141E] border border-[#161C2C] rounded-xl p-3 flex flex-col justify-between transition-all"
                   >
-                    <div className="font-bold text-sm text-[#F8FAFC] truncate">{contender.name}</div>
+                    <div className="font-bold text-sm text-[#FFFFFF] truncate">{contender.name}</div>
                     <div className="mt-2 flex items-center justify-between text-xs text-[#94A3B8] font-mono tabular-nums">
                       <span className="text-[#F5B942] font-semibold">{contender.ticketsCount} bilhetes</span>
                       <span className="text-[10px] text-[#94A3B8]">
@@ -238,8 +238,8 @@ export const BattleRoyaleModal: React.FC<BattleRoyaleModalProps> = ({
                 onClick={handleNextElimination}
                 className={`py-4 px-8 rounded-xl font-display font-bold text-lg flex items-center gap-3 transition-all active:scale-95 shadow-xl ${
                   isEliminating
-                    ? 'bg-[#182943] text-[#94A3B8] cursor-not-allowed'
-                    : 'bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] cursor-pointer'
+                    ? 'bg-[#161C2C] text-[#94A3B8] cursor-not-allowed'
+                    : 'bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] cursor-pointer'
                 }`}
               >
                 {isEliminating ? (
@@ -249,7 +249,7 @@ export const BattleRoyaleModal: React.FC<BattleRoyaleModalProps> = ({
                   </>
                 ) : (
                   <>
-                    <Play className="w-5 h-5 fill-[#F8FAFC]" />
+                    <Play className="w-5 h-5 fill-[#FFFFFF]" />
                     <span>
                       {survivorsList.length === 2 ? 'REVELAR O CAMPEÃO' : `EXECUTAR CORTE DA FASE ${roundNumber}`}
                     </span>

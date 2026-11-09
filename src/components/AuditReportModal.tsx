@@ -99,17 +99,17 @@ export const AuditReportModal: React.FC<AuditReportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#050D20]/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 animate-fade-in">
-      <div className="bg-[#0B1730] border border-[#182943] rounded-2xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up">
+    <div className="fixed inset-0 z-50 bg-[#080A0F]/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 animate-fade-in">
+      <div className="bg-[#10141E] border border-[#161C2C] rounded-2xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up">
         {/* Header Bar */}
-        <div className="p-4 sm:p-5 border-b border-[#182943] bg-[#050D20] flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-[#161C2C] bg-[#080A0F] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#0866F5]/20 border border-[#0866F5]/40 flex items-center justify-center text-[#00A9FF]">
+            <div className="w-10 h-10 rounded-xl bg-[#0131CD]/20 border border-[#0131CD]/40 flex items-center justify-center text-[#FFFFFF]">
               <FileText className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-display font-black text-lg sm:text-xl text-[#F8FAFC]">
+                <h2 className="font-display font-black text-lg sm:text-xl text-[#FFFFFF]">
                   Laudo Oficial em PDF
                 </h2>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#20C997]/20 text-[#20C997] border border-[#20C997]/40 flex items-center gap-1">
@@ -127,21 +127,21 @@ export const AuditReportModal: React.FC<AuditReportModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Fechar"
-            className="p-2 text-[#94A3B8] hover:text-[#F8FAFC] rounded-lg transition hover:bg-[#101F3D]"
+            className="p-2 text-[#94A3B8] hover:text-[#FFFFFF] rounded-lg transition hover:bg-[#10141E]"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Scrollable Content Preview */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 text-[#F8FAFC] text-sm">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 text-[#FFFFFF] text-sm">
           {/* Main Action Banner */}
-          <div className="p-4 bg-[#101F3D] border border-[#0866F5]/40 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="p-4 bg-[#10141E] border border-[#0131CD]/40 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="space-y-1 text-center sm:text-left">
-              <span className="text-xs font-bold text-[#00A9FF] uppercase tracking-wider block">
+              <span className="text-xs font-bold text-[#B9FC01] uppercase tracking-wider block">
                 Exportação Oficial Pronta
               </span>
-              <p className="text-sm font-semibold text-[#F8FAFC]">
+              <p className="text-sm font-semibold text-[#FFFFFF]">
                 Gere o documento oficial (.PDF) com layout de auditoria, selos e certificação
               </p>
             </div>
@@ -150,11 +150,11 @@ export const AuditReportModal: React.FC<AuditReportModalProps> = ({
               type="button"
               onClick={handleDownloadPdf}
               disabled={isGenerating}
-              className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-[#0866F5] to-[#00A9FF] hover:from-[#00A9FF] hover:to-[#35B9F5] text-[#F8FAFC] font-black text-sm rounded-xl shadow-lg shadow-[#0866F5]/30 flex items-center justify-center gap-2 transition active:scale-95 disabled:opacity-50"
+              className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-[#0131CD] to-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-black text-sm rounded-xl shadow-lg shadow-[#0131CD]/30 flex items-center justify-center gap-2 transition active:scale-95 disabled:opacity-50"
             >
               {isGenerating ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-[#F8FAFC] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-[#FFFFFF] border-t-transparent rounded-full animate-spin" />
                   <span>Gerando PDF...</span>
                 </>
               ) : (
@@ -167,16 +167,16 @@ export const AuditReportModal: React.FC<AuditReportModalProps> = ({
           </div>
 
           {/* Cryptographic SHA-256 Integrity Hash Block */}
-          <div className="p-4 bg-[#101F3D] border border-[#182943] rounded-xl space-y-2.5">
+          <div className="p-4 bg-[#10141E] border border-[#161C2C] rounded-xl space-y-2.5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold text-[#00A9FF]">
-                <Hash className="w-4 h-4 text-[#00A9FF]" />
+              <div className="flex items-center gap-2 text-xs font-bold text-[#B9FC01]">
+                <Hash className="w-4 h-4 text-[#B9FC01]" />
                 <span>Hash Criptográfico de Integridade (SHA-256)</span>
               </div>
               <button
                 type="button"
                 onClick={handleCopyHash}
-                className="text-xs font-bold text-[#00A9FF] hover:text-[#35B9F5] flex items-center gap-1 transition"
+                className="text-xs font-bold text-[#B9FC01] hover:text-[#FFFFFF] flex items-center gap-1 transition"
               >
                 {copiedHash ? (
                   <>
@@ -192,12 +192,12 @@ export const AuditReportModal: React.FC<AuditReportModalProps> = ({
               </button>
             </div>
 
-            <div className="p-2.5 bg-[#050D20] border border-[#182943] rounded-lg font-mono text-xs text-[#35B9F5] break-all select-all">
+            <div className="p-2.5 bg-[#080A0F] border border-[#161C2C] rounded-lg font-mono text-xs text-[#B9FC01] break-all select-all">
               {rosterHash || 'Calculando hash SHA-256...'}
             </div>
 
             <p className="text-[11px] text-[#94A3B8] leading-relaxed">
-              🔒 <b className="text-[#F8FAFC]">Garantia Matemática:</b> Qualquer alteração de nome, bilhete ou regra matemática
+              🔒 <b className="text-[#FFFFFF]">Garantia Matemática:</b> Qualquer alteração de nome, bilhete ou regra matemática
               resulta em um hash completamente diferente. A presença deste hash no PDF comprova que o
               sorteio foi 100% autêntico.
             </p>
@@ -205,28 +205,28 @@ export const AuditReportModal: React.FC<AuditReportModalProps> = ({
 
           {/* Sorteio Info & Date Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="p-3 bg-[#101F3D] border border-[#182943] rounded-xl space-y-1">
+            <div className="p-3 bg-[#10141E] border border-[#161C2C] rounded-xl space-y-1">
               <div className="flex items-center gap-1.5 text-xs text-[#94A3B8]">
                 <Award className="w-3.5 h-3.5 text-[#F5B942]" />
                 <span>Prêmio Principal</span>
               </div>
-              <div className="font-bold text-sm text-[#F8FAFC] truncate">{prizeTitle}</div>
+              <div className="font-bold text-sm text-[#FFFFFF] truncate">{prizeTitle}</div>
             </div>
 
-            <div className="p-3 bg-[#101F3D] border border-[#182943] rounded-xl space-y-1">
+            <div className="p-3 bg-[#10141E] border border-[#161C2C] rounded-xl space-y-1">
               <div className="flex items-center gap-1.5 text-xs text-[#94A3B8]">
-                <Calendar className="w-3.5 h-3.5 text-[#00A9FF]" />
+                <Calendar className="w-3.5 h-3.5 text-[#B9FC01]" />
                 <span>Data do Laudo</span>
               </div>
-              <div className="font-mono font-bold text-sm text-[#F8FAFC]">{formatFullTimestamp(now)}</div>
+              <div className="font-mono font-bold text-sm text-[#FFFFFF]">{formatFullTimestamp(now)}</div>
             </div>
 
-            <div className="p-3 bg-[#101F3D] border border-[#182943] rounded-xl space-y-1">
+            <div className="p-3 bg-[#10141E] border border-[#161C2C] rounded-xl space-y-1">
               <div className="flex items-center gap-1.5 text-xs text-[#94A3B8]">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#20C997]" />
                 <span>Total de Ganhadores</span>
               </div>
-              <div className="font-mono font-bold text-sm text-[#F8FAFC]">
+              <div className="font-mono font-bold text-sm text-[#FFFFFF]">
                 {winners.length} {winners.length === 1 ? 'ganhador' : 'ganhadores'}
               </div>
             </div>
@@ -235,16 +235,16 @@ export const AuditReportModal: React.FC<AuditReportModalProps> = ({
           {/* Winners List Table Preview */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <h3 className="font-display font-bold text-sm text-[#F8FAFC] flex items-center gap-2">
+              <h3 className="font-display font-bold text-sm text-[#FFFFFF] flex items-center gap-2">
                 <span>Lista Oficial de Vencedores</span>
-                <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-[#101F3D] border border-[#182943] text-[#00A9FF]">
+                <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-[#10141E] border border-[#161C2C] text-[#B9FC01]">
                   {winners.length}
                 </span>
               </h3>
               <button
                 type="button"
                 onClick={handleCopySummary}
-                className="text-xs text-[#94A3B8] hover:text-[#F8FAFC] flex items-center gap-1 transition"
+                className="text-xs text-[#94A3B8] hover:text-[#FFFFFF] flex items-center gap-1 transition"
               >
                 {copiedSummary ? (
                   <>
@@ -261,27 +261,27 @@ export const AuditReportModal: React.FC<AuditReportModalProps> = ({
             </div>
 
             {winners.length === 0 ? (
-              <div className="p-6 bg-[#101F3D] border border-[#182943] rounded-xl text-center text-[#94A3B8] text-xs">
+              <div className="p-6 bg-[#10141E] border border-[#161C2C] rounded-xl text-center text-[#94A3B8] text-xs">
                 Nenhum vencedor sorteado ainda. Realize o sorteio no painel para que os nomes apareçam
                 aqui e no laudo oficial.
               </div>
             ) : (
-              <div className="bg-[#050D20] border border-[#182943] rounded-xl overflow-hidden divide-y divide-[#182943]/80">
+              <div className="bg-[#080A0F] border border-[#161C2C] rounded-xl overflow-hidden divide-y divide-[#161C2C]/80">
                 {winners.map((winner, index) => (
                   <div
                     key={winner.id}
-                    className="p-3 flex items-center justify-between gap-3 hover:bg-[#101F3D]/60 transition"
+                    className="p-3 flex items-center justify-between gap-3 hover:bg-[#10141E]/60 transition"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-7 h-7 rounded-full bg-[#0866F5]/20 border border-[#0866F5]/40 flex items-center justify-center font-mono font-bold text-xs text-[#00A9FF] shrink-0">
+                      <div className="w-7 h-7 rounded-full bg-[#0131CD]/20 border border-[#0131CD]/40 flex items-center justify-center font-mono font-bold text-xs text-[#FFFFFF] shrink-0">
                         {index + 1}º
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-[#F8FAFC] truncate text-sm">
+                          <span className="font-bold text-[#FFFFFF] truncate text-sm">
                             {winner.name}
                           </span>
-                          <span className="font-mono text-xs font-bold text-[#00A9FF] bg-[#101F3D] border border-[#182943] px-1.5 py-0.2 rounded shrink-0">
+                          <span className="font-mono text-xs font-bold text-[#B9FC01] bg-[#10141E] border border-[#161C2C] px-1.5 py-0.2 rounded shrink-0">
                             #{winner.number}
                           </span>
                         </div>
@@ -303,11 +303,11 @@ export const AuditReportModal: React.FC<AuditReportModalProps> = ({
         </div>
 
         {/* Modal Footer Controls */}
-        <div className="p-4 border-t border-[#182943] bg-[#050D20] flex flex-wrap items-center justify-between gap-3">
+        <div className="p-4 border-t border-[#161C2C] bg-[#080A0F] flex flex-wrap items-center justify-between gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 bg-[#101F3D] hover:bg-[#182943] text-[#94A3B8] hover:text-[#F8FAFC] font-bold text-xs rounded-xl transition border border-[#182943]"
+            className="px-4 py-2 bg-[#10141E] hover:bg-[#161C2C] text-[#94A3B8] hover:text-[#FFFFFF] font-bold text-xs rounded-xl transition border border-[#161C2C]"
           >
             Fechar
           </button>
@@ -317,7 +317,7 @@ export const AuditReportModal: React.FC<AuditReportModalProps> = ({
               type="button"
               onClick={handleDownloadPdf}
               disabled={isGenerating}
-              className="px-5 py-2.5 bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 active:scale-95 disabled:opacity-50"
+              className="px-5 py-2.5 bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 active:scale-95 disabled:opacity-50"
             >
               <Download className="w-4 h-4" />
               <span>Baixar Relatório PDF</span>

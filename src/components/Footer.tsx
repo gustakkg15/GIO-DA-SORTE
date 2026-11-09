@@ -31,14 +31,14 @@ export const Footer: React.FC<FooterProps> = ({
   };
 
   return (
-    <footer className="mt-16 border-t border-[var(--gio-border-subtle)] bg-[#0B1730] text-[#94A3B8] print:hidden">
+    <footer className="mt-16 border-t border-[var(--gio-border-subtle)] bg-[#10141E] text-[#94A3B8] print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
         {/* Colunas Institucionais e de Navegação */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8">
           {/* Coluna Marca & Logo Original */}
           <div className="lg:col-span-4 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-[#101F3D] border border-[var(--gio-border-subtle)] flex items-center justify-center p-1.5 shrink-0 shadow-[0_4px_14px_rgba(2,8,23,0.4)]">
+              <div className="w-11 h-11 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] flex items-center justify-center p-1.5 shrink-0 shadow-[0_4px_14px_rgba(2,8,23,0.4)]">
                 <img
                   src="/icon.svg"
                   alt="GIO DA SORTE"
@@ -47,7 +47,7 @@ export const Footer: React.FC<FooterProps> = ({
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-base font-bold text-[#F8FAFC] tracking-tight">
+                  <span className="text-base font-bold text-[#FFFFFF] tracking-tight">
                     GIO DA SORTE
                   </span>
                 </div>
@@ -68,9 +68,9 @@ export const Footer: React.FC<FooterProps> = ({
                   onNavigateTab?.('legal');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="px-3.5 py-2 rounded-xl bg-[#101F3D] hover:bg-[#182943] text-xs font-semibold text-[#F8FAFC] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] transition inline-flex items-center gap-1.5"
+                className="px-3.5 py-2 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] text-xs font-semibold text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] transition inline-flex items-center gap-1.5"
               >
-                <Scale className="w-3.5 h-3.5 text-[#00A9FF]" />
+                <Scale className="w-3.5 h-3.5 text-[#B9FC01]" />
                 <span>Central Legal e LGPD</span>
               </button>
 
@@ -78,9 +78,9 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={onOpenCookieSettings}
-                  className="px-3.5 py-2 rounded-xl bg-[#101F3D] hover:bg-[#182943] text-xs font-semibold text-[#94A3B8] hover:text-[#F8FAFC] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] transition inline-flex items-center gap-1.5"
+                  className="px-3.5 py-2 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] text-xs font-semibold text-[#94A3B8] hover:text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] transition inline-flex items-center gap-1.5"
                 >
-                  <Cookie className="w-3.5 h-3.5 text-[#35B9F5]" />
+                  <Cookie className="w-3.5 h-3.5 text-[#B9FC01]" />
                   <span>Preferências de Cookies</span>
                 </button>
               )}
@@ -89,10 +89,10 @@ export const Footer: React.FC<FooterProps> = ({
 
           {/* Coluna 1: PLATAFORMA */}
           <div className="lg:col-span-2 space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#F8FAFC]">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#FFFFFF]">
               Plataforma
             </h3>
-            <ul className="space-y-2 text-xs sm:text-sm">
+            <ul className="space-y-1.5 text-xs sm:text-sm">
               <li>
                 <button
                   type="button"
@@ -100,7 +100,7 @@ export const Footer: React.FC<FooterProps> = ({
                     onNavigateTab?.('dashboard');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="text-[#94A3B8] hover:text-[#F8FAFC] transition text-left"
+                  className="min-h-[24px] py-0.5 inline-flex items-center text-[#94A3B8] hover:text-[#FFFFFF] transition text-left"
                 >
                   Painel Principal
                 </button>
@@ -112,7 +112,7 @@ export const Footer: React.FC<FooterProps> = ({
                     onNavigateTab?.('draw');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="text-[#94A3B8] hover:text-[#F8FAFC] transition text-left"
+                  className="min-h-[24px] py-0.5 inline-flex items-center text-[#94A3B8] hover:text-[#FFFFFF] transition text-left"
                 >
                   Sorteios e Roleta
                 </button>
@@ -124,7 +124,7 @@ export const Footer: React.FC<FooterProps> = ({
                     onNavigateTab?.('tiktok');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="text-[#94A3B8] hover:text-[#00A9FF] font-medium transition text-left flex items-center gap-1.5"
+                  className="min-h-[24px] py-0.5 text-[#94A3B8] hover:text-[#B9FC01] font-medium transition text-left inline-flex items-center gap-1.5"
                 >
                   <Radio className="w-3.5 h-3.5 text-[#20C997]" />
                   <span>TikTok LIVE</span>
@@ -137,9 +137,9 @@ export const Footer: React.FC<FooterProps> = ({
                     onNavigateTab?.('subscription');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="text-[#94A3B8] hover:text-[#F8FAFC] transition text-left flex items-center gap-1.5"
+                  className="min-h-[24px] py-0.5 text-[#94A3B8] hover:text-[#FFFFFF] transition text-left inline-flex items-center gap-1.5"
                 >
-                  <Crown className="w-3.5 h-3.5 text-[#8B7CFF]" />
+                  <Crown className="w-3.5 h-3.5 text-[#B9FC01]" />
                   <span>Assinatura e Planos</span>
                 </button>
               </li>
@@ -147,7 +147,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={() => handleLegalClick('sobre-nos')}
-                  className="text-[#94A3B8] hover:text-[#F8FAFC] transition text-left"
+                  className="min-h-[24px] py-0.5 inline-flex items-center text-[#94A3B8] hover:text-[#FFFFFF] transition text-left"
                 >
                   Sobre Nós
                 </button>
@@ -157,15 +157,15 @@ export const Footer: React.FC<FooterProps> = ({
 
           {/* Coluna 2: SUPORTE */}
           <div className="lg:col-span-2 space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#F8FAFC]">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#FFFFFF]">
               Suporte
             </h3>
-            <ul className="space-y-2 text-xs">
+            <ul className="space-y-1.5 text-xs">
               <li>
                 <button
                   type="button"
                   onClick={() => handleLegalClick('central-de-ajuda')}
-                  className="text-[#94A3B8] hover:text-[#F8FAFC] transition text-left"
+                  className="min-h-[24px] py-0.5 inline-flex items-center text-[#94A3B8] hover:text-[#FFFFFF] transition text-left"
                 >
                   Central de Ajuda
                 </button>
@@ -177,7 +177,7 @@ export const Footer: React.FC<FooterProps> = ({
                     onOpenSupportPortal?.();
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="text-[#94A3B8] hover:text-[#F8FAFC] transition text-left"
+                  className="min-h-[24px] py-0.5 inline-flex items-center text-[#94A3B8] hover:text-[#FFFFFF] transition text-left"
                 >
                   Perguntas Frequentes (FAQ)
                 </button>
@@ -186,7 +186,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={() => handleLegalClick('contato-e-suporte')}
-                  className="text-[#94A3B8] hover:text-[#F8FAFC] transition text-left"
+                  className="min-h-[24px] py-0.5 inline-flex items-center text-[#94A3B8] hover:text-[#FFFFFF] transition text-left"
                 >
                   Contato e Suporte
                 </button>
@@ -198,7 +198,7 @@ export const Footer: React.FC<FooterProps> = ({
                     onOpenSupportPortal?.();
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="text-[#94A3B8] hover:text-[#00A9FF] transition text-left"
+                  className="min-h-[24px] py-0.5 inline-flex items-center text-[#94A3B8] hover:text-[#B9FC01] transition text-left"
                 >
                   Relatar um Problema
                 </button>
@@ -208,15 +208,15 @@ export const Footer: React.FC<FooterProps> = ({
 
           {/* Coluna 3: LEGAL */}
           <div className="lg:col-span-2 space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#F8FAFC]">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#FFFFFF]">
               Documentos Legais
             </h3>
-            <ul className="space-y-2 text-xs">
+            <ul className="space-y-1.5 text-xs">
               <li>
                 <button
                   type="button"
                   onClick={() => handleLegalClick('termos-de-uso')}
-                  className="text-[#94A3B8] hover:text-[#F8FAFC] transition text-left"
+                  className="min-h-[24px] py-0.5 inline-flex items-center text-[#94A3B8] hover:text-[#FFFFFF] transition text-left"
                 >
                   Termos de Uso
                 </button>
@@ -225,7 +225,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={() => handleLegalClick('politica-de-privacidade')}
-                  className="text-[#94A3B8] hover:text-[#F8FAFC] transition text-left"
+                  className="min-h-[24px] py-0.5 inline-flex items-center text-[#94A3B8] hover:text-[#FFFFFF] transition text-left"
                 >
                   Política de Privacidade
                 </button>
@@ -234,7 +234,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={() => handleLegalClick('politica-de-cookies')}
-                  className="text-[#94A3B8] hover:text-[#F8FAFC] transition text-left"
+                  className="min-h-[24px] py-0.5 inline-flex items-center text-[#94A3B8] hover:text-[#FFFFFF] transition text-left"
                 >
                   Política de Cookies
                 </button>
@@ -243,7 +243,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={() => handleLegalClick('politica-de-assinaturas-e-pagamentos')}
-                  className="text-[#94A3B8] hover:text-[#F8FAFC] transition text-left"
+                  className="min-h-[24px] py-0.5 inline-flex items-center text-[#94A3B8] hover:text-[#FFFFFF] transition text-left"
                 >
                   Assinaturas e Pagamentos
                 </button>
@@ -252,7 +252,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={() => handleLegalClick('politica-de-cancelamento-e-reembolso')}
-                  className="text-[#94A3B8] hover:text-[#F8FAFC] transition text-left"
+                  className="min-h-[24px] py-0.5 inline-flex items-center text-[#94A3B8] hover:text-[#FFFFFF] transition text-left"
                 >
                   Cancelamento e Reembolso
                 </button>
@@ -261,7 +261,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={() => handleLegalClick('regulamento-de-sorteios-e-campanhas')}
-                  className="text-[#94A3B8] hover:text-[#F8FAFC] transition text-left"
+                  className="min-h-[24px] py-0.5 inline-flex items-center text-[#94A3B8] hover:text-[#FFFFFF] transition text-left"
                 >
                   Regulamento de Sorteios
                 </button>
@@ -270,7 +270,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={() => handleLegalClick('politica-de-exclusao-de-conta-e-dados')}
-                  className="text-[#94A3B8] hover:text-[#F8FAFC] transition text-left"
+                  className="min-h-[24px] py-0.5 inline-flex items-center text-[#94A3B8] hover:text-[#FFFFFF] transition text-left"
                 >
                   Exclusão de Conta e Dados
                 </button>
@@ -280,15 +280,15 @@ export const Footer: React.FC<FooterProps> = ({
 
           {/* Coluna 4: TRANSPARÊNCIA */}
           <div className="lg:col-span-2 space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#F8FAFC]">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#FFFFFF]">
               Transparência
             </h3>
-            <ul className="space-y-2 text-xs">
+            <ul className="space-y-1.5 text-xs">
               <li>
                 <button
                   type="button"
                   onClick={() => handleLegalClick('politica-antifraude')}
-                  className="text-[#94A3B8] hover:text-[#F8FAFC] transition text-left"
+                  className="min-h-[24px] py-0.5 inline-flex items-center text-[#94A3B8] hover:text-[#FFFFFF] transition text-left"
                 >
                   Política Antifraude
                 </button>
@@ -297,7 +297,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={() => handleLegalClick('aviso-de-independencia-do-tiktok')}
-                  className="text-[#94A3B8] hover:text-[#F8FAFC] transition text-left"
+                  className="min-h-[24px] py-0.5 inline-flex items-center text-[#94A3B8] hover:text-[#FFFFFF] transition text-left"
                 >
                   Independência do TikTok
                 </button>
@@ -306,7 +306,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={() => handleLegalClick('aviso-legal-e-isencao-de-responsabilidade')}
-                  className="text-[#94A3B8] hover:text-[#F8FAFC] transition text-left"
+                  className="min-h-[24px] py-0.5 inline-flex items-center text-[#94A3B8] hover:text-[#FFFFFF] transition text-left"
                 >
                   Isenção de Responsabilidade
                 </button>
@@ -315,7 +315,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={() => handleLegalClick('politica-de-uso-aceitavel')}
-                  className="text-[#94A3B8] hover:text-[#F8FAFC] transition text-left"
+                  className="min-h-[24px] py-0.5 inline-flex items-center text-[#94A3B8] hover:text-[#FFFFFF] transition text-left"
                 >
                   Uso Aceitável
                 </button>
@@ -324,7 +324,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   type="button"
                   onClick={() => handleLegalClick('politica-de-seguranca')}
-                  className="text-[#94A3B8] hover:text-[#F8FAFC] transition text-left"
+                  className="min-h-[24px] py-0.5 inline-flex items-center text-[#94A3B8] hover:text-[#FFFFFF] transition text-left"
                 >
                   Política de Segurança
                 </button>
@@ -336,7 +336,7 @@ export const Footer: React.FC<FooterProps> = ({
                     onOpenPrivacyPortal?.();
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="text-[#00A9FF] hover:text-[#35B9F5] font-semibold transition text-left flex items-center gap-1"
+                  className="min-h-[24px] py-0.5 text-[#B9FC01] hover:text-[#FFFFFF] font-semibold transition text-left inline-flex items-center gap-1"
                 >
                   <ShieldCheck className="w-3.5 h-3.5" />
                   <span>Portal de Privacidade (LGPD)</span>
@@ -347,17 +347,17 @@ export const Footer: React.FC<FooterProps> = ({
         </div>
 
         {/* Nota de Independência e Responsabilidade */}
-        <div className="p-4 rounded-2xl bg-[#101F3D] border border-[var(--gio-border-subtle)] text-[11px] text-[#94A3B8] space-y-1.5 leading-relaxed">
+        <div className="p-4 rounded-2xl bg-[#080A0F] border border-[var(--gio-border-subtle)] text-[11px] text-[#94A3B8] space-y-1.5 leading-relaxed">
           <p>
-            <strong className="text-[#F8FAFC]">Aviso de Independência do TikTok:</strong> O GIO DA SORTE é uma plataforma tecnológica independente e não é afiliada, patrocinada, administrada ou endossada pelo TikTok Inc. ou ByteDance Ltd. A autenticação via TikTok Login Kit (OAuth 2.0) identifica o organizador mediante autorização explícita, enquanto a leitura de eventos públicos da transmissão ao vivo ocorre de forma separada via sala pública Webcast.
+            <strong className="text-[#FFFFFF]">Aviso de Independência do TikTok:</strong> O GIO DA SORTE é uma plataforma tecnológica independente e não é afiliada, patrocinada, administrada ou endossada pelo TikTok Inc. ou ByteDance Ltd. A autenticação via TikTok Login Kit (OAuth 2.0) identifica o organizador mediante autorização explícita, enquanto a leitura de eventos públicos da transmissão ao vivo ocorre de forma separada via sala pública Webcast.
           </p>
           <p>
-            <strong className="text-[#F8FAFC]">Responsabilidade Promocional:</strong> O GIO DA SORTE fornece infraestrutura tecnológica de contabilização e sorteio auditável SHA-256. A definição das regras da campanha, eventual autorização regulatória exigida e a entrega dos prêmios são de responsabilidade exclusiva do organizador.
+            <strong className="text-[#FFFFFF]">Responsabilidade Promocional:</strong> O GIO DA SORTE fornece infraestrutura tecnológica de contabilização e sorteio auditável SHA-256. A definição das regras da campanha, eventual autorização regulatória exigida e a entrega dos prêmios são de responsabilidade exclusiva do organizador.
           </p>
         </div>
 
         {/* Barra Inferior Fixa de Direitos e Acesso Rápido à Central Legal */}
-        <div className="pt-4 border-t border-[var(--gio-border-subtle)] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#64748B]">
+        <div className="pt-4 border-t border-[var(--gio-border-subtle)] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#94A3B8]">
           <div className="flex items-center gap-2">
             <span>© {new Date().getFullYear()} GIO DA SORTE. Todos os direitos reservados.</span>
           </div>
@@ -368,21 +368,21 @@ export const Footer: React.FC<FooterProps> = ({
                 onNavigateTab?.('legal');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className="text-[#F8FAFC] hover:text-[#00A9FF] font-semibold transition"
+              className="min-h-[24px] py-0.5 inline-flex items-center text-[#FFFFFF] hover:text-[#B9FC01] font-semibold transition"
             >
               Central Legal
             </button>
             <button
               type="button"
               onClick={() => handleLegalClick('termos-de-uso')}
-              className="hover:text-[#F8FAFC] transition"
+              className="min-h-[24px] py-0.5 inline-flex items-center hover:text-[#FFFFFF] transition"
             >
               Termos de Uso
             </button>
             <button
               type="button"
               onClick={() => handleLegalClick('politica-de-privacidade')}
-              className="hover:text-[#F8FAFC] transition"
+              className="min-h-[24px] py-0.5 inline-flex items-center hover:text-[#FFFFFF] transition"
             >
               Privacidade (LGPD)
             </button>
@@ -390,7 +390,7 @@ export const Footer: React.FC<FooterProps> = ({
               <button
                 type="button"
                 onClick={onOpenCookieSettings}
-                className="hover:text-[#F8FAFC] transition"
+                className="min-h-[24px] py-0.5 inline-flex items-center hover:text-[#FFFFFF] transition"
               >
                 Cookies
               </button>

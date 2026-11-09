@@ -48,6 +48,7 @@ import {
   resetThrottleState,
 } from '../utils/authSecurity';
 import { recordDocumentAcceptance } from '../utils/legalAndComplianceService';
+import { getApiUrl } from '../utils/apiConfig';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -111,6 +112,10 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   const [throttleRemaining, setThrottleRemaining] = useState<number>(0);
 
   const initialInputRef = useRef<HTMLInputElement>(null);
+  const modalContainerRef = useRef<HTMLDivElement>(null);
+  const triggerElementRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   // Fetch linked TikTok identity status when authenticated user opens modal
   useEffect(() => {
@@ -123,7 +128,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
     (async () => {
       try {
         const idToken = await currentUser.getIdToken();
-        const res = await fetch('/api/tiktok/auth/identity', {
+        const res = await fetch(getApiUrl('/api/tiktok/auth/identity'), {
           headers: { Authorization: `Bearer ${idToken}` },
         });
         const data = await res.json().catch(() => ({}));
@@ -235,28 +240,88 @@ export const AccountModal: React.FC<AccountModalProps> = ({
     return () => clearInterval(timer);
   }, [isOpen]);
 
-  // Focus initial field on view change
+  // Focus initial field on view change or first focusable control when logged in
   useEffect(() => {
     if (isOpen) {
       setErrorMsg(null);
       setSuccessMsg(null);
-      setTimeout(() => {
-        initialInputRef.current?.focus();
+      const timer = window.setTimeout(() => {
+        if (initialInputRef.current) {
+          initialInputRef.current.focus();
+          return;
+        }
+        if (modalContainerRef.current && !modalContainerRef.current.contains(document.activeElement)) {
+          const focusables = modalContainerRef.current.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          );
+          if (focusables.length > 0) {
+            focusables[0].focus();
+          }
+        }
       }, 50);
+      return () => window.clearTimeout(timer);
     }
   }, [isOpen, viewMode, currentUser]);
 
-  // Close on ESC key
+  // Capture trigger element on open, trap Tab/Shift+Tab inside modal, close on Escape, and restore focus on close
   useEffect(() => {
     if (!isOpen) return;
+
+    const currentActive = document.activeElement as HTMLElement | null;
+    if (currentActive && currentActive !== document.body) {
+      triggerElementRef.current = currentActive;
+    }
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        e.preventDefault();
+        e.stopPropagation();
+        onCloseRef.current();
+        return;
+      }
+
+      if (e.key === 'Tab' && modalContainerRef.current) {
+        const focusables = Array.from(
+          modalContainerRef.current.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          )
+        ).filter((el) => el.offsetWidth > 0 || el.offsetHeight > 0 || el.getClientRects().length > 0);
+
+        if (focusables.length === 0) return;
+
+        const firstEl = focusables[0];
+        const lastEl = focusables[focusables.length - 1];
+        const activeEl = document.activeElement as HTMLElement | null;
+
+        if (!activeEl || !modalContainerRef.current.contains(activeEl)) {
+          e.preventDefault();
+          (e.shiftKey ? lastEl : firstEl).focus();
+          return;
+        }
+
+        if (e.shiftKey && activeEl === firstEl) {
+          e.preventDefault();
+          lastEl.focus();
+        } else if (!e.shiftKey && activeEl === lastEl) {
+          e.preventDefault();
+          firstEl.focus();
+        }
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      const triggerEl = triggerElementRef.current;
+      if (triggerEl && document.body.contains(triggerEl)) {
+        window.setTimeout(() => {
+          if (document.body.contains(triggerEl)) {
+            triggerEl.focus();
+          }
+        }, 0);
+      }
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -428,7 +493,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
       if (currentUser) {
         const idToken = await currentUser.getIdToken().catch(() => '');
         if (idToken) {
-          await fetch('/api/auth/gio-logout', {
+          await fetch(getApiUrl('/api/auth/gio-logout'), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -461,7 +526,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
     setSuccessMsg(null);
 
     try {
-      const res = await fetch('/api/tiktok/auth/login/start', {
+      const res = await fetch(getApiUrl('/api/tiktok/auth/login/start'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
@@ -490,7 +555,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   const startAuthenticatedTikTokLinkFlow = async () => {
     if (!currentUser) return;
     const freshIdToken = await currentUser.getIdToken(true);
-    const res = await fetch('/api/tiktok/auth/link/start', {
+    const res = await fetch(getApiUrl('/api/tiktok/auth/link/start'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -561,7 +626,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
     try {
       const idToken = await currentUser.getIdToken();
-      const res = await fetch('/api/tiktok/auth/unlink', {
+      const res = await fetch(getApiUrl('/api/tiktok/auth/unlink'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -690,11 +755,14 @@ export const AccountModal: React.FC<AccountModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="account-modal-title"
-      className="fixed inset-0 z-50 bg-[#050D20]/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+      className="fixed inset-0 z-[60] bg-[#080A0F]/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
     >
-      <div className="bg-[#0B1730] border border-[#182943] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-slide-up my-8">
+      <div
+        ref={modalContainerRef}
+        className="bg-[#10141E] border border-[#161C2C] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-slide-up my-8"
+      >
         {/* Header with Official Logo */}
-        <div className="flex items-center justify-between pb-3 border-b border-[#182943]">
+        <div className="flex items-center justify-between pb-3 border-b border-[#161C2C]">
           <div className="flex items-center gap-2.5">
             <img
               src="/icon.svg"
@@ -702,7 +770,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
               className="w-10 h-10 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(0,169,255,0.35)]"
             />
             <div>
-              <h2 id="account-modal-title" className="font-display font-bold text-base sm:text-lg text-[#F8FAFC]">
+              <h2 id="account-modal-title" className="font-display font-bold text-base sm:text-lg text-[#FFFFFF]">
                 {currentUser
                   ? 'Minha Conta — GIO DA SORTE'
                   : viewMode === 'login'
@@ -720,7 +788,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Fechar modal"
-            className="p-1.5 text-[#94A3B8] hover:text-[#F8FAFC] rounded-lg transition hover:bg-[#101F3D] focus:outline-none focus:ring-2 focus:ring-[#00A9FF]"
+            className="p-1.5 text-[#94A3B8] hover:text-[#FFFFFF] rounded-lg transition hover:bg-[#10141E] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40"
           >
             <X className="w-5 h-5" />
           </button>
@@ -753,23 +821,23 @@ export const AccountModal: React.FC<AccountModalProps> = ({
         {currentUser ? (
           <div className="space-y-4">
             {/* User Profile Card */}
-            <div className="bg-[#101F3D] border border-[#182943] p-4 rounded-xl flex items-center gap-3.5">
+            <div className="bg-[#10141E] border border-[#161C2C] p-4 rounded-xl flex items-center gap-3.5">
               {currentUser.photoURL ? (
                 <img
                   src={currentUser.photoURL}
                   alt={currentUser.displayName || 'Avatar do usuário'}
                   referrerPolicy="no-referrer"
-                  className="w-12 h-12 rounded-full border-2 border-[#00A9FF]/50 shadow-md object-cover"
+                  className="w-12 h-12 rounded-full border-2 border-[#0131CD]/50 shadow-md object-cover"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0866F5] to-[#00A9FF] text-[#F8FAFC] font-bold flex items-center justify-center text-lg border border-[#35B9F5]/40">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0131CD] to-[#0131CD] text-[#FFFFFF] font-bold flex items-center justify-center text-lg border border-[#0131CD]/40">
                   {currentUser.displayName ? currentUser.displayName[0].toUpperCase() : 'S'}
                 </div>
               )}
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-[#F8FAFC] text-base truncate">
+                  <span className="font-bold text-[#FFFFFF] text-base truncate">
                     {currentUser.displayName || 'Sorteador Autenticado'}
                   </span>
                 </div>
@@ -798,17 +866,17 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 disabled={loading}
                 title="Desconectar da conta"
                 aria-label="Desconectar da conta"
-                className="p-2 text-[#94A3B8] hover:text-[#F05262] hover:bg-[#050D20] rounded-lg transition"
+                className="p-2 text-[#94A3B8] hover:text-[#F05262] hover:bg-[#080A0F] rounded-lg transition"
               >
                 <LogOut className="w-5 h-5" />
               </button>
             </div>
 
             {/* Cloud Sync Status */}
-            <div className="bg-[#050D20] border border-[#0866F5]/40 rounded-xl p-3.5 text-xs text-[#F8FAFC] flex items-start gap-2.5">
-              <Cloud className="w-4 h-4 text-[#00A9FF] shrink-0 mt-0.5" />
+            <div className="bg-[#080A0F] border border-[#0131CD]/40 rounded-xl p-3.5 text-xs text-[#FFFFFF] flex items-start gap-2.5">
+              <Cloud className="w-4 h-4 text-[#B9FC01] shrink-0 mt-0.5" />
               <div>
-                <span className="font-bold text-[#F8FAFC] block">Sincronização Segura em Nuvem</span>
+                <span className="font-bold text-[#FFFFFF] block">Sincronização Segura em Nuvem</span>
                 <span className="text-[#94A3B8]">
                   Seus participantes e configurações são salvos com controle de acesso exclusivo para a sua conta.
                 </span>
@@ -821,7 +889,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 type="button"
                 disabled={loading}
                 onClick={handleManualSave}
-                className="py-2.5 px-3 rounded-xl bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-[#0866F5]/30 active:scale-95 disabled:opacity-50"
+                className="py-2.5 px-3 rounded-xl bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-[#0131CD]/30 active:scale-95 disabled:opacity-50"
               >
                 <Cloud className="w-4 h-4" />
                 <span>Salvar na Nuvem</span>
@@ -831,19 +899,19 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 type="button"
                 disabled={loading}
                 onClick={handleManualLoad}
-                className="py-2.5 px-3 rounded-xl bg-[#101F3D] hover:bg-[#182943] text-[#F8FAFC] font-bold text-xs flex items-center justify-center gap-1.5 transition border border-[#182943] active:scale-95 disabled:opacity-50"
+                className="py-2.5 px-3 rounded-xl bg-[#10141E] hover:bg-[#161C2C] text-[#FFFFFF] font-bold text-xs flex items-center justify-center gap-1.5 transition border border-[#161C2C] active:scale-95 disabled:opacity-50"
               >
-                <RefreshCw className="w-4 h-4 text-[#00A9FF]" />
+                <RefreshCw className="w-4 h-4 text-[#B9FC01]" />
                 <span>Recarregar da Nuvem</span>
               </button>
             </div>
 
             {/* Phase 11: Linked TikTok Identity Management (Flow 2 Link & Unlink) */}
-            <div className="bg-[#101F3D] border border-[#182943] rounded-xl p-3.5 space-y-3">
+            <div className="bg-[#10141E] border border-[#161C2C] rounded-xl p-3.5 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Link2 className="w-4 h-4 text-[#00A9FF]" />
-                  <span className="text-xs font-bold text-[#F8FAFC]">
+                  <Link2 className="w-4 h-4 text-[#B9FC01]" />
+                  <span className="text-xs font-bold text-[#FFFFFF]">
                     Identidade TikTok OAuth 2.0
                   </span>
                 </div>
@@ -851,7 +919,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
                     linkedTikTokProfile.linked
                       ? 'bg-[#20C997]/15 text-[#20C997] border-[#20C997]/40'
-                      : 'bg-[#050D20] text-[#94A3B8] border-[#182943]'
+                      : 'bg-[#080A0F] text-[#94A3B8] border-[#161C2C]'
                   }`}
                 >
                   {linkedTikTokProfile.linked ? 'VINCULADA' : 'NÃO VINCULADA'}
@@ -860,9 +928,9 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
               {linkedTikTokProfile.linked ? (
                 <div className="space-y-2.5">
-                  <div className="bg-[#050D20] border border-[#182943] rounded-lg p-2.5 flex items-center justify-between gap-2">
+                  <div className="bg-[#080A0F] border border-[#161C2C] rounded-lg p-2.5 flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="text-xs font-bold text-[#F8FAFC] truncate">
+                      <div className="text-xs font-bold text-[#FFFFFF] truncate">
                         {linkedTikTokProfile.displayName || 'Criador TikTok'}
                         {linkedTikTokProfile.username
                           ? ` (@${linkedTikTokProfile.username.replace(/^@/, '')})`
@@ -898,17 +966,17 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       setShowLinkStepUpModal(true);
                       setErrorMsg(null);
                     }}
-                    className="w-full py-2 px-3 rounded-lg bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                    className="w-full py-2 px-3 rounded-lg bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs flex items-center justify-center gap-1.5 transition"
                   >
                     <Link2 className="w-3.5 h-3.5" />
                     <span>Vincular Conta TikTok (Exige Confirmação)</span>
                   </button>
                 </div>
               ) : (
-                <div className="bg-[#050D20] border border-[#00A9FF]/40 rounded-lg p-3 space-y-2.5">
+                <div className="bg-[#080A0F] border border-[#0131CD]/40 rounded-lg p-3 space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#F8FAFC] flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-[#00A9FF]" />
+                    <span className="text-xs font-bold text-[#FFFFFF] flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-[#B9FC01]" />
                       Confirmação de Segurança Obrigatória
                     </span>
                     <button
@@ -917,7 +985,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                         setShowLinkStepUpModal(false);
                         setLinkReauthPassword('');
                       }}
-                      className="text-[11px] text-[#94A3B8] hover:text-[#F8FAFC]"
+                      className="text-[11px] text-[#94A3B8] hover:text-[#FFFFFF]"
                     >
                       Cancelar
                     </button>
@@ -932,12 +1000,12 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                         value={linkReauthPassword}
                         onChange={(e) => setLinkReauthPassword(e.target.value)}
                         placeholder="Digite sua senha atual para confirmar"
-                        className="w-full px-3 py-2 text-xs bg-[#101F3D] border border-[#182943] rounded-lg text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#00A9FF]"
+                        className="w-full px-3 py-2 text-xs bg-[#10141E] border border-[#161C2C] rounded-lg text-[#FFFFFF] placeholder-[#94A3B8]/70 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40"
                       />
                       <button
                         type="submit"
                         disabled={tiktokLoading}
-                        className="w-full py-2 px-3 rounded-lg bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-bold text-xs transition disabled:opacity-50"
+                        className="w-full py-2 px-3 rounded-lg bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs transition disabled:opacity-50"
                       >
                         {tiktokLoading ? 'Verificando...' : 'Confirmar Senha e Abrir TikTok OAuth'}
                       </button>
@@ -947,7 +1015,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                     type="button"
                     disabled={tiktokLoading}
                     onClick={handleLinkWithGoogleReauth}
-                    className="w-full py-2 px-3 rounded-lg bg-[#101F3D] hover:bg-[#182943] border border-[#182943] text-[#F8FAFC] font-semibold text-xs transition disabled:opacity-50"
+                    className="w-full py-2 px-3 rounded-lg bg-[#10141E] hover:bg-[#161C2C] border border-[#161C2C] text-[#FFFFFF] font-semibold text-xs transition disabled:opacity-50"
                   >
                     Confirmar com Google Auth e Vincular TikTok
                   </button>
@@ -956,21 +1024,21 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             </div>
 
             {/* Sensitive Action: Change Password (Step-up Verification) */}
-            <div className="pt-2 border-t border-[#182943]">
+            <div className="pt-2 border-t border-[#161C2C]">
               {!showChangePassword ? (
                 <button
                   type="button"
                   onClick={() => setShowChangePassword(true)}
-                  className="w-full py-2 px-3 text-xs font-semibold text-[#94A3B8] hover:text-[#F8FAFC] bg-[#050D20] hover:bg-[#101F3D] border border-[#182943] rounded-xl flex items-center justify-center gap-2 transition"
+                  className="w-full py-2 px-3 text-xs font-semibold text-[#94A3B8] hover:text-[#FFFFFF] bg-[#080A0F] hover:bg-[#10141E] border border-[#161C2C] rounded-xl flex items-center justify-center gap-2 transition"
                 >
-                  <KeyRound className="w-4 h-4 text-[#00A9FF]" />
+                  <KeyRound className="w-4 h-4 text-[#B9FC01]" />
                   <span>Alterar Senha de Acesso (Verificação em 2 Etapas)</span>
                 </button>
               ) : (
-                <form onSubmit={handleChangePassword} className="bg-[#050D20] border border-[#182943] p-4 rounded-xl space-y-3">
+                <form onSubmit={handleChangePassword} className="bg-[#080A0F] border border-[#161C2C] p-4 rounded-xl space-y-3">
                   <div className="flex items-center justify-between pb-1">
-                    <span className="text-xs font-bold text-[#F8FAFC] flex items-center gap-1.5">
-                      <KeyRound className="w-3.5 h-3.5 text-[#00A9FF]" />
+                    <span className="text-xs font-bold text-[#FFFFFF] flex items-center gap-1.5">
+                      <KeyRound className="w-3.5 h-3.5 text-[#B9FC01]" />
                       Alterar Senha (Requer Senha Atual)
                     </span>
                     <button
@@ -981,7 +1049,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                         setNewPassword('');
                         setConfirmNewPassword('');
                       }}
-                      className="text-[11px] text-[#94A3B8] hover:text-[#F8FAFC]"
+                      className="text-[11px] text-[#94A3B8] hover:text-[#FFFFFF]"
                     >
                       Cancelar
                     </button>
@@ -999,7 +1067,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       placeholder="Sua senha atual"
-                      className="w-full px-3 py-2 text-xs bg-[#101F3D] border border-[#182943] rounded-lg text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#00A9FF]"
+                      className="w-full px-3 py-2 text-xs bg-[#10141E] border border-[#161C2C] rounded-lg text-[#FFFFFF] placeholder-[#94A3B8]/70 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40"
                     />
                   </div>
 
@@ -1016,13 +1084,13 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="Nova senha ou frase longa"
-                        className="w-full px-3 py-2 pr-9 text-xs bg-[#101F3D] border border-[#182943] rounded-lg text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#00A9FF]"
+                        className="w-full px-3 py-2 pr-9 text-xs bg-[#10141E] border border-[#161C2C] rounded-lg text-[#FFFFFF] placeholder-[#94A3B8]/70 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40"
                       />
                       <button
                         type="button"
                         onClick={() => setShowNewPassword(!showNewPassword)}
                         aria-label={showNewPassword ? 'Ocultar nova senha' : 'Exibir nova senha'}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#F8FAFC]"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#FFFFFF]"
                       >
                         {showNewPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </button>
@@ -1041,14 +1109,14 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={confirmNewPassword}
                       onChange={(e) => setConfirmNewPassword(e.target.value)}
                       placeholder="Repita a nova senha"
-                      className="w-full px-3 py-2 text-xs bg-[#101F3D] border border-[#182943] rounded-lg text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#00A9FF]"
+                      className="w-full px-3 py-2 text-xs bg-[#10141E] border border-[#161C2C] rounded-lg text-[#FFFFFF] placeholder-[#94A3B8]/70 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-2 px-3 bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-bold text-xs rounded-lg transition disabled:opacity-50"
+                    className="w-full py-2 px-3 bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs rounded-lg transition disabled:opacity-50"
                   >
                     Confirmar e Atualizar Senha
                   </button>
@@ -1061,7 +1129,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
           <div className="space-y-4">
             {/* View Selector Tabs (Login vs Register) */}
             {viewMode !== 'forgot_password' && (
-              <div className="grid grid-cols-2 p-1 bg-[#050D20] border border-[#182943] rounded-xl text-xs font-bold">
+              <div className="grid grid-cols-2 p-1 bg-[#080A0F] border border-[#161C2C] rounded-xl text-xs font-bold">
                 <button
                   type="button"
                   onClick={() => {
@@ -1071,8 +1139,8 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   }}
                   className={`py-2 rounded-lg transition ${
                     viewMode === 'login'
-                      ? 'bg-[#0866F5] text-[#F8FAFC] shadow-sm'
-                      : 'text-[#94A3B8] hover:text-[#F8FAFC]'
+                      ? 'bg-[#0131CD] text-[#FFFFFF] shadow-sm'
+                      : 'text-[#94A3B8] hover:text-[#FFFFFF]'
                   }`}
                 >
                   Entrar
@@ -1086,8 +1154,8 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   }}
                   className={`py-2 rounded-lg transition ${
                     viewMode === 'register'
-                      ? 'bg-[#0866F5] text-[#F8FAFC] shadow-sm'
-                      : 'text-[#94A3B8] hover:text-[#F8FAFC]'
+                      ? 'bg-[#0131CD] text-[#FFFFFF] shadow-sm'
+                      : 'text-[#94A3B8] hover:text-[#FFFFFF]'
                   }`}
                 >
                   Criar Conta
@@ -1112,9 +1180,9 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="seu.email@exemplo.com"
-                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#050D20] border border-[#182943] rounded-xl text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#00A9FF] focus:border-transparent transition"
+                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#080A0F] border border-[#161C2C] rounded-xl text-[#FFFFFF] placeholder-[#94A3B8]/70 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40 transition"
                     />
-                    <Mail className="w-4 h-4 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Mail className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
                 </div>
 
@@ -1130,7 +1198,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                         setErrorMsg(null);
                         setSuccessMsg(null);
                       }}
-                      className="text-[11px] text-[#00A9FF] hover:text-[#35B9F5] transition"
+                      className="text-[11px] text-[#B9FC01] hover:text-[#FFFFFF] transition"
                     >
                       Esqueceu a senha?
                     </button>
@@ -1144,14 +1212,14 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-9 pr-10 py-2.5 text-sm bg-[#050D20] border border-[#182943] rounded-xl text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#00A9FF] focus:border-transparent transition"
+                      className="w-full pl-9 pr-10 py-2.5 text-sm bg-[#080A0F] border border-[#161C2C] rounded-xl text-[#FFFFFF] placeholder-[#94A3B8]/70 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40 transition"
                     />
-                    <Lock className="w-4 h-4 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Lock className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       aria-label={showPassword ? 'Ocultar senha' : 'Exibir senha'}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#F8FAFC] p-1 rounded transition"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#FFFFFF] p-1 rounded transition"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -1169,7 +1237,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 <button
                   type="submit"
                   disabled={loading || throttleRemaining > 0}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-[#0866F5] to-[#00A9FF] hover:from-[#00A9FF] hover:to-[#35B9F5] text-[#F8FAFC] font-bold text-sm rounded-xl transition shadow-lg shadow-[#0866F5]/30 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                  className="w-full py-3 px-4 bg-gradient-to-r from-[#0131CD] to-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-sm rounded-xl transition shadow-lg shadow-[#0131CD]/30 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
                   <Lock className="w-4 h-4" />
                   <span>{loading ? 'Entrando...' : 'Entrar com E-mail'}</span>
@@ -1193,9 +1261,9 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                       placeholder="Ex: Gusta Games"
-                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#050D20] border border-[#182943] rounded-xl text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#00A9FF] focus:border-transparent transition"
+                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#080A0F] border border-[#161C2C] rounded-xl text-[#FFFFFF] placeholder-[#94A3B8]/70 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40 transition"
                     />
-                    <User className="w-4 h-4 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <User className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
                 </div>
 
@@ -1212,9 +1280,9 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="seu.email@exemplo.com"
-                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#050D20] border border-[#182943] rounded-xl text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#00A9FF] focus:border-transparent transition"
+                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#080A0F] border border-[#161C2C] rounded-xl text-[#FFFFFF] placeholder-[#94A3B8]/70 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40 transition"
                     />
-                    <Mail className="w-4 h-4 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Mail className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
                 </div>
 
@@ -1231,14 +1299,14 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Ex: chuva de moedas no gio 2026"
-                      className="w-full pl-9 pr-10 py-2.5 text-sm bg-[#050D20] border border-[#182943] rounded-xl text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#00A9FF] focus:border-transparent transition"
+                      className="w-full pl-9 pr-10 py-2.5 text-sm bg-[#080A0F] border border-[#161C2C] rounded-xl text-[#FFFFFF] placeholder-[#94A3B8]/70 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40 transition"
                     />
-                    <Lock className="w-4 h-4 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Lock className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       aria-label={showPassword ? 'Ocultar senha' : 'Exibir senha'}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#F8FAFC] p-1 rounded transition"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#FFFFFF] p-1 rounded transition"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -1247,7 +1315,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   {/* Passphrase Strength Visualizer */}
                   {password.length > 0 && (
                     <div className="mt-2 space-y-1">
-                      <div className="h-1.5 w-full bg-[#182943] rounded-full overflow-hidden flex">
+                      <div className="h-1.5 w-full bg-[#161C2C] rounded-full overflow-hidden flex">
                         <div
                           className={`h-full transition-all duration-300 ${
                             registrationPassEvaluation.score === 0
@@ -1255,7 +1323,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                               : registrationPassEvaluation.score === 1
                               ? 'w-2/4 bg-[#F5B942]'
                               : registrationPassEvaluation.score === 2
-                              ? 'w-3/4 bg-[#00A9FF]'
+                              ? 'w-3/4 bg-[#0131CD]'
                               : 'w-full bg-[#20C997]'
                           }`}
                         />
@@ -1268,7 +1336,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                               : registrationPassEvaluation.score === 1
                               ? 'text-[#F5B942]'
                               : registrationPassEvaluation.score === 2
-                              ? 'text-[#00A9FF]'
+                              ? 'text-[#B9FC01]'
                               : 'text-[#20C997]'
                           }`}
                         >
@@ -1278,18 +1346,18 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       </div>
                     </div>
                   )}
-                  <p className="text-[11px] text-[#64748B] mt-1">
+                  <p className="text-[11px] text-[#94A3B8] mt-1">
                     Você pode usar frases longas com espaços, letras e palavras. Não forçamos regras de caracteres desnecessárias.
                   </p>
                 </div>
 
                 {/* Explicit Legal Acceptance Checkbox (Fase 11) */}
-                <label className="p-3 rounded-xl bg-[#050D20] border border-[#182943] flex items-start gap-2.5 text-[11px] text-[#94A3B8] cursor-pointer">
+                <label className="p-3 rounded-xl bg-[#080A0F] border border-[#161C2C] flex items-start gap-2.5 text-[11px] text-[#94A3B8] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={acceptedTermsOnRegister}
                     onChange={(e) => setAcceptedTermsOnRegister(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 accent-[#00A9FF] shrink-0"
+                    className="mt-0.5 w-4 h-4 accent-[#0131CD] shrink-0"
                   />
                   <span>
                     Declaro que li e concordo expressamente com os{' '}
@@ -1299,7 +1367,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                         onClose();
                         onOpenLegalDocument?.('termos-de-uso');
                       }}
-                      className="text-[#00A9FF] underline hover:text-[#F8FAFC] font-semibold"
+                      className="text-[#B9FC01] underline hover:text-[#FFFFFF] font-semibold"
                     >
                       Termos de Uso
                     </button>{' '}
@@ -1310,7 +1378,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                         onClose();
                         onOpenLegalDocument?.('politica-de-privacidade');
                       }}
-                      className="text-[#00A9FF] underline hover:text-[#F8FAFC] font-semibold"
+                      className="text-[#B9FC01] underline hover:text-[#FFFFFF] font-semibold"
                     >
                       Política de Privacidade (LGPD)
                     </button>{' '}
@@ -1321,7 +1389,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 <button
                   type="submit"
                   disabled={loading || (password.length > 0 && !registrationPassEvaluation.isValid)}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-[#0866F5] to-[#00A9FF] hover:from-[#00A9FF] hover:to-[#35B9F5] text-[#F8FAFC] font-bold text-sm rounded-xl transition shadow-lg shadow-[#0866F5]/25 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                  className="w-full py-3 px-4 bg-gradient-to-r from-[#0131CD] to-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-sm rounded-xl transition shadow-lg shadow-[#0131CD]/25 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>{loading ? 'Cadastrando...' : 'Criar Conta Segura'}</span>
@@ -1332,7 +1400,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             {/* 3. FORGOT PASSWORD VIEW (Anti-enumeration compliant) */}
             {viewMode === 'forgot_password' && (
               <form onSubmit={handleForgotPassword} className="space-y-3.5">
-                <div className="bg-[#050D20] border border-[#0866F5]/40 p-3 rounded-xl text-xs text-[#94A3B8] leading-relaxed">
+                <div className="bg-[#080A0F] border border-[#0131CD]/40 p-3 rounded-xl text-xs text-[#94A3B8] leading-relaxed">
                   Digite seu e-mail abaixo. Se houver uma conta registrada, enviaremos um link seguro de uso único para redefinir sua senha.
                 </div>
 
@@ -1350,16 +1418,16 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="seu.email@exemplo.com"
-                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#050D20] border border-[#182943] rounded-xl text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#00A9FF] focus:border-transparent transition"
+                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#080A0F] border border-[#161C2C] rounded-xl text-[#FFFFFF] placeholder-[#94A3B8]/70 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40 transition"
                     />
-                    <Mail className="w-4 h-4 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Mail className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 px-4 bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-bold text-sm rounded-xl transition shadow-md shadow-[#0866F5]/30 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                  className="w-full py-3 px-4 bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-sm rounded-xl transition shadow-md shadow-[#0131CD]/30 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
                   <KeyRound className="w-4 h-4" />
                   <span>{loading ? 'Enviando...' : 'Enviar Link de Recuperação'}</span>
@@ -1372,7 +1440,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                     setErrorMsg(null);
                     setSuccessMsg(null);
                   }}
-                  className="w-full py-2 text-xs font-semibold text-[#94A3B8] hover:text-[#F8FAFC] flex items-center justify-center gap-1.5 transition"
+                  className="w-full py-2 text-xs font-semibold text-[#94A3B8] hover:text-[#FFFFFF] flex items-center justify-center gap-1.5 transition"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Voltar para tela de login</span>
@@ -1385,10 +1453,10 @@ export const AccountModal: React.FC<AccountModalProps> = ({
               <>
                 <div className="relative my-3">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-[#182943]" />
+                    <div className="w-full border-t border-[#161C2C]" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-[#0B1730] px-2 text-[#64748B] text-[10px] font-bold tracking-wider">
+                    <span className="bg-[#10141E] px-2 text-[#94A3B8] text-[10px] font-bold tracking-wider">
                       ou conecte com
                     </span>
                   </div>
@@ -1400,7 +1468,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                     type="button"
                     disabled={loading || tiktokLoading}
                     onClick={handleTikTokLoginOAuth}
-                    className="w-full py-2.5 px-4 bg-gradient-to-r from-[#0866F5] to-[#00A9FF] hover:brightness-110 text-[#F8FAFC] font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-md shadow-[#0866F5]/25 active:scale-95 disabled:opacity-50 cursor-pointer"
+                    className="w-full py-2.5 px-4 bg-gradient-to-r from-[#0131CD] to-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-md shadow-[#0131CD]/25 active:scale-95 disabled:opacity-50 cursor-pointer"
                   >
                     <Sparkles className="w-4 h-4 text-[#F5B942]" />
                     <span>
@@ -1413,9 +1481,9 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                     type="button"
                     disabled={loading || tiktokLoading}
                     onClick={handleGoogleSignIn}
-                    className="w-full py-2.5 px-4 bg-[#101F3D] hover:bg-[#182943] text-[#F8FAFC] border border-[#182943] hover:border-[#00A9FF]/50 font-semibold text-xs rounded-xl transition flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                    className="w-full py-2.5 px-4 bg-[#10141E] hover:bg-[#161C2C] text-[#FFFFFF] border border-[#161C2C] hover:border-[#0131CD]/50 font-semibold text-xs rounded-xl transition flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
                   >
-                    <User className="w-4 h-4 text-[#00A9FF]" />
+                    <User className="w-4 h-4 text-[#B9FC01]" />
                     <span>Continuar com Google</span>
                   </button>
                 </div>
@@ -1423,7 +1491,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             )}
 
             {/* Security Guarantee Note */}
-            <div className="pt-2 text-[11px] text-[#64748B] flex items-center justify-center gap-1.5">
+            <div className="pt-2 text-[11px] text-[#94A3B8] flex items-center justify-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-[#20C997] shrink-0" />
               <span>Criptografia de senhas e autenticação gerenciada por Google Firebase</span>
             </div>

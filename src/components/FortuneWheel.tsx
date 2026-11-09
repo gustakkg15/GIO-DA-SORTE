@@ -15,15 +15,15 @@ interface FortuneWheelProps {
   predeterminedWinningTicket?: { number: number; participantId: string; name: string } | null;
 }
 
-// Paleta Oficial Design System 2.0 — Dark Tech Navy, Azul Elétrico e Dourado PRO
+// Paleta Oficial Redesign 2.0 — Preto Profundo, Azul Royal e Lima Neon
 const WHEEL_COLORS = [
-  '#0866F5', // Azul Principal
-  '#101F3D', // Card Navy
-  '#00A9FF', // Azul Elétrico
-  '#182943', // Superfície Elevada
-  '#F5B942', // Dourado PRO
-  '#0B1730', // Navy Secundário
-  '#35B9F5', // Azul Claro
+  '#0131CD', // Azul Royal
+  '#10141E', // Superfície
+  '#B9FC01', // Lima Neon PRO
+  '#161C2C', // Superfície Elevada
+  '#0131CD', // Azul Royal
+  '#080A0F', // Preto Profundo
+  '#F5B942', // Dourado
   '#20C997', // Verde Sucesso
 ];
 
@@ -104,10 +104,10 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
         ctx.translate(center, center);
         ctx.beginPath();
         ctx.arc(0, 0, radius, 0, Math.PI * 2);
-        ctx.fillStyle = '#0B1730';
+        ctx.fillStyle = '#10141E';
         ctx.fill();
         ctx.lineWidth = 3;
-        ctx.strokeStyle = '#182943';
+        ctx.strokeStyle = '#161C2C';
         ctx.stroke();
 
         ctx.fillStyle = '#94A3B8';
@@ -136,7 +136,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
         ctx.fill();
 
         ctx.lineWidth = 1.5;
-        ctx.strokeStyle = '#050D20';
+        ctx.strokeStyle = '#080A0F';
         ctx.stroke();
 
         // Draw Participant Name along the radius if slice is wide enough
@@ -147,8 +147,11 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
           ctx.textAlign = 'right';
           ctx.textBaseline = 'middle';
 
-          const isLightSlice = slice.color === '#F5B942' || slice.color === '#35B9F5' || slice.color === '#20C997';
-          ctx.fillStyle = isLightSlice ? '#050D20' : '#F8FAFC';
+          const isLightSlice =
+            slice.color === '#B9FC01' ||
+            slice.color === '#F5B942' ||
+            slice.color === '#20C997';
+          ctx.fillStyle = isLightSlice ? '#080A0F' : '#FFFFFF';
           ctx.font = '600 13px "Inter", system-ui, sans-serif';
 
           const maxNameLen = 15;
@@ -159,7 +162,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
 
           if (sliceAngle > 0.22) {
             ctx.font = '500 10px "IBM Plex Mono", monospace';
-            ctx.fillStyle = isLightSlice ? 'rgba(5,13,32,0.85)' : '#94A3B8';
+            ctx.fillStyle = isLightSlice ? 'rgba(8,10,15,0.85)' : '#94A3B8';
             ctx.fillText(`${slice.item.assignedTickets} bil.`, radius - 22, 13);
           }
 
@@ -176,9 +179,9 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       ctx.arc(0, 0, radius, 0, Math.PI * 2);
       ctx.lineWidth = 12;
       const rimGrad = ctx.createLinearGradient(-radius, -radius, radius, radius);
-      rimGrad.addColorStop(0, '#182943');
-      rimGrad.addColorStop(0.5, '#00A9FF');
-      rimGrad.addColorStop(1, '#182943');
+      rimGrad.addColorStop(0, '#161C2C');
+      rimGrad.addColorStop(0.5, '#0131CD');
+      rimGrad.addColorStop(1, '#161C2C');
       ctx.strokeStyle = rimGrad;
       ctx.stroke();
 
@@ -190,9 +193,9 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
         const py = Math.sin(ang) * (radius - 1);
         ctx.beginPath();
         ctx.arc(px, py, 3, 0, Math.PI * 2);
-        ctx.fillStyle = '#F8FAFC';
+        ctx.fillStyle = '#FFFFFF';
         ctx.fill();
-        ctx.strokeStyle = '#050D20';
+        ctx.strokeStyle = '#080A0F';
         ctx.lineWidth = 1;
         ctx.stroke();
       }
@@ -200,7 +203,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       // Central Hub
       ctx.beginPath();
       ctx.arc(0, 0, 34, 0, Math.PI * 2);
-      ctx.fillStyle = '#0B1730';
+      ctx.fillStyle = '#10141E';
       ctx.fill();
       ctx.lineWidth = 3.5;
       ctx.strokeStyle = '#F5B942';
@@ -208,10 +211,10 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
 
       ctx.beginPath();
       ctx.arc(0, 0, 20, 0, Math.PI * 2);
-      ctx.fillStyle = '#101F3D';
+      ctx.fillStyle = '#10141E';
       ctx.fill();
       ctx.lineWidth = 1.5;
-      ctx.strokeStyle = '#00A9FF';
+      ctx.strokeStyle = '#0131CD';
       ctx.stroke();
 
       ctx.fillStyle = '#F5B942';
@@ -232,14 +235,14 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       ctx.closePath();
       ctx.fillStyle = '#F5B942';
       ctx.fill();
-      ctx.strokeStyle = '#050D20';
+      ctx.strokeStyle = '#080A0F';
       ctx.lineWidth = 2.5;
       ctx.stroke();
 
       // Needle pin center
       ctx.beginPath();
       ctx.arc(0, 5, 3, 0, Math.PI * 2);
-      ctx.fillStyle = '#050D20';
+      ctx.fillStyle = '#080A0F';
       ctx.fill();
       ctx.restore();
     },
@@ -341,12 +344,12 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       {/* Current Pointer Name Badge */}
       <div className="min-h-[32px] flex items-center justify-center">
         {isDrawing && activeContender ? (
-          <div className="px-3.5 py-1 rounded-lg bg-[#182943] border border-[#F5B942]/60 text-[#F8FAFC] font-semibold text-xs animate-pulse">
+          <div className="px-3.5 py-1 rounded-lg bg-[#161C2C] border border-[#F5B942]/60 text-[#FFFFFF] font-semibold text-xs animate-pulse">
             Apontando: <span className="text-[#F5B942]">{activeContender}</span>
           </div>
         ) : latestWinner ? (
-          <div className="px-3.5 py-1 rounded-lg bg-[#182943] text-[#F8FAFC] font-semibold text-xs border border-[#00A9FF]/50 tabular-nums">
-            Último vencedor: <span className="text-[#00A9FF]">{latestWinner.name}</span> (<span className="font-mono">#{latestWinner.number}</span>)
+          <div className="px-3.5 py-1 rounded-lg bg-[#161C2C] text-[#FFFFFF] font-semibold text-xs border border-[#0131CD]/50 tabular-nums">
+            Último vencedor: <span className="text-[#B9FC01]">{latestWinner.name}</span> (<span className="font-mono">#{latestWinner.number}</span>)
           </div>
         ) : (
           <div className="text-xs text-[#94A3B8] font-mono tabular-nums">
@@ -356,7 +359,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       </div>
 
       {/* Canvas Wheel */}
-      <div className="relative p-2.5 rounded-full bg-[#0B1730] border border-[#182943] shadow-xl flex items-center justify-center">
+      <div className="relative p-2.5 rounded-full bg-[#10141E] border border-[#161C2C] shadow-xl flex items-center justify-center">
         <canvas
           ref={canvasRef}
           width={440}
@@ -372,15 +375,15 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
         type="button"
         disabled={isDrawing || computed.eligibleTickets.length === 0}
         onClick={handleUserTrigger}
-        className={`w-full min-h-[48px] py-3.5 px-6 rounded-xl font-semibold text-sm sm:text-base flex items-center justify-center gap-2.5 transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00A9FF] ${
+        className={`w-full min-h-[48px] py-3.5 px-6 rounded-xl font-semibold text-sm sm:text-base flex items-center justify-center gap-2.5 transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080A0F] ${
           !isDrawing && computed.eligibleTickets.length > 0
-            ? 'bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] shadow-md cursor-pointer'
-            : 'bg-[#182943] text-[#94A3B8] border border-[#182943] cursor-not-allowed opacity-60'
+            ? 'bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] shadow-md cursor-pointer'
+            : 'bg-[#161C2C] text-[#94A3B8] border border-[#161C2C] cursor-not-allowed opacity-60'
         }`}
       >
         {isDrawing ? (
           <>
-            <Sparkles className="w-5 h-5 animate-spin text-[#F8FAFC]" />
+            <Sparkles className="w-5 h-5 animate-spin text-[#FFFFFF]" />
             <span>Girando a Roleta...</span>
           </>
         ) : (

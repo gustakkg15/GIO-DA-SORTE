@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
-import firebaseConfig from '../../firebase-applet-config.json';
+import firebaseConfig from '../../firebase-applet-config.json' with { type: 'json' };
 import {
   buildEntitlementFromSubscriptionRecord,
   getOrInitFirebaseAdminApp,

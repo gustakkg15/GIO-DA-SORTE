@@ -106,16 +106,16 @@ export const PrizeConfigModal: React.FC<PrizeConfigModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#050D20]/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
-      <div className="bg-[#101F3D] border border-[#00A9FF]/40 rounded-2xl max-w-xl w-full p-6 sm:p-7 shadow-2xl space-y-6 relative animate-slide-up">
+    <div className="fixed inset-0 z-50 bg-[#080A0F]/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
+      <div className="bg-[#10141E] border border-[#0131CD]/40 rounded-2xl max-w-xl w-full p-6 sm:p-7 shadow-2xl space-y-6 relative animate-slide-up">
         {/* Modal Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-[#182943]">
+        <div className="flex items-center justify-between pb-3 border-b border-[#161C2C]">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#F5B942] text-[#050D20] flex items-center justify-center font-bold shadow-md">
+            <div className="w-9 h-9 rounded-xl bg-[#F5B942] text-[#080A0F] flex items-center justify-center font-bold shadow-md">
               <Gift className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-display font-bold text-xl text-[#F8FAFC]">Prêmio do Sorteio</h3>
+              <h3 className="font-display font-bold text-xl text-[#FFFFFF]">Prêmio do Sorteio</h3>
               <p className="text-xs text-[#94A3B8]">Configure o nome e a foto do prêmio que será exibido aos participantes</p>
             </div>
           </div>
@@ -123,15 +123,15 @@ export const PrizeConfigModal: React.FC<PrizeConfigModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#182943] rounded-xl transition"
+            className="p-2 text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C] rounded-xl transition"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Live Preview Card */}
-        <div className="bg-[#0B1730] border border-[#182943] rounded-2xl p-4 flex items-center gap-4">
-          <div className="w-20 h-20 rounded-xl bg-[#101F3D] border-2 border-[#F5B942]/60 flex items-center justify-center overflow-hidden shrink-0 shadow-lg relative group">
+        <div className="bg-[#10141E] border border-[#161C2C] rounded-2xl p-4 flex items-center gap-4">
+          <div className="w-20 h-20 rounded-xl bg-[#10141E] border-2 border-[#F5B942]/60 flex items-center justify-center overflow-hidden shrink-0 shadow-lg relative group">
             {prizeImage ? (
               <img
                 src={prizeImage}
@@ -146,7 +146,7 @@ export const PrizeConfigModal: React.FC<PrizeConfigModalProps> = ({
                 type="button"
                 onClick={() => setPrizeImage('')}
                 title="Remover foto"
-                className="absolute inset-0 bg-[#050D20]/70 opacity-0 group-hover:opacity-100 flex items-center justify-center transition text-[#F05262]"
+                className="absolute inset-0 bg-[#080A0F]/70 opacity-0 group-hover:opacity-100 flex items-center justify-center transition text-[#F05262]"
               >
                 <Trash2 className="w-5 h-5" />
               </button>
@@ -158,7 +158,7 @@ export const PrizeConfigModal: React.FC<PrizeConfigModalProps> = ({
               <Sparkles className="w-3 h-3 text-[#F5B942]" />
               <span>Em disputa nesta rodada</span>
             </div>
-            <div className="font-display font-bold text-lg sm:text-xl text-[#F8FAFC] truncate">
+            <div className="font-display font-bold text-lg sm:text-xl text-[#FFFFFF] truncate">
               {prizeName || 'Prêmio Principal'}
             </div>
             <p className="text-xs text-[#94A3B8]">
@@ -169,7 +169,7 @@ export const PrizeConfigModal: React.FC<PrizeConfigModalProps> = ({
 
         {/* Section 1: Nome do Prêmio */}
         <div className="space-y-2">
-          <label className="block text-xs font-bold text-[#F8FAFC] uppercase tracking-wider">
+          <label className="block text-xs font-bold text-[#FFFFFF] uppercase tracking-wider">
             1. Nome do Prêmio do Sorteio
           </label>
           <input
@@ -177,7 +177,7 @@ export const PrizeConfigModal: React.FC<PrizeConfigModalProps> = ({
             value={prizeName}
             onChange={(e) => setPrizeName(e.target.value)}
             placeholder="Ex: Smartphone Galaxy, Pix R$ 100, Kit Gamer..."
-            className="w-full bg-[#0B1730] border border-[#182943] rounded-xl px-4 py-3 text-base text-[#F8FAFC] font-semibold focus:outline-none focus:border-[#00A9FF] placeholder:text-[#94A3B8]/50"
+            className="w-full bg-[#10141E] border border-[#161C2C] rounded-xl px-4 py-3 text-base text-[#FFFFFF] font-semibold focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 placeholder:text-[#94A3B8]/50"
           />
 
           {/* Quick Suggestions */}
@@ -188,7 +188,7 @@ export const PrizeConfigModal: React.FC<PrizeConfigModalProps> = ({
                 key={sug}
                 type="button"
                 onClick={() => setPrizeName(sug)}
-                className="text-xs px-2.5 py-1 rounded-lg bg-[#0B1730] hover:bg-[#182943] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#182943] transition"
+                className="text-xs px-2.5 py-1 rounded-lg bg-[#10141E] hover:bg-[#161C2C] text-[#94A3B8] hover:text-[#FFFFFF] border border-[#161C2C] transition"
               >
                 {sug}
               </button>
@@ -198,19 +198,19 @@ export const PrizeConfigModal: React.FC<PrizeConfigModalProps> = ({
 
         {/* Section 2: Imagem do Prêmio */}
         <div className="space-y-3">
-          <label className="block text-xs font-bold text-[#F8FAFC] uppercase tracking-wider">
+          <label className="block text-xs font-bold text-[#FFFFFF] uppercase tracking-wider">
             2. Imagem / Foto do Prêmio
           </label>
 
           {/* Source Tabs */}
-          <div className="flex items-center p-1 bg-[#0B1730] border border-[#182943] rounded-xl text-xs font-semibold">
+          <div className="flex items-center p-1 bg-[#10141E] border border-[#161C2C] rounded-xl text-xs font-semibold">
             <button
               type="button"
               onClick={() => setActiveTab('presets')}
               className={`flex-1 py-1.5 px-3 rounded-lg text-center transition ${
                 activeTab === 'presets'
-                  ? 'bg-[#0866F5] text-[#F8FAFC] shadow-sm font-bold'
-                  : 'text-[#94A3B8] hover:text-[#F8FAFC]'
+                  ? 'bg-[#0131CD] text-[#FFFFFF] shadow-sm font-bold'
+                  : 'text-[#94A3B8] hover:text-[#FFFFFF]'
               }`}
             >
               Modelos Prontos
@@ -220,8 +220,8 @@ export const PrizeConfigModal: React.FC<PrizeConfigModalProps> = ({
               onClick={() => setActiveTab('upload')}
               className={`flex-1 py-1.5 px-3 rounded-lg text-center transition ${
                 activeTab === 'upload'
-                  ? 'bg-[#0866F5] text-[#F8FAFC] shadow-sm font-bold'
-                  : 'text-[#94A3B8] hover:text-[#F8FAFC]'
+                  ? 'bg-[#0131CD] text-[#FFFFFF] shadow-sm font-bold'
+                  : 'text-[#94A3B8] hover:text-[#FFFFFF]'
               }`}
             >
               Fazer Upload de Foto
@@ -231,8 +231,8 @@ export const PrizeConfigModal: React.FC<PrizeConfigModalProps> = ({
               onClick={() => setActiveTab('url')}
               className={`flex-1 py-1.5 px-3 rounded-lg text-center transition ${
                 activeTab === 'url'
-                  ? 'bg-[#0866F5] text-[#F8FAFC] shadow-sm font-bold'
-                  : 'text-[#94A3B8] hover:text-[#F8FAFC]'
+                  ? 'bg-[#0131CD] text-[#FFFFFF] shadow-sm font-bold'
+                  : 'text-[#94A3B8] hover:text-[#FFFFFF]'
               }`}
             >
               Link da Web (URL)
@@ -256,14 +256,14 @@ export const PrizeConfigModal: React.FC<PrizeConfigModalProps> = ({
                     }}
                     className={`p-2.5 rounded-xl border flex flex-col items-center gap-2 transition text-center group ${
                       isSelected
-                        ? 'bg-[#0866F5]/20 border-[#00A9FF] ring-2 ring-[#00A9FF]/40'
-                        : 'bg-[#0B1730] border-[#182943] hover:border-[#00A9FF]/40'
+                        ? 'bg-[#0131CD]/20 border-[#0131CD] ring-2 ring-[#0131CD]/40'
+                        : 'bg-[#10141E] border-[#161C2C] hover:border-[#0131CD]/40'
                     }`}
                   >
-                    <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 flex items-center justify-center bg-[#101F3D] border border-[#182943]">
+                    <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 flex items-center justify-center bg-[#10141E] border border-[#161C2C]">
                       <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
                     </div>
-                    <span className="text-[11px] font-bold text-[#F8FAFC] line-clamp-1">
+                    <span className="text-[11px] font-bold text-[#FFFFFF] line-clamp-1">
                       {p.name}
                     </span>
                   </button>
@@ -285,12 +285,12 @@ export const PrizeConfigModal: React.FC<PrizeConfigModalProps> = ({
 
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="p-6 border-2 border-dashed border-[#182943] hover:border-[#00A9FF] rounded-xl bg-[#0B1730] cursor-pointer flex flex-col items-center justify-center gap-2 transition group text-center"
+                className="p-6 border-2 border-dashed border-[#161C2C] hover:border-[#0131CD] rounded-xl bg-[#10141E] cursor-pointer flex flex-col items-center justify-center gap-2 transition group text-center"
               >
-                <div className="w-12 h-12 rounded-xl bg-[#0866F5]/20 text-[#00A9FF] flex items-center justify-center group-hover:scale-105 transition">
+                <div className="w-12 h-12 rounded-xl bg-[#0131CD]/20 text-[#FFFFFF] flex items-center justify-center group-hover:scale-105 transition">
                   <Upload className="w-6 h-6" />
                 </div>
-                <div className="text-sm font-bold text-[#F8FAFC]">Clique para escolher uma imagem do seu aparelho</div>
+                <div className="text-sm font-bold text-[#FFFFFF]">Clique para escolher uma imagem do seu aparelho</div>
                 <p className="text-xs text-[#94A3B8]">Suporta JPG, PNG, WebP ou GIF. Redimensionado automaticamente.</p>
               </div>
 
@@ -309,12 +309,12 @@ export const PrizeConfigModal: React.FC<PrizeConfigModalProps> = ({
                   placeholder="Cole aqui o link da imagem (ex: https://...)"
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
-                  className="flex-1 bg-[#0B1730] border border-[#182943] rounded-xl px-3.5 py-2.5 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#00A9FF]"
+                  className="flex-1 bg-[#10141E] border border-[#161C2C] rounded-xl px-3.5 py-2.5 text-xs text-[#FFFFFF] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35"
                 />
                 <button
                   type="button"
                   onClick={handleApplyUrl}
-                  className="px-4 py-2.5 bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-bold text-xs rounded-xl transition shrink-0"
+                  className="px-4 py-2.5 bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs rounded-xl transition shrink-0"
                 >
                   Aplicar Foto
                 </button>
@@ -327,7 +327,7 @@ export const PrizeConfigModal: React.FC<PrizeConfigModalProps> = ({
         </div>
 
         {/* Modal Actions */}
-        <div className="flex items-center justify-between pt-4 border-t border-[#182943] gap-3">
+        <div className="flex items-center justify-between pt-4 border-t border-[#161C2C] gap-3">
           {prizeImage ? (
             <button
               type="button"
@@ -345,16 +345,16 @@ export const PrizeConfigModal: React.FC<PrizeConfigModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl bg-[#182943] hover:bg-[#0B1730] text-[#94A3B8] hover:text-[#F8FAFC] font-bold text-xs transition"
+              className="px-4 py-2.5 rounded-xl bg-[#161C2C] hover:bg-[#10141E] text-[#94A3B8] hover:text-[#FFFFFF] font-bold text-xs transition"
             >
               Cancelar
             </button>
             <button
               type="button"
               onClick={handleSave}
-              className="px-5 py-2.5 rounded-xl bg-[#0866F5] hover:bg-[#00A9FF] text-[#F8FAFC] font-bold text-xs flex items-center gap-2 shadow-lg transition"
+              className="px-5 py-2.5 rounded-xl bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs flex items-center gap-2 shadow-lg transition"
             >
-              <CheckCircle2 className="w-4 h-4 text-[#F8FAFC]" />
+              <CheckCircle2 className="w-4 h-4 text-[#FFFFFF]" />
               <span>Salvar Prêmio</span>
             </button>
           </div>

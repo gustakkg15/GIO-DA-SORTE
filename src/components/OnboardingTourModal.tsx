@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Sparkles,
   Radio,
@@ -68,6 +68,80 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
   onGoToLivePro,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousActiveElementRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const currentActive = document.activeElement as HTMLElement | null;
+    if (currentActive && currentActive !== document.body) {
+      previousActiveElementRef.current = currentActive;
+    }
+
+    const focusTimer = window.setTimeout(() => {
+      if (!dialogRef.current) return;
+      const focusables = dialogRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusables.length > 0 && !dialogRef.current.contains(document.activeElement)) {
+        focusables[0].focus();
+      }
+    }, 30);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        onCloseRef.current();
+        return;
+      }
+
+      if (e.key === 'Tab' && dialogRef.current) {
+        const focusables = Array.from(
+          dialogRef.current.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          )
+        ).filter((el) => el.offsetWidth > 0 || el.offsetHeight > 0 || el.getClientRects().length > 0);
+
+        if (focusables.length === 0) return;
+
+        const firstEl = focusables[0];
+        const lastEl = focusables[focusables.length - 1];
+        const activeEl = document.activeElement as HTMLElement | null;
+
+        if (!activeEl || !dialogRef.current.contains(activeEl)) {
+          e.preventDefault();
+          (e.shiftKey ? lastEl : firstEl).focus();
+          return;
+        }
+
+        if (e.shiftKey && activeEl === firstEl) {
+          e.preventDefault();
+          lastEl.focus();
+        } else if (!e.shiftKey && activeEl === lastEl) {
+          e.preventDefault();
+          firstEl.focus();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.clearTimeout(focusTimer);
+      window.removeEventListener('keydown', handleKeyDown);
+      const prev = previousActiveElementRef.current;
+      if (prev && document.body.contains(prev)) {
+        window.setTimeout(() => {
+          if (document.body.contains(prev)) {
+            prev.focus();
+          }
+        }, 0);
+      }
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -77,20 +151,23 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#050D20]/85 backdrop-blur-md animate-fade-in"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#080A0F]/85 backdrop-blur-md animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="onboarding-title"
     >
-      <div className="relative w-full max-w-xl rounded-2xl bg-[#101F3D] border border-[var(--gio-border-active)] shadow-[0_24px_60px_rgba(2,8,23,0.75)] overflow-hidden animate-slide-up">
+      <div
+        ref={dialogRef}
+        className="relative w-full max-w-xl rounded-2xl bg-[#10141E] border border-[var(--gio-border-active)] shadow-[0_24px_60px_rgba(2,8,23,0.75)] overflow-hidden animate-slide-up"
+      >
         {/* Top electric blue & violet PRO bar */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-[#0866F5] via-[#00A9FF] to-[#8B7CFF]" />
+        <div className="h-1.5 w-full bg-gradient-to-r from-[#0131CD] via-[#0131CD] to-[#B9FC01]" />
 
         <div className="p-6 sm:p-8 space-y-6">
           {/* Header */}
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-12 h-12 rounded-xl bg-[#050D20] border border-[#00A9FF]/40 flex items-center justify-center p-1 shadow-[0_6px_18px_rgba(8,102,245,0.28)] shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-[#080A0F] border border-[#0131CD]/40 flex items-center justify-center p-1 shadow-[0_6px_18px_rgba(1, 49, 205,0.28)] shrink-0">
                 <img
                   src="/icon.svg"
                   alt="GIO DA SORTE"
@@ -98,15 +175,15 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
                 />
               </div>
               <div className="min-w-0">
-                <span className="text-xs font-semibold text-[#00A9FF] inline-flex items-center gap-1.5">
-                  <StepIcon className="w-3.5 h-3.5 text-[#35B9F5] shrink-0" />
+                <span className="text-xs font-semibold text-[#B9FC01] inline-flex items-center gap-1.5">
+                  <StepIcon className="w-3.5 h-3.5 text-[#B9FC01] shrink-0" />
                   <span className="tabular-nums">
                     {stepData.badge} · Passo {stepData.step} de {ONBOARDING_STEPS.length}
                   </span>
                 </span>
                 <h2
                   id="onboarding-title"
-                  className="text-lg sm:text-xl font-display font-bold text-[#F8FAFC] leading-snug mt-0.5"
+                  className="text-lg sm:text-xl font-display font-bold text-[#FFFFFF] leading-snug mt-0.5"
                 >
                   {stepData.title}
                 </h2>
@@ -117,7 +194,7 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Fechar guia inicial"
-              className="w-9 h-9 rounded-xl bg-[#0B1730] hover:bg-[#182943] text-[#94A3B8] hover:text-[#F8FAFC] border border-[var(--gio-border-subtle)] flex items-center justify-center transition shrink-0"
+              className="w-9 h-9 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] text-[#94A3B8] hover:text-[#FFFFFF] border border-[var(--gio-border-subtle)] flex items-center justify-center transition shrink-0"
             >
               <X className="w-4 h-4" />
             </button>
@@ -127,9 +204,9 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
           <p className="text-sm sm:text-base text-[#94A3B8] leading-relaxed">{stepData.description}</p>
 
           {/* Highlights */}
-          <div className="space-y-2.5 bg-[#0B1730] border border-[var(--gio-border-subtle)] rounded-xl p-4">
+          <div className="space-y-2.5 bg-[#080A0F] border border-[var(--gio-border-subtle)] rounded-xl p-4">
             {stepData.highlights.map((item, idx) => (
-              <div key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-[#F8FAFC]">
+              <div key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-[#FFFFFF]">
                 <CheckCircle2 className="w-4 h-4 text-[#20C997] shrink-0 mt-0.5" />
                 <span>{item}</span>
               </div>
@@ -147,8 +224,8 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
                   aria-label={`Ir para o passo ${idx + 1}`}
                   className={`h-2 rounded-full transition-all ${
                     idx === currentStep
-                      ? 'w-7 bg-[#00A9FF] shadow-[0_0_8px_rgba(0,169,255,0.6)]'
-                      : 'w-2 bg-[#182943] hover:bg-[#94A3B8]'
+                      ? 'w-7 bg-[#0131CD] shadow-[0_0_8px_rgba(1,49,205,0.6)]'
+                      : 'w-2 bg-[#161C2C] hover:bg-[#94A3B8]'
                   }`}
                 />
               ))}
@@ -159,7 +236,7 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setCurrentStep((s) => s - 1)}
-                  className="min-h-[42px] px-4 py-2 rounded-xl bg-[#0B1730] hover:bg-[#182943] text-[#F8FAFC] border border-[var(--gio-border-subtle)] text-xs font-semibold flex items-center gap-1.5 transition"
+                  className="min-h-[42px] px-4 py-2 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-semibold flex items-center gap-1.5 transition"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Anterior</span>
@@ -168,7 +245,7 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="min-h-[42px] px-3 py-2 rounded-xl text-[#94A3B8] hover:text-[#F8FAFC] text-xs font-medium transition"
+                  className="min-h-[42px] px-3 py-2 rounded-xl text-[#94A3B8] hover:text-[#FFFFFF] text-xs font-medium transition"
                 >
                   Pular introdução
                 </button>
@@ -178,7 +255,7 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setCurrentStep((s) => s + 1)}
-                  className="min-h-[42px] px-5 py-2 rounded-xl bg-gradient-to-r from-[#0866F5] to-[#00A9FF] text-white font-bold text-xs flex items-center gap-1.5 shadow-[0_6px_18px_rgba(8,102,245,0.35)] hover:brightness-110 transition"
+                  className="min-h-[42px] px-5 py-2 rounded-xl bg-gradient-to-r from-[#0131CD] to-[#0131CD] text-white font-bold text-xs flex items-center gap-1.5 shadow-[0_6px_18px_rgba(1, 49, 205,0.35)] hover:brightness-110 transition"
                 >
                   <span>Próximo</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -191,7 +268,7 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
                       onClose();
                       onGoToLivePro();
                     }}
-                    className="min-h-[42px] px-4 py-2 rounded-xl bg-[#8B7CFF]/15 hover:bg-[#8B7CFF]/25 text-[#C4B5FD] border border-[#8B7CFF]/45 font-bold text-xs flex items-center gap-1.5 transition"
+                    className="min-h-[42px] px-4 py-2 rounded-xl bg-[#B9FC01]/15 hover:bg-[#B9FC01]/25 text-[#B9FC01] border border-[#B9FC01]/45 font-bold text-xs flex items-center gap-1.5 transition"
                   >
                     <Radio className="w-3.5 h-3.5" />
                     <span>Abrir LIVE PRO</span>
@@ -202,7 +279,7 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
                       onClose();
                       onStartGuidedWizard();
                     }}
-                    className="min-h-[42px] px-5 py-2 rounded-xl bg-gradient-to-r from-[#0866F5] to-[#00A9FF] text-white font-extrabold text-xs flex items-center gap-1.5 shadow-[0_8px_22px_rgba(8,102,245,0.4)] hover:brightness-110 transition"
+                    className="min-h-[42px] px-5 py-2 rounded-xl bg-gradient-to-r from-[#0131CD] to-[#0131CD] text-white font-extrabold text-xs flex items-center gap-1.5 shadow-[0_8px_22px_rgba(1, 49, 205,0.4)] hover:brightness-110 transition"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>Criar Meu 1º Sorteio</span>

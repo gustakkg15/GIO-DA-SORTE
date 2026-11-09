@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { User as FirebaseUser } from 'firebase/auth';
 import {
   Menu,
@@ -11,8 +11,8 @@ import {
   Plus,
   Check,
   Loader2,
-  ChevronRight,
   Radio,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { AppNavigationTab } from '../Header';
 import { mapTikTokConnectionState } from '../../utils/tiktokStatusMapper';
@@ -114,6 +114,29 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   liveConnectionState,
   liveConnectedUsername,
 }) => {
+  const [isUtilitiesMenuOpen, setIsUtilitiesMenuOpen] = useState(false);
+  const utilitiesMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isUtilitiesMenuOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsUtilitiesMenuOpen(false);
+      }
+    };
+    const handleClickOutside = (e: MouseEvent) => {
+      if (utilitiesMenuRef.current && !utilitiesMenuRef.current.contains(e.target as Node)) {
+        setIsUtilitiesMenuOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isUtilitiesMenuOpen]);
+
   const breadcrumb = BREADCRUMB_MAP[activeTab] || {
     section: 'Plataforma',
     title: 'GIO DA SORTE',
@@ -127,52 +150,52 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   );
 
   return (
-    <header className="sticky top-0 z-20 h-[70px] bg-[#050D20]/95 backdrop-blur-md border-b border-white/[0.08] flex items-center justify-between px-4 sm:px-6 lg:px-8 select-none">
+    <header className="sticky top-0 z-20 h-[70px] bg-[#080A0F]/95 backdrop-blur-md border-b border-white/[0.08] flex items-center justify-between gap-2 px-3.5 sm:px-6 lg:px-8 select-none">
       {/* Left: Mobile Menu Button + Module Title & Breadcrumb */}
-      <div className="flex items-center gap-3.5 min-w-0">
+      <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
         <button
           type="button"
           onClick={onOpenMobileMenu}
-          className="lg:hidden p-2 rounded-xl bg-[#0B1730] border border-white/10 text-[#F8FAFC] hover:bg-[#101F3D] hover:border-white/20 transition-all"
+          className="lg:hidden min-w-[38px] min-h-[38px] inline-flex items-center justify-center p-2 rounded-xl bg-[#10141E] border border-white/10 text-[#FFFFFF] hover:bg-[#161C2C] hover:border-white/20 transition-all shrink-0"
           aria-label="Abrir menu de navegação lateral"
         >
           <Menu className="w-5 h-5" />
         </button>
 
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-xs font-medium truncate">
-            <span className="hidden sm:inline-block font-mono text-[11px] font-bold uppercase tracking-wider text-[#00A9FF]">
-              {breadcrumb.section}
-            </span>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-500 hidden sm:inline shrink-0" />
-            <h1 className="text-sm sm:text-base lg:text-lg font-bold tracking-tight text-[#F8FAFC] truncate">
-              {breadcrumb.title}
-            </h1>
-          </div>
-          <p className="hidden md:block text-xs text-slate-400 truncate mt-0.5">
+        <div className="min-w-0 flex-1">
+          <span className="hidden sm:block font-mono text-[10px] font-bold uppercase tracking-wider text-[#B9FC01] leading-none mb-0.5 truncate">
+            {breadcrumb.section}
+          </span>
+          <h1
+            title={breadcrumb.title}
+            className="text-xs sm:text-base lg:text-lg font-bold tracking-tight text-[#FFFFFF] line-clamp-2 sm:line-clamp-none sm:truncate leading-tight"
+          >
+            {breadcrumb.title}
+          </h1>
+          <p className="hidden xl:block text-xs text-slate-400 truncate mt-0.5 leading-none">
             {breadcrumb.subtitle}
           </p>
         </div>
       </div>
 
       {/* Right: Connection & Save Indicators + Grouped Utility Controls + Primary CTA */}
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+      <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
         {/* TikTok LIVE Connection Status Pill */}
         <button
           type="button"
           onClick={() => onSelectTab('tiktok')}
           title={`${connMeta.titleHint} — Clique para abrir TikTok LIVE`}
-          className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+          className={`hidden lg:flex min-h-[36px] items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
             connMeta.state === 'DISCONNECTED'
-              ? 'bg-[#0B1730] hover:bg-[#101F3D] text-slate-300 hover:text-white border-white/10'
+              ? 'bg-[#10141E] hover:bg-[#161C2C] text-slate-300 hover:text-white border-white/10'
               : connMeta.badgeClass
           }`}
         >
-          <span className={`w-2 h-2 rounded-full ${connMeta.dotClass}`} />
-          <Radio className="w-3.5 h-3.5" />
+          <span className={`w-2 h-2 rounded-full shrink-0 ${connMeta.dotClass}`} />
+          <Radio className="w-3.5 h-3.5 shrink-0" />
           <span>{connMeta.label}</span>
           {connMeta.state === 'CONNECTED' && liveConnectedUsername && (
-            <span className="font-mono text-white">
+            <span className="hidden xl:inline font-mono text-white">
               · @{liveConnectedUsername.replace(/^@+/, '')}
             </span>
           )}
@@ -180,12 +203,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
         {/* Save / Sync Status Indicator */}
         <div
-          className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 bg-[#0B1730] border border-white/10"
+          className="hidden xl:flex min-h-[36px] items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 bg-[#10141E] border border-white/10"
           title="Status de salvamento dos dados"
         >
           {syncStatus === 'saving' ? (
             <>
-              <Loader2 className="w-3.5 h-3.5 text-[#00A9FF] animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 text-[#B9FC01] animate-spin" />
               <span>Salvando...</span>
             </>
           ) : syncStatus === 'error' ? (
@@ -201,31 +224,34 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           ) : (
             <>
               <Check className="w-3.5 h-3.5 text-[#20C997]" />
-              <span className="text-[#F8FAFC]">Salvo</span>
+              <span className="text-[#FFFFFF]">Salvo</span>
             </>
           )}
         </div>
 
         {/* Grouped Utility Controls */}
-        <div className="flex items-center bg-[#0B1730]/90 border border-white/10 rounded-xl p-0.5 shadow-xs">
+        <div
+          ref={utilitiesMenuRef}
+          className="relative flex items-center bg-[#10141E] border border-white/10 rounded-xl p-0.5 shadow-xs"
+        >
           <button
             type="button"
             onClick={onToggleSound}
-            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-[#101F3D] transition-colors"
+            className="min-w-[36px] min-h-[36px] inline-flex items-center justify-center p-2 rounded-lg text-slate-400 hover:text-white hover:bg-[#161C2C] transition-colors"
             title={soundEnabled ? 'Silenciar áudio' : 'Ativar efeitos sonoros'}
             aria-label={soundEnabled ? 'Silenciar áudio' : 'Ativar efeitos sonoros'}
           >
             {soundEnabled ? (
-              <Volume2 className="w-4 h-4 text-[#00A9FF]" />
+              <Volume2 className="w-4 h-4 text-[#B9FC01]" />
             ) : (
-              <VolumeX className="w-4 h-4 text-slate-500" />
+              <VolumeX className="w-4 h-4 text-[#94A3B8]" />
             )}
           </button>
 
           <button
             type="button"
             onClick={onOpenPresentation}
-            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-[#101F3D] transition-colors"
+            className="hidden lg:inline-flex min-w-[36px] min-h-[36px] items-center justify-center p-2 rounded-lg text-slate-400 hover:text-white hover:bg-[#161C2C] transition-colors"
             title="Modo Apresentação (Telão)"
             aria-label="Modo Apresentação (Telão)"
           >
@@ -235,7 +261,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           <button
             type="button"
             onClick={onOpenPrintSheet}
-            className="hidden sm:inline-flex p-2 rounded-lg text-slate-400 hover:text-white hover:bg-[#101F3D] transition-colors"
+            className="hidden lg:inline-flex min-w-[36px] min-h-[36px] items-center justify-center p-2 rounded-lg text-slate-400 hover:text-white hover:bg-[#161C2C] transition-colors"
             title="Imprimir Folha de Bilhetes"
             aria-label="Imprimir Folha de Bilhetes"
           >
@@ -245,12 +271,93 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           <button
             type="button"
             onClick={onOpenObsOverlay}
-            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-[#101F3D] transition-colors"
+            className="hidden lg:inline-flex min-w-[36px] min-h-[36px] items-center justify-center p-2 rounded-lg text-slate-400 hover:text-white hover:bg-[#161C2C] transition-colors"
             title="OBS Studio Overlay Transparente"
             aria-label="OBS Studio Overlay Transparente"
           >
-            <Video className="w-4 h-4 text-[#35B9F5]" />
+            <Video className="w-4 h-4 text-[#FFFFFF]" />
           </button>
+
+          {/* Compact Utilities Trigger for < 1024px preserving 100% access to Telão, Imprimir, OBS and TikTok LIVE */}
+          <button
+            type="button"
+            onClick={() => setIsUtilitiesMenuOpen((prev) => !prev)}
+            className="lg:hidden min-w-[36px] min-h-[36px] inline-flex items-center justify-center p-2 rounded-lg text-slate-300 hover:text-white hover:bg-[#161C2C] transition-colors"
+            title="Utilitários de transmissão e impressão"
+            aria-label="Utilitários de transmissão e impressão"
+            aria-expanded={isUtilitiesMenuOpen}
+            aria-haspopup="menu"
+          >
+            <SlidersHorizontal className="w-4 h-4 text-[#FFFFFF]" />
+          </button>
+
+          {isUtilitiesMenuOpen && (
+            <div
+              role="menu"
+              aria-label="Menu de utilitários rápidos"
+              className="lg:hidden absolute right-0 top-full mt-2 w-64 rounded-xl bg-[#10141E] border border-[#161C2C] shadow-2xl p-1.5 z-50 space-y-1 animate-fade-in"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setIsUtilitiesMenuOpen(false);
+                  onOpenPresentation();
+                }}
+                className="w-full min-h-[38px] px-3 py-2 rounded-lg text-xs font-medium text-[#FFFFFF] hover:bg-[#161C2C] flex items-center gap-2.5 transition-colors text-left"
+              >
+                <Tv className="w-4 h-4 text-[#B9FC01] shrink-0" />
+                <span>Modo Apresentação (Telão)</span>
+              </button>
+
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setIsUtilitiesMenuOpen(false);
+                  onOpenPrintSheet();
+                }}
+                className="w-full min-h-[38px] px-3 py-2 rounded-lg text-xs font-medium text-[#FFFFFF] hover:bg-[#161C2C] flex items-center gap-2.5 transition-colors text-left"
+              >
+                <Printer className="w-4 h-4 text-[#20C997] shrink-0" />
+                <span>Imprimir Folha de Bilhetes</span>
+              </button>
+
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setIsUtilitiesMenuOpen(false);
+                  onOpenObsOverlay();
+                }}
+                className="w-full min-h-[38px] px-3 py-2 rounded-lg text-xs font-medium text-[#FFFFFF] hover:bg-[#161C2C] flex items-center gap-2.5 transition-colors text-left"
+              >
+                <Video className="w-4 h-4 text-[#FFFFFF] shrink-0" />
+                <span>OBS Studio Overlay Transparente</span>
+              </button>
+
+              <div className="border-t border-[#161C2C] my-1 pt-1">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setIsUtilitiesMenuOpen(false);
+                    onSelectTab('tiktok');
+                  }}
+                  className="w-full min-h-[38px] px-3 py-2 rounded-lg text-xs font-medium text-[#FFFFFF] hover:bg-[#161C2C] flex items-center justify-between gap-2 transition-colors text-left"
+                >
+                  <span className="flex items-center gap-2.5 truncate">
+                    <Radio className="w-4 h-4 text-[#B9FC01] shrink-0" />
+                    <span className="truncate">TikTok LIVE</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-[#94A3B8] shrink-0">
+                    <span className={`w-2 h-2 rounded-full ${connMeta.dotClass}`} />
+                    <span>{connMeta.label}</span>
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Primary Contextual Action: Novo Sorteio */}
@@ -258,10 +365,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           <button
             type="button"
             onClick={onStartNewRaffle}
-            className="gio-btn-primary px-3.5 py-2 text-xs font-semibold"
+            title="Novo Sorteio"
+            aria-label="Novo Sorteio"
+            className="gio-btn-primary min-w-[38px] min-h-[38px] px-2.5 md:px-3.5 py-2 text-xs font-semibold inline-flex items-center justify-center gap-1.5"
           >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span className="hidden sm:inline">Novo Sorteio</span>
+            <Plus className="w-4 h-4 stroke-[2.5] shrink-0" />
+            <span className="hidden md:inline">Novo Sorteio</span>
           </button>
         )}
 
@@ -269,11 +378,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         <button
           type="button"
           onClick={onOpenAccount}
-          className="p-0.5 rounded-xl text-[#F8FAFC] hover:ring-2 hover:ring-[#00A9FF]/50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00A9FF]"
+          className="min-w-[38px] min-h-[38px] inline-flex items-center justify-center p-0.5 rounded-xl text-[#FFFFFF] hover:ring-2 hover:ring-[#0131CD] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01]"
           title={currentUser?.email || 'Minha Conta'}
           aria-label="Abrir perfil da conta"
         >
-          <div className="w-8 h-8 rounded-xl bg-[#101F3D] flex items-center justify-center text-xs font-semibold text-[#F8FAFC] border border-white/10 shadow-xs">
+          <div className="w-8 h-8 rounded-xl bg-[#10141E] flex items-center justify-center text-xs font-semibold text-[#FFFFFF] border border-white/10 shadow-xs">
             {currentUser?.photoURL ? (
               <img
                 src={currentUser.photoURL}
@@ -281,7 +390,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 className="w-full h-full rounded-xl object-cover"
               />
             ) : (
-              <User className="w-4 h-4 text-[#00A9FF]" />
+              <User className="w-4 h-4 text-[#FFFFFF]" />
             )}
           </div>
         </button>

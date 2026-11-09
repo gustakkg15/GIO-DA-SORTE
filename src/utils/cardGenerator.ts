@@ -32,7 +32,7 @@ interface ThemePalette {
 const THEMES: Record<string, ThemePalette> = {
   sapphire: {
     bgStart: '#030712',
-    bgMid: '#0b1329',
+    bgMid: '#161C2C',
     bgEnd: '#020617',
     glowColor1: 'rgba(37, 99, 235, 0.35)',
     glowColor2: 'rgba(14, 165, 233, 0.15)',

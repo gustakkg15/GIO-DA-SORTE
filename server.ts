@@ -102,6 +102,8 @@ import {
   tiktokOAuthService,
   DEV_APP_ORIGIN,
   PROD_APP_ORIGIN,
+  PREVIEW_APP_ORIGIN,
+  CLOUD_RUN_APP_ORIGIN,
   OAUTH_CALLBACK_PATH,
   ALLOWED_HTTPS_ORIGINS,
   SESSION_COOKIE_NAME,
@@ -163,6 +165,29 @@ const PORT = resolveServerPort();
 const HOST = '0.0.0.0';
 
 app.use(express.json());
+
+// CORS configuration for GitHub Pages frontend, Cloud Run and AI Studio preview environments
+const ALLOWED_CORS_ORIGINS = new Set<string>([
+  'https://gustakkg15.github.io',
+  'https://gio-da-sorte-1042651147403.europe-west2.run.app',
+  'https://ais-pre-bodr7wggvyyl4p2jtskel4-749434257827.europe-west2.run.app',
+  'https://ais-dev-bodr7wggvyyl4p2jtskel4-749434257827.europe-west2.run.app',
+]);
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && (ALLOWED_CORS_ORIGINS.has(origin) || origin.endsWith('.github.io'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-tiktok-oauth-initiator');
+    res.setHeader('Vary', 'Origin');
+  }
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+  next();
+});
 
 // Track active SSE connections by clientId to prevent duplicate SSE streams per browser tab/session
 const activeSseConnections = new Map<
@@ -264,8 +289,9 @@ app.get('/api/tiktok/auth/status', async (req: Request, res: Response) => {
     allowedOrigins: Array.from(ALLOWED_HTTPS_ORIGINS),
     targetOrigin: diag.targetOrigin,
     redirectUri: diag.redirectUri,
+    prodRedirectUri: `${CLOUD_RUN_APP_ORIGIN}${OAUTH_CALLBACK_PATH}`,
+    previewRedirectUri: `${PREVIEW_APP_ORIGIN}${OAUTH_CALLBACK_PATH}`,
     devRedirectUri: `${DEV_APP_ORIGIN}${OAUTH_CALLBACK_PATH}`,
-    prodRedirectUri: `${PROD_APP_ORIGIN}${OAUTH_CALLBACK_PATH}`,
     directWebcastAvailable: true,
     authenticated,
     sessionState: authenticated ? 'ACTIVE' : 'DISCONNECTED',
@@ -309,8 +335,9 @@ async function handleStartTikTokLoginOAuth(req: Request, res: Response) {
         clientSecretConfigured: diag.clientSecretConfigured,
         encryptionKeyConfigured: diag.encryptionKeyConfigured,
         redirectUri: diag.redirectUri,
+        prodRedirectUri: `${CLOUD_RUN_APP_ORIGIN}${OAUTH_CALLBACK_PATH}`,
+        previewRedirectUri: `${PREVIEW_APP_ORIGIN}${OAUTH_CALLBACK_PATH}`,
         devRedirectUri: `${DEV_APP_ORIGIN}${OAUTH_CALLBACK_PATH}`,
-        prodRedirectUri: `${PROD_APP_ORIGIN}${OAUTH_CALLBACK_PATH}`,
         configurationErrors: diag.configurationErrors,
         error:
           diag.configurationErrors.join(' ') ||
@@ -482,9 +509,9 @@ async function handleTikTokOAuthCallback(req: Request, res: Response) {
     <meta charset="utf-8" />
     <title>Autenticação TikTok — GIO DA SORTE</title>
   </head>
-  <body style="background:#050D20;color:#F8FAFC;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;padding:24px;text-align:center;">
-    <div style="max-width:420px;padding:24px;border-radius:16px;background:#101F3D;border:1px solid rgba(255,255,255,0.1);">
-      <h2 style="margin:0 0 8px 0;font-size:16px;color:#00A9FF;">GIO DA SORTE</h2>
+  <body style="background:#080A0F;color:#FFFFFF;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;padding:24px;text-align:center;">
+    <div style="max-width:420px;padding:24px;border-radius:16px;background:#10141E;border:1px solid rgba(255,255,255,0.1);">
+      <h2 style="margin:0 0 8px 0;font-size:16px;color:#B9FC01;">GIO DA SORTE</h2>
       <p style="margin:0;font-size:13px;color:#94A3B8;line-height:1.5;">${messageText}</p>
     </div>
     <script>
@@ -2771,6 +2798,27 @@ app.get(
   async (req: Request, res: Response) => {
     try {
       const authUid = req.authUid!;
+      const requestedOwnerParam =
+        typeof req.query.ownerUid === 'string'
+          ? req.query.ownerUid.trim()
+          : typeof req.query.uid === 'string'
+          ? req.query.uid.trim()
+          : '';
+      if (requestedOwnerParam && requestedOwnerParam !== authUid) {
+        return res.status(403).json({
+          success: false,
+          code: 'OWNERSHIP_FORBIDDEN',
+          error:
+            'OWNERSHIP_FORBIDDEN: Acesso cruzado negado. Não é permitido consultar sessões ou histórico de outro usuário (ownerUid !== authUid).',
+        });
+      }
+
+      const requestedLimitRaw = Number(req.query.limit);
+      const requestedLimit =
+        Number.isFinite(requestedLimitRaw) && requestedLimitRaw > 0
+          ? Math.max(1, Math.min(100, Math.floor(requestedLimitRaw)))
+          : 50;
+
       const requestedSessionId =
         typeof req.query.sessionId === 'string' ? req.query.sessionId.trim() : '';
       const requestedCampaignId =
@@ -2850,13 +2898,14 @@ app.get(
       }
 
       const [sessions, campaigns] = await Promise.all([
-        fetchAllLiveSessions(50, authUid),
+        fetchAllLiveSessions(requestedLimit, authUid),
         fetchCampaigns(authUid),
       ]);
 
       res.json({
         success: true,
         ownerUid: authUid,
+        limit: requestedLimit,
         sessions,
         campaigns,
       });
@@ -2866,6 +2915,56 @@ app.get(
       res.status(isForbidden ? 403 : 400).json({
         success: false,
         code: isForbidden ? 'OWNERSHIP_FORBIDDEN' : 'HISTORY_ERROR',
+        error: message,
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/tiktok/live/sessions
+ * Dedicated authenticated endpoint returning strictly the authenticated user's own TikTok LIVE sessions.
+ * Enforces backend token verification (`requireFirebaseAuth`) and rejects any cross-UID query attempt.
+ */
+app.get(
+  '/api/tiktok/live/sessions',
+  requireFirebaseAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const authUid = req.authUid!;
+      const requestedOwnerParam =
+        typeof req.query.ownerUid === 'string'
+          ? req.query.ownerUid.trim()
+          : typeof req.query.uid === 'string'
+          ? req.query.uid.trim()
+          : '';
+      if (requestedOwnerParam && requestedOwnerParam !== authUid) {
+        return res.status(403).json({
+          success: false,
+          code: 'OWNERSHIP_FORBIDDEN',
+          error:
+            'OWNERSHIP_FORBIDDEN: Acesso cruzado negado. Não é permitido consultar sessões LIVE de outro usuário (ownerUid !== authUid).',
+        });
+      }
+
+      const requestedLimitRaw = Number(req.query.limit);
+      const requestedLimit =
+        Number.isFinite(requestedLimitRaw) && requestedLimitRaw > 0
+          ? Math.max(1, Math.min(100, Math.floor(requestedLimitRaw)))
+          : 15;
+
+      const sessions = await fetchAllLiveSessions(requestedLimit, authUid);
+      return res.json({
+        success: true,
+        ownerUid: authUid,
+        limit: requestedLimit,
+        sessions,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(500).json({
+        success: false,
+        code: 'LIVE_SESSIONS_QUERY_ERROR',
         error: message,
       });
     }
@@ -6110,8 +6209,8 @@ async function startServer() {
           short_name: 'GIODASORTE',
           start_url: './',
           display: 'standalone',
-          background_color: '#050D20',
-          theme_color: '#050D20',
+          background_color: '#080A0F',
+          theme_color: '#0131CD',
         });
       }
     });
