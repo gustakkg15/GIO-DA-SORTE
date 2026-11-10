@@ -16,7 +16,6 @@ import {
   DEFAULT_SETTINGS,
   INITIAL_SAMPLE_PARTICIPANTS,
   computeRaffle,
-  secureRandomInt,
   generateUid,
   exportToCsv,
   formatDateTime,
@@ -81,6 +80,7 @@ import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { Footer } from './components/Footer';
 import { useIdleAutoSave } from './hooks/useIdleAutoSave';
 import { idleStorage } from './utils/idleStorage';
+import { getApiUrl, apiFetch, safeApiJson } from './utils/apiConfig';
 import {
   Sparkles,
   Ticket,
@@ -267,7 +267,7 @@ export default function App() {
         return false;
       }
 
-      const res = await fetch('/api/subscriptions/admin/summary', {
+      const res = await safeApiJson('/api/subscriptions/admin/summary', {
         headers: {
           Authorization: `Bearer ${idToken}`,
         },
@@ -302,11 +302,11 @@ export default function App() {
 
     try {
       const authHeaders = await getAuthBearerHeaders();
-      const planRes = await fetch('/api/tiktok/plan/status', {
+      const planRes = await safeApiJson<any>('/api/tiktok/plan/status', {
         headers: authHeaders,
       });
-      if (planRes.ok) {
-        const planData = await planRes.json();
+      if (planRes.ok && planRes.data) {
+        const planData = planRes.data;
         if (planData && planData.tier) {
           const confirmed = setProPlanTier(planData.tier, planData.statusState, activeUid);
           setPlanEntitlement({ ...confirmed, ...planData, active: confirmed.active });
@@ -329,11 +329,11 @@ export default function App() {
         setLiveSessionsSummary([]);
         return;
       }
-      const sessionsRes = await fetch('/api/tiktok/live/sessions?limit=15', {
+      const sessionsRes = await safeApiJson<any>('/api/tiktok/live/sessions?limit=15', {
         headers: authHeaders,
       });
-      if (sessionsRes.ok) {
-        const sessionsData = await sessionsRes.json();
+      if (sessionsRes.ok && sessionsRes.data) {
+        const sessionsData = sessionsRes.data;
         if (sessionsData?.success && Array.isArray(sessionsData.sessions)) {
           setLiveSessionsSummary(
             sessionsData.sessions.filter(
@@ -420,12 +420,12 @@ export default function App() {
           setPlanEntitlement(getProPlanEntitlement(activeUid));
           return;
         }
-        const res = await fetch('/api/tiktok/plan/tier', {
+        const res = await safeApiJson<any>('/api/tiktok/plan/tier', {
           method: 'POST',
           headers: authHeaders,
           body: JSON.stringify({ uid: activeUid, tier, statusState }),
         });
-        const data = await res.json().catch(() => ({}));
+        const data = res.data || {};
         if (res.ok && data.entitlement) {
           const confirmed = setProPlanTier(
             data.entitlement.tier,
@@ -566,26 +566,24 @@ export default function App() {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${idToken}`,
           };
-          const stateRes = await fetch('/api/raffle/state?raffleId=default', {
+          const stateRes = await safeApiJson<any>('/api/raffle/state?raffleId=default', {
             headers: authHeaders,
           });
-          if (stateRes.ok) {
-            const stateData = await stateRes.json();
-            if (stateData?.ok && stateData.raffle) {
-              if (Array.isArray(stateData.raffle.participants)) {
-                setParticipants(stateData.raffle.participants);
-              }
-              if (stateData.raffle.settings) {
-                setSettings((s) => ({ ...s, ...stateData.raffle.settings }));
-              }
-              if (Array.isArray(stateData.raffle.winners)) {
-                setWinners(stateData.raffle.winners);
-              }
-              setSyncStatus('synced');
+          if (stateRes.ok && stateRes.data?.ok && stateRes.data.raffle) {
+            const stateData = stateRes.data;
+            if (Array.isArray(stateData.raffle.participants)) {
+              setParticipants(stateData.raffle.participants);
             }
-          } else if (stateRes.status === 404) {
-            // Bootstrap initial authoritative raffle once when document does not exist yet
-            const bootRes = await fetch('/api/raffle/sync', {
+            if (stateData.raffle.settings) {
+              setSettings((s) => ({ ...s, ...stateData.raffle.settings }));
+            }
+            if (Array.isArray(stateData.raffle.winners)) {
+              setWinners(stateData.raffle.winners);
+            }
+            setSyncStatus('synced');
+          } else if (stateRes.status === 404 && !stateRes.isHtml) {
+            // Bootstrap initial authoritative raffle once when document does not exist yet on backend
+            const bootRes = await safeApiJson<any>('/api/raffle/sync', {
               method: 'POST',
               headers: authHeaders,
               body: JSON.stringify({
@@ -595,19 +593,20 @@ export default function App() {
                 participants,
               }),
             });
-            if (bootRes.ok) {
-              const bootData = await bootRes.json();
-              if (bootData?.ok && bootData.raffle) {
-                setParticipants(bootData.raffle.participants || []);
-                if (bootData.raffle.settings) {
-                  setSettings((s) => ({ ...s, ...bootData.raffle.settings }));
-                }
-                if (Array.isArray(bootData.raffle.winners)) {
-                  setWinners(bootData.raffle.winners);
-                }
-                setSyncStatus('synced');
+            if (bootRes.ok && bootRes.data?.ok && bootRes.data.raffle) {
+              const bootData = bootRes.data;
+              setParticipants(bootData.raffle.participants || []);
+              if (bootData.raffle.settings) {
+                setSettings((s) => ({ ...s, ...bootData.raffle.settings }));
               }
+              if (Array.isArray(bootData.raffle.winners)) {
+                setWinners(bootData.raffle.winners);
+              }
+              setSyncStatus('synced');
             }
+          } else if (stateRes.isHtml || stateRes.status === 404) {
+            // Static host or backend route unavailable; preserve local data
+            setSyncStatus('offline');
           }
         } catch (err) {
           console.warn('Initial authoritative raffle fetch notice:', err);
@@ -651,7 +650,7 @@ export default function App() {
         prizeName: settings.prizeName,
         prizeImage: settings.prizeImage,
       };
-      const res = await fetch('/api/raffle/sync', {
+      const res = await safeApiJson('/api/raffle/sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -665,11 +664,13 @@ export default function App() {
       });
       if (res.ok || res.status === 409) {
         setSyncStatus('synced');
+      } else if (res.isHtml || res.status === 404 || res.status === 0) {
+        setSyncStatus('offline');
       } else {
         setSyncStatus('error');
       }
     } catch {
-      setSyncStatus('error');
+      setSyncStatus('offline');
     }
   }, [currentUser, isDrawing, countdownRemaining, settings]);
 
@@ -678,22 +679,22 @@ export default function App() {
     if (!currentUser) return;
     try {
       const idToken = await currentUser.getIdToken();
-      const res = await fetch('/api/raffle/state?raffleId=default', {
+      const res = await safeApiJson<any>('/api/raffle/state?raffleId=default', {
         headers: {
           Authorization: `Bearer ${idToken}`,
         },
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.ok && data.raffle) {
-          if (data.raffle.settings) setSettings((s) => ({ ...s, ...data.raffle.settings }));
-          if (Array.isArray(data.raffle.participants)) setParticipants(data.raffle.participants);
-          if (Array.isArray(data.raffle.winners)) setWinners(data.raffle.winners);
-          setSyncStatus('synced');
-        }
+      if (res.ok && res.data?.ok && res.data.raffle) {
+        const data = res.data;
+        if (data.raffle.settings) setSettings((s) => ({ ...s, ...data.raffle.settings }));
+        if (Array.isArray(data.raffle.participants)) setParticipants(data.raffle.participants);
+        if (Array.isArray(data.raffle.winners)) setWinners(data.raffle.winners);
+        setSyncStatus('synced');
+      } else if (res.isHtml || res.status === 404) {
+        setSyncStatus('offline');
       }
     } catch {
-      setSyncStatus('error');
+      setSyncStatus('offline');
     }
   }, [currentUser]);
 
@@ -753,7 +754,7 @@ export default function App() {
       setSyncStatus('saving');
       try {
         const idToken = await currentUser.getIdToken();
-        const res = await fetch('/api/raffle/participant/mutate', {
+        const res = await safeApiJson<any>('/api/raffle/participant/mutate', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -764,8 +765,8 @@ export default function App() {
             ...mutationPayload,
           }),
         });
-        const data = await res.json();
-        if (res.ok && data?.ok && data.raffle) {
+        if (res.ok && res.data?.ok && res.data.raffle) {
+          const data = res.data;
           if (Array.isArray(data.raffle.participants)) {
             setParticipants(data.raffle.participants);
           }
@@ -776,11 +777,13 @@ export default function App() {
             setWinners(data.raffle.winners);
           }
           setSyncStatus('synced');
+        } else if (res.isHtml || res.status === 404) {
+          setSyncStatus('offline');
         } else {
           setSyncStatus('error');
         }
       } catch {
-        setSyncStatus('error');
+        setSyncStatus('offline');
       }
     },
     [currentUser]
@@ -963,23 +966,26 @@ export default function App() {
       setDrawErrorMessage(null);
 
       try {
-        const idToken = await currentUser.getIdToken();
+        const idToken = (await currentUser.getIdToken()) || '';
+        if (!idToken) {
+          throw new Error('Autenticação necessária para realizar sorteios oficiais no servidor.');
+        }
+
         const authHeaders = {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${idToken}`,
         };
 
-        // 1. Request cryptographic pre-commitment directly against the backend's authoritative persisted state.
-        // R-04: Never overwrites the backend roster with the local array before the draw.
-        let precommitRes = await fetch('/api/raffle/draw/pre-commit', {
+        // 1. Request cryptographic pre-commitment from authoritative backend
+        let precommitRes = await safeApiJson<any>('/api/raffle/draw/pre-commit', {
           method: 'POST',
           headers: authHeaders,
           body: JSON.stringify({ raffleId: 'default' }),
         });
 
-        // If the raffle document has never been created on the backend yet (404), bootstrap once and retry pre-commit
-        if (precommitRes.status === 404) {
-          const bootRes = await fetch('/api/raffle/sync', {
+        // If raffle document has never been created on backend yet (404 JSON), bootstrap once and retry pre-commit
+        if (precommitRes.status === 404 && !precommitRes.isHtml) {
+          const bootRes = await safeApiJson<any>('/api/raffle/sync', {
             method: 'POST',
             headers: authHeaders,
             body: JSON.stringify({
@@ -989,23 +995,29 @@ export default function App() {
               participants,
             }),
           });
-          if (!bootRes.ok) {
-            const bootErr = await bootRes.json().catch(() => ({}));
-            throw new Error(bootErr.message || bootErr.error || 'Falha ao inicializar rifa no servidor.');
+          if (!bootRes.ok || !bootRes.data?.ok) {
+            throw new Error(
+              bootRes.error || bootRes.data?.message || 'Servidor indisponível para inicializar rifa.'
+            );
           }
-          precommitRes = await fetch('/api/raffle/draw/pre-commit', {
+
+          precommitRes = await safeApiJson<any>('/api/raffle/draw/pre-commit', {
             method: 'POST',
             headers: authHeaders,
             body: JSON.stringify({ raffleId: 'default' }),
           });
         }
 
-        const precommitData = await precommitRes.json();
-        if (!precommitRes.ok || !precommitData.ok) {
+        if (!precommitRes.ok || !precommitRes.data?.ok) {
           throw new Error(
-            precommitData.message || precommitData.error || 'Falha ao criar pré-compromisso criptográfico.'
+            precommitRes.error ||
+              precommitRes.data?.message ||
+              precommitRes.data?.error ||
+              'Servidor indisponível para pré-compromisso do sorteio.'
           );
         }
+
+        const precommitData = precommitRes.data;
 
         // 2. Generate 256-bit client entropy (E_client) using WebCrypto CSPRNG
         const entropyBytes = new Uint8Array(32);
@@ -1021,9 +1033,12 @@ export default function App() {
         const idempotencyKey = `idem_${drawId}`;
 
         // 3. Execute authoritative draw on backend
-        const drawRes = await fetch('/api/raffle/draw', {
+        const drawRes = await safeApiJson<any>('/api/raffle/draw', {
           method: 'POST',
-          headers: authHeaders,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${idToken}`,
+          },
           body: JSON.stringify({
             raffleId: 'default',
             drawId,
@@ -1039,16 +1054,19 @@ export default function App() {
             prizeName: settings.prizeName || settings.currentPrize || 'Prêmio Oficial',
           }),
         });
-        const drawData = await drawRes.json();
-        if (!drawRes.ok || !drawData.ok) {
+
+        if (!drawRes.ok || !drawRes.data?.ok || !drawRes.data.winningTicket || !drawRes.data.winner) {
           throw new Error(
-            drawData.message || drawData.error || 'O servidor rejeitou a confirmação do sorteio.'
+            drawRes.error ||
+              drawRes.data?.message ||
+              drawRes.data?.error ||
+              'O servidor de sorteios rejeitou a confirmação oficial do resultado.'
           );
         }
 
         const chosenTicket: { number: number; participantId: string; name: string } =
-          drawData.winningTicket;
-        const authoritativeWinner: Winner = drawData.winner;
+          drawRes.data.winningTicket;
+        const authoritativeWinner: Winner = drawRes.data.winner;
 
         if (mode === 'wheel') {
           pendingAuthoritativeWinnerRef.current = authoritativeWinner;
@@ -1099,7 +1117,9 @@ export default function App() {
         setIsDrawing(false);
         drawingRef.current = false;
         setDrawErrorMessage(
-          err instanceof Error ? err.message : 'Erro inesperado ao executar sorteio oficial no servidor.'
+          err instanceof Error
+            ? err.message
+            : 'Erro inesperado ao comunicar com o servidor autoritativo de sorteios.'
         );
       }
     },

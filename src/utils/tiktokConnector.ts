@@ -10,6 +10,7 @@ import {
   GiftEventAtomicResult,
   getAuthBearerHeaders,
 } from './tiktokLiveService.js';
+import { getApiUrl, safeApiJson } from './apiConfig.js';
 
 export interface BackoffConfig {
   initialDelayMs: number;
@@ -692,7 +693,7 @@ export class TikTokWebSocketClient {
       if (!authHeaders.Authorization) {
         return '';
       }
-      const ticketRes = await fetch('/api/tiktok/stream/ticket', {
+      const ticketRes = await safeApiJson<any>('/api/tiktok/stream/ticket', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -702,8 +703,8 @@ export class TikTokWebSocketClient {
           sessionId: sessionId || this.currentSessionId || undefined,
         }),
       });
-      if (ticketRes.ok) {
-        const ticketData = await ticketRes.json();
+      if (ticketRes.ok && ticketRes.data) {
+        const ticketData = ticketRes.data;
         const rawTicket = typeof ticketData.ticket === 'string' ? ticketData.ticket.trim() : '';
         if (rawTicket) {
           this.ticketsIssuedCount++;
@@ -727,6 +728,7 @@ export class TikTokWebSocketClient {
       this.url.startsWith('http') || this.url.startsWith('/')
         ? this.url
         : '/api/tiktok/stream';
+    const resolvedBasePath = getApiUrl(basePath);
     const params = new URLSearchParams({
       clientId: this.clientId,
       clientSecret: this.clientSecret,
@@ -1294,10 +1296,9 @@ export class TikTokLiveConnector {
   public async syncWithBackendStatus(options?: { triggerAutoRecovery?: boolean }): Promise<TikTokConnectionStatus | null> {
     try {
       const query = options?.triggerAutoRecovery ? '?recover=1' : '';
-      const res = await fetch(`/api/tiktok/status${query}`);
-      if (!res.ok) return null;
-      const statusData = await res.json();
-      if (!statusData) return null;
+      const statusRes = await safeApiJson<any>(`/api/tiktok/status${query}`);
+      if (!statusRes.ok || !statusRes.data) return null;
+      const statusData = statusRes.data;
 
       const resolvedState = (statusData.state || statusData.status?.state || 'DISCONNECTED') as TikTokConnectionState;
       const resolvedSid = statusData.sessionId || statusData.status?.sessionId;
@@ -1411,11 +1412,10 @@ export class TikTokLiveConnector {
       warning: null,
     });
 
-    let res: Response;
     try {
       // 1. Post connection intent to backend with verified Firebase ID Token
       const authHeaders = await getAuthBearerHeaders();
-      res = await fetch('/api/tiktok/connect', {
+      const connectRes = await safeApiJson<any>('/api/tiktok/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({
@@ -1435,6 +1435,50 @@ export class TikTokLiveConnector {
           participationRulesNotes: options?.participationRulesNotes || undefined,
         }),
       });
+
+      const data = connectRes.data || {};
+      if (!connectRes.ok) {
+        const serverError = data.error || connectRes.error || 'Falha ao iniciar conector no servidor';
+        this.publishConnectionStatus({
+          state: 'ERROR',
+          sessionId: this.currentSessionId,
+          roomUsername: this.currentUsername,
+          warning: serverError,
+        });
+        throw new Error(serverError);
+      }
+
+      const effectiveSid = data.sessionId || data.status?.sessionId || this.currentSessionId;
+      if (effectiveSid && effectiveSid !== this.currentSessionId) {
+        this.setSessionId(effectiveSid, { reconnectStreamIfSessionChanged: true });
+      }
+      if (data.activeRuleId || data.status?.activeRuleId) {
+        this.setActiveRuleId(data.activeRuleId || data.status?.activeRuleId);
+      }
+
+      // 2. Always ensure the unified SSE stream is open on the singleton connector
+      if (options?.openClientStream !== false) {
+        this.ensureSseStream(this.currentSessionId);
+      }
+
+      const nextState: TikTokConnectionState = data.success
+        ? 'CONNECTED'
+        : (data.status?.state as TikTokConnectionState) || 'RECONNECTING';
+
+      this.publishConnectionStatus({
+        ...(data.status || {}),
+        state: nextState,
+        sessionId: this.currentSessionId,
+        activeRuleId: this.activeRuleId,
+        roomUsername: data.status?.roomUsername || this.currentUsername,
+      });
+
+      return {
+        success: Boolean(data.success),
+        error: data.error,
+        status: data.status,
+        sessionId: this.currentSessionId,
+      };
     } catch (networkErr) {
       const errorMessage =
         networkErr instanceof Error ? networkErr.message : 'Falha de rede ao comunicar com o servidor';
@@ -1446,57 +1490,13 @@ export class TikTokLiveConnector {
       });
       throw new Error(errorMessage);
     }
-
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const serverError = data.error || 'Falha ao iniciar conector no servidor';
-      this.publishConnectionStatus({
-        state: 'ERROR',
-        sessionId: this.currentSessionId,
-        roomUsername: this.currentUsername,
-        warning: serverError,
-      });
-      throw new Error(serverError);
-    }
-
-    const effectiveSid = data.sessionId || data.status?.sessionId || this.currentSessionId;
-    if (effectiveSid && effectiveSid !== this.currentSessionId) {
-      this.setSessionId(effectiveSid, { reconnectStreamIfSessionChanged: true });
-    }
-    if (data.activeRuleId || data.status?.activeRuleId) {
-      this.setActiveRuleId(data.activeRuleId || data.status?.activeRuleId);
-    }
-
-    // 2. Always ensure the unified SSE stream is open on the singleton connector
-    if (options?.openClientStream !== false) {
-      this.ensureSseStream(this.currentSessionId);
-    }
-
-    const nextState: TikTokConnectionState = data.success
-      ? 'CONNECTED'
-      : (data.status?.state as TikTokConnectionState) || 'RECONNECTING';
-
-    this.publishConnectionStatus({
-      ...(data.status || {}),
-      state: nextState,
-      sessionId: this.currentSessionId,
-      activeRuleId: this.activeRuleId,
-      roomUsername: data.status?.roomUsername || this.currentUsername,
-    });
-
-    return {
-      success: Boolean(data.success),
-      error: data.error,
-      status: data.status,
-      sessionId: this.currentSessionId,
-    };
   }
 
   public async disconnect(): Promise<void> {
     this.client.disconnect();
     try {
       const authHeaders = await getAuthBearerHeaders();
-      await fetch('/api/tiktok/disconnect', {
+      await safeApiJson('/api/tiktok/disconnect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({

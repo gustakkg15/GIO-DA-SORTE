@@ -38,6 +38,7 @@ import {
   setLocalSubscriptionState,
 } from '../utils/legalAndComplianceService';
 import { getAuthBearerHeaders } from '../utils/tiktokLiveService';
+import { safeApiJson } from '../utils/apiConfig';
 
 interface SubscriptionPlanViewProps {
   entitlement: ProPlanEntitlement;
@@ -200,11 +201,11 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
     try {
       const authHeaders = await getAuthBearerHeaders();
       const query = effectiveUid ? `?uid=${encodeURIComponent(effectiveUid)}` : '';
-      const res = await fetch(`/api/subscriptions/plans${query}`, {
+      const res = await safeApiJson<any>(`/api/subscriptions/plans${query}`, {
         headers: { ...authHeaders },
       });
-      if (res.ok) {
-        const data = await res.json();
+      if (res.ok && res.data) {
+        const data = res.data;
         if (data.config) {
           setCommercialConfig(data.config);
           setEditMonthlyPrice(String(data.config.monthlyPrice ?? 29.9));
@@ -237,11 +238,11 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
         setAdminSummary(null);
         return;
       }
-      const res = await fetch('/api/subscriptions/admin/summary', {
+      const res = await safeApiJson<any>('/api/subscriptions/admin/summary', {
         headers: authHeaders,
       });
-      if (res.ok) {
-        const data = await res.json();
+      if (res.ok && res.data) {
+        const data = res.data;
         if (data.summary) {
           setAdminSummary(data.summary);
           if (data.summary.homologationReport) {
@@ -315,7 +316,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
       setIsVerifyingPreapproval(true);
       try {
         const authHeaders = await getAuthBearerHeaders();
-        const res = await fetch('/api/subscriptions/verify', {
+        const res = await safeApiJson<any>('/api/subscriptions/verify', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -329,7 +330,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
             preapprovalId: targetId,
           }),
         });
-        const data = await res.json();
+        const data = res.data || {};
         if (data.subscription) {
           setUserSubscription(data.subscription);
           setStatusState(data.subscription.statusState);
@@ -337,7 +338,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
         if (!res.ok || !data.success) {
           setNotice({
             type: 'warning',
-            text: data.error || 'Não foi possível validar a assinatura no Mercado Pago.',
+            text: data.error || res.error || 'Não foi possível validar a assinatura no Mercado Pago.',
           });
         } else {
           setNotice({

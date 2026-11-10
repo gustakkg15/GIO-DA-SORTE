@@ -54,3 +54,58 @@ export async function apiFetch(
   };
   return fetch(fullUrl, options);
 }
+
+export interface SafeJsonResponse<T = any> {
+  ok: boolean;
+  status: number;
+  data?: T;
+  error?: string;
+  isHtml?: boolean;
+}
+
+/**
+ * Safely executes an API request, ensuring the URL is properly resolved to the backend
+ * and parsing the JSON response safely without throwing "Unexpected token '<'".
+ */
+export async function safeApiJson<T = any>(
+  endpointPath: string,
+  init?: RequestInit
+): Promise<SafeJsonResponse<T>> {
+  try {
+    const res = await apiFetch(endpointPath, init);
+    const contentType = (res.headers.get('content-type') || '').toLowerCase();
+
+    // Catch non-JSON (e.g. 404.html from GitHub Pages or 502/503 warmup.html from Nginx)
+    if (!contentType.includes('application/json')) {
+      return {
+        ok: false,
+        status: res.status,
+        isHtml: true,
+        error: `Resposta não-JSON do servidor (${res.status} ${res.statusText || 'HTML'}).`,
+      };
+    }
+
+    const data = await res.json();
+    if (!res.ok) {
+      return {
+        ok: false,
+        status: res.status,
+        data,
+        error: data?.message || data?.error || `Erro HTTP ${res.status}`,
+      };
+    }
+
+    return {
+      ok: true,
+      status: res.status,
+      data,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      status: 0,
+      error: err instanceof Error ? err.message : 'Falha na conexão de rede com o servidor.',
+    };
+  }
+}
+
