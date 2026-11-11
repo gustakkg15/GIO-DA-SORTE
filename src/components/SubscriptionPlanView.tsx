@@ -172,6 +172,10 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
   const [homologationReport, setHomologationReport] = useState<MercadoPagoHomologationReport | null>(null);
   const [adminSummary, setAdminSummary] = useState<AdminSummaryPayload | null>(null);
 
+  // Payment provider and billing cycle selection state
+  const [selectedPaymentProvider, setSelectedPaymentProvider] = useState<'MERCADO_PAGO' | 'PAYPAL'>('MERCADO_PAGO');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
+
   // Pre-checkout confirmation modal state
   const [selectedPlanForCheckout, setSelectedPlanForCheckout] = useState<OfficialSubscriptionPlanDefinition | null>(null);
   const [confirmedEmailInput, setConfirmedEmailInput] = useState(userEmail || '');
@@ -296,22 +300,25 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
   }, [entitlement.active, entitlement.tier, entitlement.statusState, statusState]);
 
   const handleVerifyPreapproval = useCallback(
-    async (preapprovalIdToVerify?: string) => {
+    async (preapprovalIdToVerify?: string, providerToVerify?: 'MERCADO_PAGO' | 'PAYPAL') => {
       const targetId = (preapprovalIdToVerify || verifyPreapprovalInput).trim();
       if (!targetId) {
         setNotice({
           type: 'warning',
-          text: 'Informe o ID da assinatura (preapproval_id) para verificar no backend.',
+          text: 'Informe o ID da assinatura (preapproval_id do Mercado Pago ou ID I-... do PayPal) para verificar no backend.',
         });
         return;
       }
       if (!effectiveUid) {
         setNotice({
           type: 'warning',
-          text: 'Faça login na sua conta Firebase para validar a titularidade (external_reference === uid).',
+          text: 'Faça login na sua conta Firebase para validar a titularidade (external_reference / custom_id === uid).',
         });
         return;
       }
+
+      const isPayPalId = targetId.startsWith('I-') || providerToVerify === 'PAYPAL' || selectedPaymentProvider === 'PAYPAL';
+      const provider: 'MERCADO_PAGO' | 'PAYPAL' = isPayPalId ? 'PAYPAL' : 'MERCADO_PAGO';
 
       setIsVerifyingPreapproval(true);
       try {
@@ -327,7 +334,9 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
           body: JSON.stringify({
             uid: effectiveUid,
             email: userEmail,
-            preapprovalId: targetId,
+            provider,
+            preapprovalId: !isPayPalId ? targetId : undefined,
+            paypalSubscriptionId: isPayPalId ? targetId : undefined,
           }),
         });
         const data = res.data || {};
@@ -338,12 +347,12 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
         if (!res.ok || !data.success) {
           setNotice({
             type: 'warning',
-            text: data.error || res.error || 'Não foi possível validar a assinatura no Mercado Pago.',
+            text: data.error || res.error || `Não foi possível validar a assinatura no provedor ${provider}.`,
           });
         } else {
           setNotice({
             type: 'success',
-            text: data.message || 'Assinatura verificada e sincronizada com sucesso.',
+            text: data.message || `Assinatura verificada e sincronizada com sucesso via ${provider === 'PAYPAL' ? 'PayPal' : 'Mercado Pago'}.`,
           });
           if (data.subscription?.statusState === 'ACTIVE') {
             await onSwitchPlan('PRO', 'ACTIVE');
@@ -359,16 +368,27 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
         setIsVerifyingPreapproval(false);
       }
     },
-    [effectiveUid, loadSubscriptionData, onSwitchPlan, userEmail, verifyPreapprovalInput]
+    [effectiveUid, loadSubscriptionData, onSwitchPlan, selectedPaymentProvider, userEmail, verifyPreapprovalInput]
   );
 
-  // Check URL return from Mercado Pago checkout (?preapproval_id=...)
+  // Check URL return from Mercado Pago (?preapproval_id=...) or PayPal (?subscription_id=... or ?paypal_return=1)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const returnedPreapprovalId = params.get('preapproval_id');
-    if (returnedPreapprovalId && effectiveUid) {
+    const returnedPayPalSubId = params.get('subscription_id');
+    const isPayPalReturn = params.get('paypal_return') === '1' || Boolean(returnedPayPalSubId);
+
+    if (returnedPayPalSubId && effectiveUid) {
+      setSelectedPaymentProvider('PAYPAL');
+      setVerifyPreapprovalInput(returnedPayPalSubId);
+      handleVerifyPreapproval(returnedPayPalSubId, 'PAYPAL');
+    } else if (returnedPreapprovalId && effectiveUid) {
+      setSelectedPaymentProvider('MERCADO_PAGO');
       setVerifyPreapprovalInput(returnedPreapprovalId);
-      handleVerifyPreapproval(returnedPreapprovalId);
+      handleVerifyPreapproval(returnedPreapprovalId, 'MERCADO_PAGO');
+    } else if (isPayPalReturn && effectiveUid) {
+      // Return from PayPal approval without explicit query sub ID: trigger auto-verify
+      handleVerifyPreapproval(undefined, 'PAYPAL');
     }
   }, [effectiveUid, handleVerifyPreapproval]);
 
@@ -447,6 +467,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
           emailVerified: emailVerified || confirmEmailOwnership,
           emailConfirmedByUser: confirmEmailOwnership,
           planId: selectedPlanForCheckout.planId,
+          provider: selectedPaymentProvider,
           acceptedTerms: acceptedCommercialTerms,
         }),
       });
@@ -459,7 +480,9 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
       if (!res.ok || !data.success) {
         setCheckoutError(
           data.error ||
-            'Contratação bloqueada preventivamente até a conclusão da homologação na API do Mercado Pago.'
+            (selectedPaymentProvider === 'PAYPAL'
+              ? 'Falha ao inicializar o checkout do PayPal. Verifique as credenciais ou tente novamente.'
+              : 'Contratação bloqueada preventivamente até a conclusão da homologação na API do Mercado Pago.')
         );
         return;
       }
@@ -468,15 +491,16 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
         setUserSubscription(data.subscription);
       }
 
+      const redirectUrl = data.approvalUrl || data.initPoint;
       setNotice({
         type: 'success',
-        text: data.message || 'Checkout individual criado com sucesso no Mercado Pago. Redirecionando...',
+        text: data.message || `Checkout individual criado com sucesso via ${selectedPaymentProvider === 'PAYPAL' ? 'PayPal' : 'Mercado Pago'}. Redirecionando...`,
       });
       setSelectedPlanForCheckout(null);
       await loadSubscriptionData();
 
-      if (data.initPoint) {
-        window.location.href = data.initPoint;
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
       }
     } catch (err: unknown) {
       setCheckoutError(err instanceof Error ? err.message : String(err));
@@ -891,6 +915,146 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
 
       {activeViewTab === 'plans' || !isAdminAuthorized ? (
         <>
+          {/* Payment Provider & Billing Frequency Controls — 7 Laws of Usability */}
+          <div className="space-y-4">
+            {/* Step 1: Payment Provider Choice (Hick's & Jakob's Law) */}
+            <div className="p-5 sm:p-6 rounded-2xl bg-[#080A0F] border border-white/[0.08] shadow-lg space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.08] pb-3">
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#B9FC01] flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Passo 1 · Escolha o Método de Pagamento Oficial</span>
+                  </span>
+                  <h3 className="text-base font-display font-extrabold text-[#FFFFFF]">
+                    Provedor de Pagamento Seguro
+                  </h3>
+                </div>
+                <span className="text-xs text-[#94A3B8]">
+                  Ambos suportam <strong>3 dias de teste gratuito</strong> sem cobrança imediata
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                {/* Provider Card: Mercado Pago */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedPaymentProvider('MERCADO_PAGO')}
+                  className={`p-4 rounded-xl border text-left transition-all cursor-pointer relative flex flex-col justify-between gap-3 ${
+                    selectedPaymentProvider === 'MERCADO_PAGO'
+                      ? 'bg-[#0866F5]/10 border-[#0866F5] ring-2 ring-[#0866F5]/30 shadow-md'
+                      : 'bg-[#10141E] border-white/[0.08] hover:border-white/[0.18]'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-lg bg-[#0866F5]/15 border border-[#0866F5]/40 flex items-center justify-center shrink-0">
+                        <CreditCard className="w-5 h-5 text-[#0866F5]" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-sm text-[#FFFFFF]">Mercado Pago</span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#0866F5]/20 text-[#0866F5] border border-[#0866F5]/40 uppercase">
+                            Brasil
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-[#94A3B8]">Pix • Cartões Nacionais • Boleto Bancário</span>
+                      </div>
+                    </div>
+                    <div
+                      className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition ${
+                        selectedPaymentProvider === 'MERCADO_PAGO'
+                          ? 'border-[#0866F5] bg-[#0866F5] text-[#FFFFFF]'
+                          : 'border-white/[0.2] bg-transparent'
+                      }`}
+                    >
+                      {selectedPaymentProvider === 'MERCADO_PAGO' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                    Pagamento 100% em Reais (BRL), integrado à infraestrutura financeira nacional com autenticação direta.
+                  </p>
+                </button>
+
+                {/* Provider Card: PayPal */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedPaymentProvider('PAYPAL')}
+                  className={`p-4 rounded-xl border text-left transition-all cursor-pointer relative flex flex-col justify-between gap-3 ${
+                    selectedPaymentProvider === 'PAYPAL'
+                      ? 'bg-[#0079C1]/10 border-[#0079C1] ring-2 ring-[#0079C1]/30 shadow-md'
+                      : 'bg-[#10141E] border-white/[0.08] hover:border-white/[0.18]'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-lg bg-[#0079C1]/15 border border-[#0079C1]/40 flex items-center justify-center shrink-0">
+                        <Sparkles className="w-5 h-5 text-[#0079C1]" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-sm text-[#FFFFFF]">PayPal</span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#0079C1]/20 text-[#0079C1] border border-[#0079C1]/40 uppercase">
+                            Global & Brasil
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-[#94A3B8]">Cartões Internacionais • Saldo PayPal</span>
+                      </div>
+                    </div>
+                    <div
+                      className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition ${
+                        selectedPaymentProvider === 'PAYPAL'
+                          ? 'border-[#0079C1] bg-[#0079C1] text-[#FFFFFF]'
+                          : 'border-white/[0.2] bg-transparent'
+                      }`}
+                    >
+                      {selectedPaymentProvider === 'PAYPAL' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                    Proteção ao Comprador 24/7, aceita cartões de crédito internacionais e saldo em conta em ambiente criptografado.
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {/* Step 2: Billing Cycle Switcher (Fitts's Law >= 44px touch target) */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-[#080A0F] border border-white/[0.08]">
+              <div className="flex items-center gap-2.5">
+                <Crown className="w-4 h-4 text-[#B9FC01]" />
+                <span className="text-xs font-bold text-[#FFFFFF]">
+                  Passo 2 · Escolha a Frequência de Faturamento:
+                </span>
+              </div>
+              <div className="inline-flex items-center p-1 rounded-xl bg-[#10141E] border border-white/[0.08]">
+                <button
+                  type="button"
+                  onClick={() => setBillingCycle('monthly')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer min-h-[38px] ${
+                    billingCycle === 'monthly'
+                      ? 'bg-[#0131CD] text-[#FFFFFF] shadow-sm'
+                      : 'text-[#94A3B8] hover:text-[#FFFFFF]'
+                  }`}
+                >
+                  <span>Mensal (R$ 29,90)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBillingCycle('annual')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer min-h-[38px] ${
+                    billingCycle === 'annual'
+                      ? 'bg-gradient-to-r from-[#B9FC01] to-[#20C997] text-[#080A0F] font-black shadow-sm'
+                      : 'text-[#94A3B8] hover:text-[#FFFFFF]'
+                  }`}
+                >
+                  <span>Anual (~R$ 16,66/mês)</span>
+                  <span className="px-1.5 py-0.2 rounded text-[10px] uppercase font-mono font-black bg-[#080A0F]/20">
+                    44% OFF
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* 3-Column Commercial Plans Grid: FREE | PRO MENSAL | PRO ANUAL */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
             {/* 1. PLANO FREE */}
@@ -1039,7 +1203,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                   <span>
                     {userHasUsedTrial
                       ? `Assinar PRO Mensal (${formatBrl(monthlyPlan.price)}/mês)`
-                      : 'Começar 3 dias grátis'}
+                      : `Começar 3 dias grátis (${selectedPaymentProvider === 'PAYPAL' ? 'PayPal' : 'Mercado Pago'})`}
                   </span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
@@ -1135,7 +1299,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                   <span>
                     {userHasUsedTrial
                       ? `Assinar PRO Anual (${formatBrl(annualPlan.price)}/ano)`
-                      : 'Começar 3 dias grátis'}
+                      : `Começar 3 dias grátis (${selectedPaymentProvider === 'PAYPAL' ? 'PayPal' : 'Mercado Pago'})`}
                   </span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
@@ -1199,7 +1363,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
 
               <div className="p-3.5 rounded-xl bg-[#080A0F] border border-[#161C2C]">
                 <span className="text-[10px] font-mono uppercase text-[#94A3B8] block">
-                  {isAdminAuthorized ? 'Status Interno & Mercado Pago' : 'Situação da Assinatura'}
+                  {isAdminAuthorized ? 'Status Interno & Provedor' : 'Situação da Assinatura'}
                 </span>
                 <span className="font-mono font-bold text-[#F5B942] text-sm block mt-0.5">
                   {isAdminAuthorized
@@ -1208,12 +1372,18 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                     ? 'Ativa (Acesso PRO Liberado)'
                     : 'Plano Gratuito (FREE)'}
                 </span>
-                <span className="text-[11px] font-mono text-[#94A3B8]">
-                  {isAdminAuthorized
+                <span className="text-[11px] font-mono text-[#94A3B8] block mt-0.5">
+                  {userSubscription?.provider ? (
+                    <span className="inline-flex items-center gap-1 font-semibold text-[#FFFFFF]">
+                      Provedor: {userSubscription.provider === 'PAYPAL' ? 'PayPal' : 'Mercado Pago'}
+                    </span>
+                  ) : (
+                    isAdminAuthorized
                     ? `Remoto MP: ${userSubscription?.remoteMpStatus || 'nenhum'}`
                     : isPro
                     ? 'Recursos exclusivos liberados'
-                    : 'Sem cobrança recorrente ativa'}
+                    : 'Sem cobrança recorrente ativa'
+                  )}
                 </span>
               </div>
 
@@ -1245,9 +1415,9 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                     ? 'Cancelada (Sem cobranças futuras)'
                     : formatDatePtBr(userSubscription?.nextPaymentDate)}
                 </span>
-                {isAdminAuthorized && userSubscription?.mpPreapprovalId && (
+                {isAdminAuthorized && (userSubscription?.mpPreapprovalId || userSubscription?.paypalSubscriptionId) && (
                   <span className="text-[10px] font-mono text-[#94A3B8] block mt-0.5 truncate">
-                    ID MP: {userSubscription.mpPreapprovalId}
+                    ID Remoto: {userSubscription.paypalSubscriptionId || userSubscription.mpPreapprovalId}
                   </span>
                 )}
               </div>
@@ -1261,7 +1431,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                     type="text"
                     value={verifyPreapprovalInput}
                     onChange={(e) => setVerifyPreapprovalInput(e.target.value)}
-                    placeholder="ID da assinatura Mercado Pago (preapproval_id) para verificar no backend..."
+                    placeholder="ID preapproval_id (MP) ou I-xxxx (PayPal) para verificar no backend..."
                     className="flex-1 px-3.5 py-2 rounded-xl bg-[#080A0F] border border-[#161C2C] text-xs font-mono text-[#FFFFFF] placeholder:text-[#94A3B8]"
                   />
                   <button
@@ -1271,7 +1441,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                     className="px-4 py-2 rounded-xl bg-[#0131CD]/20 hover:bg-[#0131CD]/30 text-[#FFFFFF] border border-[#0131CD]/40 text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${isVerifyingPreapproval ? 'animate-spin' : ''}`} />
-                    <span>Verificar Assinatura (GET /preapproval)</span>
+                    <span>Verificar Assinatura (MP / PayPal)</span>
                   </button>
                 </div>
               )}
@@ -1608,7 +1778,13 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
           <div className="relative w-full max-w-xl gio-card p-6 sm:p-7 space-y-5 border border-white/[0.12] shadow-2xl animate-scale-in text-xs">
             <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#B9FC01]/15 border border-[#B9FC01]/35 flex items-center justify-center text-[#B9FC01] shrink-0">
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                    selectedPaymentProvider === 'PAYPAL'
+                      ? 'bg-[#0079C1]/15 border border-[#0079C1]/35 text-[#0079C1]'
+                      : 'bg-[#0866F5]/15 border border-[#0866F5]/35 text-[#0866F5]'
+                  }`}
+                >
                   <CreditCard className="w-5 h-5" />
                 </div>
                 <div>
@@ -1616,7 +1792,10 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                     Confirmar Contratação da Assinatura PRO
                   </h3>
                   <p className="text-xs text-[#94A3B8]">
-                    {selectedPlanForCheckout.name} • 3 Dias de Avaliação Gratuita
+                    {selectedPlanForCheckout.name} • 3 Dias de Avaliação Gratuita via{' '}
+                    <strong className={selectedPaymentProvider === 'PAYPAL' ? 'text-[#0079C1]' : 'text-[#0866F5]'}>
+                      {selectedPaymentProvider === 'PAYPAL' ? 'PayPal' : 'Mercado Pago'}
+                    </strong>
                   </p>
                 </div>
               </div>
@@ -1634,6 +1813,18 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-[#94A3B8]">Plano Selecionado:</span>
                 <span className="font-bold text-[#FFFFFF]">{selectedPlanForCheckout.name}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#94A3B8]">Provedor Escolhido:</span>
+                <span
+                  className={`font-bold px-2 py-0.5 rounded text-[11px] ${
+                    selectedPaymentProvider === 'PAYPAL'
+                      ? 'bg-[#0079C1]/20 text-[#0079C1] border border-[#0079C1]/40'
+                      : 'bg-[#0866F5]/20 text-[#0866F5] border border-[#0866F5]/40'
+                  }`}
+                >
+                  {selectedPaymentProvider === 'PAYPAL' ? 'PayPal' : 'Mercado Pago'}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[#94A3B8]">Duração do Teste Gratuito:</span>
@@ -1659,7 +1850,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                     ? 'No ato da autorização'
                     : `Após 3 dias (~${new Date(
                         Date.now() + 3 * 24 * 60 * 60 * 1000
-                      ).toLocaleDateString('pt-BR')}, confirmada via next_payment_date da API MP)`}
+                      ).toLocaleDateString('pt-BR')})`}
                 </span>
               </div>
               <div className="pt-2 border-t border-[#161C2C] text-[11px] text-[#94A3B8] space-y-1">
@@ -1677,7 +1868,9 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
               <div className="p-3 rounded-xl bg-[#10141E] border border-[#161C2C] flex items-center justify-between">
                 <span className="text-[#94A3B8] flex items-center gap-1.5">
                   <UserCheck className="w-4 h-4 text-[#B9FC01]" />
-                  <span>Vínculo Exclusivo (external_reference):</span>
+                  <span>
+                    Vínculo Exclusivo ({selectedPaymentProvider === 'PAYPAL' ? 'custom_id' : 'external_reference'}):
+                  </span>
                 </span>
                 <span className="font-mono font-bold text-[#B9FC01]">
                   {effectiveUid || 'Faça login na conta Firebase'}
@@ -1686,7 +1879,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
 
               <div>
                 <label className="block text-[11px] font-mono uppercase text-[#94A3B8] mb-1">
-                  E-mail Verificado do Comprador (payer_email no Mercado Pago)
+                  E-mail do Comprador ({selectedPaymentProvider === 'PAYPAL' ? 'conta PayPal' : 'payer_email no Mercado Pago'})
                 </label>
                 <input
                   type="email"
@@ -1706,7 +1899,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                     className="mt-0.5 w-4 h-4 accent-[#0131CD] shrink-0"
                   />
                   <span>
-                    Confirmo que este endereço de e-mail pertence à minha conta autenticada e será utilizado na autorização da assinatura no Mercado Pago.
+                    Confirmo que este endereço de e-mail pertence à minha conta autenticada e será utilizado na autorização da assinatura via {selectedPaymentProvider === 'PAYPAL' ? 'PayPal' : 'Mercado Pago'}.
                   </span>
                 </label>
               )}
@@ -1755,7 +1948,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                 {checkoutPayloadPreview && (
                   <details className="text-[10px] font-mono text-[#B9FC01] pt-1">
                     <summary className="cursor-pointer text-[#F5B942]">
-                      Ver Payload Oficial Preparado (POST /preapproval)
+                      Ver Payload Oficial Preparado ({selectedPaymentProvider === 'PAYPAL' ? 'POST /v1/billing/subscriptions' : 'POST /preapproval'})
                     </summary>
                     <pre className="mt-2 p-2.5 rounded bg-[#080A0F] border border-[#161C2C] overflow-x-auto">
                       {JSON.stringify(checkoutPayloadPreview, null, 2)}
@@ -1784,8 +1977,8 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                   {isSubmittingCheckout
                     ? 'Validando no Backend...'
                     : userHasUsedTrial
-                    ? 'Confirmar e Ir para o Mercado Pago'
-                    : 'Confirmar e Começar 3 Dias Grátis'}
+                    ? `Confirmar e Ir para o ${selectedPaymentProvider === 'PAYPAL' ? 'PayPal' : 'Mercado Pago'}`
+                    : `Confirmar e Começar 3 Dias Grátis no ${selectedPaymentProvider === 'PAYPAL' ? 'PayPal' : 'Mercado Pago'}`}
                 </span>
               </button>
             </div>

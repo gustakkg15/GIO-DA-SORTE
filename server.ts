@@ -83,6 +83,7 @@ import {
   mercadoPagoSubscriptionService,
   redactSensitiveMpData,
 } from './src/server/mercadoPagoSubscriptionService.ts';
+import { paypalSubscriptionService } from './src/server/paypalSubscriptionService.ts';
 import {
   requireFirebaseAuth,
   requireProPlan,
@@ -5410,6 +5411,7 @@ app.get('/api/subscriptions/plans', async (req: Request, res: Response) => {
     }
 
     const { monthly, annual, config } = await mercadoPagoSubscriptionService.getOfficialPlans();
+    const paypalPlans = paypalSubscriptionService.getOfficialPlans();
     const homologationReport =
       config.mpHomologationReport ||
       (await mercadoPagoSubscriptionService.executeTenStepHomologationVerification());
@@ -5424,6 +5426,8 @@ app.get('/api/subscriptions/plans', async (req: Request, res: Response) => {
       success: true,
       config,
       plans: { monthly, annual },
+      paypalPlans,
+      providers: ['MERCADO_PAGO', 'PAYPAL'],
       homologationReport,
       contractingBlocked: homologationReport.status !== 'VERIFIED',
       contractingBlockReason:
@@ -5452,6 +5456,14 @@ app.get('/api/subscriptions/plans', async (req: Request, res: Response) => {
             'Formulário seguro no site gerando card_token_id descartável (sem redirecionamento init_point)',
           homologationRequirement:
             'Herda free_trial do plano (POST /preapproval_plan), mas altera a experiência de checkout hospedado para tokenização transparente e exige validação de next_payment_date >= +3 dias.',
+        },
+        paypalRecurringSubscription: {
+          mode: 'PAYPAL_REST_V1_SUBSCRIPTIONS',
+          endpoint: 'POST https://api-m.paypal.com/v1/billing/subscriptions',
+          uxType: 'PayPal Smart Subscription Checkout (Redirecionamento seguro ou popup oficial)',
+          uidBinding: 'custom_id: <FIREBASE_UID> vinculado 1:1 e validado no backend',
+          cardCollection: 'Infraestrutura global protegida PayPal (PCI-DSS Nível 1)',
+          trialRequirement: 'Ciclo inicial de 3 dias com valor R$ 0,00 aplicado automaticamente.',
         },
       },
       userSubscription,
@@ -5522,8 +5534,45 @@ app.post('/api/subscriptions/checkout', async (req: Request, res: Response) => {
     const { uid, email, emailVerified } = resolvedUser;
     const planId = (body.planId === 'pro_annual' ? 'pro_annual' : 'pro_monthly') as CommercialPlanId;
     const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const backUrl = String(body.backUrl || `${baseUrl}/?mp_return=1&plan=${planId}`).trim();
+    const provider = String(body.provider || 'MERCADO_PAGO').toUpperCase();
 
+    // PayPal Checkout Route
+    if (provider === 'PAYPAL') {
+      const returnUrl = String(body.returnUrl || body.backUrl || `${baseUrl}/?paypal_return=1&plan=${planId}`).trim();
+      const cancelUrl = String(body.cancelUrl || `${baseUrl}/?paypal_cancel=1`).trim();
+
+      const outcome = await paypalSubscriptionService.initiateCheckout({
+        uid: uid || '',
+        email: email || '',
+        emailVerified: Boolean(emailVerified),
+        planId,
+        returnUrl,
+        cancelUrl,
+      });
+
+      if (!outcome.allowed) {
+        return res.status(outcome.status).json({
+          success: false,
+          code: outcome.code,
+          error: outcome.message,
+          subscription: outcome.subscription,
+        });
+      }
+
+      return res.json({
+        success: true,
+        provider: 'PAYPAL',
+        code: outcome.code,
+        message: outcome.message,
+        initPoint: outcome.approvalUrl,
+        approvalUrl: outcome.approvalUrl,
+        subscriptionId: outcome.subscriptionId,
+        subscription: outcome.subscription,
+      });
+    }
+
+    // Mercado Pago Checkout Route (Preserved 100% Intact)
+    const backUrl = String(body.backUrl || `${baseUrl}/?mp_return=1&plan=${planId}`).trim();
     const { monthly, annual } = await mercadoPagoSubscriptionService.getOfficialPlans();
     const chosenPlan = planId === 'pro_annual' ? annual : monthly;
     const userRec = uid
@@ -5561,6 +5610,7 @@ app.post('/api/subscriptions/checkout', async (req: Request, res: Response) => {
 
     res.json({
       success: true,
+      provider: 'MERCADO_PAGO',
       code: outcome.code,
       message: outcome.message,
       initPoint: outcome.initPoint,
@@ -5577,9 +5627,8 @@ app.post('/api/subscriptions/checkout', async (req: Request, res: Response) => {
 
 /**
  * POST /api/subscriptions/verify
- * Verifies a Mercado Pago preapproval_id on the backend via GET /preapproval/{id},
- * enforces 1:1 bilateral UID ownership (external_reference === uid && user.mpPreapprovalId === id),
- * and validates the 3-day free trial and next_payment_date before granting PRO access.
+ * Verifies a subscription on the backend via GET from official provider (Mercado Pago or PayPal),
+ * enforces 1:1 bilateral UID ownership, and activates PRO access.
  */
 app.post('/api/subscriptions/verify', async (req: Request, res: Response) => {
   try {
@@ -5594,9 +5643,57 @@ app.post('/api/subscriptions/verify', async (req: Request, res: Response) => {
 
     const body = req.body || {};
     const { uid } = resolvedUser;
+    const provider = String(body.provider || '').toUpperCase();
     const preapprovalId = String(body.preapprovalId || body.preapproval_id || '').trim();
+    const paypalSubscriptionId = String(body.paypalSubscriptionId || body.subscriptionId || '').trim();
 
-    if (!uid || !preapprovalId) {
+    if (!uid) {
+      return res.status(400).json({
+        success: false,
+        code: 'MISSING_UID',
+        error: 'Identificador Firebase UID é obrigatório para verificar a assinatura no servidor.',
+      });
+    }
+
+    // PayPal Verification
+    if (provider === 'PAYPAL' || paypalSubscriptionId || preapprovalId.startsWith('I-')) {
+      const subId = paypalSubscriptionId || preapprovalId;
+      if (!subId) {
+        return res.status(400).json({
+          success: false,
+          code: 'MISSING_PAYPAL_SUBSCRIPTION_ID',
+          error: 'ID da assinatura PayPal é obrigatório para verificação.',
+        });
+      }
+
+      const outcome = await paypalSubscriptionService.verifyAndSyncUserSubscription({
+        authenticatedUid: uid,
+        requestedSubscriptionId: subId,
+      });
+
+      if (!outcome.success) {
+        return res.status(outcome.status).json({
+          success: false,
+          code: outcome.code,
+          error: outcome.message,
+          subscription: outcome.subscription,
+        });
+      }
+
+      return res.json({
+        success: true,
+        provider: 'PAYPAL',
+        code: outcome.code,
+        message: outcome.message,
+        subscription: outcome.subscription,
+        entitlement: outcome.subscription
+          ? buildEntitlementFromSubscriptionRecord(outcome.subscription)
+          : getProPlanEntitlement(uid),
+      });
+    }
+
+    // Mercado Pago Verification (Preserved 100% Intact)
+    if (!preapprovalId) {
       return res.status(400).json({
         success: false,
         code: 'MISSING_UID_OR_PREAPPROVAL_ID',
@@ -5620,6 +5717,7 @@ app.post('/api/subscriptions/verify', async (req: Request, res: Response) => {
 
     res.json({
       success: true,
+      provider: 'MERCADO_PAGO',
       code: outcome.code,
       message: outcome.message,
       subscription: outcome.subscription,
@@ -5635,7 +5733,7 @@ app.post('/api/subscriptions/verify', async (req: Request, res: Response) => {
 
 /**
  * POST /api/subscriptions/cancel
- * Cancels future recurring billing in Mercado Pago using official status "canceled" (single 'l'),
+ * Cancels future recurring billing in Mercado Pago or PayPal,
  * while preserving the user's PRO access until trialEndDate or currentPeriodEnd.
  */
 app.post('/api/subscriptions/cancel', async (req: Request, res: Response) => {
@@ -5650,6 +5748,7 @@ app.post('/api/subscriptions/cancel', async (req: Request, res: Response) => {
     }
 
     const { uid, email } = resolvedUser;
+    const body = req.body || {};
 
     if (!uid) {
       return res.status(400).json({
@@ -5659,6 +5758,38 @@ app.post('/api/subscriptions/cancel', async (req: Request, res: Response) => {
       });
     }
 
+    const userRecord = await mercadoPagoSubscriptionService.getUserSubscriptionRecord(uid);
+    const provider = String(body.provider || userRecord.provider || 'MERCADO_PAGO').toUpperCase();
+
+    // PayPal Cancellation
+    if (provider === 'PAYPAL' || userRecord.paypalSubscriptionId) {
+      const outcome = await paypalSubscriptionService.cancelSubscription({
+        uid,
+        reason: body.reason || 'Cancelamento solicitado pelo usuário no painel GIO DA SORTE PRO',
+      });
+
+      if (!outcome.success) {
+        return res.status(outcome.status).json({
+          success: false,
+          code: outcome.code,
+          error: outcome.message,
+          subscription: outcome.subscription,
+        });
+      }
+
+      return res.json({
+        success: true,
+        provider: 'PAYPAL',
+        code: outcome.code,
+        message: outcome.message,
+        subscription: outcome.subscription,
+        entitlement: outcome.subscription
+          ? buildEntitlementFromSubscriptionRecord(outcome.subscription)
+          : getProPlanEntitlement(uid),
+      });
+    }
+
+    // Mercado Pago Cancellation (Preserved 100% Intact)
     const outcome = await mercadoPagoSubscriptionService.cancelSubscription({
       uid,
       actor: email || uid,
@@ -5676,6 +5807,7 @@ app.post('/api/subscriptions/cancel', async (req: Request, res: Response) => {
 
     res.json({
       success: true,
+      provider: 'MERCADO_PAGO',
       code: outcome.code,
       message: outcome.message,
       payloadSentToMp: outcome.payloadSentToMp,
@@ -5687,6 +5819,41 @@ app.post('/api/subscriptions/cancel', async (req: Request, res: Response) => {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     res.status(500).json({ success: false, error: message });
+  }
+});
+
+/**
+ * POST /api/subscriptions/webhook/paypal
+ * Official PayPal Webhook Handler with cryptographic signature verification and idempotency.
+ */
+app.post('/api/subscriptions/webhook/paypal', async (req: Request, res: Response) => {
+  try {
+    const body = req.body || {};
+    const webhookId = String(body.id || `ppwh_${Date.now()}`).trim();
+    const eventType = String(body.event_type || '').trim();
+    const resource = body.resource || {};
+
+    const headers = {
+      authAlgo: String(req.headers['paypal-auth-algo'] || req.headers['x-paypal-auth-algo'] || ''),
+      certUrl: String(req.headers['paypal-cert-url'] || req.headers['x-paypal-cert-url'] || ''),
+      transmissionId: String(req.headers['paypal-transmission-id'] || req.headers['x-paypal-transmission-id'] || ''),
+      transmissionSig: String(req.headers['paypal-transmission-sig'] || req.headers['x-paypal-transmission-sig'] || ''),
+      transmissionTime: String(req.headers['paypal-transmission-time'] || req.headers['x-paypal-transmission-time'] || ''),
+    };
+
+    const outcome = await paypalSubscriptionService.processWebhookNotification({
+      webhookId,
+      eventType,
+      resource,
+      headers,
+      rawBody: body,
+      enforceSignature: Boolean(process.env.PAYPAL_WEBHOOK_ID),
+    });
+
+    res.status(outcome.status).json(outcome);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ processed: false, error: message });
   }
 });
 

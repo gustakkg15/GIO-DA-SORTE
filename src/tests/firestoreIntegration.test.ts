@@ -23,8 +23,12 @@ export async function runFirestoreIntegrationAudit(): Promise<{
       : getFirestore(app);
 
     const testRef = db.collection('_test_isolation_fase5h').doc('probe');
-    await testRef.set({ probe: true, timestamp: Date.now() });
-    await testRef.delete();
+    const setPromise = testRef.set({ probe: true, timestamp: Date.now() });
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT_NO_ADC: Firestore Admin SDK connection timed out (3s)')), 3000)
+    );
+    await Promise.race([setPromise, timeoutPromise]);
+    await testRef.delete().catch(() => {});
 
     console.log('  ✓ [INFO] Firestore Admin SDK conectado e operacional no projeto.');
     return {

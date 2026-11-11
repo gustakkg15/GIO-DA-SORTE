@@ -761,7 +761,9 @@ export class MercadoPagoSubscriptionService {
       next.remoteMpStatus = 'canceled';
     }
 
-    if (next.cancelAtPeriodEnd || isMpCanceledStatus(next.remoteMpStatus)) {
+    const isPaypalCanceled = next.remotePaypalStatus === 'CANCELLED' || next.remotePaypalStatus === 'CANCELED';
+
+    if (next.cancelAtPeriodEnd || isMpCanceledStatus(next.remoteMpStatus) || isPaypalCanceled) {
       const effectiveEndIso =
         next.trialApplied && next.chargedQuantity === 0
           ? next.trialEndDate || next.firstPaymentDate
@@ -797,6 +799,33 @@ export class MercadoPagoSubscriptionService {
     }
 
     return next;
+  }
+
+  public async findUserRecordByPayPalSubscriptionId(paypalSubId: string): Promise<UserSubscriptionRecord | null> {
+    const cleanSubId = (paypalSubId || '').trim();
+    if (!cleanSubId) return null;
+
+    for (const record of memorySubscriptionsByUid.values()) {
+      if (record.paypalSubscriptionId === cleanSubId) {
+        return record;
+      }
+    }
+
+    try {
+      const snap = await getDocs(collection(db, 'users'));
+      for (const d of snap.docs) {
+        const data = d.data() as Record<string, any>;
+        if (data?.subscription?.paypalSubscriptionId === cleanSubId) {
+          const rec = data.subscription as UserSubscriptionRecord;
+          memorySubscriptionsByUid.set(rec.uid, rec);
+          return rec;
+        }
+      }
+    } catch {
+      // Memory fallback
+    }
+
+    return null;
   }
 
   /**

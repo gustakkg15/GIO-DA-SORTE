@@ -1087,10 +1087,21 @@ export interface MercadoPagoHomologationReport {
   evaluatedAt: number;
 }
 
+export type SubscriptionPaymentProvider = 'MERCADO_PAGO' | 'PAYPAL';
+
+export type PayPalRemoteStatus =
+  | 'APPROVAL_PENDING'
+  | 'APPROVED'
+  | 'ACTIVE'
+  | 'SUSPENDED'
+  | 'CANCELLED'
+  | 'EXPIRED';
+
 export interface UserSubscriptionRecord {
   uid: string;
   email: string;
   emailVerified: boolean;
+  provider?: SubscriptionPaymentProvider;
   planId: CommercialPlanId | null;
   planName: string;
   tier: SubscriptionPlanTier;
@@ -1099,6 +1110,9 @@ export interface UserSubscriptionRecord {
   mpPreapprovalId: string | null;
   mpPlanId: string | null;
   remoteMpStatus: MercadoPagoRemoteStatus | null;
+  paypalSubscriptionId?: string | null;
+  paypalPlanId?: string | null;
+  remotePaypalStatus?: PayPalRemoteStatus | string | null;
   checkoutInitPoint: string | null;
   contractedPriceVersion: string;
   contractedAmount: number;

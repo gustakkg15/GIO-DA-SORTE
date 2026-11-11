@@ -10,10 +10,11 @@ import { runConcurrencyIdempotencyTests } from './concurrencyIdempotency.test.ts
 import { runProvablyFairVerificationV2Tests } from './provablyFairVerificationV2.test.ts';
 import { runConcurrencyAdvancedTests } from './concurrencyAdvanced.test.ts';
 import { runFirestoreIntegrationAudit } from './firestoreIntegration.test.ts';
+import { runPayPalIntegrationTests } from './paypalIntegration.test.ts';
 
 async function main() {
   console.log('========================================================================');
-  console.log('  GIO DA SORTE PRO — SUÍTE AUTOMATIZADA DE INTEGRIDADE (FASE 5F + 5G + 5H)');
+  console.log('  GIO DA SORTE PRO — SUÍTE AUTOMATIZADA DE INTEGRIDADE & PAGAMENTOS');
   console.log('========================================================================');
 
   const startTime = Date.now();
@@ -46,7 +47,12 @@ async function main() {
     grandTotalPassed += concAdvResults.passed;
     grandTotalCount += concAdvResults.total;
 
-    // 6. Firestore Environment Integration Audit (FASE 5H)
+    // 6. PayPal Integration & Mercado Pago Coexistence Tests (11 tests)
+    const ppResults = await runPayPalIntegrationTests();
+    grandTotalPassed += ppResults.passed;
+    grandTotalCount += ppResults.total;
+
+    // 7. Firestore Environment Integration Audit (FASE 5H)
     await runFirestoreIntegrationAudit();
 
     const durationMs = Date.now() - startTime;
@@ -60,6 +66,7 @@ async function main() {
     if (grandTotalPassed !== grandTotalCount) {
       process.exit(1);
     }
+    process.exit(0);
   } catch (err) {
     console.error('\n❌ ERRO NA EXECUÇÃO DA SUÍTE DE TESTES:', err);
     process.exit(1);
