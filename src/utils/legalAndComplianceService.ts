@@ -1,5 +1,6 @@
 import { db } from '../firebase.ts';
 import { getAuthBearerHeaders } from './tiktokLiveService.ts';
+import { apiFetch, safeApiJson } from './apiConfig.ts';
 import {
   collection,
   doc,
@@ -1519,7 +1520,7 @@ export async function fetchCommercialSubscriptionConfig(): Promise<CommercialSub
 
   if (isBrowserRuntime) {
     try {
-      const res = await fetch('/api/admin/subscription-settings');
+      const res = await apiFetch('/api/admin/subscription-settings');
       if (res.ok) {
         const data = await res.json();
         if (data.config) {
@@ -1568,7 +1569,7 @@ export async function saveCommercialSubscriptionConfig(
       if (!authHeaders.Authorization) {
         throw new Error('Autenticação administrativa obrigatória.');
       }
-      await fetch('/api/admin/subscription-settings', {
+      await apiFetch('/api/admin/subscription-settings', {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify(updated),

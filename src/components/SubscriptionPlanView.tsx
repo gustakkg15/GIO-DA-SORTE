@@ -452,7 +452,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
       ]).catch(() => {});
 
       const authHeaders = await getAuthBearerHeaders();
-      const res = await fetch('/api/subscriptions/checkout', {
+      const res = await safeApiJson<any>('/api/subscriptions/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -472,7 +472,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
         }),
       });
 
-      const data = await res.json();
+      const data = res.data || {};
       if (data.payloadPreview) {
         setCheckoutPayloadPreview(data.payloadPreview);
       }
@@ -480,6 +480,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
       if (!res.ok || !data.success) {
         setCheckoutError(
           data.error ||
+            res.error ||
             (selectedPaymentProvider === 'PAYPAL'
               ? 'Falha ao inicializar o checkout do PayPal. Verifique as credenciais ou tente novamente.'
               : 'Contratação bloqueada preventivamente até a conclusão da homologação na API do Mercado Pago.')
@@ -514,7 +515,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
     setIsCancelingSubscription(true);
     try {
       const authHeaders = await getAuthBearerHeaders();
-      const res = await fetch('/api/subscriptions/cancel', {
+      const res = await safeApiJson<any>('/api/subscriptions/cancel', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -527,7 +528,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
           email: userEmail,
         }),
       });
-      const data = await res.json();
+      const data = res.data || {};
       if (data.subscription) {
         setUserSubscription(data.subscription);
         setStatusState(data.subscription.statusState);
@@ -535,7 +536,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
       if (!res.ok || !data.success) {
         setNotice({
           type: 'warning',
-          text: data.error || 'Não foi possível processar o cancelamento da assinatura.',
+          text: data.error || res.error || 'Não foi possível processar o cancelamento da assinatura.',
         });
       } else {
         setNotice({
@@ -585,18 +586,19 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
         return;
       }
 
-      const res = await fetch('/api/tiktok/plan/tier', {
+      const res = await safeApiJson<any>('/api/tiktok/plan/tier', {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify({ uid: effectiveUid, tier: target, statusState: nextState }),
       });
-      const data = await res.json().catch(() => ({}));
+      const data = res.data || {};
 
       if (!res.ok || !data?.entitlement) {
         setNotice({
           type: 'warning',
           text:
             data?.error ||
+            res.error ||
             'Operação negada pelo servidor (HTTP ' +
               res.status +
               '). Nenhum privilégio PRO foi concedido localmente.',
@@ -643,7 +645,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
         });
         return;
       }
-      const res = await fetch('/api/subscriptions/admin/plans', {
+      const res = await safeApiJson<any>('/api/subscriptions/admin/plans', {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify({
@@ -653,7 +655,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
           adminEmail: userEmail || 'admin',
         }),
       });
-      const data = await res.json();
+      const data = res.data || {};
       if (res.ok && data.success) {
         setNotice({
           type: 'success',
@@ -664,7 +666,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
       } else {
         setNotice({
           type: 'warning',
-          text: data.error || 'Erro ao atualizar configuração comercial.',
+          text: data.error || res.error || 'Erro ao atualizar configuração comercial.',
         });
       }
     } finally {
@@ -692,11 +694,11 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
         });
         return;
       }
-      const res = await fetch('/api/subscriptions/admin/homologation/verify', {
+      const res = await safeApiJson<any>('/api/subscriptions/admin/homologation/verify', {
         method: 'POST',
         headers: authHeaders,
       });
-      const data = await res.json();
+      const data = res.data || {};
       if (data.report) {
         setHomologationReport(data.report);
         setNotice({
