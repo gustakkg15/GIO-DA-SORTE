@@ -11,6 +11,7 @@ import { runProvablyFairVerificationV2Tests } from './provablyFairVerificationV2
 import { runConcurrencyAdvancedTests } from './concurrencyAdvanced.test.ts';
 import { runFirestoreIntegrationAudit } from './firestoreIntegration.test.ts';
 import { runPayPalIntegrationTests } from './paypalIntegration.test.ts';
+import { runPayPalCheckoutRouteDiagnostics } from './paypalCheckoutRoute.test.ts';
 
 async function main() {
   console.log('========================================================================');
@@ -47,12 +48,17 @@ async function main() {
     grandTotalPassed += concAdvResults.passed;
     grandTotalCount += concAdvResults.total;
 
-    // 6. PayPal Integration & Mercado Pago Coexistence Tests (11 tests)
+    // 6. PayPal Integration & Mercado Pago Coexistence Tests (15 tests)
     const ppResults = await runPayPalIntegrationTests();
     grandTotalPassed += ppResults.passed;
     grandTotalCount += ppResults.total;
 
-    // 7. Firestore Environment Integration Audit (FASE 5H)
+    // 7. PayPal Checkout Route Diagnostics & Safe API Handling Tests (7 tests)
+    const ppRouteResults = await runPayPalCheckoutRouteDiagnostics();
+    grandTotalPassed += ppRouteResults.passed;
+    grandTotalCount += ppRouteResults.total;
+
+    // 8. Firestore Environment Integration Audit (FASE 5H)
     await runFirestoreIntegrationAudit();
 
     const durationMs = Date.now() - startTime;

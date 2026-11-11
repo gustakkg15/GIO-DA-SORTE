@@ -12,7 +12,7 @@ export const CLOUD_RUN_BACKEND_URL =
  */
 export function getApiBaseUrl(): string {
   // 1. Explicit environment variable takes precedence if provided during build
-  const envBase = import.meta.env.VITE_API_BASE_URL;
+  const envBase = typeof import.meta !== 'undefined' ? (import.meta as any).env?.VITE_API_BASE_URL : undefined;
   if (typeof envBase === 'string' && envBase.trim() !== '') {
     return envBase.trim().replace(/\/+$/, '');
   }
@@ -71,22 +71,42 @@ export async function safeApiJson<T = any>(
   endpointPath: string,
   init?: RequestInit
 ): Promise<SafeJsonResponse<T>> {
+  const fullUrl = getApiUrl(endpointPath);
+  const method = init?.method || 'GET';
+
+  console.log(`[GIO API Request] Executando ${method} ${fullUrl}`);
+
   try {
     const res = await apiFetch(endpointPath, init);
     const contentType = (res.headers.get('content-type') || '').toLowerCase();
+    const isJson = contentType.includes('application/json');
+
+    console.log(
+      `[GIO API Response] ${method} ${fullUrl} -> Status: ${res.status}, Content-Type: "${contentType}", IS_JSON: ${isJson}`
+    );
 
     // Catch non-JSON (e.g. 404.html from GitHub Pages or 502/503 warmup.html from Nginx)
-    if (!contentType.includes('application/json')) {
+    if (!isJson) {
+      const sampleText = await res.text().catch(() => '');
+      const limitedSample = sampleText.slice(0, 200).replace(/\s+/g, ' ');
+      console.warn(
+        `[GIO API Response NON-JSON] ${method} ${fullUrl} retornou conteúdo não-JSON (${res.status} ${res.statusText}). Amostra: "${limitedSample}..."`
+      );
+
       return {
         ok: false,
         status: res.status,
         isHtml: true,
-        error: `Resposta não-JSON do servidor (${res.status} ${res.statusText || 'HTML'}).`,
+        error: `Resposta não-JSON do servidor (${res.status} ${res.statusText || 'HTML'}). URL: ${fullUrl}`,
       };
     }
 
     const data = await res.json();
     if (!res.ok) {
+      console.warn(
+        `[GIO API Response ERROR] ${method} ${fullUrl} -> HTTP ${res.status}:`,
+        data?.error || data?.message
+      );
       return {
         ok: false,
         status: res.status,
@@ -95,16 +115,19 @@ export async function safeApiJson<T = any>(
       };
     }
 
+    console.log(`[GIO API Response SUCCESS] ${method} ${fullUrl} -> HTTP ${res.status}`);
     return {
       ok: true,
       status: res.status,
       data,
     };
   } catch (err) {
+    const errMsg = err instanceof Error ? err.message : 'Falha na conexão de rede com o servidor.';
+    console.error(`[GIO API Network Error] ${method} ${fullUrl}:`, errMsg);
     return {
       ok: false,
       status: 0,
-      error: err instanceof Error ? err.message : 'Falha na conexão de rede com o servidor.',
+      error: errMsg,
     };
   }
 }
