@@ -47,32 +47,32 @@ export function mapTikTokConnectionState(
       return {
         state: 'CONNECTED',
         label: 'Conectado',
-        badgeClass: 'bg-[#6EAA90]/15 text-[#6EAA90] border-[#6EAA90]/40',
-        dotClass: 'bg-[#6EAA90] animate-pulse',
+        badgeClass: 'bg-[#A6C957]/15 text-[#A6C957] border-[#A6C957]/40',
+        dotClass: 'bg-[#A6C957] animate-pulse',
         titleHint: `TikTok LIVE conectada${cleanHandle ? ` (${cleanHandle})` : ''}`,
       };
     case 'CONNECTING':
       return {
         state: 'CONNECTING',
         label: 'Conectando',
-        badgeClass: 'bg-[#C6A56A]/15 text-[#C6A56A] border-[#C6A56A]/40',
-        dotClass: 'bg-[#C6A56A] animate-pulse',
+        badgeClass: 'bg-[#0131CD]/25 text-[#FFFFFF] border-[#0131CD]/50',
+        dotClass: 'bg-[#A6C957] animate-pulse',
         titleHint: 'Conectando à transmissão TikTok LIVE',
       };
     case 'RECONNECTING':
       return {
         state: 'RECONNECTING',
         label: 'Aguardando LIVE / Reconectando',
-        badgeClass: 'bg-[#C6A56A]/15 text-[#C6A56A] border-[#C6A56A]/40',
-        dotClass: 'bg-[#C6A56A] animate-pulse',
+        badgeClass: 'bg-[#0131CD]/25 text-[#FFFFFF] border-[#0131CD]/50',
+        dotClass: 'bg-[#A6C957] animate-pulse',
         titleHint: 'Aguardando início da LIVE ou reconectando automaticamente',
       };
     case 'ERROR':
       return {
         state: 'ERROR',
         label: 'Erro na conexão',
-        badgeClass: 'bg-[#D96B6B]/15 text-[#D96B6B] border-[#D96B6B]/40',
-        dotClass: 'bg-[#D96B6B]',
+        badgeClass: 'bg-[#F05262]/15 text-[#F05262] border-[#F05262]/40',
+        dotClass: 'bg-[#F05262]',
         titleHint: 'Erro na conexão com TikTok LIVE',
       };
     case 'DISCONNECTED':
@@ -80,8 +80,8 @@ export function mapTikTokConnectionState(
       return {
         state: 'DISCONNECTED',
         label: 'Desconectado',
-        badgeClass: 'bg-[#171D1C] text-[#9BA8A3] border-[#313D39]',
-        dotClass: 'bg-[#9BA8A3]/60',
+        badgeClass: 'bg-[#111B30] text-[#A5B1C5] border-[#A5B1C5]/20',
+        dotClass: 'bg-[#A5B1C5]/60',
         titleHint: 'TikTok LIVE desconectada',
       };
   }
@@ -102,8 +102,8 @@ export function mapLiveSessionCommercialStatus(
     return {
       status: 'paused',
       label: 'Ingressão de presentes pausada',
-      badgeClass: 'bg-[#C6A56A]/15 text-[#C6A56A] border-[#C6A56A]/40',
-      dotClass: 'bg-[#C6A56A]',
+      badgeClass: 'bg-[#0131CD]/25 text-[#FFFFFF] border-[#0131CD]/50',
+      dotClass: 'bg-[#FFFFFF]',
     };
   }
 
@@ -111,15 +111,15 @@ export function mapLiveSessionCommercialStatus(
     return {
       status: 'ended',
       label: 'Ingressão de presentes encerrada',
-      badgeClass: 'bg-[#D96B6B]/15 text-[#D96B6B] border-[#D96B6B]/40',
-      dotClass: 'bg-[#D96B6B]',
+      badgeClass: 'bg-[#F05262]/15 text-[#F05262] border-[#F05262]/40',
+      dotClass: 'bg-[#F05262]',
     };
   }
 
   return {
     status: 'active',
     label: 'Ingressão de presentes aberta',
-    badgeClass: 'bg-[#6EAA90]/15 text-[#6EAA90] border-[#6EAA90]/40',
-    dotClass: 'bg-[#6EAA90]',
+    badgeClass: 'bg-[#A6C957]/15 text-[#A6C957] border-[#A6C957]/40',
+    dotClass: 'bg-[#A6C957]',
   };
 }

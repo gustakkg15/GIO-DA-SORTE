@@ -171,12 +171,12 @@ const AVATAR_PRESETS = [
     url: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=GioBlue&backgroundColor=0131cd',
   },
   {
-    label: 'Troféu Dourado',
-    url: 'https://api.dicebear.com/7.x/shapes/svg?seed=GioGold&backgroundColor=f5b942',
+    label: 'Verde-Lima PRO',
+    url: 'https://api.dicebear.com/7.x/shapes/svg?seed=GioLime&backgroundColor=a6c957',
   },
   {
-    label: 'Esmeralda Pro',
-    url: 'https://api.dicebear.com/7.x/shapes/svg?seed=GioEmerald&backgroundColor=20c997',
+    label: 'Oceano Profundo',
+    url: 'https://api.dicebear.com/7.x/shapes/svg?seed=GioDeep&backgroundColor=111b30',
   },
 ];
 
@@ -1149,7 +1149,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
       {/* =====================================================================
           TOP WORKSPACE IDENTITY HEADER
       ===================================================================== */}
-      <div className="p-5 sm:p-6 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] shadow-[0_12px_34px_rgba(0,0,0,0.5)]">
+      <div className="p-5 sm:p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
           <div className="flex items-start sm:items-center gap-4 min-w-0">
             {/* Avatar */}
@@ -1158,17 +1158,17 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                 <img
                   src={profilePhotoUrl}
                   alt={profileDisplayName || 'Foto do perfil'}
-                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-[#0131CD] bg-[#080A0F]"
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-[#0131CD] bg-[#080D18]"
                   onError={() => setProfilePhotoUrl('')}
                 />
               ) : (
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#0131CD] border-2 border-[#B9FC01]/40 flex items-center justify-center text-2xl sm:text-3xl font-bold text-white shadow-[0_6px_20px_rgba(1,49,205,0.45)]">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#0131CD] border-2 border-[#A6C957]/40 flex items-center justify-center text-2xl sm:text-3xl font-bold text-white">
                   {userInitial}
                 </div>
               )}
               <span
-                className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-[#10141E] ${
-                  currentUser ? 'bg-[#20C997]' : 'bg-[#F5B942]'
+                className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-[#111B30] ${
+                  currentUser ? 'bg-[#A6C957]' : 'bg-[#A5B1C5]'
                 }`}
                 title={currentUser ? 'Conta conectada' : 'Modo local (sem login)'}
               />
@@ -1180,11 +1180,11 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                 <h1 className="text-lg sm:text-xl font-bold text-[#FFFFFF] truncate">
                   {profileDisplayName || currentUser?.displayName || settings.organizerName || 'Organizador GIO'}
                 </h1>
-                <span className="font-mono text-xs text-[#94A3B8] bg-[#080A0F] px-2.5 py-0.5 rounded-md border border-[var(--gio-border-subtle)]">
+                <span className="font-mono text-xs text-[#A5B1C5] bg-[#080D18] px-2.5 py-0.5 rounded-md border border-[var(--gio-border-subtle)]">
                   {effectiveHandle}
                 </span>
                 {isProActive ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-[#F5B942]/15 text-[#F5B942] border border-[#F5B942]/40">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-[#A6C957]/15 text-[#A6C957] border border-[#A6C957]/35">
                     <Crown className="w-3 h-3" />
                     TIKTOK LIVE PRO
                   </span>
@@ -1195,15 +1195,15 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#94A3B8]">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#A5B1C5]">
                 <span className="inline-flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-[#35B9F5]" />
+                  <Mail className="w-3.5 h-3.5 text-[#A5B1C5]" />
                   {currentUser?.email || 'Modo Local (Conecte sua conta para sincronizar na nuvem)'}
                 </span>
                 {currentUser && (
                   <span
                     className={`inline-flex items-center gap-1 font-medium ${
-                      currentUser.emailVerified ? 'text-[#20C997]' : 'text-[#F5B942]'
+                      currentUser.emailVerified ? 'text-[#A6C957]' : 'text-[#A5B1C5]'
                     }`}
                   >
                     {currentUser.emailVerified ? (
@@ -1220,7 +1220,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                   </span>
                 )}
                 {tiktokIdentity?.connected && (
-                  <span className="inline-flex items-center gap-1 text-[#20C997] font-medium">
+                  <span className="inline-flex items-center gap-1 text-[#A6C957] font-medium">
                     <Radio className="w-3.5 h-3.5" />
                     TikTok: @{tiktokIdentity.username || tiktokIdentity.displayName}
                   </span>
@@ -1237,15 +1237,15 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                   type="button"
                   onClick={onSaveToCloud}
                   disabled={syncStatus === 'syncing' || syncStatus === 'saving'}
-                  className="min-h-[40px] px-4 py-2 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] text-xs font-semibold flex items-center gap-2 transition disabled:opacity-50"
+                  className="min-h-[40px] px-4 py-2 rounded-xl bg-[#080D18] hover:bg-[#111B30] text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] text-xs font-semibold flex items-center gap-2 transition disabled:opacity-50"
                 >
                   <Cloud
                     className={`w-4 h-4 ${
                       syncStatus === 'syncing' || syncStatus === 'saving'
-                        ? 'text-[#35B9F5] animate-pulse'
+                        ? 'text-[#A6C957] animate-pulse'
                         : syncStatus === 'saved' || syncStatus === 'synced'
-                        ? 'text-[#20C997]'
-                        : 'text-[#94A3B8]'
+                        ? 'text-[#A6C957]'
+                        : 'text-[#A5B1C5]'
                     }`}
                   />
                   <span>
@@ -1259,9 +1259,9 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                 <button
                   type="button"
                   onClick={onOpenAccountModal}
-                  className="min-h-[40px] px-4 py-2 rounded-xl bg-[#161C2C] hover:bg-[#1E273D] text-[#F8FAFC] border border-[var(--gio-border-subtle)] text-xs font-semibold flex items-center gap-2 transition"
+                  className="min-h-[40px] px-4 py-2 rounded-xl bg-[#080D18] hover:bg-[#0131CD]/20 text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-semibold flex items-center gap-2 transition"
                 >
-                  <KeyRound className="w-4 h-4 text-[#B9FC01]" />
+                  <KeyRound className="w-4 h-4 text-[#A5B1C5]" />
                   <span>Acesso Rápido</span>
                 </button>
               </>
@@ -1284,12 +1284,12 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
         <div
           className={`p-4 rounded-xl border flex items-start justify-between gap-3 text-xs sm:text-sm ${
             workspaceNotice.type === 'success'
-              ? 'bg-[#20C997]/10 border-[#20C997]/40 text-[#20C997]'
+              ? 'bg-[#A6C957]/12 border-[#A6C957]/35 text-[#A6C957]'
               : workspaceNotice.type === 'error'
               ? 'bg-[#F05262]/10 border-[#F05262]/40 text-[#F05262]'
               : workspaceNotice.type === 'warning'
-              ? 'bg-[#F5B942]/10 border-[#F5B942]/40 text-[#F5B942]'
-              : 'bg-[#0866F5]/15 border-[#0866F5]/40 text-[#F8FAFC]'
+              ? 'bg-[#A6C957]/10 border-[#A6C957]/35 text-[#A6C957]'
+              : 'bg-[#0131CD]/15 border-[#0131CD]/40 text-[#FFFFFF]'
           }`}
         >
           <div className="flex items-start gap-2.5">
@@ -1315,7 +1315,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
           MOBILE / TABLET HORIZONTAL SECONDARY MENU
       ===================================================================== */}
       <div className="lg:hidden overflow-x-auto pb-1 -mx-1 px-1">
-        <div className="inline-flex items-center gap-1.5 p-1.5 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] min-w-full">
+        <div className="inline-flex items-center gap-1.5 p-1.5 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] min-w-full">
           {PROFILE_WORKSPACE_SECTIONS.map((sec) => {
             const Icon = SECTION_ICONS[sec.id];
             const isActive = activeSection === sec.id;
@@ -1329,11 +1329,11 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                 }}
                 className={`min-h-[40px] px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition ${
                   isActive
-                    ? 'bg-[#0131CD] text-white border border-[#B9FC01]/50 shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
-                    : 'text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C]'
+                    ? 'bg-[#0131CD] text-white border border-[#A6C957]/40'
+                    : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]'
                 }`}
               >
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#B9FC01]' : ''}`} />
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#A6C957]' : ''}`} />
                 <span>{sec.label}</span>
               </button>
             );
@@ -1347,7 +1347,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* LEFT SECONDARY SIDEBAR MENU (DESKTOP) */}
         <aside className="hidden lg:block lg:col-span-3 space-y-4 sticky top-20">
-          <div className="p-3 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(0,0,0,0.45)] space-y-4">
+          <div className="p-3 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-sm space-y-4">
             {(['CONTA', 'FINANCEIRO', 'SISTEMA'] as const).map((groupKey) => {
               const groupLabel =
                 groupKey === 'CONTA'
@@ -1358,7 +1358,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
               const items = PROFILE_WORKSPACE_SECTIONS.filter((s) => s.group === groupKey);
               return (
                 <div key={groupKey} className="space-y-1">
-                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#64748B]">
+                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[#A5B1C5]">
                     {groupLabel}
                   </div>
                   {items.map((sec) => {
@@ -1374,23 +1374,23 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                         }}
                         className={`w-full text-left px-3 py-2.5 rounded-xl transition flex items-center justify-between gap-2.5 group ${
                           isActive
-                            ? 'bg-[#0131CD] text-white border border-[#B9FC01]/40 shadow-[0_4px_14px_rgba(1,49,205,0.35)]'
-                            : 'text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C] border border-transparent'
+                            ? 'bg-[#0131CD] text-white border border-[#A6C957]/35'
+                            : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18] border border-transparent'
                         }`}
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <Icon
                             className={`w-4 h-4 shrink-0 ${
                               isActive
-                                ? 'text-[#B9FC01]'
-                                : 'text-[#94A3B8] group-hover:text-[#FFFFFF]'
+                                ? 'text-[#A6C957]'
+                                : 'text-[#A5B1C5] group-hover:text-[#FFFFFF]'
                             }`}
                           />
                           <div className="min-w-0">
                             <div className="text-xs font-semibold truncate">{sec.label}</div>
                             <div
                               className={`text-[11px] truncate ${
-                                isActive ? 'text-white/80' : 'text-[#64748B]'
+                                isActive ? 'text-white/80' : 'text-[#A5B1C5]'
                               }`}
                             >
                               {sec.subtitle}
@@ -1399,7 +1399,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                         </div>
                         <ChevronRight
                           className={`w-3.5 h-3.5 shrink-0 transition-transform ${
-                            isActive ? 'text-[#B9FC01] translate-x-0.5' : 'opacity-0 group-hover:opacity-60'
+                            isActive ? 'text-[#A6C957] translate-x-0.5' : 'opacity-0 group-hover:opacity-60'
                           }`}
                         />
                       </button>
@@ -1412,21 +1412,21 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
             {/* Support & Documentation Quick Links */}
             {onOpenQuickSubTab && (
               <div className="pt-3 border-t border-[var(--gio-border-subtle)] space-y-1">
-                <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#64748B]">
+                <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[#A5B1C5]">
                   Ajuda e Conformidade
                 </div>
                 <button
                   type="button"
                   onClick={() => onOpenQuickSubTab('help')}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C] flex items-center gap-2.5 transition"
+                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18] flex items-center gap-2.5 transition"
                 >
-                  <HelpCircle className="w-4 h-4 text-[#35B9F5]" />
+                  <HelpCircle className="w-4 h-4 text-[#A5B1C5]" />
                   <span>Como Funciona e Guia</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => onOpenQuickSubTab('support')}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C] flex items-center gap-2.5 transition"
+                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18] flex items-center gap-2.5 transition"
                 >
                   <Heart className="w-4 h-4 text-[#F05262]" />
                   <span>Central de Suporte</span>
@@ -1434,9 +1434,9 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                 <button
                   type="button"
                   onClick={() => onOpenQuickSubTab('legal')}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C] flex items-center gap-2.5 transition"
+                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18] flex items-center gap-2.5 transition"
                 >
-                  <Scale className="w-4 h-4 text-[#F5B942]" />
+                  <Scale className="w-4 h-4 text-[#A5B1C5]" />
                   <span>Central Legal e Termos</span>
                 </button>
               </div>
@@ -1447,15 +1447,15 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
         {/* RIGHT INDEPENDENT SECTION WORKSPACE */}
         <section className="lg:col-span-9 space-y-6">
           {/* Section Title Header Card */}
-          <div className="p-5 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="p-5 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <div className="text-[11px] font-bold uppercase tracking-wider text-[#35B9F5]">
+              <div className="text-[11px] font-bold uppercase tracking-wide text-[#A6C957]">
                 Ambiente de Perfil &bull; {currentSectionMeta.label}
               </div>
               <h2 className="text-lg sm:text-xl font-bold text-[#FFFFFF] mt-0.5">
                 {currentSectionMeta.label}
               </h2>
-              <p className="text-xs sm:text-sm text-[#94A3B8] mt-1">
+              <p className="text-xs sm:text-sm text-[#A5B1C5] mt-1">
                 {currentSectionMeta.description}
               </p>
             </div>
@@ -1468,14 +1468,14 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
             <div className="space-y-6">
               <form
                 onSubmit={handleSaveProfile}
-                className="p-6 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] space-y-6"
+                className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-6"
               >
                 <div className="flex items-center justify-between border-b border-[var(--gio-border-subtle)] pb-4">
                   <div>
                     <h3 className="text-base font-bold text-[#FFFFFF]">
                       Identidade Pública do Organizador
                     </h3>
-                    <p className="text-xs text-[#94A3B8] mt-0.5">
+                    <p className="text-xs text-[#A5B1C5] mt-0.5">
                       Estes dados identificam seu canal nos sorteios públicos, comprovantes e relatórios em PDF.
                     </p>
                   </div>
@@ -1484,7 +1484,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   {/* Nome de Exibição */}
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[#F8FAFC]">
+                    <label className="block text-xs font-semibold text-[#FFFFFF]">
                       Nome de Exibição / Canal
                     </label>
                     <input
@@ -1492,16 +1492,16 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                       value={profileDisplayName}
                       onChange={(e) => setProfileDisplayName(e.target.value)}
                       placeholder="Ex: Gusta Sorteios Oficial"
-                      className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] focus:border-[#0866F5] text-sm text-[#FFFFFF] outline-none transition"
+                      className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:border-[#0131CD] text-sm text-[#FFFFFF] outline-none transition"
                     />
-                    <p className="text-[11px] text-[#64748B]">
+                    <p className="text-[11px] text-[#A5B1C5]">
                       Exibido no topo dos sorteios e nos certificados SHA-256.
                     </p>
                   </div>
 
                   {/* @Usuário */}
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[#F8FAFC]">
+                    <label className="block text-xs font-semibold text-[#FFFFFF]">
                       Nome de Usuário (@arroba)
                     </label>
                     <input
@@ -1509,16 +1509,16 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                       value={profileUsernameHandle}
                       onChange={(e) => setProfileUsernameHandle(e.target.value)}
                       placeholder={effectiveHandle}
-                      className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] focus:border-[#0866F5] font-mono text-sm text-[#FFFFFF] outline-none transition"
+                      className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:border-[#0131CD] font-mono text-sm text-[#FFFFFF] outline-none transition"
                     />
-                    <p className="text-[11px] text-[#64748B]">
-                      Identificador único formatado: <span className="font-mono text-[#F8FAFC]">{effectiveHandle}</span>
+                    <p className="text-[11px] text-[#A5B1C5]">
+                      Identificador único formatado: <span className="font-mono text-[#FFFFFF]">{effectiveHandle}</span>
                     </p>
                   </div>
 
                   {/* E-mail da Conta */}
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[#F8FAFC]">
+                    <label className="block text-xs font-semibold text-[#FFFFFF]">
                       E-mail Principal da Conta
                     </label>
                     <div className="flex items-center gap-2">
@@ -1526,20 +1526,20 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                         type="email"
                          readOnly
                         value={currentUser?.email || 'Não autenticado (Modo Local)'}
-                        className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080A0F]/60 border border-[var(--gio-border-subtle)] text-sm text-[#94A3B8] cursor-not-allowed"
+                        className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080D18]/60 border border-[var(--gio-border-subtle)] text-sm text-[#A5B1C5] cursor-not-allowed"
                       />
                       {currentUser && !currentUser.emailVerified && (
                         <button
                           type="button"
                           onClick={handleSendVerificationEmail}
                           disabled={isSendingVerifyEmail}
-                          className="shrink-0 min-h-[42px] px-3.5 py-2 rounded-xl bg-[#F5B942]/15 hover:bg-[#F5B942]/25 text-[#F5B942] border border-[#F5B942]/40 text-xs font-semibold transition disabled:opacity-50"
+                          className="shrink-0 min-h-[42px] px-3.5 py-2 rounded-xl bg-[#A6C957]/15 hover:bg-[#A6C957]/25 text-[#A6C957] border border-[#A6C957]/35 text-xs font-semibold transition disabled:opacity-50"
                         >
                           {isSendingVerifyEmail ? 'Enviando...' : 'Verificar E-mail'}
                         </button>
                       )}
                     </div>
-                    <p className="text-[11px] text-[#64748B]">
+                    <p className="text-[11px] text-[#A5B1C5]">
                       {currentUser
                         ? `UID da conta: ${currentUser.uid}`
                         : 'Entre na sua conta para vincular um e-mail verificado.'}
@@ -1548,7 +1548,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
 
                   {/* Foto de Perfil (URL + Presets) */}
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[#F8FAFC]">
+                    <label className="block text-xs font-semibold text-[#FFFFFF]">
                       Foto de Perfil (URL HTTPS ou Avatar)
                     </label>
                     <input
@@ -1556,7 +1556,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                       value={profilePhotoUrl}
                       onChange={(e) => setProfilePhotoUrl(e.target.value)}
                       placeholder="https://exemplo.com/minha-foto.jpg"
-                      className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] focus:border-[#0866F5] text-sm text-[#FFFFFF] outline-none transition"
+                      className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:border-[#0131CD] text-sm text-[#FFFFFF] outline-none transition"
                     />
                     <div className="flex flex-wrap items-center gap-1.5 pt-1">
                       {AVATAR_PRESETS.map((preset) => (
@@ -1566,8 +1566,8 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                           onClick={() => setProfilePhotoUrl(preset.url)}
                           className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition ${
                             profilePhotoUrl === preset.url
-                              ? 'bg-[#0131CD] text-white border-[#B9FC01]/50'
-                              : 'bg-[#080A0F] text-[#94A3B8] border-[var(--gio-border-subtle)] hover:text-white'
+                              ? 'bg-[#0131CD] text-white border-[#A6C957]/40'
+                              : 'bg-[#080D18] text-[#A5B1C5] border-[var(--gio-border-subtle)] hover:text-white'
                           }`}
                         >
                           {preset.label}
@@ -1579,7 +1579,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
 
                 {/* Biografia / Apresentação */}
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-[#F8FAFC]">
+                  <label className="block text-xs font-semibold text-[#FFFFFF]">
                     Apresentação / Descrição do Canal
                   </label>
                   <textarea
@@ -1587,12 +1587,12 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                     value={profileBio}
                     onChange={(e) => setProfileBio(e.target.value)}
                     placeholder="Breve descrição sobre seus sorteios e transmissões..."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] focus:border-[#0866F5] text-sm text-[#FFFFFF] outline-none transition resize-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:border-[#0131CD] text-sm text-[#FFFFFF] outline-none transition resize-none"
                   />
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[var(--gio-border-subtle)]">
-                  <div className="flex items-center gap-2 text-xs text-[#94A3B8]">
+                  <div className="flex items-center gap-2 text-xs text-[#A5B1C5]">
                     {currentUser && (
                       <button
                         type="button"
@@ -1601,7 +1601,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                           setCopiedUid(true);
                           setTimeout(() => setCopiedUid(false), 2000);
                         }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] border border-[var(--gio-border-subtle)] font-mono text-[11px] text-[#94A3B8] hover:text-white transition"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#080D18] hover:bg-[#111B30] border border-[var(--gio-border-subtle)] font-mono text-[11px] text-[#A5B1C5] hover:text-white transition"
                       >
                         <Copy className="w-3.5 h-3.5" />
                         <span>{copiedUid ? 'UID Copiado!' : `Copiar UID (${currentUser.uid.slice(0, 10)}...)`}</span>
@@ -1621,22 +1621,22 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
               </form>
 
               {/* Sincronização na Nuvem e Tutorial */}
-              <div className="p-6 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] space-y-4">
+              <div className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div>
                     <h3 className="text-base font-bold text-[#FFFFFF] flex items-center gap-2">
-                      <Cloud className="w-4 h-4 text-[#35B9F5]" />
+                      <Cloud className="w-4 h-4 text-[#A5B1C5]" />
                       <span>Sincronização e Backup na Nuvem</span>
                     </h3>
-                    <p className="text-xs text-[#94A3B8] mt-0.5">
+                    <p className="text-xs text-[#A5B1C5] mt-0.5">
                       Mantenha seus participantes, bilhetes e histórico sincronizados no Firestore em todos os seus dispositivos.
                     </p>
                   </div>
                   <span
                     className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border ${
                       currentUser
-                        ? 'bg-[#20C997]/15 text-[#20C997] border-[#20C997]/40'
-                        : 'bg-[#F5B942]/15 text-[#F5B942] border-[#F5B942]/40'
+                        ? 'bg-[#A6C957]/15 text-[#A6C957] border-[#A6C957]/35'
+                        : 'bg-[#080D18] text-[#A5B1C5] border-[var(--gio-border-subtle)]'
                     }`}
                   >
                     {currentUser ? 'Backup Automático Ativo' : 'Apenas Armazenamento Local'}
@@ -1659,9 +1659,9 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                         type="button"
                         onClick={onLoadFromCloud}
                         disabled={syncStatus === 'syncing'}
-                        className="min-h-[40px] px-4 py-2 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-semibold flex items-center gap-2 transition disabled:opacity-50"
+                        className="min-h-[40px] px-4 py-2 rounded-xl bg-[#080D18] hover:bg-[#111B30] text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-semibold flex items-center gap-2 transition disabled:opacity-50"
                       >
-                        <Download className="w-4 h-4 text-[#35B9F5]" />
+                        <Download className="w-4 h-4 text-[#A5B1C5]" />
                         <span>Recarregar Dados da Nuvem</span>
                       </button>
                     </>
@@ -1679,7 +1679,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                   <button
                     type="button"
                     onClick={onOpenOnboarding}
-                    className="min-h-[40px] px-4 py-2 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] text-[#94A3B8] hover:text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-semibold transition"
+                    className="min-h-[40px] px-4 py-2 rounded-xl bg-[#080D18] hover:bg-[#111B30] text-[#A5B1C5] hover:text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-semibold transition"
                   >
                     Reabrir Tutorial de Boas-Vindas
                   </button>
@@ -1694,11 +1694,11 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
           {activeSection === 'connections' && (
             <div className="space-y-6">
               {/* 1. TikTok Login Kit OAuth 2.0 */}
-              <div className="p-6 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] space-y-5">
+              <div className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[var(--gio-border-subtle)] pb-4">
                   <div className="flex items-start gap-3.5">
-                    <div className="w-11 h-11 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] flex items-center justify-center shrink-0">
-                      <Radio className="w-5 h-5 text-[#00A9FF]" />
+                    <div className="w-11 h-11 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex items-center justify-center shrink-0">
+                      <Radio className="w-5 h-5 text-[#A6C957]" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -1706,16 +1706,16 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                           TikTok Oficial (Login Kit OAuth 2.0)
                         </h3>
                         {tiktokIdentity?.connected ? (
-                          <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-[#20C997]/15 text-[#20C997] border border-[#20C997]/40">
+                          <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-[#A6C957]/15 text-[#A6C957] border border-[#A6C957]/35">
                             CONECTADO
                           </span>
                         ) : (
-                          <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-[#161C2C] text-[#94A3B8] border border-[var(--gio-border-subtle)]">
+                          <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-[#080D18] text-[#A5B1C5] border border-[var(--gio-border-subtle)]">
                             NÃO VINCULADO
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-[#94A3B8] mt-0.5">
+                      <p className="text-xs text-[#A5B1C5] mt-0.5">
                         Autenticação segura com PKCE S256 e proteção de tokens AES-256-GCM no servidor.
                       </p>
                     </div>
@@ -1725,7 +1725,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                     type="button"
                     onClick={fetchTikTokIdentity}
                     disabled={isLoadingTiktok}
-                    className="self-start sm:self-center min-h-[36px] px-3 py-1.5 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] text-[#94A3B8] hover:text-white border border-[var(--gio-border-subtle)] text-xs font-semibold flex items-center gap-1.5 transition"
+                    className="self-start sm:self-center min-h-[36px] px-3 py-1.5 rounded-lg bg-[#080D18] hover:bg-[#111B30] text-[#A5B1C5] hover:text-white border border-[var(--gio-border-subtle)] text-xs font-semibold flex items-center gap-1.5 transition"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${isLoadingTiktok ? 'animate-spin' : ''}`} />
                     <span>Atualizar Status</span>
@@ -1734,13 +1734,13 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
 
                 {tiktokIdentity?.connected ? (
                   <div className="space-y-4">
-                    <div className="p-4 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="flex items-center gap-3.5">
                         {tiktokIdentity.avatarUrl ? (
                           <img
                             src={tiktokIdentity.avatarUrl}
                             alt={tiktokIdentity.displayName || 'TikTok'}
-                            className="w-12 h-12 rounded-xl object-cover border border-[#20C997]/50"
+                            className="w-12 h-12 rounded-xl object-cover border border-[#A6C957]/40"
                           />
                         ) : (
                           <div className="w-12 h-12 rounded-xl bg-[#0131CD] flex items-center justify-center font-bold text-white">
@@ -1751,11 +1751,11 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                           <div className="text-sm font-bold text-[#FFFFFF]">
                             {tiktokIdentity.displayName || tiktokIdentity.username || 'Conta TikTok'}
                           </div>
-                          <div className="font-mono text-xs text-[#20C997]">
+                          <div className="font-mono text-xs text-[#A6C957]">
                             @{tiktokIdentity.username || 'tik_tok_user'}
                           </div>
                           {tiktokIdentity.openId && (
-                            <div className="font-mono text-[11px] text-[#64748B] mt-0.5">
+                            <div className="font-mono text-[11px] text-[#A5B1C5] mt-0.5">
                               OpenID: {tiktokIdentity.openId.slice(0, 12)}... &bull; Escopo:{' '}
                               {tiktokIdentity.scope || 'user.info.basic'}
                             </div>
@@ -1767,9 +1767,9 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                         <button
                           type="button"
                           onClick={onNavigateToLivePro}
-                          className="min-h-[38px] px-3.5 py-2 rounded-xl bg-[#0131CD] hover:bg-[#0866F5] text-white text-xs font-semibold flex items-center gap-1.5 transition"
+                          className="min-h-[38px] px-3.5 py-2 rounded-xl bg-[#0131CD] hover:brightness-110 text-white text-xs font-semibold flex items-center gap-1.5 transition"
                         >
-                          <Radio className="w-3.5 h-3.5 text-[#B9FC01]" />
+                          <Radio className="w-3.5 h-3.5 text-[#A6C957]" />
                           <span>Abrir Estúdio TikTok LIVE</span>
                         </button>
                         {!isCustomTikTokUid && (
@@ -1786,7 +1786,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
 
                     {confirmUnlinkTiktok && (
                       <div className="p-4 rounded-xl bg-[#F05262]/10 border border-[#F05262]/40 space-y-3">
-                        <p className="text-xs text-[#F8FAFC]">
+                        <p className="text-xs text-[#FFFFFF]">
                           Tem certeza que deseja revogar o vínculo OAuth 2.0 desta conta TikTok? Sessões LIVE ativas não serão apagadas, mas o login rápido precisará ser reconectado.
                         </p>
                         <div className="flex items-center gap-2">
@@ -1801,7 +1801,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                           <button
                             type="button"
                             onClick={() => setConfirmUnlinkTiktok(false)}
-                            className="px-4 py-2 rounded-lg bg-[#080A0F] text-[#94A3B8] text-xs font-semibold"
+                            className="px-4 py-2 rounded-lg bg-[#080D18] text-[#A5B1C5] text-xs font-semibold"
                           >
                             Cancelar
                           </button>
@@ -1811,7 +1811,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <p className="text-xs sm:text-sm text-[#94A3B8]">
+                    <p className="text-xs sm:text-sm text-[#A5B1C5]">
                       Vincule sua conta oficial do TikTok para identificar automaticamente seu perfil nas transmissões e autenticar com 1 clique.
                     </p>
 
@@ -1830,18 +1830,18 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                         onClick={() => setIsStepUpModalOpen(true)}
                         className="gio-btn-primary min-h-[42px] px-5 py-2.5 rounded-xl text-white text-xs font-semibold flex items-center gap-2 transition"
                       >
-                        <Link2 className="w-4 h-4 text-[#B9FC01]" />
+                        <Link2 className="w-4 h-4 text-[#A6C957]" />
                         <span>Vincular Conta TikTok (Step-Up OAuth)</span>
                       </button>
                     ) : (
                       <form
                         onSubmit={handleConfirmStepUpAndLinkTikTok}
-                        className="p-4 rounded-xl bg-[#080A0F] border border-[#0866F5]/50 space-y-3"
+                        className="p-4 rounded-xl bg-[#080D18] border border-[#0131CD]/50 space-y-3"
                       >
                         <div className="text-xs font-bold text-[#FFFFFF]">
                           Verificação de Segurança (Step-Up Authentication)
                         </div>
-                        <p className="text-xs text-[#94A3B8]">
+                        <p className="text-xs text-[#A5B1C5]">
                           {hasPasswordProvider
                             ? 'Confirme sua senha atual para autorizar o vínculo criptográfico entre seu UID Firebase e sua conta TikTok.'
                             : 'Confirme sua identidade no provedor Google para iniciar o vínculo oficial com o TikTok.'}
@@ -1852,7 +1852,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                             value={stepUpPassword}
                             onChange={(e) => setStepUpPassword(e.target.value)}
                             placeholder="Sua senha atual"
-                            className="w-full min-h-[40px] px-3.5 py-2 rounded-xl bg-[#10141E] border border-[var(--gio-border-subtle)] text-sm text-white outline-none"
+                            className="w-full min-h-[40px] px-3.5 py-2 rounded-xl bg-[#111B30] border border-[var(--gio-border-subtle)] text-sm text-white outline-none"
                           />
                         )}
                         <div className="flex items-center gap-2">
@@ -1871,7 +1871,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                               setIsStepUpModalOpen(false);
                               setStepUpPassword('');
                             }}
-                            className="px-4 py-2 rounded-xl bg-[#161C2C] text-[#94A3B8] text-xs font-semibold"
+                            className="px-4 py-2 rounded-xl bg-[#080D18] text-[#A5B1C5] text-xs font-semibold"
                           >
                             Cancelar
                           </button>
@@ -1883,26 +1883,26 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
               </div>
 
               {/* 2. TikTok LIVE Webcast Status */}
-              <div className="p-6 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <h3 className="text-base font-bold text-[#FFFFFF]">
                       Conector TikTok LIVE (Transmissão em Tempo Real)
                     </h3>
                     <span
-                      className={`px-2.5 py-0.5 rounded-md font-mono text-[11px] font-bold border ${
+                      className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold border ${
                         liveConnectionState === 'CONNECTED'
-                          ? 'bg-[#20C997]/15 text-[#20C997] border-[#20C997]/40'
+                          ? 'bg-[#A6C957]/15 text-[#A6C957] border-[#A6C957]/35'
                           : liveConnectionState === 'CONNECTING' ||
                             liveConnectionState === 'RECONNECTING'
-                          ? 'bg-[#F5B942]/15 text-[#F5B942] border-[#F5B942]/40'
-                          : 'bg-[#161C2C] text-[#94A3B8] border-[var(--gio-border-subtle)]'
+                          ? 'bg-[#0131CD]/20 text-[#FFFFFF] border-[#0131CD]/40'
+                          : 'bg-[#080D18] text-[#A5B1C5] border-[var(--gio-border-subtle)]'
                       }`}
                     >
                       {liveConnectionState}
                     </span>
                   </div>
-                  <p className="text-xs text-[#94A3B8]">
+                  <p className="text-xs text-[#A5B1C5]">
                     {liveConnectionState === 'CONNECTED' && liveConnectedUsername
                       ? `Capturando presentes e moedas ao vivo da sala @${liveConnectedUsername.replace(/^@/, '')}.`
                       : 'Nenhuma sala TikTok LIVE conectada no momento. A conexão é mantida pelo servidor mesmo ao trocar de aba.'}
@@ -1912,30 +1912,30 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                 <button
                   type="button"
                   onClick={onNavigateToLivePro}
-                  className="shrink-0 min-h-[40px] px-4 py-2 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[#0866F5] text-xs font-semibold flex items-center gap-2 transition"
+                  className="shrink-0 min-h-[40px] px-4 py-2 rounded-xl bg-[#080D18] hover:bg-[#111B30] text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[#0131CD] text-xs font-semibold flex items-center gap-2 transition"
                 >
-                  <Radio className="w-4 h-4 text-[#00A9FF]" />
+                  <Radio className="w-4 h-4 text-[#A5B1C5]" />
                   <span>Gerenciar Sala TikTok LIVE</span>
                 </button>
               </div>
 
               {/* 3. Demais Plataformas e Provedores de Autenticação */}
-              <div className="p-6 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] space-y-4">
+              <div className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-4">
                 <div>
                   <h3 className="text-base font-bold text-[#FFFFFF]">
                     Provedores de Login e Plataformas Vinculadas
                   </h3>
-                  <p className="text-xs text-[#94A3B8] mt-0.5">
+                  <p className="text-xs text-[#A5B1C5] mt-0.5">
                     Métodos de autenticação verificados para acesso à sua conta organizadora.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Google OAuth */}
-                  <div className="p-4 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] flex items-center justify-between gap-3">
+                  <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex items-center justify-between gap-3">
                     <div className="space-y-0.5">
                       <div className="text-sm font-bold text-[#FFFFFF]">Google Workspace / Gmail</div>
-                      <div className="text-xs text-[#94A3B8]">
+                      <div className="text-xs text-[#A5B1C5]">
                         {hasGoogleProvider
                           ? `Vinculado (${currentUser?.email})`
                           : 'Login social OAuth 2.0 Google'}
@@ -1944,8 +1944,8 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                     <span
                       className={`px-2.5 py-1 rounded-md text-[11px] font-bold border ${
                         hasGoogleProvider
-                          ? 'bg-[#20C997]/15 text-[#20C997] border-[#20C997]/40'
-                          : 'bg-[#161C2C] text-[#94A3B8] border-[var(--gio-border-subtle)]'
+                          ? 'bg-[#A6C957]/15 text-[#A6C957] border-[#A6C957]/35'
+                          : 'bg-[#080D18] text-[#A5B1C5] border-[var(--gio-border-subtle)]'
                       }`}
                     >
                       {hasGoogleProvider ? 'ATIVO' : 'DISPONÍVEL'}
@@ -1953,10 +1953,10 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                   </div>
 
                   {/* E-mail e Senha */}
-                  <div className="p-4 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] flex items-center justify-between gap-3">
+                  <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex items-center justify-between gap-3">
                     <div className="space-y-0.5">
                       <div className="text-sm font-bold text-[#FFFFFF]">Credencial E-mail e Senha</div>
-                      <div className="text-xs text-[#94A3B8]">
+                      <div className="text-xs text-[#A5B1C5]">
                         {hasPasswordProvider
                           ? `Configurada (${currentUser?.email})`
                           : 'Autenticação direta por senha forte'}
@@ -1965,8 +1965,8 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                     <span
                       className={`px-2.5 py-1 rounded-md text-[11px] font-bold border ${
                         hasPasswordProvider
-                          ? 'bg-[#20C997]/15 text-[#20C997] border-[#20C997]/40'
-                          : 'bg-[#161C2C] text-[#94A3B8] border-[var(--gio-border-subtle)]'
+                          ? 'bg-[#A6C957]/15 text-[#A6C957] border-[#A6C957]/35'
+                          : 'bg-[#080D18] text-[#A5B1C5] border-[var(--gio-border-subtle)]'
                       }`}
                     >
                       {hasPasswordProvider ? 'ATIVO' : 'NÃO USADO'}
@@ -1983,14 +1983,14 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
           {activeSection === 'security' && (
             <div className="space-y-6">
               {/* 1. Alteração de Senha */}
-              <div className="p-6 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] space-y-5">
+              <div className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--gio-border-subtle)] pb-4">
                   <div>
                     <h3 className="text-base font-bold text-[#FFFFFF] flex items-center gap-2">
-                      <KeyRound className="w-4 h-4 text-[#B9FC01]" />
+                      <KeyRound className="w-4 h-4 text-[#A5B1C5]" />
                       <span>Senha e Credenciais de Acesso</span>
                     </h3>
-                    <p className="text-xs text-[#94A3B8] mt-0.5">
+                    <p className="text-xs text-[#A5B1C5] mt-0.5">
                       Exige confirmação da senha atual (reautenticação em 2 etapas) antes de gravar uma nova credencial.
                     </p>
                   </div>
@@ -1998,7 +1998,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                     <button
                       type="button"
                       onClick={handleSendPasswordReset}
-                      className="self-start sm:self-center px-3 py-1.5 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] text-[#35B9F5] border border-[var(--gio-border-subtle)] text-xs font-semibold transition"
+                      className="self-start sm:self-center px-3 py-1.5 rounded-lg bg-[#080D18] hover:bg-[#111B30] text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-semibold transition"
                     >
                       Enviar E-mail de Redefinição
                     </button>
@@ -2006,8 +2006,8 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                 </div>
 
                 {!currentUser ? (
-                  <div className="p-4 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] flex items-center justify-between gap-4">
-                    <span className="text-xs text-[#94A3B8]">
+                  <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex items-center justify-between gap-4">
+                    <span className="text-xs text-[#A5B1C5]">
                       Faça login na sua conta para gerenciar sua senha e credenciais de segurança.
                     </span>
                     <button
@@ -2019,11 +2019,11 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                     </button>
                   </div>
                 ) : !hasPasswordProvider ? (
-                  <div className="p-4 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] space-y-2">
+                  <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-2">
                     <div className="text-xs font-bold text-[#FFFFFF]">
                       Autenticação Gerenciada por Provedor OAuth Externo
                     </div>
-                    <p className="text-xs text-[#94A3B8]">
+                    <p className="text-xs text-[#A5B1C5]">
                       Sua conta utiliza autenticação criptográfica via{' '}
                       {isCustomTikTokUid ? 'TikTok Login Kit' : 'Google OAuth 2.0'} e não armazena senha local. Caso deseje criar uma senha para seu e-mail, utilize o botão &ldquo;Enviar E-mail de Redefinição&rdquo;.
                     </p>
@@ -2032,7 +2032,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                   <form onSubmit={handleChangePassword} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-1.5">
-                        <label className="block text-xs font-semibold text-[#F8FAFC]">
+                        <label className="block text-xs font-semibold text-[#FFFFFF]">
                           Senha Atual
                         </label>
                         <div className="relative">
@@ -2041,13 +2041,13 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                             value={currentPasswordInput}
                             onChange={(e) => setCurrentPasswordInput(e.target.value)}
                             placeholder="••••••••"
-                            className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] focus:border-[#0866F5] text-sm text-white outline-none"
+                            className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:border-[#0131CD] text-sm text-white outline-none"
                           />
                         </div>
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="block text-xs font-semibold text-[#F8FAFC]">
+                        <label className="block text-xs font-semibold text-[#FFFFFF]">
                           Nova Senha Forte
                         </label>
                         <input
@@ -2055,12 +2055,12 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                           value={newPasswordInput}
                           onChange={(e) => setNewPasswordInput(e.target.value)}
                           placeholder="Mínimo 10 caracteres"
-                          className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] focus:border-[#0866F5] text-sm text-white outline-none"
+                          className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:border-[#0131CD] text-sm text-white outline-none"
                         />
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="block text-xs font-semibold text-[#F8FAFC]">
+                        <label className="block text-xs font-semibold text-[#FFFFFF]">
                           Confirmar Nova Senha
                         </label>
                         <div className="relative flex items-center">
@@ -2069,12 +2069,12 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                             value={confirmNewPasswordInput}
                             onChange={(e) => setConfirmNewPasswordInput(e.target.value)}
                             placeholder="Repita a nova senha"
-                            className="w-full min-h-[42px] pl-3.5 pr-10 py-2 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] focus:border-[#0866F5] text-sm text-white outline-none"
+                            className="w-full min-h-[42px] pl-3.5 pr-10 py-2 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:border-[#0131CD] text-sm text-white outline-none"
                           />
                           <button
                             type="button"
                             onClick={() => setShowSecurityPasswords((v) => !v)}
-                            className="absolute right-3 text-[#94A3B8] hover:text-white"
+                            className="absolute right-3 text-[#A5B1C5] hover:text-white"
                           >
                             {showSecurityPasswords ? (
                               <EyeOff className="w-4 h-4" />
@@ -2087,11 +2087,11 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                     </div>
 
                     {newPasswordInput && (
-                      <div className="p-3 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] flex items-center justify-between gap-3 text-xs">
-                        <span className="text-[#94A3B8]">{passwordAssessment.feedback}</span>
+                      <div className="p-3 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex items-center justify-between gap-3 text-xs">
+                        <span className="text-[#A5B1C5]">{passwordAssessment.feedback}</span>
                         <span
-                          className={`font-mono font-bold uppercase ${
-                            passwordAssessment.isValid ? 'text-[#20C997]' : 'text-[#F5B942]'
+                          className={`font-bold tabular-nums uppercase ${
+                            passwordAssessment.isValid ? 'text-[#A6C957]' : 'text-[#F05262]'
                           }`}
                         >
                           Força: {passwordAssessment.score}/3 ({passwordAssessment.label})
@@ -2113,48 +2113,48 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
               </div>
 
               {/* 2. Sessões Ativas e Telemetria de Autenticação */}
-              <div className="p-6 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] space-y-5">
+              <div className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--gio-border-subtle)] pb-4">
                   <div>
                     <h3 className="text-base font-bold text-[#FFFFFF] flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-[#20C997]" />
+                      <ShieldCheck className="w-4 h-4 text-[#A6C957]" />
                       <span>Sessão Atual e Tokens de Autenticação</span>
                     </h3>
-                    <p className="text-xs text-[#94A3B8] mt-0.5">
+                    <p className="text-xs text-[#A5B1C5] mt-0.5">
                       Inspecione a sessão autenticada neste navegador, renove seu certificado JWT ou encerre o acesso.
                     </p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                  <div className="p-3.5 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)]">
-                    <div className="text-[11px] text-[#64748B]">Estado da Sessão</div>
-                    <div className="text-xs font-bold text-[#20C997] mt-1">
+                  <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
+                    <div className="text-[11px] text-[#A5B1C5]">Estado da Sessão</div>
+                    <div className="text-xs font-bold text-[#A6C957] mt-1">
                       {currentUser ? 'Autenticada (Firebase JWT)' : 'Sessão Local Anônima'}
                     </div>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)]">
-                    <div className="text-[11px] text-[#64748B]">Último Login Registrado</div>
-                    <div className="font-mono text-xs font-semibold text-[#F8FAFC] mt-1">
+                  <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
+                    <div className="text-[11px] text-[#A5B1C5]">Último Login Registrado</div>
+                    <div className="text-xs font-semibold tabular-nums text-[#FFFFFF] mt-1">
                       {currentUser?.metadata?.lastSignInTime
                         ? formatDateBr(currentUser.metadata.lastSignInTime)
                         : '—'}
                     </div>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)]">
-                    <div className="text-[11px] text-[#64748B]">Criação da Conta</div>
-                    <div className="font-mono text-xs font-semibold text-[#F8FAFC] mt-1">
+                  <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
+                    <div className="text-[11px] text-[#A5B1C5]">Criação da Conta</div>
+                    <div className="text-xs font-semibold tabular-nums text-[#FFFFFF] mt-1">
                       {currentUser?.metadata?.creationTime
                         ? formatDateBr(currentUser.metadata.creationTime)
                         : '—'}
                     </div>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)]">
-                    <div className="text-[11px] text-[#64748B]">Proteção Anti-Força Bruta</div>
-                    <div className="font-mono text-xs font-semibold text-[#20C997] mt-1">
+                  <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
+                    <div className="text-[11px] text-[#A5B1C5]">Proteção Anti-Força Bruta</div>
+                    <div className={`text-xs font-semibold tabular-nums mt-1 ${throttleState.isThrottled ? 'text-[#F05262]' : 'text-[#A6C957]'}`}>
                       {throttleState.isThrottled
                         ? `Bloqueio Temporário (${throttleState.remainingSeconds}s)`
                         : 'Proteção Ativa (Normal)'}
@@ -2163,7 +2163,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                 </div>
 
                 {lastTokenRefreshIso && (
-                  <div className="text-xs font-mono text-[#20C997]">
+                  <div className="text-xs tabular-nums text-[#A6C957]">
                     Última renovação manual do token Bearer JWT: {formatDateBr(lastTokenRefreshIso)}
                   </div>
                 )}
@@ -2174,9 +2174,9 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                       type="button"
                       onClick={handleRefreshSecurityToken}
                       disabled={isRefreshingToken}
-                      className="min-h-[40px] px-4 py-2 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-semibold flex items-center gap-2 transition disabled:opacity-50"
+                      className="min-h-[40px] px-4 py-2 rounded-xl bg-[#080D18] hover:bg-[#111B30] text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-semibold flex items-center gap-2 transition disabled:opacity-50"
                     >
-                      <RefreshCw className={`w-4 h-4 text-[#35B9F5] ${isRefreshingToken ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`w-4 h-4 text-[#A5B1C5] ${isRefreshingToken ? 'animate-spin' : ''}`} />
                       <span>Renovar Token Criptográfico (JWT)</span>
                     </button>
 
@@ -2200,7 +2200,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
           {activeSection === 'subscription' && (
             <div className="space-y-6">
               {/* Status Atual do Plano */}
-              <div className="p-6 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] space-y-5">
+              <div className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--gio-border-subtle)] pb-4">
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -2208,21 +2208,21 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                         Plano Atual: {isProActive ? 'GIO DA SORTE PRO' : 'GIO DA SORTE FREE'}
                       </h3>
                       <span
-                        className={`px-2.5 py-0.5 rounded-md font-mono text-[11px] font-bold border ${
+                        className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold border ${
                           isProActive
-                            ? 'bg-[#20C997]/15 text-[#20C997] border-[#20C997]/40'
+                            ? 'bg-[#A6C957]/15 text-[#A6C957] border-[#A6C957]/35'
                             : 'bg-[#0131CD]/25 text-[#FFFFFF] border-[#0131CD]/50'
                         }`}
                       >
                         {userSubscription?.statusState || proEntitlement.statusState || 'FREE'}
                       </span>
                       {userSubscription?.billingSubStatus && (
-                        <span className="px-2.5 py-0.5 rounded-md font-mono text-[11px] bg-[#080A0F] text-[#94A3B8] border border-[var(--gio-border-subtle)]">
+                        <span className="px-2.5 py-0.5 rounded-md text-[11px] bg-[#080D18] text-[#A5B1C5] border border-[var(--gio-border-subtle)]">
                           {userSubscription.billingSubStatus}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-[#94A3B8]">
+                    <p className="text-xs text-[#A5B1C5]">
                       O controle de plano é validado de forma autoritativa pelo servidor.
                     </p>
                   </div>
@@ -2232,7 +2232,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                       type="button"
                       onClick={loadSubscriptionDetails}
                       disabled={isLoadingSubscription}
-                      className="min-h-[38px] px-3 py-1.5 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] text-[#94A3B8] hover:text-white border border-[var(--gio-border-subtle)] text-xs font-semibold flex items-center gap-1.5 transition"
+                      className="min-h-[38px] px-3 py-1.5 rounded-xl bg-[#080D18] hover:bg-[#111B30] text-[#A5B1C5] hover:text-white border border-[var(--gio-border-subtle)] text-xs font-semibold flex items-center gap-1.5 transition"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${isLoadingSubscription ? 'animate-spin' : ''}`} />
                       <span>Sincronizar</span>
@@ -2240,9 +2240,9 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                     <button
                       type="button"
                       onClick={onNavigateToSubscriptionTab}
-                      className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-[#161C2C] hover:bg-[#1E273D] text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-semibold flex items-center gap-1.5 transition"
+                      className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-[#080D18] hover:bg-[#0131CD]/20 text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-semibold flex items-center gap-1.5 transition"
                     >
-                      <ExternalLink className="w-3.5 h-3.5 text-[#F5B942]" />
+                      <ExternalLink className="w-3.5 h-3.5 text-[#A5B1C5]" />
                       <span>Catálogo Completo PRO</span>
                     </button>
                   </div>
@@ -2250,16 +2250,16 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
 
                 {/* Ciclo, Renovação e Detalhes */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                  <div className="p-3.5 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)]">
-                    <div className="text-[11px] text-[#64748B]">Modalidade Contratada</div>
+                  <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
+                    <div className="text-[11px] text-[#A5B1C5]">Modalidade Contratada</div>
                     <div className="text-xs font-bold text-[#FFFFFF] mt-1">
                       {userSubscription?.planName || (isProActive ? 'Plano PRO' : 'Plano Gratuito (FREE)')}
                     </div>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)]">
-                    <div className="text-[11px] text-[#64748B]">Próxima Renovação / Término do Ciclo</div>
-                    <div className="font-mono text-xs font-semibold text-[#F8FAFC] mt-1">
+                  <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
+                    <div className="text-[11px] text-[#A5B1C5]">Próxima Renovação / Término do Ciclo</div>
+                    <div className="text-xs font-semibold tabular-nums text-[#FFFFFF] mt-1">
                       {userSubscription?.currentPeriodEnd || userSubscription?.nextPaymentDate
                         ? formatDateBr(userSubscription.currentPeriodEnd || userSubscription.nextPaymentDate)
                         : userSubscription?.trialEndDate
@@ -2268,15 +2268,15 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                     </div>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)]">
-                    <div className="text-[11px] text-[#64748B]">Renovação Automática</div>
+                  <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
+                    <div className="text-[11px] text-[#A5B1C5]">Renovação Automática</div>
                     <div
                       className={`text-xs font-bold mt-1 ${
                         userSubscription?.cancelAtPeriodEnd
-                          ? 'text-[#F5B942]'
+                          ? 'text-[#A5B1C5]'
                           : isProActive
-                          ? 'text-[#20C997]'
-                          : 'text-[#94A3B8]'
+                          ? 'text-[#A6C957]'
+                          : 'text-[#A5B1C5]'
                       }`}
                     >
                       {userSubscription?.cancelAtPeriodEnd
@@ -2287,9 +2287,9 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                     </div>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)]">
-                    <div className="text-[11px] text-[#64748B]">Provedor Vinculado</div>
-                    <div className="font-mono text-xs font-semibold text-[#F8FAFC] mt-1">
+                  <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
+                    <div className="text-[11px] text-[#A5B1C5]">Provedor Vinculado</div>
+                    <div className="font-mono text-xs font-semibold text-[#FFFFFF] mt-1">
                       {userSubscription?.provider === 'PAYPAL' || userSubscription?.paypalSubscriptionId
                         ? `PayPal (${userSubscription?.paypalSubscriptionId || 'Ativo'})`
                         : userSubscription?.mpPreapprovalId
@@ -2301,14 +2301,14 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
 
                 {/* Upgrade / Contratação Rápida */}
                 {!isProActive && (
-                  <div className="p-5 rounded-xl bg-[#080A0F] border border-[#0131CD]/50 space-y-4">
+                  <div className="p-5 rounded-xl bg-[#080D18] border border-[#0131CD]/50 space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
                         <div className="text-sm font-bold text-[#FFFFFF] flex items-center gap-2">
-                          <Sparkles className="w-4 h-4 text-[#F5B942]" />
+                          <Sparkles className="w-4 h-4 text-[#A6C957]" />
                           <span>Ativar GIO DA SORTE PRO (3 Dias de Teste Grátis)</span>
                         </div>
-                        <p className="text-xs text-[#94A3B8] mt-0.5">
+                        <p className="text-xs text-[#A5B1C5] mt-0.5">
                           Libere conexão TikTok LIVE em tempo real, captura automática de presentes, campanhas acumuladas e sorteador de comentários.
                         </p>
                       </div>
@@ -2317,7 +2317,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {/* Seleção de Ciclo */}
                       <div className="space-y-1.5">
-                        <label className="block text-xs font-semibold text-[#94A3B8]">
+                        <label className="block text-xs font-semibold text-[#A5B1C5]">
                           Ciclo de Assinatura
                         </label>
                         <div className="grid grid-cols-2 gap-2">
@@ -2326,12 +2326,12 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                             onClick={() => setSelectedCycle('monthly')}
                             className={`p-3 rounded-xl border text-left transition ${
                               selectedCycle === 'monthly'
-                                ? 'bg-[#0131CD]/25 border-[#B9FC01]/50 text-white'
-                                : 'bg-[#10141E] border-[var(--gio-border-subtle)] text-[#94A3B8]'
+                                ? 'bg-[#0131CD]/25 border-[#A6C957]/45 text-white'
+                                : 'bg-[#111B30] border-[var(--gio-border-subtle)] text-[#A5B1C5]'
                             }`}
                           >
                             <div className="text-xs font-bold">Mensal</div>
-                            <div className="font-mono text-sm font-extrabold text-[#FFFFFF] mt-0.5">
+                            <div className="text-sm font-bold tabular-nums text-[#FFFFFF] mt-0.5">
                               {formatBrl(officialPlans?.monthly?.price ?? 29.9)}/mês
                             </div>
                           </button>
@@ -2341,15 +2341,15 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                             onClick={() => setSelectedCycle('annual')}
                             className={`p-3 rounded-xl border text-left transition ${
                               selectedCycle === 'annual'
-                                ? 'bg-[#0131CD]/25 border-[#B9FC01]/50 text-white'
-                                : 'bg-[#10141E] border-[var(--gio-border-subtle)] text-[#94A3B8]'
+                                ? 'bg-[#0131CD]/25 border-[#A6C957]/45 text-white'
+                                : 'bg-[#111B30] border-[var(--gio-border-subtle)] text-[#A5B1C5]'
                             }`}
                           >
                             <div className="text-xs font-bold flex items-center justify-between">
                               <span>Anual</span>
-                              <span className="text-[10px] text-[#20C997] font-mono">-44%</span>
+                              <span className="text-[10px] text-[#A6C957] font-bold tabular-nums">-44%</span>
                             </div>
-                            <div className="font-mono text-sm font-extrabold text-[#FFFFFF] mt-0.5">
+                            <div className="text-sm font-bold tabular-nums text-[#FFFFFF] mt-0.5">
                               {formatBrl(officialPlans?.annual?.price ?? 199.9)}/ano
                             </div>
                           </button>
@@ -2358,7 +2358,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
 
                       {/* Seleção de Provedor */}
                       <div className="space-y-1.5">
-                        <label className="block text-xs font-semibold text-[#94A3B8]">
+                        <label className="block text-xs font-semibold text-[#A5B1C5]">
                           Gateway de Pagamento Oficial
                         </label>
                         <div className="grid grid-cols-2 gap-2">
@@ -2367,12 +2367,12 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                             onClick={() => setSelectedGateway('PAYPAL')}
                             className={`p-3 rounded-xl border text-left transition ${
                               selectedGateway === 'PAYPAL'
-                                ? 'bg-[#0131CD]/25 border-[#B9FC01]/50 text-white'
-                                : 'bg-[#10141E] border-[var(--gio-border-subtle)] text-[#94A3B8]'
+                                ? 'bg-[#0131CD]/25 border-[#A6C957]/45 text-white'
+                                : 'bg-[#111B30] border-[var(--gio-border-subtle)] text-[#A5B1C5]'
                             }`}
                           >
                             <div className="text-xs font-bold">PayPal</div>
-                            <div className="text-[11px] text-[#94A3B8] mt-0.5">
+                            <div className="text-[11px] text-[#A5B1C5] mt-0.5">
                               Cartão / Saldo PayPal
                             </div>
                           </button>
@@ -2382,12 +2382,12 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                             onClick={() => setSelectedGateway('MERCADO_PAGO')}
                             className={`p-3 rounded-xl border text-left transition ${
                               selectedGateway === 'MERCADO_PAGO'
-                                ? 'bg-[#0131CD]/25 border-[#B9FC01]/50 text-white'
-                                : 'bg-[#10141E] border-[var(--gio-border-subtle)] text-[#94A3B8]'
+                                ? 'bg-[#0131CD]/25 border-[#A6C957]/45 text-white'
+                                : 'bg-[#111B30] border-[var(--gio-border-subtle)] text-[#A5B1C5]'
                             }`}
                           >
                             <div className="text-xs font-bold">Mercado Pago</div>
-                            <div className="text-[11px] text-[#94A3B8] mt-0.5">
+                            <div className="text-[11px] text-[#A5B1C5] mt-0.5">
                               Assinatura Brasil
                             </div>
                           </button>
@@ -2396,12 +2396,12 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                      <span className="text-[11px] text-[#94A3B8]">
+                      <span className="text-[11px] text-[#A5B1C5]">
                         Ao prosseguir, você concorda com a{' '}
                         <button
                           type="button"
                           onClick={() => onOpenLegalDocument('politica-de-assinaturas-e-pagamentos')}
-                          className="text-[#35B9F5] underline"
+                          className="text-[#A6C957] underline"
                         >
                           Política de Assinaturas
                         </button>{' '}
@@ -2409,7 +2409,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                         <button
                           type="button"
                           onClick={() => onOpenLegalDocument('politica-de-cancelamento-e-reembolso')}
-                          className="text-[#35B9F5] underline"
+                          className="text-[#A6C957] underline"
                         >
                           Cancelamento
                         </button>
@@ -2422,7 +2422,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                         disabled={isStartingCheckout}
                         className="gio-btn-primary min-h-[42px] px-5 py-2.5 rounded-xl text-white text-xs font-semibold flex items-center gap-2 transition disabled:opacity-50"
                       >
-                        <Crown className="w-4 h-4 text-[#F5B942]" />
+                        <Crown className="w-4 h-4 text-[#A6C957]" />
                         <span>
                           {isStartingCheckout
                             ? 'Iniciando Checkout Seguro...'
@@ -2434,8 +2434,8 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                 )}
 
                 {/* Verificação Manual de ID de Assinatura */}
-                <div className="p-4 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] space-y-2.5">
-                  <div className="text-xs font-semibold text-[#F8FAFC]">
+                <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-2.5">
+                  <div className="text-xs font-semibold text-[#FFFFFF]">
                     Sincronizar Assinatura por Código (PayPal Subscription ID ou Mercado Pago Preapproval)
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2">
@@ -2444,13 +2444,13 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                       value={manualVerifyId}
                       onChange={(e) => setManualVerifyId(e.target.value)}
                       placeholder="Ex: I-BW452GLLEP1G (PayPal) ou código do Mercado Pago"
-                      className="flex-1 min-h-[40px] px-3.5 py-2 rounded-xl bg-[#10141E] border border-[var(--gio-border-subtle)] font-mono text-xs text-white outline-none"
+                      className="flex-1 min-h-[40px] px-3.5 py-2 rounded-xl bg-[#111B30] border border-[var(--gio-border-subtle)] font-mono text-xs text-white outline-none"
                     />
                     <button
                       type="button"
                       onClick={handleVerifySubscriptionManual}
                       disabled={isVerifyingSub || !manualVerifyId.trim()}
-                      className="min-h-[40px] px-4 py-2 rounded-xl bg-[#161C2C] hover:bg-[#1E273D] text-white text-xs font-semibold transition disabled:opacity-50"
+                      className="min-h-[40px] px-4 py-2 rounded-xl bg-[#080D18] hover:bg-[#0131CD]/20 text-white text-xs font-semibold transition disabled:opacity-50"
                     >
                       {isVerifyingSub ? 'Validando...' : 'Validar no Servidor'}
                     </button>
@@ -2462,7 +2462,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                   userSubscription?.statusState === 'ACTIVE' ||
                   userSubscription?.statusState === 'PENDING') && (
                   <div className="pt-3 border-t border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="text-xs text-[#94A3B8]">
+                    <div className="text-xs text-[#A5B1C5]">
                       Deseja interromper cobranças futuras? O cancelamento mantém seu acesso PRO até o fim do período já concedido.
                     </div>
                     {!confirmCancelSub ? (
@@ -2486,7 +2486,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                         <button
                           type="button"
                           onClick={() => setConfirmCancelSub(false)}
-                          className="px-3.5 py-2 rounded-xl bg-[#080A0F] text-[#94A3B8] text-xs font-semibold"
+                          className="px-3.5 py-2 rounded-xl bg-[#080D18] text-[#A5B1C5] text-xs font-semibold"
                         >
                           Voltar
                         </button>
@@ -2504,26 +2504,26 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
           {activeSection === 'payments' && (
             <div className="space-y-6">
               {/* 1. Histórico e Recibos da Assinatura */}
-              <div className="p-6 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] space-y-4">
+              <div className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--gio-border-subtle)] pb-4">
                   <div>
                     <h3 className="text-base font-bold text-[#FFFFFF] flex items-center gap-2">
-                      <Receipt className="w-4 h-4 text-[#20C997]" />
+                      <Receipt className="w-4 h-4 text-[#A6C957]" />
                       <span>Histórico de Pagamentos e Recibos da Assinatura</span>
                     </h3>
-                    <p className="text-xs text-[#94A3B8] mt-0.5">
+                    <p className="text-xs text-[#A5B1C5] mt-0.5">
                       Comprovantes oficiais vinculados à sua conta e validados pelos provedores PayPal e Mercado Pago.
                     </p>
                   </div>
                 </div>
 
                 {paymentHistoryItems.length === 0 ? (
-                  <div className="p-6 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] text-center space-y-2">
-                    <CreditCard className="w-7 h-7 text-[#64748B] mx-auto" />
+                  <div className="p-6 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] text-center space-y-2">
+                    <CreditCard className="w-7 h-7 text-[#A5B1C5] mx-auto" />
                     <div className="text-sm font-bold text-[#FFFFFF]">
                       Nenhuma cobrança registrada até o momento
                     </div>
-                    <p className="text-xs text-[#94A3B8] max-w-md mx-auto">
+                    <p className="text-xs text-[#A5B1C5] max-w-md mx-auto">
                       Sua conta está no plano gratuito (FREE) sem faturas emitidas. Quando você ativar uma assinatura PRO, seus recibos e ciclos aparecerão aqui para download.
                     </p>
                   </div>
@@ -2532,7 +2532,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                     {paymentHistoryItems.map((item) => (
                       <div
                         key={item.receiptId}
-                        className="p-4 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                        className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                       >
                         <div className="space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
@@ -2540,12 +2540,12 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                               {item.receiptId}
                             </span>
                             <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
                                 item.status === 'PAID'
-                                  ? 'bg-[#20C997]/15 text-[#20C997]'
+                                  ? 'bg-[#A6C957]/15 text-[#A6C957] border-[#A6C957]/35'
                                   : item.status === 'TRIAL'
-                                  ? 'bg-[#35B9F5]/15 text-[#35B9F5]'
-                                  : 'bg-[#F5B942]/15 text-[#F5B942]'
+                                  ? 'bg-[#0131CD]/20 text-[#FFFFFF] border-[#0131CD]/40'
+                                  : 'bg-[#080D18] text-[#A5B1C5] border-[var(--gio-border-subtle)]'
                               }`}
                             >
                               {item.status === 'PAID'
@@ -2554,37 +2554,37 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                                 ? 'PERÍODO DE TESTE'
                                 : item.status}
                             </span>
-                            <span className="font-mono text-xs text-[#94A3B8]">
+                            <span className="text-xs tabular-nums text-[#A5B1C5]">
                               {formatDateBr(item.issuedAtIso)}
                             </span>
                           </div>
-                          <div className="text-xs text-[#F8FAFC]">{item.description}</div>
-                          <div className="font-mono text-[11px] text-[#64748B]">
+                          <div className="text-xs text-[#FFFFFF]">{item.description}</div>
+                          <div className="font-mono text-[11px] text-[#A5B1C5]">
                             Ref: {item.referenceId}
                           </div>
                         </div>
 
                         <div className="flex items-center gap-3 shrink-0">
                           <div className="text-right">
-                            <div className="font-mono text-sm font-extrabold text-[#20C997]">
+                            <div className="text-sm font-bold tabular-nums text-[#A6C957]">
                               {formatBrl(item.amount)}
                             </div>
-                            <div className="text-[10px] text-[#64748B]">{item.provider}</div>
+                            <div className="text-[10px] text-[#A5B1C5]">{item.provider}</div>
                           </div>
 
                           <button
                             type="button"
                             onClick={() => setSelectedReceiptPreview(item)}
-                            className="min-h-[36px] px-3 py-1.5 rounded-lg bg-[#161C2C] hover:bg-[#1E273D] text-white text-xs font-semibold flex items-center gap-1.5 transition"
+                            className="min-h-[36px] px-3 py-1.5 rounded-lg bg-[#080D18] hover:bg-[#0131CD]/20 text-white text-xs font-semibold flex items-center gap-1.5 transition"
                           >
-                            <FileText className="w-3.5 h-3.5 text-[#35B9F5]" />
+                            <FileText className="w-3.5 h-3.5 text-[#A5B1C5]" />
                             <span>Ver Recibo</span>
                           </button>
 
                           <button
                             type="button"
                             onClick={() => handleDownloadReceiptHtml(item)}
-                            className="min-h-[36px] px-3 py-1.5 rounded-lg bg-[#0131CD] hover:bg-[#0866F5] text-white text-xs font-semibold flex items-center gap-1.5 transition"
+                            className="min-h-[36px] px-3 py-1.5 rounded-lg bg-[#0131CD] hover:brightness-110 text-white text-xs font-semibold flex items-center gap-1.5 transition"
                           >
                             <Download className="w-3.5 h-3.5" />
                             <span>Baixar</span>
@@ -2597,10 +2597,10 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
 
                 {/* Modal de Visualização de Recibo */}
                 {selectedReceiptPreview && (
-                  <div className="p-5 rounded-xl bg-[#080A0F] border border-[#0866F5]/60 space-y-4">
+                  <div className="p-5 rounded-xl bg-[#080D18] border border-[#0131CD]/60 space-y-4">
                     <div className="flex items-center justify-between border-b border-[var(--gio-border-subtle)] pb-3">
                       <div>
-                        <div className="text-xs font-bold text-[#35B9F5]">
+                        <div className="text-xs font-bold text-[#A6C957]">
                           COMPROVANTE ELETRÔNICO DE ASSINATURA
                         </div>
                         <div className="font-mono text-sm font-bold text-white">
@@ -2610,7 +2610,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                       <button
                         type="button"
                         onClick={() => setSelectedReceiptPreview(null)}
-                        className="text-[#94A3B8] hover:text-white"
+                        className="text-[#A5B1C5] hover:text-white"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -2618,25 +2618,25 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                       <div>
-                        <span className="text-[#64748B] block">Assinante:</span>
+                        <span className="text-[#A5B1C5] block">Assinante:</span>
                         <span className="text-white font-semibold">
                           {profileDisplayName || currentUser?.displayName || 'Organizador'} (
                           {currentUser?.email || 'Local'})
                         </span>
                       </div>
                       <div>
-                        <span className="text-[#64748B] block">Provedor / Referência:</span>
+                        <span className="text-[#A5B1C5] block">Provedor / Referência:</span>
                         <span className="font-mono text-white">
                           {selectedReceiptPreview.provider} &bull; {selectedReceiptPreview.referenceId}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[#64748B] block">Descrição:</span>
+                        <span className="text-[#A5B1C5] block">Descrição:</span>
                         <span className="text-white">{selectedReceiptPreview.description}</span>
                       </div>
                       <div>
-                        <span className="text-[#64748B] block">Valor Registrado:</span>
-                        <span className="font-mono text-sm font-bold text-[#20C997]">
+                        <span className="text-[#A5B1C5] block">Valor Registrado:</span>
+                        <span className="text-sm font-bold tabular-nums text-[#A6C957]">
                           {formatBrl(selectedReceiptPreview.amount)}
                         </span>
                       </div>
@@ -2659,20 +2659,20 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
               {/* 2. Métodos de Pagamento e Chaves do Organizador */}
               <form
                 onSubmit={handleSaveOrganizerPaymentMethods}
-                className="p-6 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] space-y-5"
+                className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-5"
               >
                 <div className="border-b border-[var(--gio-border-subtle)] pb-4">
                   <h3 className="text-base font-bold text-[#FFFFFF]">
                     Métodos de Pagamento e Chaves de Apoio do Organizador
                   </h3>
-                  <p className="text-xs text-[#94A3B8] mt-0.5">
+                  <p className="text-xs text-[#A5B1C5] mt-0.5">
                     Configure suas chaves PIX e PayPal para exibição opcional na aba de apoio e nos cards compartilhados com seus participantes.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[#F8FAFC]">
+                    <label className="block text-xs font-semibold text-[#FFFFFF]">
                       Chave PIX do Organizador (Opcional)
                     </label>
                     <input
@@ -2680,12 +2680,12 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                       value={pixKeyDraft}
                       onChange={(e) => setPixKeyDraft(e.target.value)}
                       placeholder="CPF, CNPJ, E-mail, Telefone ou Chave Aleatória"
-                      className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] focus:border-[#0866F5] font-mono text-sm text-white outline-none"
+                      className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:border-[#0131CD] font-mono text-sm text-white outline-none"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[#F8FAFC]">
+                    <label className="block text-xs font-semibold text-[#FFFFFF]">
                       E-mail ou Link PayPal.me do Organizador (Opcional)
                     </label>
                     <input
@@ -2693,7 +2693,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                       value={paypalEmailDraft}
                       onChange={(e) => setPaypalEmailDraft(e.target.value)}
                       placeholder="seu-email@exemplo.com ou paypal.me/seucanal"
-                      className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] focus:border-[#0866F5] font-mono text-sm text-white outline-none"
+                      className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:border-[#0131CD] font-mono text-sm text-white outline-none"
                     />
                   </div>
                 </div>
@@ -2717,35 +2717,35 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
           {activeSection === 'preferences' && (
             <div className="space-y-6">
               {/* 1. Idioma e Formato Regional */}
-              <div className="p-6 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] space-y-4">
+              <div className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-4">
                 <div className="border-b border-[var(--gio-border-subtle)] pb-4">
                   <h3 className="text-base font-bold text-[#FFFFFF] flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-[#35B9F5]" />
+                    <Globe className="w-4 h-4 text-[#A5B1C5]" />
                     <span>Idioma e Formato Regional</span>
                   </h3>
-                  <p className="text-xs text-[#94A3B8] mt-0.5">
+                  <p className="text-xs text-[#A5B1C5] mt-0.5">
                     Configurações de localização utilizadas nos relatórios, carimbos de data/hora e valores monetários.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-3.5 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)]">
-                    <div className="text-[11px] text-[#64748B]">Idioma da Interface</div>
+                  <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
+                    <div className="text-[11px] text-[#A5B1C5]">Idioma da Interface</div>
                     <div className="text-xs font-bold text-[#FFFFFF] mt-1">
                       Português (Brasil) &mdash; pt-BR
                     </div>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)]">
-                    <div className="text-[11px] text-[#64748B]">Moeda e Formatação Numérica</div>
-                    <div className="font-mono text-xs font-bold text-[#FFFFFF] mt-1">
+                  <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
+                    <div className="text-[11px] text-[#A5B1C5]">Moeda e Formatação Numérica</div>
+                    <div className="text-xs font-bold text-[#FFFFFF] mt-1">
                       Real Brasileiro (BRL / R$)
                     </div>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)]">
-                    <div className="text-[11px] text-[#64748B]">Fuso Horário do Sistema</div>
-                    <div className="font-mono text-xs font-bold text-[#35B9F5] mt-1">
+                  <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
+                    <div className="text-[11px] text-[#A5B1C5]">Fuso Horário do Sistema</div>
+                    <div className="text-xs font-bold text-[#FFFFFF] mt-1">
                       {detectedTimezone}
                     </div>
                   </div>
@@ -2753,25 +2753,25 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
               </div>
 
               {/* 2. Notificações, Áudio e Experiência de Sorteio */}
-              <div className="p-6 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] space-y-5">
+              <div className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-5">
                 <div className="border-b border-[var(--gio-border-subtle)] pb-4">
                   <h3 className="text-base font-bold text-[#FFFFFF] flex items-center gap-2">
-                    <Volume2 className="w-4 h-4 text-[#B9FC01]" />
+                    <Volume2 className="w-4 h-4 text-[#A5B1C5]" />
                     <span>Notificações Sonoras, Contagem Regressiva e Aparência</span>
                   </h3>
-                  <p className="text-xs text-[#94A3B8] mt-0.5">
+                  <p className="text-xs text-[#A5B1C5] mt-0.5">
                     Personalize o comportamento visual e sonoro do sorteador durante suas transmissões.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Efeitos Sonoros */}
-                  <div className="p-4 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] flex items-center justify-between gap-3">
+                  <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex items-center justify-between gap-3">
                     <div>
                       <div className="text-sm font-bold text-[#FFFFFF]">
                         Efeitos Sonoros de Sorteio e Vitória
                       </div>
-                      <div className="text-xs text-[#94A3B8]">
+                      <div className="text-xs text-[#A5B1C5]">
                         Sons de giro do globo/roleta, contagem regressiva e celebração.
                       </div>
                     </div>
@@ -2780,8 +2780,8 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                       onClick={onToggleSound}
                       className={`min-h-[38px] px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 border transition ${
                         soundEnabled
-                          ? 'bg-[#20C997]/15 text-[#20C997] border-[#20C997]/40'
-                          : 'bg-[#161C2C] text-[#94A3B8] border-[var(--gio-border-subtle)]'
+                          ? 'bg-[#A6C957]/15 text-[#A6C957] border-[#A6C957]/35'
+                          : 'bg-[#080D18] text-[#A5B1C5] border-[var(--gio-border-subtle)]'
                       }`}
                     >
                       {soundEnabled ? (
@@ -2799,10 +2799,10 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                   </div>
 
                   {/* Tema Visual */}
-                  <div className="p-4 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] flex items-center justify-between gap-3">
+                  <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex items-center justify-between gap-3">
                     <div>
                       <div className="text-sm font-bold text-[#FFFFFF]">Aparência e Tema Visual</div>
-                      <div className="text-xs text-[#94A3B8]">
+                      <div className="text-xs text-[#A5B1C5]">
                         Escolha entre o Azul Real Clássico ou Neon Night.
                       </div>
                     </div>
@@ -2812,8 +2812,8 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                         onClick={() => onUpdateSettings({ themeMode: 'default' })}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
                           (settings.themeMode || 'default') === 'default'
-                            ? 'bg-[#0131CD] text-white border-[#B9FC01]/50'
-                            : 'bg-[#10141E] text-[#94A3B8] border-[var(--gio-border-subtle)]'
+                            ? 'bg-[#0131CD] text-white border-[#A6C957]/45'
+                            : 'bg-[#111B30] text-[#A5B1C5] border-[var(--gio-border-subtle)]'
                         }`}
                       >
                         Clássico
@@ -2823,8 +2823,8 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                         onClick={() => onUpdateSettings({ themeMode: 'neon' })}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
                           settings.themeMode === 'neon'
-                            ? 'bg-[#0131CD] text-white border-[#B9FC01]/50'
-                            : 'bg-[#10141E] text-[#94A3B8] border-[var(--gio-border-subtle)]'
+                            ? 'bg-[#0131CD] text-white border-[#A6C957]/45'
+                            : 'bg-[#111B30] text-[#A5B1C5] border-[var(--gio-border-subtle)]'
                         }`}
                       >
                         Neon Night
@@ -2833,13 +2833,13 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                   </div>
 
                   {/* Contagem Regressiva */}
-                  <div className="p-4 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] space-y-2">
+                  <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-[#FFFFFF] flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-[#F5B942]" />
+                        <Clock className="w-3.5 h-3.5 text-[#A5B1C5]" />
                         <span>Contagem Regressiva Antes do Sorteio</span>
                       </span>
-                      <span className="font-mono text-xs font-bold text-[#F5B942]">
+                      <span className="text-xs font-bold tabular-nums text-[#A6C957]">
                         {(settings.countdownSeconds ?? 5) === 0
                           ? 'Desativada'
                           : `${settings.countdownSeconds ?? 5}s`}
@@ -2851,10 +2851,10 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                           key={sec}
                           type="button"
                           onClick={() => onUpdateSettings({ countdownSeconds: sec })}
-                          className={`py-1.5 rounded-lg font-mono text-xs font-semibold border transition ${
+                          className={`py-1.5 rounded-lg text-xs font-semibold tabular-nums border transition ${
                             (settings.countdownSeconds ?? 5) === sec
-                              ? 'bg-[#0131CD] text-white border-[#B9FC01]/50'
-                              : 'bg-[#10141E] text-[#94A3B8] border-[var(--gio-border-subtle)]'
+                              ? 'bg-[#0131CD] text-white border-[#A6C957]/45'
+                              : 'bg-[#111B30] text-[#A5B1C5] border-[var(--gio-border-subtle)]'
                           }`}
                         >
                           {sec === 0 ? 'Off' : `${sec}s`}
@@ -2864,12 +2864,12 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                   </div>
 
                   {/* Duração do Giro */}
-                  <div className="p-4 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] space-y-2">
+                  <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-[#FFFFFF]">
                         Duração da Animação do Sorteio
                       </span>
-                      <span className="font-mono text-xs font-bold text-[#35B9F5]">
+                      <span className="text-xs font-bold tabular-nums text-[#A6C957]">
                         {(settings.spinDuration / 1000).toFixed(1)}s
                       </span>
                     </div>
@@ -2883,10 +2883,10 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                           key={opt.ms}
                           type="button"
                           onClick={() => onUpdateSettings({ spinDuration: opt.ms })}
-                          className={`py-1.5 rounded-lg text-xs font-semibold border transition ${
+                          className={`py-1.5 rounded-lg text-xs font-semibold tabular-nums border transition ${
                             settings.spinDuration === opt.ms
-                              ? 'bg-[#0131CD] text-white border-[#B9FC01]/50'
-                              : 'bg-[#10141E] text-[#94A3B8] border-[var(--gio-border-subtle)]'
+                              ? 'bg-[#0131CD] text-white border-[#A6C957]/45'
+                              : 'bg-[#111B30] text-[#A5B1C5] border-[var(--gio-border-subtle)]'
                           }`}
                         >
                           {opt.label}
@@ -2901,7 +2901,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                   <button
                     type="button"
                     onClick={() => setShowAdvancedRulesBackup((v) => !v)}
-                    className="w-full p-3.5 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] border border-[var(--gio-border-subtle)] flex items-center justify-between text-xs font-bold text-[#FFFFFF] transition"
+                    className="w-full p-3.5 rounded-xl bg-[#080D18] hover:bg-[#111B30] border border-[var(--gio-border-subtle)] flex items-center justify-between text-xs font-bold text-[#FFFFFF] transition"
                   >
                     <span>
                       {showAdvancedRulesBackup
@@ -2910,7 +2910,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                     </span>
                     <ChevronRight
                       className={`w-4 h-4 transition-transform ${
-                        showAdvancedRulesBackup ? 'rotate-90 text-[#B9FC01]' : ''
+                        showAdvancedRulesBackup ? 'rotate-90 text-[#A6C957]' : ''
                       }`}
                     />
                   </button>
@@ -2942,13 +2942,13 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
           {activeSection === 'privacy' && (
             <div className="space-y-6">
               {/* 1. Exportação e Portabilidade de Dados */}
-              <div className="p-6 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] space-y-5">
+              <div className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-5">
                 <div className="border-b border-[var(--gio-border-subtle)] pb-4">
                   <h3 className="text-base font-bold text-[#FFFFFF] flex items-center gap-2">
-                    <Download className="w-4 h-4 text-[#20C997]" />
+                    <Download className="w-4 h-4 text-[#A5B1C5]" />
                     <span>Exportação e Portabilidade de Dados (LGPD Art. 18)</span>
                   </h3>
-                  <p className="text-xs text-[#94A3B8] mt-0.5">
+                  <p className="text-xs text-[#A5B1C5] mt-0.5">
                     Baixe uma cópia integral e estruturada dos seus dados de perfil, participantes, bilhetes, ganhadores e certificados de auditoria.
                   </p>
                 </div>
@@ -2957,13 +2957,13 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                   <button
                     type="button"
                     onClick={handleExportCompleteJson}
-                    className="p-4 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] border border-[var(--gio-border-subtle)] hover:border-[#20C997] text-left space-y-2 transition group"
+                    className="p-4 rounded-xl bg-[#080D18] hover:bg-[#111B30] border border-[var(--gio-border-subtle)] hover:border-[#0131CD] text-left space-y-2 transition group"
                   >
-                    <FileJson className="w-5 h-5 text-[#20C997]" />
+                    <FileJson className="w-5 h-5 text-[#A6C957]" />
                     <div className="text-xs font-bold text-[#FFFFFF]">
                       Pacote Completo (JSON)
                     </div>
-                    <p className="text-[11px] text-[#94A3B8]">
+                    <p className="text-[11px] text-[#A5B1C5]">
                       Perfil, assinatura, configurações, participantes e ganhadores.
                     </p>
                   </button>
@@ -2971,13 +2971,13 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                   <button
                     type="button"
                     onClick={handleExportParticipantsCsv}
-                    className="p-4 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] border border-[var(--gio-border-subtle)] hover:border-[#35B9F5] text-left space-y-2 transition group"
+                    className="p-4 rounded-xl bg-[#080D18] hover:bg-[#111B30] border border-[var(--gio-border-subtle)] hover:border-[#0131CD] text-left space-y-2 transition group"
                   >
-                    <FileSpreadsheet className="w-5 h-5 text-[#35B9F5]" />
+                    <FileSpreadsheet className="w-5 h-5 text-[#A5B1C5]" />
                     <div className="text-xs font-bold text-[#FFFFFF]">
                       Planilha de Bilhetes (CSV)
                     </div>
-                    <p className="text-[11px] text-[#94A3B8]">
+                    <p className="text-[11px] text-[#A5B1C5] tabular-nums">
                       Compatível com Excel e Google Sheets ({participants.length} participantes).
                     </p>
                   </button>
@@ -2985,13 +2985,13 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                   <button
                     type="button"
                     onClick={onOpenAuditReport}
-                    className="p-4 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] border border-[var(--gio-border-subtle)] hover:border-[#F5B942] text-left space-y-2 transition group"
+                    className="p-4 rounded-xl bg-[#080D18] hover:bg-[#111B30] border border-[var(--gio-border-subtle)] hover:border-[#0131CD] text-left space-y-2 transition group"
                   >
-                    <FileText className="w-5 h-5 text-[#F5B942]" />
+                    <FileText className="w-5 h-5 text-[#A5B1C5]" />
                     <div className="text-xs font-bold text-[#FFFFFF]">
                       Relatório Auditado (PDF)
                     </div>
-                    <p className="text-[11px] text-[#94A3B8]">
+                    <p className="text-[11px] text-[#A5B1C5]">
                       Certificado oficial com hash SHA-256 da lista e ganhadores.
                     </p>
                   </button>
@@ -2999,13 +2999,13 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                   <button
                     type="button"
                     onClick={onOpenCookieSettings}
-                    className="p-4 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] border border-[var(--gio-border-subtle)] hover:border-[#B9FC01] text-left space-y-2 transition group"
+                    className="p-4 rounded-xl bg-[#080D18] hover:bg-[#111B30] border border-[var(--gio-border-subtle)] hover:border-[#0131CD] text-left space-y-2 transition group"
                   >
-                    <Cookie className="w-5 h-5 text-[#B9FC01]" />
+                    <Cookie className="w-5 h-5 text-[#A5B1C5]" />
                     <div className="text-xs font-bold text-[#FFFFFF]">
                       Preferências de Cookies
                     </div>
-                    <p className="text-[11px] text-[#94A3B8]">
+                    <p className="text-[11px] text-[#A5B1C5]">
                       Gerencie categorias essenciais, preferências e estatísticas.
                     </p>
                   </button>
@@ -3013,14 +3013,14 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
               </div>
 
               {/* 2. Limpeza de Dados Locais da Mesa */}
-              <div className="p-6 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] space-y-4">
+              <div className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <h3 className="text-base font-bold text-[#FFFFFF] flex items-center gap-2">
-                      <Trash2 className="w-4 h-4 text-[#F5B942]" />
+                      <Trash2 className="w-4 h-4 text-[#A5B1C5]" />
                       <span>Limpeza de Dados Operacionais da Mesa Atual</span>
                     </h3>
-                    <p className="text-xs text-[#94A3B8] mt-0.5">
+                    <p className="text-xs text-[#A5B1C5] mt-0.5">
                       Zere apenas as moedas acumuladas ou limpe todos os participantes e ganhadores locais para iniciar um novo ciclo do zero.
                     </p>
                   </div>
@@ -3030,7 +3030,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                       <button
                         type="button"
                         onClick={onResetCoinsOnly}
-                        className="min-h-[38px] px-3.5 py-2 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] text-[#F5B942] border border-[#F5B942]/40 text-xs font-semibold transition"
+                        className="min-h-[38px] px-3.5 py-2 rounded-xl bg-[#080D18] hover:bg-[#111B30] text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-semibold transition"
                       >
                         Zerar Apenas Moedas
                       </button>
@@ -3054,7 +3054,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                       <button
                         type="button"
                         onClick={() => setConfirmClearLocalData(false)}
-                        className="px-3.5 py-2 rounded-xl bg-[#080A0F] text-[#94A3B8] text-xs font-semibold"
+                        className="px-3.5 py-2 rounded-xl bg-[#080D18] text-[#A5B1C5] text-xs font-semibold"
                       >
                         Cancelar
                       </button>
@@ -3064,14 +3064,14 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
               </div>
 
               {/* 3. Solicitação Formal de Exclusão de Conta e Direitos LGPD */}
-              <div className="p-6 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] space-y-5">
+              <div className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-5">
                 <div className="border-b border-[var(--gio-border-subtle)] pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
                     <h3 className="text-base font-bold text-[#FFFFFF] flex items-center gap-2">
                       <Lock className="w-4 h-4 text-[#F05262]" />
                       <span>Exclusão de Conta e Direitos do Titular (LGPD)</span>
                     </h3>
-                    <p className="text-xs text-[#94A3B8] mt-0.5">
+                    <p className="text-xs text-[#A5B1C5] mt-0.5">
                       Registre um pedido formal de exclusão definitiva de conta e dados pessoais com número de protocolo auditável.
                     </p>
                   </div>
@@ -3079,14 +3079,14 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                     <button
                       type="button"
                       onClick={() => onOpenLegalDocument('politica-de-exclusao-de-conta-e-dados')}
-                      className="px-3 py-1.5 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] text-[#35B9F5] border border-[var(--gio-border-subtle)] text-xs font-semibold transition"
+                      className="px-3 py-1.5 rounded-lg bg-[#080D18] hover:bg-[#111B30] text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-semibold transition"
                     >
                       Política de Exclusão
                     </button>
                     <button
                       type="button"
                       onClick={() => onOpenLegalDocument('politica-de-privacidade')}
-                      className="px-3 py-1.5 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] text-[#35B9F5] border border-[var(--gio-border-subtle)] text-xs font-semibold transition"
+                      className="px-3 py-1.5 rounded-lg bg-[#080D18] hover:bg-[#111B30] text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-semibold transition"
                     >
                       Política de Privacidade
                     </button>
@@ -3096,13 +3096,13 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                 <form onSubmit={handleSubmitLgpdRequest} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-[#F8FAFC]">
+                      <label className="block text-xs font-semibold text-[#FFFFFF]">
                         Tipo de Solicitação (Art. 18 da LGPD)
                       </label>
                       <select
                         value={lgpdRequestType}
                         onChange={(e) => setLgpdRequestType(e.target.value as LgpdRequestType)}
-                        className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] text-xs sm:text-sm text-white outline-none"
+                        className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] text-xs sm:text-sm text-white outline-none"
                       >
                         {LGPD_TYPE_LABELS.map((opt) => (
                           <option key={opt.value} value={opt.value}>
@@ -3113,7 +3113,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-[#F8FAFC]">
+                      <label className="block text-xs font-semibold text-[#FFFFFF]">
                         Identificação do Titular
                       </label>
                       <input
@@ -3124,13 +3124,13 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                             ? `${currentUser.displayName || 'Titular'} (${currentUser.email || currentUser.uid})`
                             : `${profileDisplayName || 'Visitante Local'}`
                         }
-                        className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080A0F]/60 border border-[var(--gio-border-subtle)] text-xs sm:text-sm text-[#94A3B8]"
+                        className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080D18]/60 border border-[var(--gio-border-subtle)] text-xs sm:text-sm text-[#A5B1C5]"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[#F8FAFC]">
+                    <label className="block text-xs font-semibold text-[#FFFFFF]">
                       Detalhamento da Solicitação
                     </label>
                     <textarea
@@ -3138,7 +3138,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                       value={lgpdDescription}
                       onChange={(e) => setLgpdDescription(e.target.value)}
                       placeholder="Ex: Solicito a exclusão definitiva dos meus dados cadastrais e revogação de integrações vinculadas à minha conta..."
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] focus:border-[#0866F5] text-sm text-white outline-none resize-none"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:border-[#0131CD] text-sm text-white outline-none resize-none"
                     />
                   </div>
 
@@ -3146,7 +3146,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                     <button
                       type="submit"
                       disabled={isSubmittingLgpd}
-                      className="min-h-[40px] px-5 py-2 rounded-xl bg-[#F05262] hover:bg-[#E03E4E] text-white text-xs font-bold transition disabled:opacity-50"
+                      className="min-h-[40px] px-5 py-2 rounded-xl bg-[#F05262] hover:brightness-110 text-white text-xs font-bold transition disabled:opacity-50"
                     >
                       {isSubmittingLgpd
                         ? 'Registrando Protocolo...'
@@ -3165,22 +3165,22 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                       {lgpdRequests.slice(0, 5).map((req) => (
                         <div
                           key={req.requestId}
-                          className="p-3 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                          className="p-3 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
                         >
                           <div>
-                            <span className="font-mono font-bold text-[#35B9F5]">
+                            <span className="font-mono font-bold text-[#A6C957]">
                               {req.protocol}
                             </span>{' '}
                             &bull; <span className="font-semibold text-white">{req.requestType}</span>
-                            <div className="text-[11px] text-[#94A3B8] truncate max-w-xl">
+                            <div className="text-[11px] text-[#A5B1C5] truncate max-w-xl">
                               {req.description}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <span className="font-mono text-[11px] text-[#64748B]">
+                            <span className="text-[11px] tabular-nums text-[#A5B1C5]">
                               {formatDateBr(req.createdAt)}
                             </span>
-                            <span className="px-2 py-0.5 rounded bg-[#161C2C] text-[#F5B942] font-mono text-[10px] font-bold">
+                            <span className="px-2 py-0.5 rounded bg-[#A6C957]/15 text-[#A6C957] border border-[#A6C957]/35 text-[10px] font-bold">
                               {req.status}
                             </span>
                           </div>

@@ -197,17 +197,17 @@ export const ParticipantImportModal: React.FC<ParticipantImportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#080A0F]/85 backdrop-blur-md animate-fade-in">
-      <div className="bg-[#10141E] border border-[#161C2C] w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-slide-up">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#080D18]/85 backdrop-blur-md animate-fade-in">
+      <div className="bg-[#111B30] border border-[var(--gio-border-subtle)] w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-slide-up">
         {/* Header */}
-        <div className="p-5 border-b border-[#161C2C] flex items-center justify-between bg-[#10141E]">
+        <div className="p-5 border-b border-[var(--gio-border-subtle)] flex items-center justify-between bg-[#080D18]/60">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-[#0131CD]/20 border border-[#0131CD]/40 flex items-center justify-center text-[#FFFFFF]">
+            <div className="w-10 h-10 rounded-xl bg-[#0131CD] border border-[#0131CD] flex items-center justify-center text-[#FFFFFF]">
               <FileSpreadsheet className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-display font-bold text-lg text-[#FFFFFF]">Importar Lista de Participantes</h3>
-              <p className="text-xs text-[#94A3B8]">
+              <h3 className="font-bold text-lg text-[#FFFFFF]">Importar Lista de Participantes</h3>
+              <p className="text-xs text-[#A5B1C5]">
                 Excel (.xlsx, .xls), CSV, Bloco de Notas (.txt), TSV ou JSON
               </p>
             </div>
@@ -215,22 +215,22 @@ export const ParticipantImportModal: React.FC<ParticipantImportModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="text-[#94A3B8] hover:text-[#FFFFFF] p-2 rounded-xl hover:bg-[#161C2C] transition"
+            className="text-[#A5B1C5] hover:text-[#FFFFFF] p-2 rounded-xl hover:bg-[#080D18] transition"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Mode Switcher */}
-        <div className="p-3 bg-[#10141E]/80 border-b border-[#161C2C] flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 p-1 bg-[#10141E] rounded-xl border border-[#161C2C]">
+        <div className="p-3 bg-[#080D18]/80 border-b border-[var(--gio-border-subtle)] flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 p-1 bg-[#111B30] rounded-xl border border-[var(--gio-border-subtle)]">
             <button
               type="button"
               onClick={() => setActiveTab('file')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 activeTab === 'file'
                   ? 'bg-[#0131CD] text-[#FFFFFF] shadow-sm'
-                  : 'text-[#94A3B8] hover:text-[#FFFFFF]'
+                  : 'text-[#A5B1C5] hover:text-[#FFFFFF]'
               }`}
             >
               <Upload className="w-3.5 h-3.5" />
@@ -242,7 +242,7 @@ export const ParticipantImportModal: React.FC<ParticipantImportModalProps> = ({
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 activeTab === 'paste'
                   ? 'bg-[#0131CD] text-[#FFFFFF] shadow-sm'
-                  : 'text-[#94A3B8] hover:text-[#FFFFFF]'
+                  : 'text-[#A5B1C5] hover:text-[#FFFFFF]'
               }`}
             >
               <FileText className="w-3.5 h-3.5" />
@@ -251,12 +251,12 @@ export const ParticipantImportModal: React.FC<ParticipantImportModalProps> = ({
           </div>
 
           {/* Sample template links */}
-          <div className="flex items-center gap-1 text-[11px] text-[#94A3B8]">
+          <div className="flex items-center gap-1 text-[11px] text-[#A5B1C5]">
             <span className="hidden sm:inline">Modelos:</span>
             <button
               type="button"
               onClick={handleDownloadSampleExcel}
-              className="text-[#B9FC01] hover:text-[#FFFFFF] px-1.5 py-0.5 rounded hover:bg-[#161C2C] font-semibold transition"
+              className="text-[#A6C957] hover:text-[#B5D477] px-1.5 py-0.5 rounded hover:bg-[#111B30] font-semibold transition"
             >
               .XLSX
             </button>
@@ -264,7 +264,7 @@ export const ParticipantImportModal: React.FC<ParticipantImportModalProps> = ({
             <button
               type="button"
               onClick={handleDownloadSampleCsv}
-              className="text-[#B9FC01] hover:text-[#FFFFFF] px-1.5 py-0.5 rounded hover:bg-[#161C2C] font-semibold transition"
+              className="text-[#A6C957] hover:text-[#B5D477] px-1.5 py-0.5 rounded hover:bg-[#111B30] font-semibold transition"
             >
               .CSV
             </button>
@@ -272,7 +272,7 @@ export const ParticipantImportModal: React.FC<ParticipantImportModalProps> = ({
             <button
               type="button"
               onClick={handleDownloadSampleTxt}
-              className="text-[#B9FC01] hover:text-[#FFFFFF] px-1.5 py-0.5 rounded hover:bg-[#161C2C] font-semibold transition"
+              className="text-[#A6C957] hover:text-[#B5D477] px-1.5 py-0.5 rounded hover:bg-[#111B30] font-semibold transition"
             >
               .TXT
             </button>
@@ -301,7 +301,7 @@ export const ParticipantImportModal: React.FC<ParticipantImportModalProps> = ({
               className={`p-6 border-2 border-dashed rounded-2xl text-center cursor-pointer transition flex flex-col items-center justify-center gap-2.5 ${
                 isDragOver
                   ? 'border-[#0131CD] bg-[#0131CD]/15'
-                  : 'border-[#161C2C] bg-[#10141E] hover:border-[#0131CD]/50'
+                  : 'border-[var(--gio-border-subtle)] bg-[#080D18] hover:border-[#0131CD]/50'
               }`}
             >
               <input
@@ -314,14 +314,14 @@ export const ParticipantImportModal: React.FC<ParticipantImportModalProps> = ({
                   if (file) handleProcessFile(file);
                 }}
               />
-              <div className="w-12 h-12 rounded-xl bg-[#0131CD]/20 border border-[#0131CD]/40 text-[#FFFFFF] flex items-center justify-center">
+              <div className="w-12 h-12 rounded-xl bg-[#0131CD] border border-[#0131CD] text-[#FFFFFF] flex items-center justify-center">
                 <Upload className="w-6 h-6" />
               </div>
               <div>
                 <p className="text-sm font-bold text-[#FFFFFF]">
                   {fileName ? `Arquivo: ${fileName}` : 'Clique para escolher ou arraste o arquivo aqui'}
                 </p>
-                <p className="text-xs text-[#94A3B8] mt-1">
+                <p className="text-xs text-[#A5B1C5] mt-1">
                   Formatos aceitos: Planilhas Excel (.xlsx, .xls), Arquivos CSV (.csv), Texto (.txt) ou JSON (.json)
                 </p>
               </div>
@@ -342,17 +342,17 @@ export const ParticipantImportModal: React.FC<ParticipantImportModalProps> = ({
                   handleParseText(e.target.value);
                 }}
                 placeholder="Exemplos aceitos:&#10;Ana Beatriz 350&#10;Carlos Eduardo, 500&#10;Mariana Silva - 200 moedas&#10;Lucas Gabriel (apenas o nome também funciona!)"
-                className="w-full bg-[#10141E] border border-[#161C2C] rounded-xl p-3 text-xs sm:text-sm text-[#FFFFFF] placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 font-mono"
+                className="w-full bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl p-3 text-xs sm:text-sm text-[#FFFFFF] placeholder:text-[#A5B1C5]/50 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/30 font-sans"
               />
-              <p className="text-[11px] text-[#94A3B8]">
+              <p className="text-[11px] text-[#A5B1C5]">
                 Aceita separadores como vírgula, ponto-e-vírgula, dois-pontos, traço, espaços ou apenas nomes.
               </p>
             </div>
           )}
 
           {/* ADVANCED IMPORT CONFIGURATION OPTIONS */}
-          <div className="bg-[#10141E] border border-[#161C2C] rounded-2xl p-4 space-y-4 text-xs">
-            <span className="font-bold uppercase tracking-wider text-[#B9FC01] block">
+          <div className="bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-2xl p-4 space-y-4 text-xs">
+            <span className="font-bold uppercase tracking-wide text-[#A6C957] block">
               Opções Avançadas de Importação
             </span>
 
@@ -361,23 +361,23 @@ export const ParticipantImportModal: React.FC<ParticipantImportModalProps> = ({
               <div>
                 <label className="block text-[#FFFFFF] font-semibold mb-1.5">Ação na lista atual:</label>
                 <div className="space-y-1.5">
-                  <label className="flex items-center gap-2 text-[#94A3B8] cursor-pointer">
+                  <label className="flex items-center gap-2 text-[#A5B1C5] cursor-pointer">
                     <input
                       type="radio"
                       name="action_mode"
                       checked={!replaceExisting}
                       onChange={() => setReplaceExisting(false)}
-                      className="text-[#0131CD] bg-[#10141E] border-[#161C2C]"
+                      className="text-[#0131CD] bg-[#111B30] border-[var(--gio-border-subtle)]"
                     />
                     <span>Adicionar à lista existente ({currentParticipants.length} atuais)</span>
                   </label>
-                  <label className="flex items-center gap-2 text-[#94A3B8] cursor-pointer">
+                  <label className="flex items-center gap-2 text-[#A5B1C5] cursor-pointer">
                     <input
                       type="radio"
                       name="action_mode"
                       checked={replaceExisting}
                       onChange={() => setReplaceExisting(true)}
-                      className="text-[#0131CD] bg-[#10141E] border-[#161C2C]"
+                      className="text-[#0131CD] bg-[#111B30] border-[var(--gio-border-subtle)]"
                     />
                     <span>Substituir lista existente (apagar atuais)</span>
                   </label>
@@ -392,7 +392,7 @@ export const ParticipantImportModal: React.FC<ParticipantImportModalProps> = ({
                 <select
                   value={duplicateStrategy}
                   onChange={(e) => setDuplicateStrategy(e.target.value as any)}
-                  className="w-full bg-[#10141E] border border-[#161C2C] rounded-xl p-2 text-xs text-[#FFFFFF] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35"
+                  className="w-full bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-xl p-2 text-xs text-[#FFFFFF] focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/30"
                 >
                   <option value="sum">Somar moedas (+) [Recomendado para Lives]</option>
                   <option value="overwrite">Sobrescrever saldo com novo valor</option>
@@ -402,10 +402,10 @@ export const ParticipantImportModal: React.FC<ParticipantImportModalProps> = ({
               </div>
 
               {/* Default Coins */}
-              <div className="sm:col-span-2 flex items-center justify-between gap-4 pt-2 border-t border-[#161C2C]">
+              <div className="sm:col-span-2 flex items-center justify-between gap-4 pt-2 border-t border-[var(--gio-border-subtle)]">
                 <div>
                   <span className="text-[#FFFFFF] font-semibold block">Moedas padrão para nomes sem valor:</span>
-                  <span className="text-[#94A3B8] text-[11px]">
+                  <span className="text-[#A5B1C5] text-[11px]">
                     Se uma linha tiver apenas o nome da pessoa, ela receberá esta quantia.
                   </span>
                 </div>
@@ -423,9 +423,9 @@ export const ParticipantImportModal: React.FC<ParticipantImportModalProps> = ({
                         }
                       }
                     }}
-                    className="w-24 bg-[#10141E] border border-[#161C2C] rounded-xl px-3 py-1.5 text-xs text-[#FFFFFF] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 font-mono tabular-nums font-bold"
+                    className="w-24 bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-xl px-3 py-1.5 text-xs text-[#FFFFFF] focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/30 tabular-nums font-bold"
                   />
-                  <span className="text-[#94A3B8] text-xs">moedas</span>
+                  <span className="text-[#A5B1C5] text-xs">moedas</span>
                 </div>
               </div>
             </div>
@@ -436,23 +436,23 @@ export const ParticipantImportModal: React.FC<ParticipantImportModalProps> = ({
             <div className="space-y-3 pt-2">
               {/* Summary KPIs */}
               <div className="grid grid-cols-3 gap-2.5">
-                <div className="bg-[#10141E] p-3 rounded-xl border border-[#161C2C] text-center">
-                  <span className="text-[10px] text-[#94A3B8] uppercase tracking-wider block">Detectados</span>
-                  <span className="text-lg font-mono font-bold text-[#FFFFFF] tabular-nums">{parsedItems.length}</span>
+                <div className="bg-[#080D18] p-3 rounded-xl border border-[var(--gio-border-subtle)] text-center">
+                  <span className="text-[10px] text-[#A5B1C5] uppercase tracking-wide block">Detectados</span>
+                  <span className="text-lg font-bold text-[#FFFFFF] tabular-nums">{parsedItems.length}</span>
                 </div>
-                <div className="bg-[#10141E] p-3 rounded-xl border border-[#161C2C] text-center">
-                  <span className="text-[10px] text-[#94A3B8] uppercase tracking-wider block">Total Moedas</span>
-                  <span className="text-lg font-mono font-bold text-[#B9FC01] tabular-nums">{totalCoins}</span>
+                <div className="bg-[#080D18] p-3 rounded-xl border border-[var(--gio-border-subtle)] text-center">
+                  <span className="text-[10px] text-[#A5B1C5] uppercase tracking-wide block">Total Moedas</span>
+                  <span className="text-lg font-bold text-[#A6C957] tabular-nums">{totalCoins}</span>
                 </div>
-                <div className="bg-[#10141E] p-3 rounded-xl border border-[#161C2C] text-center">
-                  <span className="text-[10px] text-[#94A3B8] uppercase tracking-wider block">Bilhetes</span>
-                  <span className="text-lg font-mono font-bold text-[#20C997] tabular-nums">~{estimatedTickets}</span>
+                <div className="bg-[#080D18] p-3 rounded-xl border border-[var(--gio-border-subtle)] text-center">
+                  <span className="text-[10px] text-[#A5B1C5] uppercase tracking-wide block">Bilhetes</span>
+                  <span className="text-lg font-bold text-[#A6C957] tabular-nums">~{estimatedTickets}</span>
                 </div>
               </div>
 
               {/* First few preview rows */}
-              <div className="bg-[#10141E] border border-[#161C2C] rounded-xl p-3 space-y-2">
-                <div className="flex items-center justify-between text-xs text-[#94A3B8]">
+              <div className="bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl p-3 space-y-2">
+                <div className="flex items-center justify-between text-xs text-[#A5B1C5]">
                   <span className="font-semibold text-[#FFFFFF]">
                     Prévia dos primeiros participantes ({Math.min(parsedItems.length, 6)} de {parsedItems.length}):
                   </span>
@@ -462,10 +462,10 @@ export const ParticipantImportModal: React.FC<ParticipantImportModalProps> = ({
                   {parsedItems.slice(0, 8).map((p, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center justify-between p-2 rounded-lg bg-[#10141E] text-xs"
+                      className="flex items-center justify-between p-2 rounded-lg bg-[#111B30] text-xs"
                     >
                       <span className="font-bold text-[#FFFFFF] truncate">{p.name}</span>
-                      <span className="text-[#B9FC01] font-mono font-bold tabular-nums">{p.coins} moedas</span>
+                      <span className="text-[#A6C957] font-semibold tabular-nums">{p.coins} moedas</span>
                     </div>
                   ))}
                 </div>
@@ -475,11 +475,11 @@ export const ParticipantImportModal: React.FC<ParticipantImportModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 border-t border-[#161C2C] bg-[#10141E] flex items-center justify-between gap-3">
+        <div className="p-4 border-t border-[var(--gio-border-subtle)] bg-[#080D18]/60 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 bg-[#161C2C] hover:bg-[#10141E] text-[#94A3B8] hover:text-[#FFFFFF] text-xs font-bold rounded-xl transition"
+            className="px-4 py-2 bg-[#111B30] hover:bg-[#080D18] border border-[var(--gio-border-subtle)] text-[#A5B1C5] hover:text-[#FFFFFF] text-xs font-bold rounded-xl transition"
           >
             Cancelar
           </button>

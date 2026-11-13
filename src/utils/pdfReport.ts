@@ -85,12 +85,14 @@ export async function generateRafflePdfReport(options: GeneratePdfReportOptions)
   };
 
   // --- HEADER BANNER ---
-  doc.setFillColor(15, 23, 42); // slate-900
+  doc.setFillColor(8, 13, 24); // #080D18
   doc.rect(margin, currentY, contentWidth, 26, 'F');
 
-  // Accent cyan top border stripe
-  doc.setFillColor(2, 132, 199); // sky-600
-  doc.rect(margin, currentY, contentWidth, 2, 'F');
+  // Accent royal blue / lime top border stripe
+  doc.setFillColor(1, 49, 205); // #0131CD
+  doc.rect(margin, currentY, contentWidth * 0.65, 2, 'F');
+  doc.setFillColor(166, 201, 87); // #A6C957
+  doc.rect(margin + contentWidth * 0.65, currentY, contentWidth * 0.35, 2, 'F');
 
   // Brand Name
   doc.setFont('helvetica', 'bold');
@@ -101,23 +103,23 @@ export async function generateRafflePdfReport(options: GeneratePdfReportOptions)
   // Subtitle
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.setTextColor(186, 230, 253); // sky-200
+  doc.setTextColor(165, 177, 197); // #A5B1C5
   doc.text('LAUDO OFICIAL DE AUDITORIA, RESULTADOS E INTEGRIDADE CRIPTOGRÁFICA', margin + 6, currentY + 18);
 
   // Status Badge on Header Right
-  doc.setFillColor(6, 78, 59); // emerald-900
+  doc.setFillColor(17, 27, 48); // #111B30
   doc.roundedRect(pageWidth - margin - 52, currentY + 6, 46, 14, 2, 2, 'F');
-  doc.setDrawColor(16, 185, 129); // emerald-500
+  doc.setDrawColor(166, 201, 87); // #A6C957
   doc.setLineWidth(0.3);
   doc.roundedRect(pageWidth - margin - 52, currentY + 6, 46, 14, 2, 2, 'D');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
-  doc.setTextColor(52, 211, 153); // emerald-400
+  doc.setTextColor(166, 201, 87); // #A6C957
   doc.text('AUDITORIA OFICIAL', pageWidth - margin - 29, currentY + 11.5, { align: 'center' });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.5);
-  doc.setTextColor(209, 250, 229);
+  doc.setTextColor(255, 255, 255);
   doc.text('AUTENTICIDADE VÁLIDA', pageWidth - margin - 29, currentY + 16, { align: 'center' });
 
   currentY += 30;
@@ -162,25 +164,25 @@ export async function generateRafflePdfReport(options: GeneratePdfReportOptions)
   currentY += 28;
 
   // --- CRYPTOGRAPHIC INTEGRITY HASH BOX (SHA-256) ---
-  doc.setFillColor(239, 246, 255); // blue-50
-  doc.setDrawColor(59, 130, 246); // blue-500
+  doc.setFillColor(239, 246, 255);
+  doc.setDrawColor(1, 49, 205); // #0131CD
   doc.setLineWidth(0.6);
   doc.roundedRect(margin, currentY, contentWidth, 27, 2, 2, 'FD');
 
   // Header of Hash Box
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
-  doc.setTextColor(29, 78, 216); // blue-700
+  doc.setTextColor(1, 49, 205); // #0131CD
   doc.text('HASH CRIPTOGRÁFICO DE INTEGRIDADE (SHA-256)', margin + 4, currentY + 6);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
-  doc.setTextColor(16, 185, 129); // emerald-600
+  doc.setTextColor(1, 49, 205); // #0131CD
   doc.text('PROVA MATEMÁTICA IMUTÁVEL', pageWidth - margin - 4, currentY + 6, { align: 'right' });
 
   // Monospace Hash string display
   doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(191, 219, 254); // blue-200
+  doc.setDrawColor(191, 219, 254);
   doc.roundedRect(margin + 4, currentY + 8.5, contentWidth - 8, 8, 1.5, 1.5, 'FD');
 
   doc.setFont('courier', 'bold');
@@ -268,7 +270,7 @@ export async function generateRafflePdfReport(options: GeneratePdfReportOptions)
   currentY += 7;
 
   // Table Header row
-  doc.setFillColor(30, 41, 59); // slate-800
+  doc.setFillColor(17, 27, 48); // #111B30
   doc.rect(margin, currentY, contentWidth, 7, 'F');
 
   doc.setFont('helvetica', 'bold');
@@ -312,7 +314,7 @@ export async function generateRafflePdfReport(options: GeneratePdfReportOptions)
         currentY = margin;
 
         // Re-print table header on next page
-        doc.setFillColor(30, 41, 59);
+        doc.setFillColor(17, 27, 48); // #111B30
         doc.rect(margin, currentY, contentWidth, 7, 'F');
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(7.5);
@@ -335,9 +337,9 @@ export async function generateRafflePdfReport(options: GeneratePdfReportOptions)
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
       if (index === 0) {
-        doc.setTextColor(180, 83, 9); // amber-700
+        doc.setTextColor(1, 49, 205); // #0131CD
       } else if (index === 1) {
-        doc.setTextColor(71, 85, 105); // slate-600
+        doc.setTextColor(71, 85, 105);
       } else {
         doc.setTextColor(100, 116, 139);
       }
@@ -346,14 +348,14 @@ export async function generateRafflePdfReport(options: GeneratePdfReportOptions)
       // Winner Name
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8.5);
-      doc.setTextColor(15, 23, 42);
+      doc.setTextColor(8, 13, 24);
       const cleanName = winner.name.length > 32 ? winner.name.slice(0, 30) + '...' : winner.name;
       doc.text(cleanName, colX.name, currentY + 5.2);
 
       // Ticket Number
       doc.setFont('courier', 'bold');
       doc.setFontSize(9);
-      doc.setTextColor(2, 132, 199); // sky-600
+      doc.setTextColor(1, 49, 205); // #0131CD
       doc.text(`#${winner.number}`, colX.ticket, currentY + 5.2);
 
       // Prize
@@ -456,14 +458,14 @@ export async function generateTikTokPdfReport(options: GenerateTikTokPdfReportOp
     doc.text(`Página ${pageNumber}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
   };
 
-  // HEADER BANNER (TikTok Gradient Theme)
-  doc.setFillColor(1, 1, 1); // Dark TikTok Black
+  // HEADER BANNER (Official GIO DA SORTE Theme)
+  doc.setFillColor(8, 13, 24); // #080D18
   doc.rect(margin, currentY, contentWidth, 26, 'F');
 
-  // Accent TikTok Red/Cyan line
-  doc.setFillColor(254, 44, 85); // TikTok Red
+  // Accent Royal Blue / Lime line
+  doc.setFillColor(1, 49, 205); // #0131CD
   doc.rect(margin, currentY, contentWidth / 2, 2, 'F');
-  doc.setFillColor(0, 242, 254); // TikTok Cyan
+  doc.setFillColor(166, 201, 87); // #A6C957
   doc.rect(margin + contentWidth / 2, currentY, contentWidth / 2, 2, 'F');
 
   doc.setFont('helvetica', 'bold');
@@ -473,15 +475,15 @@ export async function generateTikTokPdfReport(options: GenerateTikTokPdfReportOp
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.setTextColor(254, 44, 85);
+  doc.setTextColor(165, 177, 197); // #A5B1C5
   doc.text('RELATÓRIO OFICIAL DE AUDITORIA DE COMENTÁRIOS E GANHADORES', margin + 6, currentY + 18);
 
   // Status Badge
-  doc.setFillColor(30, 41, 59);
+  doc.setFillColor(17, 27, 48); // #111B30
   doc.roundedRect(pageWidth - margin - 52, currentY + 6, 46, 14, 2, 2, 'F');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
-  doc.setTextColor(0, 242, 254);
+  doc.setTextColor(166, 201, 87); // #A6C957
   doc.text('VERIFICAÇÃO TIKTOK', pageWidth - margin - 29, currentY + 11.5, { align: 'center' });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.5);
@@ -564,7 +566,7 @@ export async function generateTikTokPdfReport(options: GenerateTikTokPdfReportOp
 
   currentY += 7;
 
-  doc.setFillColor(15, 23, 42);
+  doc.setFillColor(17, 27, 48); // #111B30
   doc.rect(margin, currentY, contentWidth, 7, 'F');
 
   doc.setFont('helvetica', 'bold');
@@ -586,7 +588,7 @@ export async function generateTikTokPdfReport(options: GenerateTikTokPdfReportOp
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
-    doc.setTextColor(254, 44, 85);
+    doc.setTextColor(1, 49, 205); // #0131CD
     doc.text(`${index + 1}º Lugar`, margin + 3, currentY + 6);
 
     doc.setFont('helvetica', 'bold');
@@ -669,13 +671,13 @@ export async function downloadTikTokLivePdfCertificate(
   let currentY = margin;
 
   // Header banner background
-  doc.setFillColor(15, 23, 42); // slate-900
+  doc.setFillColor(8, 13, 24); // #080D18
   doc.rect(margin, currentY, contentWidth, 34, 'F');
 
   // Decorative accent line
-  doc.setFillColor(0, 242, 254);
+  doc.setFillColor(1, 49, 205); // #0131CD
   doc.rect(margin, currentY + 34, contentWidth * 0.5, 2, 'F');
-  doc.setFillColor(254, 44, 85);
+  doc.setFillColor(166, 201, 87); // #A6C957
   doc.rect(margin + contentWidth * 0.5, currentY + 34, contentWidth * 0.5, 2, 'F');
 
   doc.setFont('helvetica', 'bold');
@@ -684,12 +686,12 @@ export async function downloadTikTokLivePdfCertificate(
   doc.text('GIO DA SORTE · TIKTOK LIVE PRO', margin + 8, currentY + 12);
 
   doc.setFontSize(10);
-  doc.setTextColor(148, 163, 184);
+  doc.setTextColor(165, 177, 197); // #A5B1C5
   doc.text('CERTIFICADO OFICIAL DE AUDITORIA CRIPTOGRÁFICA', margin + 8, currentY + 19);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.setTextColor(0, 242, 254);
+  doc.setTextColor(166, 201, 87); // #A6C957
   doc.text(
     `TIPO: ${options.drawType === 'INDIVIDUAL_LIVE' ? 'SORTEIO INDIVIDUAL POR LIVE (MOTOR 1)' : 'CAMPANHA ESPECIAL MULTI-LIVE (MOTOR 2)'}`,
     margin + 8,
@@ -705,15 +707,15 @@ export async function downloadTikTokLivePdfCertificate(
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
-  doc.setTextColor(15, 23, 42);
+  doc.setTextColor(8, 13, 24);
   doc.text('BILHETE CONTEMPLADO', margin + 6, currentY + 8);
 
   doc.setFontSize(26);
-  doc.setTextColor(254, 44, 85);
+  doc.setTextColor(1, 49, 205); // #0131CD
   doc.text(`#${options.winningTicketNumber}`, margin + 6, currentY + 22);
 
   doc.setFontSize(14);
-  doc.setTextColor(15, 23, 42);
+  doc.setTextColor(8, 13, 24);
   doc.text(`@${options.winnerUsername} (${options.winnerNickname})`, margin + 6, currentY + 32);
 
   doc.setFont('helvetica', 'normal');
@@ -727,7 +729,7 @@ export async function downloadTikTokLivePdfCertificate(
   // Metadata Grid
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.setTextColor(15, 23, 42);
+  doc.setTextColor(8, 13, 24);
   doc.text('PARÂMETROS DA TRANSMISSÃO & SORTEIO', margin, currentY);
 
   currentY += 6;
@@ -746,38 +748,38 @@ export async function downloadTikTokLivePdfCertificate(
   // Cryptographic Verifiable Proof Section
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.setTextColor(15, 23, 42);
+  doc.setTextColor(8, 13, 24);
   doc.text('AUDITORIA DE INTEGRIDADE & PROVA CRIPTOGRÁFICA', margin, currentY);
 
   currentY += 6;
-  doc.setFillColor(15, 23, 42);
+  doc.setFillColor(17, 27, 48); // #111B30
   doc.rect(margin, currentY, contentWidth, 68, 'F');
 
   doc.setFont('courier', 'bold');
   doc.setFontSize(8);
-  doc.setTextColor(0, 242, 254);
+  doc.setTextColor(166, 201, 87); // #A6C957
   doc.text('[1] HASH DE INTEGRIDADE DA LISTA DE BILHETES (SHA-256 ROSTER):', margin + 6, currentY + 8);
   doc.setFont('courier', 'normal');
-  doc.setTextColor(248, 250, 252);
+  doc.setTextColor(255, 255, 255);
   doc.text(options.rosterSha256Hash || 'N/A', margin + 6, currentY + 14);
 
   doc.setFont('courier', 'bold');
-  doc.setTextColor(0, 242, 254);
+  doc.setTextColor(166, 201, 87); // #A6C957
   doc.text('[2] COMPROMISSO DE SEMENTE (SHA-256 COMMITMENT):', margin + 6, currentY + 24);
   doc.setFont('courier', 'normal');
-  doc.setTextColor(248, 250, 252);
+  doc.setTextColor(255, 255, 255);
   doc.text(options.seedCommitment || 'N/A', margin + 6, currentY + 30);
 
   doc.setFont('courier', 'bold');
-  doc.setTextColor(0, 242, 254);
+  doc.setTextColor(166, 201, 87); // #A6C957
   doc.text('[3] SEMENTE REVELADA (CSPRNG 256-BIT ENTROPY):', margin + 6, currentY + 40);
   doc.setFont('courier', 'normal');
-  doc.setTextColor(248, 250, 252);
+  doc.setTextColor(255, 255, 255);
   doc.text(options.seedRevealed || 'N/A', margin + 6, currentY + 46);
 
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(7.5);
-  doc.setTextColor(148, 163, 184);
+  doc.setTextColor(165, 177, 197); // #A5B1C5
   doc.text(
     'Qualquer espectador pode calcular SHA-256(seedRevealed) para verificar a correspondência exata com o compromisso.',
     margin + 6,

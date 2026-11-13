@@ -653,22 +653,22 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
   return (
     <div className="space-y-6 animate-fade-in min-w-0 overflow-x-hidden">
       {/* Top Header & Quick Actions Card */}
-      <div className="rounded-xl bg-[#10141E] border border-[#161C2C] p-5 sm:p-6">
+      <div className="rounded-xl bg-[#111B30] border border-[var(--gio-border-subtle)] p-5 sm:p-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
           <div className="space-y-1.5 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
               <span className="gio-badge-pro">
-                <MessageSquare className="w-3.5 h-3.5 text-[#B9FC01]" />
+                <MessageSquare className="w-3.5 h-3.5 text-[#A6C957]" />
                 <span>PRO · EXCLUSIVO</span>
               </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold uppercase tracking-wider bg-[#080A0F] border border-[#161C2C] text-[#B9FC01]">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold uppercase tracking-wide bg-[#0131CD]/15 border border-[#0131CD]/40 text-[#FFFFFF]">
                 <span>Sorteio Oficial por Comentários</span>
               </span>
             </div>
             <h2 className="text-xl sm:text-2xl font-semibold text-[#FFFFFF]">
               Sorteador de Comentários do TikTok
             </h2>
-            <p className="text-xs sm:text-sm text-[#94A3B8] leading-relaxed">
+            <p className="text-xs sm:text-sm text-[#A5B1C5] leading-relaxed">
               Carregue comentários reais via link do vídeo, aplique filtros anti-duplicidade (1 chance por @usuário, palavras-chave e menções) e sorteie com certificado SHA-256.
             </p>
           </div>
@@ -677,26 +677,26 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
             <button
               type="button"
               onClick={handleLoadSample}
-              className="min-h-[38px] px-3.5 py-2 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] text-xs font-semibold text-[#FFFFFF] border border-[#161C2C] transition flex items-center gap-1.5"
+              className="min-h-[38px] px-3.5 py-2 rounded-lg bg-[#080D18] hover:bg-[#111B30] text-xs font-semibold text-[#FFFFFF] border border-[var(--gio-border-subtle)] transition flex items-center gap-1.5"
             >
-              <Sparkles className="w-3.5 h-3.5 text-[#F5B942]" />
+              <Sparkles className="w-3.5 h-3.5 text-[#A6C957]" />
               <span>Vídeo de Demonstração</span>
             </button>
             <button
               type="button"
               onClick={() => setIsExtractorModalOpen(true)}
-              className="min-h-[38px] px-3.5 py-2 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] text-xs font-semibold text-[#B9FC01] border border-[#161C2C] transition flex items-center gap-1.5"
+              className="min-h-[38px] px-3.5 py-2 rounded-lg bg-[#080D18] hover:bg-[#111B30] text-xs font-semibold text-[#FFFFFF] border border-[var(--gio-border-subtle)] transition flex items-center gap-1.5"
               title="Copie todos os comentários de qualquer vídeo diretamente do seu navegador"
             >
-              <Code className="w-3.5 h-3.5 text-[#B9FC01]" />
+              <Code className="w-3.5 h-3.5 text-[#A6C957]" />
               <span>Extrator de 1-Clique</span>
             </button>
             <button
               type="button"
               onClick={() => setIsImportModalOpen(true)}
-              className="min-h-[38px] px-3.5 py-2 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] text-xs font-semibold text-[#FFFFFF] border border-[#161C2C] transition flex items-center gap-1.5"
+              className="min-h-[38px] px-3.5 py-2 rounded-lg bg-[#080D18] hover:bg-[#111B30] text-xs font-semibold text-[#FFFFFF] border border-[var(--gio-border-subtle)] transition flex items-center gap-1.5"
             >
-              <Upload className="w-3.5 h-3.5 text-[#94A3B8]" />
+              <Upload className="w-3.5 h-3.5 text-[#A5B1C5]" />
               <span>Colar / Importar</span>
             </button>
             {comments.length > 0 &&
@@ -713,7 +713,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsConfirmingClear(false)}
-                    className="px-2 py-1 bg-[#080A0F] text-[#94A3B8] hover:text-[#FFFFFF] rounded transition"
+                    className="px-2 py-1 bg-[#080D18] text-[#A5B1C5] hover:text-[#FFFFFF] rounded transition"
                   >
                     Não
                   </button>
@@ -723,7 +723,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                   type="button"
                   onClick={() => setIsConfirmingClear(true)}
                   title="Limpar dados carregados"
-                  className="min-h-[38px] p-2 rounded-lg bg-[#080A0F] hover:bg-[#F05262]/15 text-[#94A3B8] hover:text-[#F05262] border border-[#161C2C] transition"
+                  className="min-h-[38px] p-2 rounded-lg bg-[#080D18] hover:bg-[#F05262]/15 text-[#A5B1C5] hover:text-[#F05262] border border-[var(--gio-border-subtle)] transition"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -733,21 +733,21 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
       </div>
 
       {/* URL Input Form */}
-      <div className="bg-[#10141E] border border-[#161C2C] rounded-xl p-4 sm:p-6 space-y-4">
+      <div className="bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-xl p-4 sm:p-6 space-y-4">
         <form onSubmit={handleFetchFromUrl} className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <label htmlFor="tiktok-url-input" className="block text-sm font-semibold text-[#FFFFFF]">
               Link do Vídeo do TikTok (URL completa ou link curto)
             </label>
-            <span className="text-xs text-[#94A3B8]">
+            <span className="text-xs text-[#A5B1C5]">
               Compatível com <strong className="text-[#FFFFFF]">tiktok.com/@user/video/...</strong> e <strong className="text-[#FFFFFF]">vm.tiktok.com/...</strong>
             </span>
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch gap-2.5">
             <div className="relative flex-1">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94A3B8]">
-                <Video className="w-4 h-4 text-[#B9FC01]" />
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#A5B1C5]">
+                <Video className="w-4 h-4 text-[#A5B1C5]" />
               </div>
               <input
                 id="tiktok-url-input"
@@ -755,7 +755,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                 value={videoUrl}
                 onChange={(e) => setVideoUrl(e.target.value)}
                 placeholder="Ex: https://www.tiktok.com/@usuario/video/7106594312292453675"
-                className="w-full pl-10 pr-4 py-2.5 bg-[#080A0F] border border-[#161C2C] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 rounded-lg text-sm text-[#FFFFFF] placeholder:text-[#94A3B8]/50 transition"
+                className="w-full pl-10 pr-4 py-2.5 bg-[#080D18] border border-[var(--gio-border-subtle)] focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/35 rounded-lg text-sm text-[#FFFFFF] placeholder:text-[#A5B1C5]/50 transition"
               />
             </div>
             <button
@@ -779,15 +779,15 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
 
           {/* Real-time Progress Bar during live fetching */}
           {isLoading && loadingProgressMsg && (
-            <div className="flex items-center gap-2 p-3 bg-[#080A0F] border border-[#0131CD]/40 rounded-lg text-xs sm:text-sm text-[#FFFFFF]">
-              <RefreshCw className="w-4 h-4 animate-spin text-[#B9FC01] shrink-0" />
+            <div className="flex items-center gap-2 p-3 bg-[#080D18] border border-[#0131CD]/40 rounded-lg text-xs sm:text-sm text-[#FFFFFF]">
+              <RefreshCw className="w-4 h-4 animate-spin text-[#A6C957] shrink-0" />
               <span>{loadingProgressMsg}</span>
             </div>
           )}
 
           {/* Success Message */}
           {loadSuccessMsg && (
-            <div className="flex items-center gap-2 p-3 bg-[#20C997]/15 border border-[#20C997]/40 rounded-lg text-xs sm:text-sm text-[#20C997]">
+            <div className="flex items-center gap-2 p-3 bg-[#A6C957]/15 border border-[#A6C957]/40 rounded-lg text-xs sm:text-sm text-[#A6C957]">
               <CheckCircle className="w-4 h-4 shrink-0" />
               <span>{loadSuccessMsg}</span>
             </div>
@@ -804,21 +804,21 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsExtractorModalOpen(true)}
-                  className="px-3 py-1.5 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] text-xs font-semibold text-[#B9FC01] border border-[#161C2C]"
+                  className="px-3 py-1.5 rounded-lg bg-[#080D18] hover:bg-[#111B30] text-xs font-semibold text-[#A6C957] border border-[var(--gio-border-subtle)]"
                 >
                   Usar Extrator de 1-Clique
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsImportModalOpen(true)}
-                  className="px-3 py-1.5 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] text-xs font-semibold text-[#FFFFFF] border border-[#161C2C]"
+                  className="px-3 py-1.5 rounded-lg bg-[#080D18] hover:bg-[#111B30] text-xs font-semibold text-[#FFFFFF] border border-[var(--gio-border-subtle)]"
                 >
                   Colar Comentários Manualmente
                 </button>
                 <button
                   type="button"
                   onClick={handleLoadSample}
-                  className="px-3 py-1.5 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] text-xs font-semibold text-[#F5B942] border border-[#161C2C]"
+                  className="px-3 py-1.5 rounded-lg bg-[#080D18] hover:bg-[#111B30] text-xs font-semibold text-[#A6C957] border border-[var(--gio-border-subtle)]"
                 >
                   Testar com Dados de Exemplo
                 </button>
@@ -829,30 +829,30 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
 
         {/* Video Metadata Preview Card */}
         {videoInfo && (
-          <div className="mt-4 pt-4 border-t border-[#161C2C] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[#080A0F] rounded-xl p-3.5 border">
+          <div className="mt-4 pt-4 border-t border-[var(--gio-border-subtle)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[#080D18] rounded-xl p-3.5 border">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-12 h-12 rounded-lg bg-[#10141E] border border-[#161C2C] flex items-center justify-center overflow-hidden shrink-0">
+              <div className="w-12 h-12 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)] flex items-center justify-center overflow-hidden shrink-0">
                 {videoInfo.thumbnailUrl ? (
                   <img src={videoInfo.thumbnailUrl} alt="Thumbnail do TikTok" className="w-full h-full object-cover" />
                 ) : (
-                  <Video className="w-5 h-5 text-[#B9FC01]" />
+                  <Video className="w-5 h-5 text-[#A6C957]" />
                 )}
               </div>
               <div className="space-y-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-sm text-[#FFFFFF] truncate">{videoInfo.authorName}</span>
                   {videoInfo.commentCount !== undefined && (
-                    <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-[#10141E] text-[#B9FC01] border border-[#161C2C] tabular-nums">
+                    <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-[#111B30] text-[#A6C957] border border-[var(--gio-border-subtle)] tabular-nums">
                       {videoInfo.commentCount} comentários no vídeo
                     </span>
                   )}
                   {videoInfo.videoId && (
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#10141E] text-[#94A3B8] tabular-nums">
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#111B30] text-[#A5B1C5] tabular-nums">
                       ID: {videoInfo.videoId}
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-[#94A3B8] line-clamp-1">{videoInfo.title || 'Vídeo do TikTok'}</p>
+                <p className="text-xs text-[#A5B1C5] line-clamp-1">{videoInfo.title || 'Vídeo do TikTok'}</p>
               </div>
             </div>
 
@@ -883,7 +883,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                   href={videoInfo.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-xs font-medium text-[#FFFFFF] hover:text-[#B9FC01] flex items-center gap-1.5 shrink-0 px-2.5 py-1.5 rounded-lg bg-[#10141E] border border-[#161C2C]"
+                  className="text-xs font-medium text-[#FFFFFF] hover:text-[#A6C957] flex items-center gap-1.5 shrink-0 px-2.5 py-1.5 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)]"
                 >
                   <span>Abrir Vídeo</span>
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -898,10 +898,10 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Sorteio Configuration & Draw Trigger */}
         <div className="lg:col-span-5 space-y-6 min-w-0">
-          <div className="bg-[#10141E] border border-[#161C2C] rounded-xl p-5 sm:p-6 space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-[#161C2C]">
+          <div className="bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-xl p-5 sm:p-6 space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--gio-border-subtle)]">
               <h2 className="text-base sm:text-lg font-semibold text-[#FFFFFF] flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-[#F5B942]" />
+                <Trophy className="w-5 h-5 text-[#A6C957]" />
                 <span>Regras e Sorteio</span>
               </h2>
               {onToggleSound && (
@@ -909,18 +909,18 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                   type="button"
                   onClick={onToggleSound}
                   title={soundEnabled ? 'Silenciar som' : 'Ativar som'}
-                  className="p-1.5 rounded-lg bg-[#080A0F] border border-[#161C2C] text-[#94A3B8] hover:text-[#FFFFFF]"
+                  className="p-1.5 rounded-lg bg-[#080D18] border border-[var(--gio-border-subtle)] text-[#A5B1C5] hover:text-[#FFFFFF]"
                 >
-                  {soundEnabled ? <Volume2 className="w-4 h-4 text-[#B9FC01]" /> : <VolumeX className="w-4 h-4" />}
+                  {soundEnabled ? <Volume2 className="w-4 h-4 text-[#A6C957]" /> : <VolumeX className="w-4 h-4" />}
                 </button>
               )}
             </div>
 
             {/* Number of Winners */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-medium text-[#94A3B8]">
+              <div className="flex items-center justify-between text-xs font-medium text-[#A5B1C5]">
                 <span>Quantidade de Vencedores</span>
-                <span className="text-[#F5B942] font-semibold tabular-nums">
+                <span className="text-[#A6C957] font-semibold tabular-nums">
                   {winnerCount} {winnerCount === 1 ? 'Vencedor' : 'Vencedores'}
                 </span>
               </div>
@@ -933,7 +933,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                     className={`py-2 text-xs font-semibold rounded-lg transition tabular-nums ${
                       winnerCount === num
                         ? 'bg-[#0131CD] text-[#FFFFFF] font-bold shadow-sm shadow-[#0131CD]/25'
-                        : 'bg-[#080A0F] text-[#94A3B8] hover:text-[#FFFFFF] border border-[#161C2C]'
+                        : 'bg-[#080D18] text-[#A5B1C5] hover:text-[#FFFFFF] border border-[var(--gio-border-subtle)]'
                     }`}
                   >
                     {num}
@@ -944,7 +944,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
 
             {/* Prize Name */}
             <div className="space-y-1.5">
-              <label htmlFor="tiktok-prize-input" className="block text-xs font-medium text-[#94A3B8]">
+              <label htmlFor="tiktok-prize-input" className="block text-xs font-medium text-[#A5B1C5]">
                 Nome do Prêmio
               </label>
               <input
@@ -953,68 +953,68 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                 value={prizeName}
                 onChange={(e) => setPrizeName(e.target.value)}
                 placeholder="Ex: PIX R$ 500,00 ou Prêmio Especial"
-                className="w-full px-3.5 py-2.5 bg-[#080A0F] border border-[#161C2C] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 rounded-lg text-sm text-[#FFFFFF]"
+                className="w-full px-3.5 py-2.5 bg-[#080D18] border border-[var(--gio-border-subtle)] focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/35 rounded-lg text-sm text-[#FFFFFF]"
               />
             </div>
 
             {/* Filter Rules */}
-            <div className="space-y-3 pt-3 border-t border-[#161C2C]">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#94A3B8] flex items-center gap-1.5">
-                <Filter className="w-3.5 h-3.5 text-[#B9FC01]" />
+            <div className="space-y-3 pt-3 border-t border-[var(--gio-border-subtle)]">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-[#A5B1C5] flex items-center gap-1.5">
+                <Filter className="w-3.5 h-3.5 text-[#A5B1C5]" />
                 <span>Filtros de Qualificação</span>
               </h3>
 
               <div className="space-y-2.5 text-xs text-[#FFFFFF]">
                 {/* 1 Entry per User */}
-                <label className="flex items-center gap-2.5 p-2.5 rounded-lg bg-[#080A0F] border border-[#161C2C] cursor-pointer hover:border-[#0131CD]/40 transition">
+                <label className="flex items-center gap-2.5 p-2.5 rounded-lg bg-[#080D18] border border-[var(--gio-border-subtle)] cursor-pointer hover:border-[#0131CD]/40 transition">
                   <input
                     type="checkbox"
                     checked={filters.filterDuplicates}
                     onChange={(e) => setFilters((f) => ({ ...f, filterDuplicates: e.target.checked }))}
-                    className="w-4 h-4 rounded text-[#0131CD] focus:ring-2 focus:ring-[#B9FC01] focus:ring-offset-1 focus:ring-offset-[#080A0F] bg-[#10141E] border-[#161C2C]"
+                    className="w-4 h-4 rounded text-[#0131CD] focus:ring-2 focus:ring-[#A6C957] focus:ring-offset-1 focus:ring-offset-[#080D18] bg-[#111B30] border-[var(--gio-border-subtle)]"
                   />
                   <div>
                     <span className="font-semibold text-[#FFFFFF]">1 chance por @usuário (Desduplicar)</span>
-                    <p className="text-[11px] text-[#94A3B8]">Mesmo comentando várias vezes, cada perfil concorre uma única vez.</p>
+                    <p className="text-[11px] text-[#A5B1C5]">Mesmo comentando várias vezes, cada perfil concorre uma única vez.</p>
                   </div>
                 </label>
 
                 {/* Exclude Creator */}
-                <label className="flex items-center gap-2.5 p-2.5 rounded-lg bg-[#080A0F] border border-[#161C2C] cursor-pointer hover:border-[#0131CD]/40 transition">
+                <label className="flex items-center gap-2.5 p-2.5 rounded-lg bg-[#080D18] border border-[var(--gio-border-subtle)] cursor-pointer hover:border-[#0131CD]/40 transition">
                   <input
                     type="checkbox"
                     checked={filters.excludeAuthor}
                     onChange={(e) => setFilters((f) => ({ ...f, excludeAuthor: e.target.checked }))}
-                    className="w-4 h-4 rounded text-[#0131CD] focus:ring-2 focus:ring-[#B9FC01] focus:ring-offset-1 focus:ring-offset-[#080A0F] bg-[#10141E] border-[#161C2C]"
+                    className="w-4 h-4 rounded text-[#0131CD] focus:ring-2 focus:ring-[#A6C957] focus:ring-offset-1 focus:ring-offset-[#080D18] bg-[#111B30] border-[var(--gio-border-subtle)]"
                   />
                   <div>
                     <span className="font-semibold text-[#FFFFFF]">Excluir comentários do autor do vídeo</span>
-                    <p className="text-[11px] text-[#94A3B8]">Impede que respostas do próprio criador sejam sorteadas.</p>
+                    <p className="text-[11px] text-[#A5B1C5]">Impede que respostas do próprio criador sejam sorteadas.</p>
                   </div>
                 </label>
 
                 {/* Required Keyword or Hashtag */}
-                <div className="p-2.5 rounded-lg bg-[#080A0F] border border-[#161C2C] space-y-1.5">
+                <div className="p-2.5 rounded-lg bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-1.5">
                   <span className="font-semibold text-[#FFFFFF] block">Palavra-chave ou Hashtag obrigatória</span>
                   <input
                     type="text"
                     value={filters.keyword}
                     onChange={(e) => setFilters((f) => ({ ...f, keyword: e.target.value }))}
                     placeholder="Ex: #sorteio, eu quero (vazio = qualquer comentário)"
-                    className="w-full px-3 py-1.5 bg-[#10141E] border border-[#161C2C] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 rounded-lg text-xs text-[#FFFFFF]"
+                    className="w-full px-3 py-1.5 bg-[#111B30] border border-[var(--gio-border-subtle)] focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/35 rounded-lg text-xs text-[#FFFFFF]"
                   />
                 </div>
 
                 {/* Min Mentions Required */}
-                <div className="p-2.5 rounded-lg bg-[#080A0F] border border-[#161C2C] flex items-center justify-between gap-3">
+                <div className="p-2.5 rounded-lg bg-[#080D18] border border-[var(--gio-border-subtle)] flex items-center justify-between gap-3">
                   <div>
                     <span className="font-semibold text-[#FFFFFF] block">Mínimo de amigos marcados (@)</span>
-                    <span className="text-[11px] text-[#94A3B8]">Exige @amigo no comentário</span>
+                    <span className="text-[11px] text-[#A5B1C5]">Exige @amigo no comentário</span>
                   </div>
                   <select
                     value={filters.minMentions}
                     onChange={(e) => setFilters((f) => ({ ...f, minMentions: Number(e.target.value) }))}
-                    className="px-2.5 py-1.5 bg-[#10141E] border border-[#161C2C] rounded-lg text-xs text-[#FFFFFF] font-semibold"
+                    className="px-2.5 py-1.5 bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-lg text-xs text-[#FFFFFF] font-semibold"
                   >
                     <option value={0}>Nenhum</option>
                     <option value={1}>1 amigo (@)</option>
@@ -1024,19 +1024,19 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                 </div>
 
                 {/* Countdown 10s Toggle */}
-                <label className="flex items-center gap-2.5 p-2.5 rounded-lg bg-[#080A0F] border border-[#161C2C] cursor-pointer hover:border-[#0131CD]/40 transition">
+                <label className="flex items-center gap-2.5 p-2.5 rounded-lg bg-[#080D18] border border-[var(--gio-border-subtle)] cursor-pointer hover:border-[#0131CD]/40 transition">
                   <input
                     type="checkbox"
                     checked={useCountdown}
                     onChange={(e) => setUseCountdown(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#0131CD] focus:ring-2 focus:ring-[#B9FC01] focus:ring-offset-1 focus:ring-offset-[#080A0F] bg-[#10141E] border-[#161C2C]"
+                    className="w-4 h-4 rounded text-[#0131CD] focus:ring-2 focus:ring-[#A6C957] focus:ring-offset-1 focus:ring-offset-[#080D18] bg-[#111B30] border-[var(--gio-border-subtle)]"
                   />
                   <div>
                     <span className="font-semibold text-[#FFFFFF] flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-[#F5B942]" />
+                      <Clock className="w-3.5 h-3.5 text-[#A5B1C5]" />
                       <span>Contagem regressiva de 10 segundos</span>
                     </span>
-                    <p className="text-[11px] text-[#94A3B8]">Exibe contagem antes de revelar o comentário vencedor.</p>
+                    <p className="text-[11px] text-[#A5B1C5]">Exibe contagem antes de revelar o comentário vencedor.</p>
                   </div>
                 </label>
               </div>
@@ -1048,7 +1048,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                 type="button"
                 disabled={isDrawing || eligible.length === 0 || countdownRemaining !== null}
                 onClick={handleStartDrawFlow}
-                className="w-full min-h-[48px] py-3.5 px-6 rounded-xl bg-[#0131CD] hover:brightness-110 disabled:bg-[#10141E] disabled:text-[#94A3B8] disabled:border disabled:border-[#161C2C] disabled:opacity-60 disabled:cursor-not-allowed text-[#FFFFFF] font-semibold text-sm sm:text-base transition flex items-center justify-center gap-2.5 shadow-md shadow-[#0131CD]/25"
+                className="w-full min-h-[48px] py-3.5 px-6 rounded-xl bg-[#0131CD] hover:brightness-110 disabled:bg-[#111B30] disabled:text-[#A5B1C5] disabled:border disabled:border-[var(--gio-border-subtle)] disabled:opacity-60 disabled:cursor-not-allowed text-[#FFFFFF] font-semibold text-sm sm:text-base transition flex items-center justify-center gap-2.5 shadow-md shadow-[#0131CD]/25"
               >
                 {isDrawing ? (
                   <>
@@ -1082,17 +1082,17 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
         <div className="lg:col-span-7 space-y-6 min-w-0">
           {/* Winners Card (if drawn) */}
           {winners.length > 0 && (
-            <div className="bg-[#10141E] border border-[#F5B942] rounded-xl p-5 sm:p-6 shadow-xl space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#161C2C]">
+            <div className="bg-[#111B30] border border-[#A6C957]/60 rounded-xl p-5 sm:p-6 shadow-xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--gio-border-subtle)]">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-lg bg-[#080A0F] border border-[#F5B942]/50 flex items-center justify-center text-[#F5B942]">
+                  <div className="w-10 h-10 rounded-lg bg-[#080D18] border border-[#A6C957]/40 flex items-center justify-center text-[#A6C957]">
                     <Trophy className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="text-base sm:text-lg font-semibold text-[#FFFFFF]">
                       {winners.length === 1 ? 'Comentário Vencedor!' : `${winners.length} Comentários Vencedores!`}
                     </h3>
-                    <p className="text-xs text-[#20C997] font-medium">Resultado auditado e verificado</p>
+                    <p className="text-xs text-[#A6C957] font-medium">Resultado auditado e verificado</p>
                   </div>
                 </div>
 
@@ -1100,9 +1100,9 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                   <button
                     type="button"
                     onClick={handleCopyWinners}
-                    className="px-3 py-1.5 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] text-xs font-medium text-[#FFFFFF] border border-[#161C2C] transition flex items-center gap-1.5"
+                    className="px-3 py-1.5 rounded-lg bg-[#080D18] hover:bg-[#111B30] text-xs font-medium text-[#FFFFFF] border border-[var(--gio-border-subtle)] transition flex items-center gap-1.5"
                   >
-                    {copiedSuccess ? <Check className="w-3.5 h-3.5 text-[#20C997]" /> : <Copy className="w-3.5 h-3.5 text-[#94A3B8]" />}
+                    {copiedSuccess ? <Check className="w-3.5 h-3.5 text-[#A6C957]" /> : <Copy className="w-3.5 h-3.5 text-[#A5B1C5]" />}
                     <span>{copiedSuccess ? 'Copiado!' : 'Copiar'}</span>
                   </button>
                   <button
@@ -1116,9 +1116,9 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                   <button
                     type="button"
                     onClick={handleExportCSV}
-                    className="px-3 py-1.5 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] text-xs font-medium text-[#FFFFFF] border border-[#161C2C] transition flex items-center gap-1.5"
+                    className="px-3 py-1.5 rounded-lg bg-[#080D18] hover:bg-[#111B30] text-xs font-medium text-[#FFFFFF] border border-[var(--gio-border-subtle)] transition flex items-center gap-1.5"
                   >
-                    <Download className="w-3.5 h-3.5 text-[#F5B942]" />
+                    <Download className="w-3.5 h-3.5 text-[#A5B1C5]" />
                     <span>CSV</span>
                   </button>
                 </div>
@@ -1129,21 +1129,21 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                 {winners.map((winner) => (
                   <div
                     key={winner.id}
-                    className="p-4 rounded-xl bg-[#080A0F] border border-[#161C2C] space-y-2.5"
+                    className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-2.5"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 rounded-lg bg-[#10141E] border border-[#F5B942]/50 text-[#F5B942] font-mono font-bold text-xs flex items-center justify-center shrink-0 tabular-nums">
+                        <div className="w-8 h-8 rounded-lg bg-[#111B30] border border-[#A6C957]/40 text-[#A6C957] font-bold text-xs flex items-center justify-center shrink-0 tabular-nums">
                           {winner.rank}º
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-sm text-[#FFFFFF] truncate">{winner.comment.username}</span>
                             {winner.comment.nickname && (
-                              <span className="text-xs text-[#94A3B8] truncate">({winner.comment.nickname})</span>
+                              <span className="text-xs text-[#A5B1C5] truncate">({winner.comment.nickname})</span>
                             )}
                           </div>
-                          <span className="text-xs font-medium text-[#F5B942]">{winner.prize}</span>
+                          <span className="text-xs font-medium text-[#A6C957]">{winner.prize}</span>
                         </div>
                       </div>
 
@@ -1160,20 +1160,20 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                               drawnAt: winner.drawnAt,
                             })
                           }
-                          className="px-2.5 py-1 rounded-lg bg-[#10141E] hover:bg-[#161C2C] text-[#F5B942] text-xs font-medium border border-[#F5B942]/40 transition shrink-0"
+                          className="px-2.5 py-1 rounded-lg bg-[#111B30] hover:bg-[#080D18] text-[#A6C957] text-xs font-medium border border-[#A6C957]/40 transition shrink-0"
                         >
                           Cartão VIP
                         </button>
                       )}
                     </div>
 
-                    <div className="p-2.5 rounded-lg bg-[#10141E] border border-[#161C2C] text-xs text-[#FFFFFF] italic">
+                    <div className="p-2.5 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)] text-xs text-[#FFFFFF] italic">
                       &ldquo;{winner.comment.text}&rdquo;
                     </div>
 
                     {winner.comment.mentions.length > 0 && (
-                      <div className="flex items-center gap-1.5 flex-wrap text-[11px] text-[#B9FC01]">
-                        <AtSign className="w-3 h-3" />
+                      <div className="flex items-center gap-1.5 flex-wrap text-[11px] text-[#A5B1C5]">
+                        <AtSign className="w-3 h-3 text-[#A6C957]" />
                         <span>Menções: {winner.comment.mentions.join(', ')}</span>
                       </div>
                     )}
@@ -1185,36 +1185,36 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
 
           {/* Cycling Animation Display while drawing */}
           {isDrawing && cyclingComment && (
-            <div className="bg-[#10141E] border border-[#0131CD] rounded-xl p-6 text-center space-y-2.5 animate-pulse">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#B9FC01]">
+            <div className="bg-[#111B30] border border-[#0131CD] rounded-xl p-6 text-center space-y-2.5 animate-pulse">
+              <span className="text-xs font-semibold uppercase tracking-wide text-[#A6C957]">
                 Sorteando entre {eligible.length} comentários elegíveis...
               </span>
               <div className="text-2xl font-bold text-[#FFFFFF]">{cyclingComment.username}</div>
-              <p className="text-xs text-[#94A3B8] italic line-clamp-2 max-w-md mx-auto">
+              <p className="text-xs text-[#A5B1C5] italic line-clamp-2 max-w-md mx-auto">
                 &ldquo;{cyclingComment.text}&rdquo;
               </p>
             </div>
           )}
 
           {/* Comments Data Grid & Search */}
-          <div className="bg-[#10141E] border border-[#161C2C] rounded-xl p-5 sm:p-6 space-y-4">
+          <div className="bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-xl p-5 sm:p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="text-base font-semibold text-[#FFFFFF] flex items-center gap-2">
-                  <Users className="w-4 h-4 text-[#B9FC01]" />
+                  <Users className="w-4 h-4 text-[#A5B1C5]" />
                   <span>Comentários Qualificados</span>
                 </h3>
-                <p className="text-xs text-[#94A3B8]">Lista filtrada em tempo real conforme as regras ao lado</p>
+                <p className="text-xs text-[#A5B1C5]">Lista filtrada em tempo real conforme as regras ao lado</p>
               </div>
 
               <div className="flex items-center gap-2 text-xs flex-wrap tabular-nums">
-                <span className="px-2.5 py-1 rounded-lg bg-[#080A0F] border border-[#161C2C] text-[#94A3B8]">
+                <span className="px-2.5 py-1 rounded-lg bg-[#080D18] border border-[var(--gio-border-subtle)] text-[#A5B1C5]">
                   Total: <strong className="text-[#FFFFFF]">{comments.length}</strong>
                 </span>
                 <span className="px-2.5 py-1 rounded-lg bg-[#0131CD]/15 border border-[#0131CD]/40 text-[#FFFFFF]">
                   Elegíveis: <strong className="text-[#FFFFFF]">{eligible.length}</strong>
                 </span>
-                <span className="px-2.5 py-1 rounded-lg bg-[#080A0F] border border-[#161C2C] text-[#F5B942]">
+                <span className="px-2.5 py-1 rounded-lg bg-[#080D18] border border-[var(--gio-border-subtle)] text-[#A6C957]">
                   Únicos: <strong className="text-[#FFFFFF]">{totalEligibleUsers}</strong>
                 </span>
               </div>
@@ -1222,7 +1222,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
 
             {/* Search Bar */}
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#94A3B8]">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#A5B1C5]">
                 <Search className="w-4 h-4" />
               </div>
               <input
@@ -1230,7 +1230,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar por @usuário, nome ou texto do comentário..."
-                className="w-full pl-9 pr-4 py-2 bg-[#080A0F] border border-[#161C2C] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 rounded-lg text-xs text-[#FFFFFF] placeholder:text-[#94A3B8]/50"
+                className="w-full pl-9 pr-4 py-2 bg-[#080D18] border border-[var(--gio-border-subtle)] focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/35 rounded-lg text-xs text-[#FFFFFF] placeholder:text-[#A5B1C5]/50"
               />
             </div>
 
@@ -1240,7 +1240,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                 displayComments.map((comment) => (
                   <div
                     key={comment.id}
-                    className="p-3 rounded-xl bg-[#080A0F] border border-[#161C2C] hover:border-[#0131CD]/40 transition space-y-1.5"
+                    className="p-3 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] hover:border-[#0131CD]/40 transition space-y-1.5"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
@@ -1248,28 +1248,28 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                           <img
                             src={comment.avatarUrl}
                             alt=""
-                            className="w-6 h-6 rounded-full object-cover border border-[#161C2C] shrink-0"
+                            className="w-6 h-6 rounded-full object-cover border border-[var(--gio-border-subtle)] shrink-0"
                             onError={(e) => {
                               (e.target as HTMLElement).style.display = 'none';
                             }}
                           />
                         ) : (
-                          <div className="w-6 h-6 rounded-full bg-[#10141E] border border-[#161C2C] text-[#F5B942] text-[10px] font-bold flex items-center justify-center shrink-0">
+                          <div className="w-6 h-6 rounded-full bg-[#111B30] border border-[var(--gio-border-subtle)] text-[#FFFFFF] text-[10px] font-bold flex items-center justify-center shrink-0">
                             {comment.username.replace('@', '').charAt(0).toUpperCase()}
                           </div>
                         )}
                         <span className="font-semibold text-xs text-[#FFFFFF] truncate">{comment.username}</span>
                         {comment.nickname && (
-                          <span className="text-[11px] text-[#94A3B8] truncate max-w-[120px]">
+                          <span className="text-[11px] text-[#A5B1C5] truncate max-w-[120px]">
                             {comment.nickname}
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-1.5 text-[10px] text-[#94A3B8] shrink-0">
+                      <div className="flex items-center gap-1.5 text-[10px] text-[#A5B1C5] shrink-0">
                         {comment.likes !== undefined && comment.likes > 0 && (
                           <span className="tabular-nums">♥ {comment.likes}</span>
                         )}
-                        <span className="px-1.5 py-0.5 rounded bg-[#20C997]/15 text-[#20C997] border border-[#20C997]/30 font-medium">
+                        <span className="px-1.5 py-0.5 rounded bg-[#A6C957]/15 text-[#A6C957] border border-[#A6C957]/30 font-medium">
                           Elegível
                         </span>
                       </div>
@@ -1280,21 +1280,21 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                     </p>
 
                     {comment.mentions.length > 0 && (
-                      <div className="text-[10px] text-[#F5B942] flex items-center gap-1">
-                        <AtSign className="w-2.5 h-2.5" />
+                      <div className="text-[10px] text-[#A5B1C5] flex items-center gap-1">
+                        <AtSign className="w-2.5 h-2.5 text-[#A6C957]" />
                         <span>{comment.mentions.join(' ')}</span>
                       </div>
                     )}
                   </div>
                 ))
               ) : (
-                <div className="py-12 text-center space-y-3 bg-[#080A0F]/60 rounded-xl border border-dashed border-[#161C2C]">
-                  <div className="w-11 h-11 rounded-xl bg-[#10141E] border border-[#161C2C] flex items-center justify-center mx-auto text-[#94A3B8]">
+                <div className="py-12 text-center space-y-3 bg-[#080D18]/60 rounded-xl border border-dashed border-[var(--gio-border-subtle)]">
+                  <div className="w-11 h-11 rounded-xl bg-[#111B30] border border-[var(--gio-border-subtle)] flex items-center justify-center mx-auto text-[#A5B1C5]">
                     <MessageSquare className="w-5 h-5" />
                   </div>
                   <div className="space-y-1 px-4">
                     <h4 className="text-sm font-semibold text-[#FFFFFF]">Nenhum comentário elegível na lista</h4>
-                    <p className="text-xs text-[#94A3B8] max-w-sm mx-auto">
+                    <p className="text-xs text-[#A5B1C5] max-w-sm mx-auto">
                       {comments.length === 0
                         ? 'Cole o link de um vídeo do TikTok acima ou importe uma lista de comentários para começar.'
                         : 'Nenhum comentário atendeu aos filtros atuais. Relaxe os filtros ao lado para ver os participantes.'}
@@ -1305,14 +1305,14 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                       <button
                         type="button"
                         onClick={handleLoadSample}
-                        className="px-3.5 py-1.5 rounded-lg bg-[#10141E] hover:bg-[#161C2C] text-xs font-semibold text-[#B9FC01] border border-[#161C2C]"
+                        className="px-3.5 py-1.5 rounded-lg bg-[#111B30] hover:bg-[#080D18] text-xs font-semibold text-[#A6C957] border border-[var(--gio-border-subtle)]"
                       >
                         Carregar Exemplo Rápido
                       </button>
                       <button
                         type="button"
                         onClick={() => setIsImportModalOpen(true)}
-                        className="px-3.5 py-1.5 rounded-lg bg-[#10141E] hover:bg-[#161C2C] text-xs font-semibold text-[#FFFFFF] border border-[#161C2C]"
+                        className="px-3.5 py-1.5 rounded-lg bg-[#111B30] hover:bg-[#080D18] text-xs font-semibold text-[#FFFFFF] border border-[var(--gio-border-subtle)]"
                       >
                         Colar Comentários
                       </button>
@@ -1324,12 +1324,12 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
 
             {/* Load More Button at bottom of list */}
             {videoInfo?.hasMoreComments && comments.length > 0 && (
-              <div className="pt-2 border-t border-[#161C2C] flex justify-center">
+              <div className="pt-2 border-t border-[var(--gio-border-subtle)] flex justify-center">
                 <button
                   type="button"
                   onClick={handleLoadMoreComments}
                   disabled={isLoadingMore}
-                  className="px-4 py-2 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] text-xs font-semibold text-[#B9FC01] border border-[#161C2C] transition flex items-center gap-2"
+                  className="px-4 py-2 rounded-lg bg-[#080D18] hover:bg-[#111B30] text-xs font-semibold text-[#A6C957] border border-[var(--gio-border-subtle)] transition flex items-center gap-2"
                 >
                   {isLoadingMore ? (
                     <>
@@ -1354,23 +1354,23 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[70] bg-[#080A0F]/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+          className="fixed inset-0 z-[70] bg-[#080D18]/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
         >
-          <div className="relative w-full max-w-md bg-[#10141E] border border-[#0131CD] rounded-2xl p-8 text-center space-y-6 shadow-2xl">
+          <div className="relative w-full max-w-md bg-[#111B30] border border-[#0131CD] rounded-2xl p-8 text-center space-y-6 shadow-2xl">
             <div className="space-y-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-[#080A0F] border border-[#161C2C] text-[#B9FC01]">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide bg-[#080D18] border border-[var(--gio-border-subtle)] text-[#A6C957]">
                 <Clock className="w-3.5 h-3.5 animate-spin" />
                 <span>Sorteio por Comentários</span>
               </span>
               <h2 className="text-xl font-semibold text-[#FFFFFF]">{prizeName}</h2>
-              <p className="text-xs text-[#94A3B8] tabular-nums">
+              <p className="text-xs text-[#A5B1C5] tabular-nums">
                 Sorteando entre {eligible.length} comentários qualificados
               </p>
             </div>
 
             <div className="relative w-32 h-32 mx-auto flex items-center justify-center">
-              <div className="w-32 h-32 rounded-full bg-[#080A0F] border-4 border-[#F5B942] flex items-center justify-center">
-                <span className="font-mono font-bold text-5xl text-[#FFFFFF] tabular-nums">
+              <div className="w-32 h-32 rounded-full bg-[#080D18] border-4 border-[#A6C957] flex items-center justify-center">
+                <span className="font-bold text-5xl text-[#FFFFFF] tabular-nums">
                   {countdownRemaining}
                 </span>
               </div>
@@ -1390,7 +1390,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
               <button
                 type="button"
                 onClick={() => setCountdownRemaining(null)}
-                className="px-4 py-2 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] text-[#94A3B8] hover:text-[#FFFFFF] border border-[#161C2C] font-semibold text-xs"
+                className="px-4 py-2 rounded-lg bg-[#080D18] hover:bg-[#111B30] text-[#A5B1C5] hover:text-[#FFFFFF] border border-[var(--gio-border-subtle)] font-semibold text-xs"
               >
                 Cancelar
               </button>
@@ -1404,29 +1404,29 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-[#080A0F]/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+          className="fixed inset-0 z-50 bg-[#080D18]/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
         >
-          <div className="relative w-full max-w-xl bg-[#10141E] border border-[#161C2C] rounded-2xl p-6 sm:p-7 space-y-5 shadow-2xl">
+          <div className="relative w-full max-w-xl bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-2xl p-6 sm:p-7 space-y-5 shadow-2xl">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold text-[#FFFFFF] flex items-center gap-2">
-                  <Code className="w-5 h-5 text-[#B9FC01]" />
+                  <Code className="w-5 h-5 text-[#A6C957]" />
                   <span>Extrator de 1-Clique para TikTok</span>
                 </h3>
-                <p className="text-xs text-[#94A3B8] mt-1">
+                <p className="text-xs text-[#A5B1C5] mt-1">
                   Extraia todos os comentários carregados na página do vídeo diretamente pelo navegador.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsExtractorModalOpen(false)}
-                className="p-1.5 rounded-lg bg-[#080A0F] border border-[#161C2C] text-[#94A3B8] hover:text-[#FFFFFF]"
+                className="p-1.5 rounded-lg bg-[#080D18] border border-[var(--gio-border-subtle)] text-[#A5B1C5] hover:text-[#FFFFFF]"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-3 bg-[#080A0F] p-4 rounded-xl border border-[#161C2C] text-xs text-[#FFFFFF]">
+            <div className="space-y-3 bg-[#080D18] p-4 rounded-xl border border-[var(--gio-border-subtle)] text-xs text-[#FFFFFF]">
               <div className="flex items-start gap-2.5">
                 <span className="w-5 h-5 rounded-full bg-[#0131CD] text-[#FFFFFF] font-bold text-[11px] flex items-center justify-center shrink-0">1</span>
                 <span>Abra o vídeo no site do TikTok no computador e role os comentários que deseja incluir.</span>
@@ -1442,7 +1442,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
             </div>
 
             <div className="relative">
-              <pre className="p-3 bg-[#080A0F] border border-[#161C2C] rounded-xl text-[11px] text-[#FFFFFF] font-mono overflow-x-auto max-h-36">
+              <pre className="p-3 bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-[11px] text-[#FFFFFF] font-mono overflow-x-auto max-h-36">
                 {TIKTOK_BROWSER_CONSOLE_SNIPPET}
               </pre>
               <button
@@ -1462,7 +1462,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                   setIsExtractorModalOpen(false);
                   setIsImportModalOpen(true);
                 }}
-                className="px-4 py-2 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] text-xs font-semibold text-[#FFFFFF] border border-[#161C2C]"
+                className="px-4 py-2 rounded-lg bg-[#080D18] hover:bg-[#111B30] text-xs font-semibold text-[#FFFFFF] border border-[var(--gio-border-subtle)]"
               >
                 Ir para Colar Comentários
               </button>
@@ -1484,16 +1484,16 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-[#080A0F]/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+          className="fixed inset-0 z-50 bg-[#080D18]/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
         >
-          <div className="relative w-full max-w-xl bg-[#10141E] border border-[#161C2C] rounded-2xl p-6 sm:p-7 space-y-5 shadow-2xl">
+          <div className="relative w-full max-w-xl bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-2xl p-6 sm:p-7 space-y-5 shadow-2xl">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold text-[#FFFFFF] flex items-center gap-2">
-                  <Upload className="w-5 h-5 text-[#B9FC01]" />
+                  <Upload className="w-5 h-5 text-[#A6C957]" />
                   <span>Importar / Colar Comentários (.TXT ou .CSV)</span>
                 </h3>
-                <p className="text-xs text-[#94A3B8] mt-1">
+                <p className="text-xs text-[#A5B1C5] mt-1">
                   Selecione um arquivo <code>.txt</code> ou <code>.csv</code> do seu dispositivo ou cole comentários nos formatos <code>@usuario: texto</code>, <code>usuario,comentario,curtidas</code> ou JSON.
                 </p>
               </div>
@@ -1504,24 +1504,24 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                   setImportModalError(null);
                   setImportModalInfo(null);
                 }}
-                className="p-1.5 rounded-lg bg-[#080A0F] border border-[#161C2C] text-[#94A3B8] hover:text-[#FFFFFF]"
+                className="p-1.5 rounded-lg bg-[#080D18] border border-[var(--gio-border-subtle)] text-[#A5B1C5] hover:text-[#FFFFFF]"
               >
                 ✕
               </button>
             </div>
 
             {/* Upload de Arquivo .TXT ou .CSV Local */}
-            <div className="p-3.5 rounded-xl bg-[#080A0F] border border-[#161C2C] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="space-y-0.5 min-w-0">
                 <span className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-1.5">
-                  <FileText className="w-4 h-4 text-[#B9FC01] shrink-0" />
+                  <FileText className="w-4 h-4 text-[#A6C957] shrink-0" />
                   <span className="truncate">
                     {selectedImportFileName
                       ? `Arquivo selecionado: ${selectedImportFileName}`
                       : 'Importar de arquivo local (.txt ou .csv)'}
                   </span>
                 </span>
-                <p className="text-[11px] text-[#94A3B8]">
+                <p className="text-[11px] text-[#A5B1C5]">
                   Cabeçalhos CSV (ex: <code>usuario,comentario,curtidas</code>) são reconhecidos e ignorados automaticamente.
                 </p>
               </div>
@@ -1538,9 +1538,9 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                 <button
                   type="button"
                   onClick={() => importFileInputRef.current?.click()}
-                  className="px-3.5 py-2 rounded-lg bg-[#10141E] hover:bg-[#161C2C] text-[#FFFFFF] border border-[#0131CD]/50 text-xs font-semibold flex items-center gap-1.5 transition"
+                  className="px-3.5 py-2 rounded-lg bg-[#111B30] hover:bg-[#080D18] text-[#FFFFFF] border border-[#0131CD]/50 text-xs font-semibold flex items-center gap-1.5 transition"
                 >
-                  <Upload className="w-3.5 h-3.5 text-[#B9FC01]" />
+                  <Upload className="w-3.5 h-3.5 text-[#A6C957]" />
                   <span>Escolher Arquivo (.TXT / .CSV)</span>
                 </button>
               </div>
@@ -1554,14 +1554,14 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
             )}
 
             {importModalInfo && (
-              <div className="p-3 rounded-xl bg-[#20C997]/15 border border-[#20C997]/40 text-xs text-[#20C997] flex items-start gap-2">
+              <div className="p-3 rounded-xl bg-[#A6C957]/15 border border-[#A6C957]/40 text-xs text-[#A6C957] flex items-start gap-2">
                 <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>{importModalInfo}</span>
               </div>
             )}
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs text-[#94A3B8]">
+              <div className="flex items-center justify-between text-xs text-[#A5B1C5]">
                 <label htmlFor="import-textarea" className="font-semibold text-[#FFFFFF]">
                   Lista de comentários (colagem manual ou pré-visualização do arquivo)
                 </label>
@@ -1571,7 +1571,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                     setIsImportModalOpen(false);
                     setIsExtractorModalOpen(true);
                   }}
-                  className="text-[#B9FC01] hover:underline"
+                  className="text-[#A6C957] hover:underline"
                 >
                   Como extrair do TikTok?
                 </button>
@@ -1585,7 +1585,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                   if (importModalError) setImportModalError(null);
                 }}
                 placeholder={`@maria_silva: Eu quero ganhar @joao #sorteio\n@pedro_gamer: Participando!\nusuario,comentario,curtidas\n@carla_costa,"Muito bom, quero ganhar! @amiga1 @amiga2",15`}
-                className="w-full px-3.5 py-2.5 bg-[#080A0F] border border-[#161C2C] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 rounded-lg text-xs text-[#FFFFFF] font-mono"
+                className="w-full px-3.5 py-2.5 bg-[#080D18] border border-[var(--gio-border-subtle)] focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/35 rounded-lg text-xs text-[#FFFFFF] font-mono"
               />
             </div>
 
@@ -1597,7 +1597,7 @@ export const TikTokRaffle: React.FC<TikTokRaffleProps> = ({
                   setImportModalError(null);
                   setImportModalInfo(null);
                 }}
-                className="px-4 py-2 rounded-lg bg-[#080A0F] hover:bg-[#161C2C] text-xs font-semibold text-[#94A3B8] hover:text-[#FFFFFF] border border-[#161C2C]"
+                className="px-4 py-2 rounded-lg bg-[#080D18] hover:bg-[#111B30] text-xs font-semibold text-[#A5B1C5] hover:text-[#FFFFFF] border border-[var(--gio-border-subtle)]"
               >
                 Cancelar
               </button>

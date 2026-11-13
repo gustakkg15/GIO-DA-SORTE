@@ -141,13 +141,13 @@ export const TikTokLiveDrawModal: React.FC<TikTokLiveDrawModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="tiktok-live-draw-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#080A0F]/85 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#080D18]/85 backdrop-blur-md animate-in fade-in duration-200"
     >
-      <div className="relative w-full max-w-2xl bg-[#10141E] border border-[#161C2C] rounded-2xl shadow-[0_24px_64px_rgba(0,0,0,0.65)] overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="relative w-full max-w-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-2xl shadow-[0_24px_64px_rgba(0,0,0,0.65)] overflow-hidden flex flex-col max-h-[92vh]">
         {/* Top Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#161C2C] bg-[#10141E]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--gio-border-subtle)] bg-[#111B30]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#10141E] border border-[#161C2C] flex items-center justify-center text-[#F5B942]">
+            <div className="w-9 h-9 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex items-center justify-center text-[#A6C957]">
               <Trophy className="w-5 h-5" />
             </div>
             <div>
@@ -155,11 +155,11 @@ export const TikTokLiveDrawModal: React.FC<TikTokLiveDrawModalProps> = ({
                 <h2 id="tiktok-live-draw-modal-title" className="text-base sm:text-lg font-bold text-[#FFFFFF] tracking-tight">
                   Mesa de Sorteio Oficial
                 </h2>
-                <span className="text-xs font-mono text-[#B9FC01]">
+                <span className="text-xs font-medium text-[#A6C957]">
                   · {drawType === 'INDIVIDUAL_LIVE' ? 'Transmissão Ao Vivo' : 'Campanha Multi-LIVE'}
                 </span>
               </div>
-              <p className="text-xs text-[#94A3B8] truncate max-w-md">{targetTitle}</p>
+              <p className="text-xs text-[#A5B1C5] truncate max-w-md">{targetTitle}</p>
             </div>
           </div>
           <button
@@ -167,7 +167,7 @@ export const TikTokLiveDrawModal: React.FC<TikTokLiveDrawModalProps> = ({
             onClick={onClose}
             disabled={isProcessing}
             aria-label="Fechar modal"
-            className="p-1.5 text-[#94A3B8] hover:text-[#FFFFFF] rounded-lg hover:bg-[#161C2C] transition disabled:opacity-50"
+            className="p-1.5 text-[#A5B1C5] hover:text-[#FFFFFF] rounded-lg hover:bg-[#080D18] transition disabled:opacity-50"
           >
             <X className="w-5 h-5" />
           </button>
@@ -182,22 +182,22 @@ export const TikTokLiveDrawModal: React.FC<TikTokLiveDrawModalProps> = ({
           )}
 
           {/* Prize Banner */}
-          <div className="p-4 rounded-xl bg-[#10141E] border border-[#161C2C] flex items-center justify-between">
+          <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex items-center justify-between">
             <div>
-              <span className="text-xs text-[#94A3B8] block">Prêmio em disputa</span>
-              <p className="text-lg sm:text-xl font-bold text-[#F5B942] mt-0.5">{prizeName}</p>
+              <span className="text-xs text-[#A5B1C5] block">Prêmio em disputa</span>
+              <p className="text-lg sm:text-xl font-bold text-[#A6C957] mt-0.5">{prizeName}</p>
             </div>
             <div className="text-right">
-              <span className="text-xs text-[#94A3B8] block">Bilhetes concorrendo</span>
-              <p className="text-base sm:text-lg font-mono font-bold text-[#FFFFFF] tabular-nums mt-0.5">
+              <span className="text-xs text-[#A5B1C5] block">Bilhetes concorrendo</span>
+              <p className="text-base sm:text-lg font-bold text-[#FFFFFF] tabular-nums mt-0.5">
                 {snapshot.totalEligibleTickets.toLocaleString('pt-BR')}
               </p>
             </div>
           </div>
 
           {/* Central Draw Display Box */}
-          <div className="py-8 px-4 rounded-2xl bg-[#10141E] border border-[#161C2C] flex flex-col items-center justify-center text-center relative overflow-hidden">
-            <span className="text-xs font-medium text-[#94A3B8] mb-2">
+          <div className="py-8 px-4 rounded-2xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex flex-col items-center justify-center text-center relative overflow-hidden">
+            <span className="text-xs font-medium text-[#A5B1C5] mb-2">
               {stage === 'IDLE' && 'Pronto para sortear o bilhete vencedor'}
               {stage === 'SPINNING' && 'Sorteando bilhete com auditoria criptográfica...'}
               {stage === 'WINNER_REVEALED' && 'Bilhete contemplado'}
@@ -205,12 +205,12 @@ export const TikTokLiveDrawModal: React.FC<TikTokLiveDrawModalProps> = ({
 
             {/* Huge Number Display */}
             <div
-              className={`font-mono font-bold text-6xl sm:text-7xl tracking-wider tabular-nums transition-all duration-300 ${
+              className={`font-extrabold text-6xl sm:text-7xl tracking-tight tabular-nums transition-all duration-300 ${
                 stage === 'WINNER_REVEALED'
-                  ? 'text-[#20C997] scale-105'
+                  ? 'text-[#A6C957] scale-105'
                   : stage === 'SPINNING'
-                  ? 'text-[#B9FC01]'
-                  : 'text-[#94A3B8]'
+                  ? 'text-[#A6C957]'
+                  : 'text-[#A5B1C5]'
               }`}
             >
               #{displayNumber}
@@ -218,19 +218,19 @@ export const TikTokLiveDrawModal: React.FC<TikTokLiveDrawModalProps> = ({
 
             {/* Winner Details Card when revealed */}
             {stage === 'WINNER_REVEALED' && winnerResult && (
-              <div className="mt-6 w-full max-w-md p-4 rounded-xl bg-[#10141E] border border-[#20C997]/50 text-left animate-in zoom-in-95 duration-300">
+              <div className="mt-6 w-full max-w-md p-4 rounded-xl bg-[#111B30] border border-[#A6C957]/40 text-left animate-in zoom-in-95 duration-300">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-[#161C2C] border border-[#20C997] text-[#FFFFFF] flex items-center justify-center font-bold text-lg shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-[#080D18] border border-[#A6C957] text-[#FFFFFF] flex items-center justify-center font-bold text-lg shrink-0">
                     {winnerResult.winningTicket.username.charAt(0).toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <span className="text-xs font-semibold text-[#20C997] flex items-center gap-1">
+                    <span className="text-xs font-semibold text-[#A6C957] flex items-center gap-1">
                       <Sparkles className="w-3.5 h-3.5" /> Ganhador(a) confirmado(a)
                     </span>
                     <h3 className="text-base sm:text-lg font-bold text-[#FFFFFF] truncate">
                       @{winnerResult.winningTicket.username}
                     </h3>
-                    <p className="text-xs text-[#94A3B8] font-mono tabular-nums truncate">
+                    <p className="text-xs text-[#A5B1C5] font-mono tabular-nums truncate">
                       ID TikTok: {winnerResult.winningTicket.tiktokUserId}
                     </p>
                   </div>
@@ -244,7 +244,7 @@ export const TikTokLiveDrawModal: React.FC<TikTokLiveDrawModalProps> = ({
             <button
               onClick={handleStartDraw}
               disabled={isProcessing}
-              className="w-full py-3.5 px-6 rounded-xl font-semibold text-base text-[#FFFFFF] bg-[#0131CD] hover:brightness-110 transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_8px_24px_rgba(1, 49, 205,0.35)]"
+              className="w-full py-3.5 px-6 rounded-xl font-semibold text-base text-[#FFFFFF] bg-[#0131CD] hover:brightness-110 transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm"
             >
               <Play className="w-5 h-5 fill-[#FFFFFF]" />
               <span>Realizar Sorteio Agora</span>
@@ -252,8 +252,8 @@ export const TikTokLiveDrawModal: React.FC<TikTokLiveDrawModalProps> = ({
           )}
 
           {stage === 'SPINNING' && (
-            <div className="w-full py-3.5 px-6 rounded-xl font-medium text-center text-[#FFFFFF] bg-[#10141E] border border-[#161C2C] flex items-center justify-center gap-2">
-              <RotateCw className="w-4 h-4 animate-spin text-[#B9FC01]" />
+            <div className="w-full py-3.5 px-6 rounded-xl font-medium text-center text-[#FFFFFF] bg-[#080D18] border border-[var(--gio-border-subtle)] flex items-center justify-center gap-2">
+              <RotateCw className="w-4 h-4 animate-spin text-[#A6C957]" />
               <span>Calculando seleção justa em alta velocidade...</span>
             </div>
           )}
@@ -264,27 +264,27 @@ export const TikTokLiveDrawModal: React.FC<TikTokLiveDrawModalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   onClick={handleDownloadCertificate}
-                  className="py-3 px-4 rounded-xl font-semibold text-sm text-[#FFFFFF] bg-[#0131CD] hover:brightness-110 transition flex items-center justify-center gap-2 shadow-[0_6px_20px_rgba(1, 49, 205,0.3)]"
+                  className="py-3 px-4 rounded-xl font-semibold text-sm text-[#FFFFFF] bg-[#0131CD] hover:brightness-110 transition flex items-center justify-center gap-2 shadow-sm"
                 >
                   <Download className="w-4 h-4" />
                   <span>Baixar Certificado Oficial PDF</span>
                 </button>
                 <button
                   onClick={handleCopyProof}
-                  className="py-3 px-4 rounded-xl font-semibold text-sm text-[#FFFFFF] bg-[#10141E] hover:bg-[#161C2C] border border-[#161C2C] transition flex items-center justify-center gap-2"
+                  className="py-3 px-4 rounded-xl font-semibold text-sm text-[#FFFFFF] bg-[#080D18] hover:bg-[#111B30] border border-[var(--gio-border-subtle)] transition flex items-center justify-center gap-2"
                 >
-                  {copiedHash ? <Check className="w-4 h-4 text-[#20C997]" /> : <Copy className="w-4 h-4 text-[#B9FC01]" />}
+                  {copiedHash ? <Check className="w-4 h-4 text-[#A6C957]" /> : <Copy className="w-4 h-4 text-[#A6C957]" />}
                   <span>{copiedHash ? 'Prova Copiada!' : 'Copiar Hash de Auditoria'}</span>
                 </button>
               </div>
 
               {/* Cryptographic Proof Details */}
-              <div className="p-4 rounded-xl bg-[#10141E] border border-[#161C2C] space-y-2">
-                <div className="flex items-center gap-2 text-xs font-semibold text-[#20C997]">
+              <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#A6C957]">
                   <ShieldCheck className="w-4 h-4" />
                   <span>Prova Criptográfica Imutável (CSPRNG + Semente SHA-256)</span>
                 </div>
-                <div className="space-y-1 font-mono text-[11px] text-[#94A3B8] break-all">
+                <div className="space-y-1 font-mono text-[11px] text-[#A5B1C5] break-all">
                   <p>
                     <strong className="text-[#FFFFFF]">Roster SHA-256:</strong> {snapshot.rosterSha256Hash}
                   </p>
@@ -301,15 +301,15 @@ export const TikTokLiveDrawModal: React.FC<TikTokLiveDrawModalProps> = ({
 
           {/* Snapshot Info Summary */}
           {stage === 'IDLE' && (
-            <div className="p-3.5 rounded-xl bg-[#10141E] border border-[#161C2C] text-xs text-[#94A3B8] space-y-1">
+            <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] text-xs text-[#A5B1C5] space-y-1">
               <div className="flex items-center gap-1.5 text-[#FFFFFF] font-semibold">
-                <Hash className="w-3.5 h-3.5 text-[#B9FC01]" />
+                <Hash className="w-3.5 h-3.5 text-[#A6C957]" />
                 <span>Relação de Bilhetes Congelada</span>
               </div>
-              <p className="font-mono text-[11px] text-[#B9FC01] truncate">
+              <p className="font-mono text-[11px] text-[#A6C957] truncate">
                 Hash SHA-256: {snapshot.rosterSha256Hash}
               </p>
-              <p className="text-[11px] text-[#94A3B8]">
+              <p className="text-[11px] text-[#A5B1C5]">
                 A lista está protegida contra edições retroativas. Novos presentes recebidos na LIVE continuarão sendo somados para as próximas rodadas.
               </p>
             </div>

@@ -79,7 +79,7 @@ const SUBSCRIPTION_STATES: {
     state: 'ACTIVE',
     label: 'ACTIVE (PRO Ativo)',
     tier: 'PRO',
-    badgeClass: 'bg-[#20C997]/15 text-[#20C997] border-[#20C997]/50',
+    badgeClass: 'bg-[#A6C957]/15 text-[#A6C957] border-[#A6C957]/40',
     description: 'Todas as automações TikTok LIVE PRO, captura de presentes e emissão de bilhetes liberadas.',
   },
   {
@@ -93,7 +93,7 @@ const SUBSCRIPTION_STATES: {
     state: 'PENDING',
     label: 'PENDING (Aguardando Confirmação)',
     tier: 'FREE',
-    badgeClass: 'bg-[#F5B942]/15 text-[#F5B942] border-[#F5B942]/50',
+    badgeClass: 'bg-[#A6C957]/15 text-[#A6C957] border-[#A6C957]/40',
     description: 'Assinatura individual criada. Automações ao vivo aguardam autorização no Mercado Pago.',
   },
   {
@@ -107,14 +107,14 @@ const SUBSCRIPTION_STATES: {
     state: 'CANCELED',
     label: 'CANCELED (Cancelada — Ciclo Encerrado)',
     tier: 'FREE',
-    badgeClass: 'bg-[#10141E] text-[#94A3B8] border-[#161C2C]',
+    badgeClass: 'bg-[#111B30] text-[#A5B1C5] border-[var(--gio-border-subtle)]',
     description: 'Renovações futuras interrompidas ("status": "canceled"). Histórico de participantes e sorteios mantido.',
   },
   {
     state: 'EXPIRED',
     label: 'EXPIRED (Ciclo Expirado)',
     tier: 'FREE',
-    badgeClass: 'bg-[#10141E] text-[#94A3B8] border-[#161C2C]',
+    badgeClass: 'bg-[#111B30] text-[#A5B1C5] border-[var(--gio-border-subtle)]',
     description: 'Período PRO encerrado. Consulta e exportação de sorteios anteriores continuam ativas.',
   },
 ];
@@ -760,58 +760,58 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
   return (
     <div className="space-y-6 animate-fade-in min-w-0">
       {/* Top Hero Banner — Official GIO DA SORTE SaaS Billing Identity */}
-      <div className="relative overflow-hidden p-6 sm:p-8 rounded-2xl bg-[#080A0F] border border-white/[0.08] shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#0131CD] via-[#0131CD] to-[#B9FC01]" />
+      <div className="relative overflow-hidden p-6 sm:p-8 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className="absolute inset-x-0 top-0 h-1 bg-[#0131CD]" />
 
         <div className="flex items-start sm:items-center gap-4">
           {/* Official Clean Brand Emblem */}
-          <div className="w-14 h-14 rounded-2xl bg-[#10141E] p-0.5 border border-white/[0.1] shadow-md flex items-center justify-center shrink-0">
-            <div className="w-full h-full rounded-[14px] bg-[#080A0F] flex items-center justify-center relative">
-              <Ticket className="w-7 h-7 text-[#B9FC01] transform -rotate-12" />
-              <Sparkles className="w-3.5 h-3.5 text-[#B9FC01] absolute top-2 right-2" />
+          <div className="w-14 h-14 rounded-2xl bg-[#080D18] p-0.5 border border-[var(--gio-border-subtle)] shadow-md flex items-center justify-center shrink-0">
+            <div className="w-full h-full rounded-[14px] bg-[#080D18] flex items-center justify-center relative">
+              <Ticket className="w-7 h-7 text-[#A6C957] transform -rotate-12" />
+              <Sparkles className="w-3.5 h-3.5 text-[#A6C957] absolute top-2 right-2" />
             </div>
           </div>
 
           <div className="space-y-2 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="gio-badge-pro">
-                <Crown className="w-3.5 h-3.5 text-[#B9FC01]" />
+                <Crown className="w-3.5 h-3.5 text-[#A6C957]" />
                 <span>Planos Oficiais & Assinatura PRO</span>
               </span>
               <span
-                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-mono font-bold border ${
+                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold border ${
                   isPro
-                    ? 'bg-[#20C997]/15 text-[#20C997] border-[#20C997]/40'
-                    : 'bg-[#080A0F] text-[#FFFFFF] border-white/[0.1]'
+                    ? 'bg-[#A6C957]/15 text-[#A6C957] border-[#A6C957]/35'
+                    : 'bg-[#080D18] text-[#FFFFFF] border-[var(--gio-border-subtle)]'
                 }`}
               >
                 <span
                   className={`w-2 h-2 rounded-full ${
-                    isPro ? 'bg-[#20C997] animate-pulse' : 'bg-[#0131CD]'
+                    isPro ? 'bg-[#A6C957] animate-pulse' : 'bg-[#0131CD]'
                   }`}
                 />
                 <span>ACESSO DA CONTA: {activeStateInfo.label}</span>
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-[#FFFFFF] tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#FFFFFF] tracking-tight">
               GIO DA SORTE — Planos Comerciais & 3 Dias de Teste Grátis
             </h1>
-            <p className="text-xs sm:text-sm text-[#94A3B8] leading-relaxed">
-              Utilize o Plano FREE gratuito ou ative o <strong className="text-[#B9FC01]">Plano PRO</strong> com 3 dias de avaliação sem custo, captura em tempo real do TikTok LIVE, sorteador de comentários e campanhas Multi-LIVE.
+            <p className="text-xs sm:text-sm text-[#A5B1C5] leading-relaxed">
+              Utilize o Plano FREE gratuito ou ative o <strong className="text-[#A6C957]">Plano PRO</strong> com 3 dias de avaliação sem custo, captura em tempo real do TikTok LIVE, sorteador de comentários e campanhas Multi-LIVE.
             </p>
           </div>
         </div>
 
         {/* View Switcher Tabs (Planos do Usuário vs Painel Admin Comercial) */}
-        <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0 bg-[#10141E] p-2 rounded-xl border border-white/[0.08]">
+        <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0 bg-[#080D18] p-2 rounded-xl border border-[var(--gio-border-subtle)]">
           <button
             type="button"
             onClick={() => setActiveViewTab('plans')}
             className={`px-4 py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 ${
               activeViewTab === 'plans'
                 ? 'gio-btn-primary shadow-xs'
-                : 'text-[#94A3B8] hover:text-[#FFFFFF] bg-transparent'
+                : 'text-[#A5B1C5] hover:text-[#FFFFFF] bg-transparent'
             }`}
           >
             <CreditCard className="w-4 h-4" />
@@ -824,7 +824,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
               className={`px-4 py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 ${
                 activeViewTab === 'admin'
                   ? 'gio-btn-pro shadow-xs'
-                  : 'text-[#B9FC01] hover:bg-white/[0.05] border border-[#B9FC01]/30'
+                  : 'text-[#A6C957] hover:bg-[#111B30] border border-[#A6C957]/30'
               }`}
             >
               <Settings className="w-4 h-4" />
@@ -839,20 +839,20 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
         <div
           className={`p-4 rounded-xl border text-xs flex items-center justify-between gap-4 ${
             notice.type === 'success'
-              ? 'bg-[#20C997]/15 border-[#20C997]/50 text-[#FFFFFF]'
+              ? 'bg-[#A6C957]/15 border-[#A6C957]/40 text-[#FFFFFF]'
               : notice.type === 'warning'
-              ? 'bg-[#F5B942]/15 border-[#F5B942]/50 text-[#FFFFFF]'
+              ? 'bg-[#A6C957]/10 border-[#A6C957]/35 text-[#FFFFFF]'
               : 'bg-[#0131CD]/15 border-[#0131CD]/50 text-[#FFFFFF]'
           }`}
         >
           <div className="flex items-center gap-2.5">
-            <Info className="w-4 h-4 shrink-0 text-[#B9FC01]" />
+            <Info className="w-4 h-4 shrink-0 text-[#A6C957]" />
             <span>{notice.text}</span>
           </div>
           <button
             type="button"
             onClick={() => setNotice(null)}
-            className="text-[#94A3B8] hover:text-[#FFFFFF] px-2 font-bold"
+            className="text-[#A5B1C5] hover:text-[#FFFFFF] px-2 font-bold"
           >
             ✕
           </button>
@@ -864,19 +864,19 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
         <div
           className={`p-4 sm:p-5 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
             isPro
-              ? 'bg-[#10141E] border-[#B9FC01]/45'
-              : 'bg-[#10141E] border-[#161C2C]'
+              ? 'bg-[#111B30] border-[#A6C957]/40'
+              : 'bg-[#111B30] border-[var(--gio-border-subtle)]'
           }`}
         >
           <div className="flex items-start gap-3">
             {isPro ? (
-              <CheckCircle2 className="w-5 h-5 text-[#20C997] shrink-0 mt-0.5" />
+              <CheckCircle2 className="w-5 h-5 text-[#A6C957] shrink-0 mt-0.5" />
             ) : (
-              <ShieldCheck className="w-5 h-5 text-[#B9FC01] shrink-0 mt-0.5" />
+              <ShieldCheck className="w-5 h-5 text-[#A5B1C5] shrink-0 mt-0.5" />
             )}
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#FFFFFF]">
+                <span className="text-xs font-bold uppercase tracking-wide text-[#FFFFFF]">
                   {isAdminAuthorized
                     ? (isPro
                         ? 'Recursos PRO Liberados nesta Sessão · Checkout Externo em Homologação'
@@ -886,12 +886,12 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                         : 'Plano Gratuito Ativo · Teste de 3 Dias Disponível')}
                 </span>
                 {isAdminAuthorized && (
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#10141E] text-[#94A3B8] border border-[#161C2C]">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#080D18] text-[#A5B1C5] border border-[var(--gio-border-subtle)]">
                     Gateway: {homologationReport?.status || 'PENDING_CREDENTIALS'}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-[#94A3B8] leading-relaxed">
+              <p className="text-xs text-[#A5B1C5] leading-relaxed">
                 {isAdminAuthorized
                   ? (isPro
                       ? 'Seu acesso aos módulos TikTok LIVE PRO e Sorteador de Comentários já está ativo. Novas contratações externas via Mercado Pago permanecem em modo seguro de homologação (nenhuma cobrança externa é gerada).'
@@ -907,7 +907,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
             <button
               type="button"
               onClick={() => setActiveViewTab('admin')}
-              className="px-3.5 py-2 rounded-xl bg-[#10141E] hover:bg-[#161C2C] text-[#B9FC01] border border-[#B9FC01]/35 text-xs font-semibold shrink-0 transition"
+              className="px-3.5 py-2 rounded-xl bg-[#080D18] hover:bg-[#111B30] text-[#A6C957] border border-[#A6C957]/35 text-xs font-semibold shrink-0 transition"
             >
               Ver Status Técnico MP
             </button>
@@ -920,31 +920,31 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
           {/* Payment Provider & Billing Frequency Controls — 7 Laws of Usability */}
           <div className="space-y-4">
             {/* Step 1: Payment Provider Choice (Hick's & Jakob's Law) */}
-            <div className="p-5 sm:p-6 rounded-2xl bg-[#080A0F] border border-white/[0.08] shadow-lg space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.08] pb-3">
+            <div className="p-5 sm:p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-lg space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--gio-border-subtle)] pb-3">
                 <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#B9FC01] flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold uppercase tracking-wide text-[#A6C957] flex items-center gap-1.5">
                     <ShieldCheck className="w-3.5 h-3.5" />
                     <span>Passo 1 · Escolha o Método de Pagamento Oficial</span>
                   </span>
-                  <h3 className="text-base font-display font-extrabold text-[#FFFFFF]">
+                  <h3 className="text-base font-bold text-[#FFFFFF]">
                     Provedor de Pagamento Seguro
                   </h3>
                 </div>
-                <span className="text-xs text-[#94A3B8]">
+                <span className="text-xs text-[#A5B1C5]">
                   Ambos suportam <strong>3 dias de teste gratuito</strong> sem cobrança imediata
                 </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
-                {/* Provider Card: Mercado Pago */}
+                {/* Provider Card: Mercado Pago (Approved External Provider Brand Color #0866F5) */}
                 <button
                   type="button"
                   onClick={() => setSelectedPaymentProvider('MERCADO_PAGO')}
                   className={`p-4 rounded-xl border text-left transition-all cursor-pointer relative flex flex-col justify-between gap-3 ${
                     selectedPaymentProvider === 'MERCADO_PAGO'
                       ? 'bg-[#0866F5]/10 border-[#0866F5] ring-2 ring-[#0866F5]/30 shadow-md'
-                      : 'bg-[#10141E] border-white/[0.08] hover:border-white/[0.18]'
+                      : 'bg-[#080D18] border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)]'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -959,32 +959,32 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                             Brasil
                           </span>
                         </div>
-                        <span className="text-[11px] text-[#94A3B8]">Pix • Cartões Nacionais • Boleto Bancário</span>
+                        <span className="text-[11px] text-[#A5B1C5]">Pix • Cartões Nacionais • Boleto Bancário</span>
                       </div>
                     </div>
                     <div
                       className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition ${
                         selectedPaymentProvider === 'MERCADO_PAGO'
                           ? 'border-[#0866F5] bg-[#0866F5] text-[#FFFFFF]'
-                          : 'border-white/[0.2] bg-transparent'
+                          : 'border-[var(--gio-border-subtle)] bg-transparent'
                       }`}
                     >
                       {selectedPaymentProvider === 'MERCADO_PAGO' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                     </div>
                   </div>
-                  <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                  <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
                     Pagamento 100% em Reais (BRL), integrado à infraestrutura financeira nacional com autenticação direta.
                   </p>
                 </button>
 
-                {/* Provider Card: PayPal */}
+                {/* Provider Card: PayPal (Approved External Provider Brand Color #0079C1) */}
                 <button
                   type="button"
                   onClick={() => setSelectedPaymentProvider('PAYPAL')}
                   className={`p-4 rounded-xl border text-left transition-all cursor-pointer relative flex flex-col justify-between gap-3 ${
                     selectedPaymentProvider === 'PAYPAL'
                       ? 'bg-[#0079C1]/10 border-[#0079C1] ring-2 ring-[#0079C1]/30 shadow-md'
-                      : 'bg-[#10141E] border-white/[0.08] hover:border-white/[0.18]'
+                      : 'bg-[#080D18] border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)]'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -999,20 +999,20 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                             Global & Brasil
                           </span>
                         </div>
-                        <span className="text-[11px] text-[#94A3B8]">Cartões Internacionais • Saldo PayPal</span>
+                        <span className="text-[11px] text-[#A5B1C5]">Cartões Internacionais • Saldo PayPal</span>
                       </div>
                     </div>
                     <div
                       className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition ${
                         selectedPaymentProvider === 'PAYPAL'
                           ? 'border-[#0079C1] bg-[#0079C1] text-[#FFFFFF]'
-                          : 'border-white/[0.2] bg-transparent'
+                          : 'border-[var(--gio-border-subtle)] bg-transparent'
                       }`}
                     >
                       {selectedPaymentProvider === 'PAYPAL' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                     </div>
                   </div>
-                  <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                  <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
                     Proteção ao Comprador 24/7, aceita cartões de crédito internacionais e saldo em conta em ambiente criptografado.
                   </p>
                 </button>
@@ -1020,21 +1020,21 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
             </div>
 
             {/* Step 2: Billing Cycle Switcher (Fitts's Law >= 44px touch target) */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-[#080A0F] border border-white/[0.08]">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)]">
               <div className="flex items-center gap-2.5">
-                <Crown className="w-4 h-4 text-[#B9FC01]" />
+                <Crown className="w-4 h-4 text-[#A6C957]" />
                 <span className="text-xs font-bold text-[#FFFFFF]">
                   Passo 2 · Escolha a Frequência de Faturamento:
                 </span>
               </div>
-              <div className="inline-flex items-center p-1 rounded-xl bg-[#10141E] border border-white/[0.08]">
+              <div className="inline-flex items-center p-1 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
                 <button
                   type="button"
                   onClick={() => setBillingCycle('monthly')}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer min-h-[38px] ${
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer min-h-[38px] tabular-nums ${
                     billingCycle === 'monthly'
                       ? 'bg-[#0131CD] text-[#FFFFFF] shadow-sm'
-                      : 'text-[#94A3B8] hover:text-[#FFFFFF]'
+                      : 'text-[#A5B1C5] hover:text-[#FFFFFF]'
                   }`}
                 >
                   <span>Mensal (R$ 29,90)</span>
@@ -1042,14 +1042,14 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setBillingCycle('annual')}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer min-h-[38px] ${
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer min-h-[38px] tabular-nums ${
                     billingCycle === 'annual'
-                      ? 'bg-gradient-to-r from-[#B9FC01] to-[#20C997] text-[#080A0F] font-black shadow-sm'
-                      : 'text-[#94A3B8] hover:text-[#FFFFFF]'
+                      ? 'bg-[#A6C957] hover:bg-[#B5D477] text-[#080D18] font-bold shadow-sm'
+                      : 'text-[#A5B1C5] hover:text-[#FFFFFF]'
                   }`}
                 >
                   <span>Anual (~R$ 16,66/mês)</span>
-                  <span className="px-1.5 py-0.2 rounded text-[10px] uppercase font-mono font-black bg-[#080A0F]/20">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-[#080D18]/15 text-[#080D18] tabular-nums">
                     44% OFF
                   </span>
                 </button>
@@ -1060,134 +1060,134 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
           {/* 3-Column Commercial Plans Grid: FREE | PRO MENSAL | PRO ANUAL */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
             {/* 1. PLANO FREE */}
-            <div className="p-6 sm:p-7 rounded-2xl bg-[#080A0F] border border-white/[0.08] flex flex-col justify-between space-y-6 shadow-md transition-all hover:border-white/[0.15]">
+            <div className="p-6 sm:p-7 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] flex flex-col justify-between space-y-6 shadow-md transition-all hover:border-[var(--gio-border-active)]">
               <div className="space-y-4">
                 <div className="flex items-center justify-between gap-2">
                   <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#B9FC01]">
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-[#A5B1C5]">
                       Mesa Oficial & Gestão Local
                     </span>
-                    <h2 className="text-xl font-display font-extrabold text-[#FFFFFF] mt-0.5">
+                    <h2 className="text-xl font-bold text-[#FFFFFF] mt-0.5">
                       Plano FREE
                     </h2>
                   </div>
                   <span className="gio-badge-free">Gratuito</span>
                 </div>
 
-                <div className="pt-3 border-t border-white/[0.08]">
+                <div className="pt-3 border-t border-[var(--gio-border-subtle)]">
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-mono font-extrabold text-[#FFFFFF] tabular-nums">
+                    <span className="text-3xl font-bold text-[#FFFFFF] tabular-nums">
                       R$ 0,00
                     </span>
-                    <span className="text-xs text-[#94A3B8] font-mono">/ sempre</span>
+                    <span className="text-xs text-[#A5B1C5]">/ sempre</span>
                   </div>
-                  <p className="text-xs text-[#94A3B8] mt-1.5">
+                  <p className="text-xs text-[#A5B1C5] mt-1.5">
                     Sem cartão de crédito • Uso livre da Mesa Oficial de Sorteio
                   </p>
                 </div>
 
-                <div className="space-y-2.5 pt-3 border-t border-white/[0.08] text-xs">
+                <div className="space-y-2.5 pt-3 border-t border-[var(--gio-border-subtle)] text-xs">
                   <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <Check className="w-4 h-4 text-[#20C997] shrink-0" />
+                    <Check className="w-4 h-4 text-[#A6C957] shrink-0" />
                     <span>Sorteio Proporcional por Moedas e Bilhetes</span>
                   </div>
                   <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <Check className="w-4 h-4 text-[#20C997] shrink-0" />
+                    <Check className="w-4 h-4 text-[#A6C957] shrink-0" />
                     <span>Globo Digital, Roleta Proporcional e Battle Royale</span>
                   </div>
                   <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <Database className="w-4 h-4 text-[#B9FC01] shrink-0" />
+                    <Database className="w-4 h-4 text-[#A6C957] shrink-0" />
                     <span>
                       <strong>Histórico e Certificados SHA-256:</strong> Laudos PDF e consulta
                     </span>
                   </div>
-                  <div className="flex items-center gap-2.5 text-[#94A3B8]/70">
-                    <Lock className="w-4 h-4 text-[#B9FC01] shrink-0" />
+                  <div className="flex items-center gap-2.5 text-[#A5B1C5]/80">
+                    <Lock className="w-4 h-4 text-[#A5B1C5] shrink-0" />
                     <span>Conexão TikTok LIVE em Tempo Real (Exclusivo PRO)</span>
                   </div>
-                  <div className="flex items-center gap-2.5 text-[#94A3B8]/70">
-                    <Lock className="w-4 h-4 text-[#B9FC01] shrink-0" />
+                  <div className="flex items-center gap-2.5 text-[#A5B1C5]/80">
+                    <Lock className="w-4 h-4 text-[#A5B1C5] shrink-0" />
                     <span>Sorteador de Comentários do TikTok (Exclusivo PRO)</span>
                   </div>
-                  <div className="flex items-center gap-2.5 text-[#94A3B8]/70">
-                    <Lock className="w-4 h-4 text-[#B9FC01] shrink-0" />
+                  <div className="flex items-center gap-2.5 text-[#A5B1C5]/80">
+                    <Lock className="w-4 h-4 text-[#A5B1C5] shrink-0" />
                     <span>Campanhas Acumuladas Multi-LIVE (Exclusivo PRO)</span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-white/[0.08]">
+              <div className="pt-4 border-t border-[var(--gio-border-subtle)]">
                 <button
                   type="button"
                   onClick={onNavigateToParticipants}
                   className="gio-btn-secondary w-full py-3.5 px-4 text-xs font-semibold justify-center"
                 >
                   <span>Consultar Participantes e Histórico</span>
-                  <ArrowRight className="w-4 h-4 text-[#B9FC01]" />
+                  <ArrowRight className="w-4 h-4 text-[#A5B1C5]" />
                 </button>
               </div>
             </div>
 
             {/* 2. PLANO PRO MENSAL */}
-            <div className="p-6 sm:p-7 rounded-2xl bg-[#10141E] border border-[#0131CD]/60 shadow-xl flex flex-col justify-between space-y-6 relative transition-all hover:border-[#0131CD]">
+            <div className="p-6 sm:p-7 rounded-2xl bg-[#111B30] border border-[#0131CD]/60 shadow-xl flex flex-col justify-between space-y-6 relative transition-all hover:border-[#0131CD]">
               <div className="space-y-4">
                 <div className="flex items-center justify-between gap-2">
                   <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#B9FC01]">
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-[#A6C957]">
                       Flexibilidade Mensal
                     </span>
-                    <h2 className="text-xl font-display font-extrabold text-[#FFFFFF] mt-0.5">
+                    <h2 className="text-xl font-bold text-[#FFFFFF] mt-0.5">
                       {monthlyPlan.name}
                     </h2>
                   </div>
-                  <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase bg-[#20C997]/15 text-[#20C997] border border-[#20C997]/40 shadow-xs">
+                  <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase bg-[#A6C957]/15 text-[#A6C957] border border-[#A6C957]/35 shadow-xs">
                     3 Dias Grátis
                   </span>
                 </div>
 
-                <div className="pt-3 border-t border-white/[0.08] space-y-2">
+                <div className="pt-3 border-t border-[var(--gio-border-subtle)] space-y-2">
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-mono font-extrabold text-[#FFFFFF] tabular-nums">
+                    <span className="text-3xl font-bold text-[#FFFFFF] tabular-nums">
                       {formatBrl(monthlyPlan.price)}
                     </span>
-                    <span className="text-xs text-[#94A3B8] font-mono">/ mês</span>
+                    <span className="text-xs text-[#A5B1C5]">/ mês</span>
                   </div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#20C997]/12 border border-[#20C997]/30 text-xs font-bold text-[#20C997] font-mono tabular-nums">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#A6C957]/12 border border-[#A6C957]/30 text-xs font-semibold text-[#A6C957] tabular-nums">
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>R$ 0,00 hoje • 3 dias de teste grátis</span>
                   </div>
-                  <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                  <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
                     Cobrança recorrente mensal somente após o término dos 3 dias de teste gratuito. Cancele quando quiser.
                   </p>
                 </div>
 
-                <div className="space-y-2.5 pt-3 border-t border-white/[0.08] text-xs">
+                <div className="space-y-2.5 pt-3 border-t border-[var(--gio-border-subtle)] text-xs">
                   <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <Radio className="w-4 h-4 text-[#B9FC01] shrink-0" />
+                    <Radio className="w-4 h-4 text-[#A5B1C5] shrink-0" />
                     <span>
                       <strong>Conexão TikTok LIVE em Tempo Real:</strong> Webcast + OAuth 2.0
                     </span>
                   </div>
                   <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <Gift className="w-4 h-4 text-[#B9FC01] shrink-0" />
+                    <Gift className="w-4 h-4 text-[#A5B1C5] shrink-0" />
                     <span>
                       <strong>Captura Automática de Presentes:</strong> Controle de combos sem duplicidade
                     </span>
                   </div>
                   <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <Ticket className="w-4 h-4 text-[#B9FC01] shrink-0" />
+                    <Ticket className="w-4 h-4 text-[#A5B1C5] shrink-0" />
                     <span>
                       <strong>Sorteador de Comentários PRO:</strong> Extração automática e filtros
                     </span>
                   </div>
                   <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <Layers className="w-4 h-4 text-[#B9FC01] shrink-0" />
+                    <Layers className="w-4 h-4 text-[#A5B1C5] shrink-0" />
                     <span>
                       <strong>Campanhas Acumuladas Multi-LIVE:</strong> Ranking unificado
                     </span>
                   </div>
                   <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <ShieldCheck className="w-4 h-4 text-[#20C997] shrink-0" />
+                    <ShieldCheck className="w-4 h-4 text-[#A5B1C5] shrink-0" />
                     <span>
                       <strong>Cancelamento Livre:</strong> Cancele no teste sem cobrança
                     </span>
@@ -1195,7 +1195,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-white/[0.08] space-y-2">
+              <div className="pt-4 border-t border-[var(--gio-border-subtle)] space-y-2">
                 <button
                   type="button"
                   onClick={() => handleOpenCheckoutModal(monthlyPlan)}
@@ -1209,81 +1209,81 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                   </span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
-                <p className="text-[11px] text-center text-[#94A3B8] font-mono tabular-nums">
+                <p className="text-[11px] text-center text-[#A5B1C5] tabular-nums">
                   Após 3 dias: {formatBrl(monthlyPlan.price)}/mês • Cancele quando quiser
                 </p>
               </div>
             </div>
 
-            {/* 3. PLANO PRO ANUAL (MAIS ECONÔMICO — VIOLET PRO #B9FC01 / #B9FC01) */}
-            <div className="p-6 sm:p-7 rounded-2xl gio-card-pro border-2 border-[#B9FC01]/85 flex flex-col justify-between space-y-6 relative shadow-2xl transition-all hover:border-[#B9FC01]">
+            {/* 3. PLANO PRO ANUAL */}
+            <div className="p-6 sm:p-7 rounded-2xl gio-card-pro border-2 border-[#A6C957]/60 flex flex-col justify-between space-y-6 relative shadow-2xl transition-all hover:border-[#A6C957]">
               <div className="space-y-4">
                 <div className="flex items-center justify-between gap-2">
                   <div>
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#B9FC01]">
-                      <Crown className="w-3.5 h-3.5 text-[#B9FC01]" />
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[#A6C957]">
+                      <Crown className="w-3.5 h-3.5 text-[#A6C957]" />
                       <span>Mais Econômico • Melhor Valor</span>
                     </span>
-                    <h2 className="text-xl font-display font-extrabold text-[#FFFFFF] mt-0.5">
+                    <h2 className="text-xl font-bold text-[#FFFFFF] mt-0.5">
                       {annualPlan.name}
                     </h2>
                   </div>
-                  <span className="px-2.5 py-1 rounded-md text-[11px] font-mono font-extrabold uppercase bg-[#20C997] text-[#080A0F] shadow-sm tabular-nums">
+                  <span className="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase bg-[#A6C957] text-[#080D18] shadow-sm tabular-nums">
                     ~{annualPlan.annualDiscountPercent}% OFF
                   </span>
                 </div>
 
-                <div className="pt-3 border-t border-[#B9FC01]/30 space-y-2">
+                <div className="pt-3 border-t border-[#A6C957]/30 space-y-2">
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-mono font-extrabold text-[#B9FC01] tabular-nums">
+                    <span className="text-3xl font-bold text-[#A6C957] tabular-nums">
                       {formatBrl(annualPlan.price)}
                     </span>
-                    <span className="text-xs text-[#94A3B8] font-mono">/ 12 meses</span>
+                    <span className="text-xs text-[#A5B1C5]">/ 12 meses</span>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="px-2 py-0.5 rounded bg-[#B9FC01]/20 border border-[#B9FC01]/45 text-[11px] font-mono font-bold text-[#B9FC01] tabular-nums">
+                    <span className="px-2 py-0.5 rounded bg-[#A6C957]/15 border border-[#A6C957]/35 text-[11px] font-semibold text-[#A6C957] tabular-nums">
                       Equivale a ~{formatBrl(annualPlan.monthlyEquivalent)}/mês
                     </span>
-                    <span className="px-2 py-0.5 rounded bg-[#20C997]/15 border border-[#20C997]/40 text-[11px] font-mono font-bold text-[#20C997] tabular-nums">
+                    <span className="px-2 py-0.5 rounded bg-[#A6C957]/12 border border-[#A6C957]/30 text-[11px] font-semibold text-[#A6C957] tabular-nums">
                       Economia de {formatBrl(annualPlan.annualSavingsAmount)}/ano
                     </span>
                   </div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#20C997]/12 border border-[#20C997]/30 text-xs font-bold text-[#20C997] font-mono tabular-nums">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#A6C957]/12 border border-[#A6C957]/30 text-xs font-semibold text-[#A6C957] tabular-nums">
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>R$ 0,00 hoje • 3 dias de teste grátis</span>
                   </div>
-                  <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                  <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
                     Ciclo anual de {formatBrl(annualPlan.price)} cobrado somente após os 3 dias de teste gratuito.
                   </p>
                 </div>
 
-                <div className="space-y-2.5 pt-3 border-t border-[#B9FC01]/30 text-xs">
+                <div className="space-y-2.5 pt-3 border-t border-[#A6C957]/30 text-xs">
                   <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <CheckCircle2 className="w-4 h-4 text-[#B9FC01] shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-[#A6C957] shrink-0" />
                     <span>
                       <strong>Tudo do PRO Mensal Incluso:</strong> TikTok LIVE e Comentários PRO
                     </span>
                   </div>
                   <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <CheckCircle2 className="w-4 h-4 text-[#20C997] shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-[#A6C957] shrink-0" />
                     <span>
                       <strong>Economia Real de {formatBrl(annualPlan.annualSavingsAmount)}:</strong> vs. 12 meses ({formatBrl(monthlyPlan.price * 12)})
                     </span>
                   </div>
                   <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <CheckCircle2 className="w-4 h-4 text-[#B9FC01] shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-[#A6C957] shrink-0" />
                     <span>
                       <strong>Proteção de Preço por 12 Meses:</strong> Garantia anual contra reajustes
                     </span>
                   </div>
                   <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <CheckCircle2 className="w-4 h-4 text-[#B9FC01] shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-[#A6C957] shrink-0" />
                     <span>
                       <strong>Auditoria Criptográfica SHA-256 & CSPRNG:</strong> Certificados oficiais
                     </span>
                   </div>
                   <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <ShieldCheck className="w-4 h-4 text-[#20C997] shrink-0" />
+                    <ShieldCheck className="w-4 h-4 text-[#A6C957] shrink-0" />
                     <span>
                       <strong>3 Dias de Teste Grátis:</strong> Cancele antes do fim sem cobrança
                     </span>
@@ -1291,7 +1291,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-[#B9FC01]/30 space-y-2">
+              <div className="pt-4 border-t border-[#A6C957]/30 space-y-2">
                 <button
                   type="button"
                   onClick={() => handleOpenCheckoutModal(annualPlan)}
@@ -1305,7 +1305,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                   </span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
-                <p className="text-[11px] text-center text-[#94A3B8] font-mono tabular-nums">
+                <p className="text-[11px] text-center text-[#A5B1C5] tabular-nums">
                   Após 3 dias: {formatBrl(annualPlan.price)}/ano • Cancele quando quiser
                 </p>
               </div>
@@ -1314,22 +1314,22 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
 
           {/* User's Current Subscription & Self-Service Cancellation Card */}
           <div className="gio-card p-6 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#161C2C] pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--gio-border-subtle)] pb-4">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#B9FC01]">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-[#A6C957]">
                   Gestão da Sua Assinatura & Vínculo Firebase UID
                 </span>
-                <h3 className="text-lg font-extrabold text-[#FFFFFF]">
+                <h3 className="text-lg font-bold text-[#FFFFFF]">
                   Status da Conta, Período de Teste e Cancelamento
                 </h3>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {effectiveUid ? (
-                  <span className="px-3 py-1 rounded-lg bg-[#10141E] border border-[#0131CD]/40 text-[11px] font-mono text-[#B9FC01]">
+                  <span className="px-3 py-1 rounded-lg bg-[#080D18] border border-[#0131CD]/40 text-[11px] font-mono text-[#A6C957]">
                     UID Autenticado: <strong>{effectiveUid}</strong>
                   </span>
                 ) : (
-                  <span className="px-3 py-1 rounded-lg bg-[#10141E] border border-[#161C2C] text-[11px] font-medium text-[#94A3B8]">
+                  <span className="px-3 py-1 rounded-lg bg-[#080D18] border border-[var(--gio-border-subtle)] text-[11px] font-medium text-[#A5B1C5]">
                     Conta Firebase não conectada (faça login no topo para vincular)
                   </span>
                 )}
@@ -1347,14 +1347,14 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-              <div className="p-3.5 rounded-xl bg-[#10141E] border border-[#161C2C]">
-                <span className="text-[10px] font-bold uppercase text-[#94A3B8] block">
+              <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
+                <span className="text-[10px] font-bold uppercase text-[#A5B1C5] block">
                   Plano / Modalidade
                 </span>
                 <span className="font-bold text-[#FFFFFF] text-sm block mt-0.5">
                   {userSubscription?.planName || (isPro ? 'Plano PRO Ativo' : 'Plano FREE (Gratuito)')}
                 </span>
-                <span className="text-[11px] font-mono text-[#B9FC01] tabular-nums">
+                <span className="text-[11px] text-[#A6C957] tabular-nums">
                   {userSubscription?.contractedAmount
                     ? `${formatBrl(userSubscription.contractedAmount)} (${
                         userSubscription.frequency === 12 ? 'Ciclo 12 meses' : 'Ciclo 1 mês'
@@ -1363,18 +1363,18 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-[#080A0F] border border-[#161C2C]">
-                <span className="text-[10px] font-mono uppercase text-[#94A3B8] block">
+              <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
+                <span className="text-[10px] font-bold uppercase text-[#A5B1C5] block">
                   {isAdminAuthorized ? 'Status Interno & Provedor' : 'Situação da Assinatura'}
                 </span>
-                <span className="font-mono font-bold text-[#F5B942] text-sm block mt-0.5">
+                <span className={`font-bold text-sm block mt-0.5 ${isPro ? 'text-[#A6C957]' : 'text-[#FFFFFF]'}`}>
                   {isAdminAuthorized
                     ? `${userSubscription?.statusState || statusState} (${userSubscription?.billingSubStatus || 'FREE_TIER'})`
                     : isPro
                     ? 'Ativa (Acesso PRO Liberado)'
                     : 'Plano Gratuito (FREE)'}
                 </span>
-                <span className="text-[11px] font-mono text-[#94A3B8] block mt-0.5">
+                <span className="text-[11px] text-[#A5B1C5] block mt-0.5">
                   {userSubscription?.provider ? (
                     <span className="inline-flex items-center gap-1 font-semibold text-[#FFFFFF]">
                       Provedor: {userSubscription.provider === 'PAYPAL' ? 'PayPal' : 'Mercado Pago'}
@@ -1389,18 +1389,18 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-[#080A0F] border border-[#161C2C]">
-                <span className="text-[10px] font-mono uppercase text-[#94A3B8] block">
+              <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
+                <span className="text-[10px] font-bold uppercase text-[#A5B1C5] block">
                   Fim do Teste (3 Dias) / Ciclo Vigente
                 </span>
-                <span className="font-mono font-bold text-[#B9FC01] text-xs block mt-0.5 tabular-nums">
+                <span className="font-bold text-[#FFFFFF] text-xs block mt-0.5 tabular-nums">
                   {userSubscription?.trialEndDate
                     ? formatDatePtBr(userSubscription.trialEndDate)
                     : userSubscription?.currentPeriodEnd
                     ? formatDatePtBr(userSubscription.currentPeriodEnd)
                     : 'N/A'}
                 </span>
-                <span className="text-[10px] text-[#94A3B8] block mt-0.5">
+                <span className="text-[10px] text-[#A5B1C5] block mt-0.5">
                   Elegibilidade 3 dias grátis (UID):{' '}
                   <strong className="text-[#FFFFFF]">
                     {userHasUsedTrial ? 'Já utilizado nesta conta' : 'Disponível (1x por UID)'}
@@ -1408,17 +1408,17 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-[#080A0F] border border-[#161C2C]">
-                <span className="text-[10px] font-mono uppercase text-[#94A3B8] block">
+              <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
+                <span className="text-[10px] font-bold uppercase text-[#A5B1C5] block">
                   Próxima Cobrança (next_payment_date)
                 </span>
-                <span className="font-mono font-bold text-[#F5B942] text-xs block mt-0.5 tabular-nums">
+                <span className="font-bold text-[#FFFFFF] text-xs block mt-0.5 tabular-nums">
                   {userSubscription?.cancelAtPeriodEnd
                     ? 'Cancelada (Sem cobranças futuras)'
                     : formatDatePtBr(userSubscription?.nextPaymentDate)}
                 </span>
                 {isAdminAuthorized && (userSubscription?.mpPreapprovalId || userSubscription?.paypalSubscriptionId) && (
-                  <span className="text-[10px] font-mono text-[#94A3B8] block mt-0.5 truncate">
+                  <span className="text-[10px] font-mono text-[#A5B1C5] block mt-0.5 truncate">
                     ID Remoto: {userSubscription.paypalSubscriptionId || userSubscription.mpPreapprovalId}
                   </span>
                 )}
@@ -1426,7 +1426,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
             </div>
 
             {/* Bilateral Verification Input (Admin Only) & Self-Service Cancellation Action */}
-            <div className="pt-3 border-t border-[#161C2C] flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+            <div className="pt-3 border-t border-[var(--gio-border-subtle)] flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
               {isAdminAuthorized && (
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1">
                   <input
@@ -1434,7 +1434,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                     value={verifyPreapprovalInput}
                     onChange={(e) => setVerifyPreapprovalInput(e.target.value)}
                     placeholder="ID preapproval_id (MP) ou I-xxxx (PayPal) para verificar no backend..."
-                    className="flex-1 px-3.5 py-2 rounded-xl bg-[#080A0F] border border-[#161C2C] text-xs font-mono text-[#FFFFFF] placeholder:text-[#94A3B8]"
+                    className="flex-1 px-3.5 py-2 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] text-xs font-mono text-[#FFFFFF] placeholder:text-[#A5B1C5]"
                   />
                   <button
                     type="button"
@@ -1457,9 +1457,9 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                     type="button"
                     onClick={handleCancelSubscription}
                     disabled={isCancelingSubscription}
-                    className="px-4 py-2.5 rounded-xl bg-[#080A0F] hover:bg-[#10141E] text-[#F5B942] border border-[#F5B942]/50 text-xs font-bold transition flex items-center justify-center gap-2 shrink-0"
+                    className="px-4 py-2.5 rounded-xl bg-[#080D18] hover:bg-[#111B30] text-[#F05262] border border-[#F05262]/50 text-xs font-bold transition flex items-center justify-center gap-2 shrink-0"
                   >
-                    <XCircle className="w-4 h-4 text-[#F5B942]" />
+                    <XCircle className="w-4 h-4 text-[#F05262]" />
                     <span>
                       {isCancelingSubscription
                         ? 'Processando cancelamento ("canceled")...'
@@ -1469,7 +1469,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                 )}
 
               {userSubscription?.cancelAtPeriodEnd && (
-                <div className="px-3.5 py-2 rounded-xl bg-[#F5B942]/15 border border-[#F5B942]/50 text-xs text-[#F5B942] font-mono">
+                <div className="px-3.5 py-2 rounded-xl bg-[#A6C957]/15 border border-[#A6C957]/40 text-xs text-[#A6C957] tabular-nums">
                   Renovação cancelada (status: &quot;canceled&quot;) • Acesso PRO mantido até{' '}
                   {formatDatePtBr(userSubscription.trialEndDate || userSubscription.currentPeriodEnd)}
                 </div>
@@ -1482,76 +1482,76 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
         <div className="space-y-6">
           {/* KPI Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="p-4 rounded-2xl bg-[#10141E] border border-[#0131CD]/40 shadow-[0_8px_24px_rgba(2,8,23,0.4)]">
-              <span className="text-[10px] font-mono uppercase text-[#B9FC01] block">
+            <div className="p-4 rounded-2xl bg-[#111B30] border border-[#0131CD]/40 shadow-md">
+              <span className="text-[10px] font-semibold uppercase text-[#A5B1C5] block">
                 Em Teste Gratuito (3 Dias)
               </span>
-              <span className="text-2xl font-mono font-black text-[#FFFFFF] tabular-nums mt-1 block">
+              <span className="text-2xl font-bold text-[#FFFFFF] tabular-nums mt-1 block">
                 {adminSummary?.metrics.subscribersInTrialCount ?? 0}
               </span>
-              <span className="text-[11px] text-[#94A3B8]">Assinantes em avaliação</span>
+              <span className="text-[11px] text-[#A5B1C5]">Assinantes em avaliação</span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-[#10141E] border border-[#20C997]/40 shadow-[0_8px_24px_rgba(2,8,23,0.4)]">
-              <span className="text-[10px] font-mono uppercase text-[#20C997] block">
+            <div className="p-4 rounded-2xl bg-[#111B30] border border-[#A6C957]/40 shadow-md">
+              <span className="text-[10px] font-semibold uppercase text-[#A5B1C5] block">
                 Assinaturas Ativas (PRO)
               </span>
-              <span className="text-2xl font-mono font-black text-[#20C997] tabular-nums mt-1 block">
+              <span className="text-2xl font-bold text-[#A6C957] tabular-nums mt-1 block">
                 {adminSummary?.metrics.activeSubscribersCount ?? 0}
               </span>
-              <span className="text-[11px] text-[#94A3B8]">
+              <span className="text-[11px] text-[#A5B1C5] tabular-nums">
                 Total cadastradas: {adminSummary?.metrics.totalSubscribersCount ?? 0}
               </span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-[#10141E] border border-[#F5B942]/40 shadow-[0_8px_24px_rgba(2,8,23,0.4)]">
-              <span className="text-[10px] font-mono uppercase text-[#F5B942] block">
+            <div className="p-4 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-md">
+              <span className="text-[10px] font-semibold uppercase text-[#A5B1C5] block">
                 Receita Plano Mensal
               </span>
-              <span className="text-2xl font-mono font-black text-[#F5B942] tabular-nums mt-1 block">
+              <span className="text-2xl font-bold text-[#FFFFFF] tabular-nums mt-1 block">
                 {formatBrl(adminSummary?.metrics.revenueByModality.pro_monthly ?? 0)}
               </span>
-              <span className="text-[11px] text-[#94A3B8] font-mono tabular-nums">
+              <span className="text-[11px] text-[#A5B1C5] tabular-nums">
                 Modalidade R$ 29,90/mês
               </span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-[#10141E] border border-[#F5B942]/40 shadow-[0_8px_24px_rgba(2,8,23,0.4)]">
-              <span className="text-[10px] font-mono uppercase text-[#F5B942] block">
+            <div className="p-4 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-md">
+              <span className="text-[10px] font-semibold uppercase text-[#A5B1C5] block">
                 Receita Plano Anual Integral
               </span>
-              <span className="text-2xl font-mono font-black text-[#F5B942] tabular-nums mt-1 block">
+              <span className="text-2xl font-bold text-[#FFFFFF] tabular-nums mt-1 block">
                 {formatBrl(adminSummary?.metrics.revenueByModality.pro_annual ?? 0)}
               </span>
-              <span className="text-[11px] text-[#94A3B8] font-mono tabular-nums">
+              <span className="text-[11px] text-[#A5B1C5] tabular-nums">
                 Receita Total: {formatBrl(adminSummary?.metrics.revenueByModality.totalBrl ?? 0)}
               </span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-[#10141E] border border-[#161C2C] shadow-[0_8px_24px_rgba(2,8,23,0.4)]">
-              <span className="text-[10px] font-mono uppercase text-[#94A3B8] block">
+            <div className="p-4 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-md">
+              <span className="text-[10px] font-semibold uppercase text-[#A5B1C5] block">
                 Canceladas / Pendentes
               </span>
-              <span className="text-2xl font-mono font-black text-[#FFFFFF] tabular-nums mt-1 block">
+              <span className="text-2xl font-bold text-[#FFFFFF] tabular-nums mt-1 block">
                 {adminSummary?.metrics.canceledSubscribersCount ?? 0} /{' '}
                 {adminSummary?.metrics.pendingOrRejectedCount ?? 0}
               </span>
-              <span className="text-[11px] text-[#94A3B8]">Status oficial: &quot;canceled&quot;</span>
+              <span className="text-[11px] text-[#A5B1C5]">Status oficial: &quot;canceled&quot;</span>
             </div>
           </div>
 
           {/* Architecture Comparison Table: Option 1 (Hosted Individual) vs Alternative A (Transparent Tokenization) */}
-          <div className="p-6 rounded-2xl bg-[#10141E] border border-[#161C2C] space-y-4 shadow-[0_12px_32px_rgba(2,8,23,0.45)]">
+          <div className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-4 shadow-lg">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#F5B942]">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-[#A6C957]">
                   Arquitetura Oficial Mercado Pago & Vinculação ao Firebase UID
                 </span>
-                <h3 className="text-lg font-display font-black text-[#FFFFFF]">
+                <h3 className="text-lg font-bold text-[#FFFFFF]">
                   Comparativo Técnico: Checkout Hospedado Individual vs. Alternativa A (Tokenização Transparente)
                 </h3>
               </div>
-              <span className="px-3 py-1 rounded-lg bg-[#080A0F] border border-[#0131CD]/40 text-[11px] font-mono text-[#B9FC01]">
+              <span className="px-3 py-1 rounded-lg bg-[#080D18] border border-[#0131CD]/40 text-[11px] font-medium text-[#A5B1C5]">
                 Proibido usar auto_recurring.start_date sem comprovação de 3 dias grátis
               </span>
             </div>
@@ -1559,7 +1559,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-[#161C2C] text-[11px] font-mono uppercase text-[#B9FC01] bg-[#10141E]">
+                  <tr className="border-b border-[var(--gio-border-subtle)] text-[11px] font-semibold uppercase text-[#A5B1C5] bg-[#080D18]">
                     <th className="p-3">Critério Técnico / UX</th>
                     <th className="p-3">
                       Opção 1 (Primária): Checkout Hospedado Individual (POST /preapproval sem plano)
@@ -1569,31 +1569,31 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#161C2C]/80 text-[#FFFFFF]">
+                <tbody className="divide-y divide-[var(--gio-border-subtle)] text-[#FFFFFF]">
                   <tr>
                     <td className="p-3 font-bold text-[#FFFFFF]">Endpoint & Vínculo UID</td>
-                    <td className="p-3 font-mono text-[11px] text-[#94A3B8]">
+                    <td className="p-3 font-mono text-[11px] text-[#A5B1C5]">
                       POST /preapproval sem preapproval_plan_id • external_reference = Firebase UID
                     </td>
-                    <td className="p-3 font-mono text-[11px] text-[#94A3B8]">
+                    <td className="p-3 font-mono text-[11px] text-[#A5B1C5]">
                       POST /preapproval com preapproval_plan_id + card_token_id • external_reference = Firebase UID
                     </td>
                   </tr>
                   <tr>
                     <td className="p-3 font-bold text-[#FFFFFF]">Tipo de Checkout</td>
-                    <td className="p-3 text-[#B9FC01]">
+                    <td className="p-3 text-[#A6C957]">
                       <strong>Checkout Hospedado:</strong> Redireciona o usuário pelo init_point individual exclusivo da assinatura.
                     </td>
-                    <td className="p-3 text-[#F5B942]">
+                    <td className="p-3 text-[#FFFFFF]">
                       <strong>Tokenização Transparente:</strong> Altera o fluxo de checkout hospedado para coleta via CardForm SDK no frontend.
                     </td>
                   </tr>
                   <tr>
                     <td className="p-3 font-bold text-[#FFFFFF]">Exigência de Homologação (3 Dias Grátis)</td>
-                    <td className="p-3 text-[#94A3B8]">
+                    <td className="p-3 text-[#A5B1C5]">
                       Exige comprovação real via GET /preapproval/&#123;id&#125; de que free_trial (3 days) é aplicado e next_payment_date &gt;= +3 dias.
                     </td>
-                    <td className="p-3 text-[#94A3B8]">
+                    <td className="p-3 text-[#A5B1C5]">
                       Herda free_trial do preapproval_plan, exigindo igualmente comprovação real de next_payment_date &gt;= +3 dias antes de liberar.
                     </td>
                   </tr>
@@ -1603,13 +1603,13 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
           </div>
 
           {/* 10-Step Homologation Report & Trigger */}
-          <div className="p-6 rounded-2xl bg-[#10141E] border border-[#F5B942]/40 space-y-4 shadow-[0_12px_32px_rgba(2,8,23,0.45)]">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#161C2C] pb-4">
+          <div className="p-6 rounded-2xl bg-[#111B30] border border-[#A6C957]/35 space-y-4 shadow-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--gio-border-subtle)] pb-4">
               <div>
-                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#F5B942]">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-[#A6C957]">
                   Protocolo Obrigatório de 10 Etapas — API de Homologação Mercado Pago
                 </span>
-                <h3 className="text-lg font-display font-black text-[#FFFFFF]">
+                <h3 className="text-lg font-bold text-[#FFFFFF]">
                   Validação Real de Teste Gratuito (3 Dias), Titularidade UID e Status &quot;canceled&quot;
                 </h3>
               </div>
@@ -1617,7 +1617,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                 type="button"
                 onClick={handleRunHomologationCheck}
                 disabled={isRunningHomologation}
-                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#F5B942] to-[#E5A932] text-[#080A0F] font-black text-xs transition flex items-center gap-2 shrink-0 cursor-pointer"
+                className="px-4 py-2.5 rounded-xl bg-[#A6C957] hover:bg-[#B5D477] text-[#080D18] font-bold text-xs transition flex items-center gap-2 shrink-0 cursor-pointer"
               >
                 <RefreshCw className={`w-4 h-4 ${isRunningHomologation ? 'animate-spin' : ''}`} />
                 <span>
@@ -1633,24 +1633,24 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                 {homologationReport.steps.map((st) => (
                   <div
                     key={st.stepNumber}
-                    className="p-3 rounded-xl bg-[#10141E] border border-[#161C2C] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                    className="p-3 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
                   >
                     <div className="flex items-start gap-2.5">
-                      <span className="px-2 py-0.5 rounded font-mono font-bold bg-[#080A0F] text-[#B9FC01] border border-[#0131CD]/40 shrink-0">
+                      <span className="px-2 py-0.5 rounded font-bold tabular-nums bg-[#111B30] text-[#FFFFFF] border border-[#0131CD]/40 shrink-0">
                         #{st.stepNumber}
                       </span>
                       <div>
                         <span className="font-bold text-[#FFFFFF] block">{st.title}</span>
-                        <span className="text-[#94A3B8] text-[11px]">{st.details}</span>
+                        <span className="text-[#A5B1C5] text-[11px]">{st.details}</span>
                       </div>
                     </div>
                     <span
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase shrink-0 ${
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase shrink-0 ${
                         st.status === 'PASSED'
-                          ? 'bg-[#20C997]/15 text-[#20C997] border border-[#20C997]/40'
+                          ? 'bg-[#A6C957]/15 text-[#A6C957] border border-[#A6C957]/35'
                           : st.status === 'BLOCKED_PENDING_CREDENTIALS'
-                          ? 'bg-[#F5B942]/15 text-[#F5B942] border border-[#F5B942]/40'
-                          : 'bg-[#080A0F] text-[#94A3B8] border border-[#161C2C]'
+                          ? 'bg-[#F05262]/15 text-[#F05262] border border-[#F05262]/40'
+                          : 'bg-[#111B30] text-[#A5B1C5] border border-[var(--gio-border-subtle)]'
                       }`}
                     >
                       {st.status}
@@ -1663,14 +1663,14 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
 
           {/* Admin Commercial Plan Editor & Internal State Simulator */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="p-6 rounded-2xl bg-[#10141E] border border-[#161C2C] space-y-4 shadow-[0_12px_32px_rgba(2,8,23,0.45)]">
-              <h3 className="text-base font-display font-black text-[#FFFFFF] flex items-center gap-2">
-                <Settings className="w-4 h-4 text-[#B9FC01]" />
+            <div className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-4 shadow-lg">
+              <h3 className="text-base font-bold text-[#FFFFFF] flex items-center gap-2">
+                <Settings className="w-4 h-4 text-[#A5B1C5]" />
                 <span>Configuração de Preços e Oferta de 3 Dias Grátis</span>
               </h3>
-              <p className="text-xs text-[#94A3B8]">
+              <p className="text-xs text-[#A5B1C5]">
                 Alterações de preço geram uma nova versão comercial (atual:{' '}
-                <strong className="font-mono text-[#B9FC01]">
+                <strong className="font-mono text-[#A6C957]">
                   {commercialConfig?.priceVersion || 'v1.0.0'}
                 </strong>
                 ) e aplicam-se apenas a novas contratações, preservando o valor das assinaturas vigentes.
@@ -1678,7 +1678,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
-                  <label className="block text-[11px] font-mono uppercase text-[#94A3B8] mb-1">
+                  <label className="block text-[11px] font-semibold uppercase text-[#A5B1C5] mb-1">
                     Preço PRO Mensal (BRL)
                   </label>
                   <input
@@ -1686,11 +1686,11 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                     step="0.01"
                     value={editMonthlyPrice}
                     onChange={(e) => setEditMonthlyPrice(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#080A0F] border border-[#161C2C] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 text-[#FFFFFF] font-mono"
+                    className="w-full px-3 py-2 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:outline-none focus:border-[#0131CD] focus:ring-2 focus:ring-[#0131CD]/35 text-[#FFFFFF] tabular-nums"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-mono uppercase text-[#94A3B8] mb-1">
+                  <label className="block text-[11px] font-semibold uppercase text-[#A5B1C5] mb-1">
                     Preço PRO Anual Integral (BRL)
                   </label>
                   <input
@@ -1698,7 +1698,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                     step="0.01"
                     value={editAnnualPrice}
                     onChange={(e) => setEditAnnualPrice(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#080A0F] border border-[#161C2C] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 text-[#FFFFFF] font-mono"
+                    className="w-full px-3 py-2 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:outline-none focus:border-[#0131CD] focus:ring-2 focus:ring-[#0131CD]/35 text-[#FFFFFF] tabular-nums"
                   />
                 </div>
               </div>
@@ -1717,19 +1717,19 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                 type="button"
                 onClick={handleSaveAdminPlans}
                 disabled={isSavingAdminPlans}
-                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#0131CD] to-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-black text-xs transition cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs transition cursor-pointer"
               >
                 {isSavingAdminPlans ? 'Salvando...' : 'Salvar Parâmetros Comerciais (Nova Versão)'}
               </button>
             </div>
 
             {/* Admin Permission State Simulator (For Internal Verification Only) */}
-            <div className="p-6 rounded-2xl bg-[#10141E] border border-[#161C2C] space-y-4 shadow-[0_12px_32px_rgba(2,8,23,0.45)]">
-              <h3 className="text-base font-display font-black text-[#FFFFFF] flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-[#F5B942]" />
+            <div className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-4 shadow-lg">
+              <h3 className="text-base font-bold text-[#FFFFFF] flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-[#A5B1C5]" />
                 <span>Simulador Administrativo de Estados (Uso Interno Admin)</span>
               </h3>
-              <p className="text-xs text-[#94A3B8]">
+              <p className="text-xs text-[#A5B1C5]">
                 Permite ao administrador testar o bloqueio imediato do motor TikTok LIVE PRO em cada estado de assinatura sem simular cobranças no Mercado Pago.
               </p>
 
@@ -1741,7 +1741,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                   const targetTier: SubscriptionPlanTier = chosen === 'ACTIVE' ? 'PRO' : 'FREE';
                   handleAdminSimulateState(targetTier, chosen);
                 }}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#080A0F] border border-[#161C2C] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 text-xs font-mono font-bold text-[#FFFFFF]"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:outline-none focus:border-[#0131CD] focus:ring-2 focus:ring-[#0131CD]/35 text-xs font-bold text-[#FFFFFF]"
               >
                 {SUBSCRIPTION_STATES.map((st) => (
                   <option key={st.state} value={st.state}>
@@ -1755,7 +1755,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                   type="button"
                   onClick={() => handleAdminSimulateState('FREE', 'FREE')}
                   disabled={isUpdating}
-                  className="flex-1 py-2.5 px-3 rounded-xl bg-[#10141E] hover:bg-[#161C2C] text-[#FFFFFF] border border-[#161C2C] text-xs font-bold transition cursor-pointer"
+                  className="flex-1 py-2.5 px-3 rounded-xl bg-[#080D18] hover:bg-[#111B30] text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-bold transition cursor-pointer"
                 >
                   Testar Bloqueio FREE
                 </button>
@@ -1763,7 +1763,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                   type="button"
                   onClick={() => handleAdminSimulateState('PRO', 'ACTIVE')}
                   disabled={isUpdating}
-                  className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#0131CD] to-[#0131CD] text-[#FFFFFF] font-black text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="flex-1 py-2.5 px-3 rounded-xl bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   {isUpdating ? <RotateCw className="w-3.5 h-3.5 animate-spin" /> : <Crown className="w-3.5 h-3.5" />}
                   <span>Override Admin PRO (ACTIVE)</span>
@@ -1776,9 +1776,9 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
 
       {/* PRE-CHECKOUT TRANSPARENCY & CONFIRMATION MODAL */}
       {selectedPlanForCheckout && (
-        <div className="fixed inset-0 z-50 bg-[#080A0F]/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="relative w-full max-w-xl gio-card p-6 sm:p-7 space-y-5 border border-white/[0.12] shadow-2xl animate-scale-in text-xs">
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
+        <div className="fixed inset-0 z-50 bg-[#080D18]/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="relative w-full max-w-xl gio-card p-6 sm:p-7 space-y-5 border border-[var(--gio-border-subtle)] shadow-2xl animate-scale-in text-xs">
+            <div className="flex items-center justify-between border-b border-[var(--gio-border-subtle)] pb-4">
               <div className="flex items-center gap-3">
                 <div
                   className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
@@ -1790,10 +1790,10 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                   <CreditCard className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base sm:text-lg font-display font-bold text-[#FFFFFF]">
+                  <h3 className="text-base sm:text-lg font-bold text-[#FFFFFF]">
                     Confirmar Contratação da Assinatura PRO
                   </h3>
-                  <p className="text-xs text-[#94A3B8]">
+                  <p className="text-xs text-[#A5B1C5]">
                     {selectedPlanForCheckout.name} • 3 Dias de Avaliação Gratuita via{' '}
                     <strong className={selectedPaymentProvider === 'PAYPAL' ? 'text-[#0079C1]' : 'text-[#0866F5]'}>
                       {selectedPaymentProvider === 'PAYPAL' ? 'PayPal' : 'Mercado Pago'}
@@ -1804,20 +1804,20 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
               <button
                 type="button"
                 onClick={() => setSelectedPlanForCheckout(null)}
-                className="p-1.5 rounded-lg text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-white/[0.08] transition"
+                className="p-1.5 rounded-lg text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18] transition"
               >
                 <XCircle className="w-5 h-5" />
               </button>
             </div>
 
             {/* Key Commercial Disclosures Required Before Confirmation */}
-            <div className="p-4 rounded-xl bg-[#10141E] border border-[#161C2C] space-y-2.5">
+            <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-2.5">
               <div className="flex items-center justify-between">
-                <span className="text-[#94A3B8]">Plano Selecionado:</span>
+                <span className="text-[#A5B1C5]">Plano Selecionado:</span>
                 <span className="font-bold text-[#FFFFFF]">{selectedPlanForCheckout.name}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[#94A3B8]">Provedor Escolhido:</span>
+                <span className="text-[#A5B1C5]">Provedor Escolhido:</span>
                 <span
                   className={`font-bold px-2 py-0.5 rounded text-[11px] ${
                     selectedPaymentProvider === 'PAYPAL'
@@ -1829,16 +1829,16 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[#94A3B8]">Duração do Teste Gratuito:</span>
-                <span className="font-mono font-bold text-[#20C997]">
+                <span className="text-[#A5B1C5]">Duração do Teste Gratuito:</span>
+                <span className="font-bold text-[#A6C957] tabular-nums">
                   {userHasUsedTrial
                     ? '0 dias (Teste já utilizado nesta conta UID)'
                     : '3 dias gratuitos (R$ 0,00 hoje)'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[#94A3B8]">Valor e Frequência de Renovação:</span>
-                <span className="font-mono font-bold text-[#F5B942] tabular-nums">
+                <span className="text-[#A5B1C5]">Valor e Frequência de Renovação:</span>
+                <span className="font-bold text-[#FFFFFF] tabular-nums">
                   {formatBrl(selectedPlanForCheckout.price)} /{' '}
                   {selectedPlanForCheckout.frequency === 12
                     ? '12 meses (cobrança anual integral)'
@@ -1846,8 +1846,8 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[#94A3B8]">Data da Primeira Cobrança:</span>
-                <span className="font-mono text-[#B9FC01] text-right tabular-nums">
+                <span className="text-[#A5B1C5]">Data da Primeira Cobrança:</span>
+                <span className="text-[#A6C957] font-semibold text-right tabular-nums">
                   {userHasUsedTrial
                     ? 'No ato da autorização'
                     : `Após 3 dias (~${new Date(
@@ -1855,7 +1855,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                       ).toLocaleDateString('pt-BR')})`}
                 </span>
               </div>
-              <div className="pt-2 border-t border-[#161C2C] text-[11px] text-[#94A3B8] space-y-1">
+              <div className="pt-2 border-t border-[var(--gio-border-subtle)] text-[11px] text-[#A5B1C5] space-y-1">
                 <p>
                   • <strong className="text-[#FFFFFF]">Renovação Automática:</strong> A assinatura será renovada automaticamente ao final de cada ciclo até que seja cancelada.
                 </p>
@@ -1867,20 +1867,20 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
 
             {/* Firebase UID & Verified Email Binding */}
             <div className="space-y-3">
-              <div className="p-3 rounded-xl bg-[#10141E] border border-[#161C2C] flex items-center justify-between">
-                <span className="text-[#94A3B8] flex items-center gap-1.5">
-                  <UserCheck className="w-4 h-4 text-[#B9FC01]" />
+              <div className="p-3 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex items-center justify-between">
+                <span className="text-[#A5B1C5] flex items-center gap-1.5">
+                  <UserCheck className="w-4 h-4 text-[#A6C957]" />
                   <span>
                     Vínculo Exclusivo ({selectedPaymentProvider === 'PAYPAL' ? 'custom_id' : 'external_reference'}):
                   </span>
                 </span>
-                <span className="font-mono font-bold text-[#B9FC01]">
+                <span className="font-mono font-bold text-[#A6C957]">
                   {effectiveUid || 'Faça login na conta Firebase'}
                 </span>
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono uppercase text-[#94A3B8] mb-1">
+                <label className="block text-[11px] font-semibold uppercase text-[#A5B1C5] mb-1">
                   E-mail do Comprador ({selectedPaymentProvider === 'PAYPAL' ? 'conta PayPal' : 'payer_email no Mercado Pago'})
                 </label>
                 <input
@@ -1888,12 +1888,12 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                   value={confirmedEmailInput}
                   onChange={(e) => setConfirmedEmailInput(e.target.value)}
                   placeholder="seu-email@dominio.com"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#080A0F] border border-[#161C2C] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 text-[#FFFFFF] font-mono text-xs"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:outline-none focus:border-[#0131CD] focus:ring-2 focus:ring-[#0131CD]/35 text-[#FFFFFF] text-xs"
                 />
               </div>
 
               {!emailVerified && (
-                <label className="flex items-start gap-2.5 text-[11px] text-[#94A3B8] cursor-pointer">
+                <label className="flex items-start gap-2.5 text-[11px] text-[#A5B1C5] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={confirmEmailOwnership}
@@ -1906,7 +1906,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                 </label>
               )}
 
-              <label className="flex items-start gap-2.5 text-[11px] text-[#94A3B8] cursor-pointer">
+              <label className="flex items-start gap-2.5 text-[11px] text-[#A5B1C5] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={acceptedCommercialTerms}
@@ -1921,7 +1921,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                       setSelectedPlanForCheckout(null);
                       onOpenLegalDocument?.('politica-de-assinaturas-e-pagamentos');
                     }}
-                    className="text-[#B9FC01] underline hover:text-[#FFFFFF] font-semibold cursor-pointer"
+                    className="text-[#A6C957] underline hover:text-[#FFFFFF] font-semibold cursor-pointer"
                   >
                     Política de Assinaturas e Pagamentos
                   </button>{' '}
@@ -1932,7 +1932,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                       setSelectedPlanForCheckout(null);
                       onOpenLegalDocument?.('politica-de-cancelamento-e-reembolso');
                     }}
-                    className="text-[#B9FC01] underline hover:text-[#FFFFFF] font-semibold cursor-pointer"
+                    className="text-[#A6C957] underline hover:text-[#FFFFFF] font-semibold cursor-pointer"
                   >
                     Política de Cancelamento e Reembolso
                   </button>
@@ -1942,17 +1942,17 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
             </div>
 
             {checkoutError && (
-              <div className="p-3.5 rounded-xl bg-[#F5B942]/15 border border-[#F5B942]/50 text-[#FFFFFF] text-xs space-y-2">
+              <div className="p-3.5 rounded-xl bg-[#F05262]/15 border border-[#F05262]/50 text-[#FFFFFF] text-xs space-y-2">
                 <div className="flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 text-[#F5B942] shrink-0 mt-0.5" />
+                  <AlertTriangle className="w-4 h-4 text-[#F05262] shrink-0 mt-0.5" />
                   <span className="font-semibold">{checkoutError}</span>
                 </div>
                 {checkoutPayloadPreview && (
-                  <details className="text-[10px] font-mono text-[#B9FC01] pt-1">
-                    <summary className="cursor-pointer text-[#F5B942]">
+                  <details className="text-[10px] font-mono text-[#A6C957] pt-1">
+                    <summary className="cursor-pointer text-[#FFFFFF]">
                       Ver Payload Oficial Preparado ({selectedPaymentProvider === 'PAYPAL' ? 'POST /v1/billing/subscriptions' : 'POST /preapproval'})
                     </summary>
-                    <pre className="mt-2 p-2.5 rounded bg-[#080A0F] border border-[#161C2C] overflow-x-auto">
+                    <pre className="mt-2 p-2.5 rounded bg-[#080D18] border border-[var(--gio-border-subtle)] overflow-x-auto">
                       {JSON.stringify(checkoutPayloadPreview, null, 2)}
                     </pre>
                   </details>
@@ -1960,7 +1960,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/[0.08]">
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--gio-border-subtle)]">
               <button
                 type="button"
                 onClick={() => setSelectedPlanForCheckout(null)}

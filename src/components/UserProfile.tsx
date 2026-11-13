@@ -71,14 +71,14 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const statusBadge = () => {
     if (!linkedTikTokProfile.linked) {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#10141E] text-[#94A3B8] border border-[#161C2C]">
-          <Unlink className="w-3 h-3 text-[#94A3B8]" /> DESCONECTADO
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#080D18] text-[#A5B1C5] border border-[var(--gio-border-subtle)]">
+          <Unlink className="w-3 h-3 text-[#A5B1C5]" /> Desconectado
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#20C997]/15 text-[#20C997] border border-[#20C997]/40">
-        <CheckCircle2 className="w-3 h-3 text-[#20C997]" /> CONECTADO
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#A6C957]/15 text-[#A6C957] border border-[#A6C957]/35">
+        <CheckCircle2 className="w-3 h-3 text-[#A6C957]" /> Conectado
       </span>
     );
   };
@@ -90,7 +90,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   return (
     <div className="space-y-4">
       {/* Primary Account Info Banner */}
-      <div className="bg-[#10141E] border border-[#161C2C] rounded-2xl p-4 flex items-center gap-4">
+      <div className="bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-2xl p-4 flex items-center gap-4">
         {currentUser.photoURL ? (
           <img
             src={currentUser.photoURL}
@@ -115,9 +115,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               </span>
             )}
           </div>
-          <div className="text-xs text-[#94A3B8] truncate mt-0.5">{currentUser.email || 'Acesso via TikTok OAuth'}</div>
+          <div className="text-xs text-[#A5B1C5] truncate mt-0.5">{currentUser.email || 'Acesso via TikTok OAuth'}</div>
           <div className="flex items-center gap-2 mt-1.5">
-            <span className="text-[11px] text-[#20C997] flex items-center gap-1 font-semibold">
+            <span className="text-[11px] text-[#A6C957] flex items-center gap-1 font-semibold">
               <ShieldCheck className="w-3.5 h-3.5" /> Firebase Auth OK
             </span>
           </div>
@@ -125,10 +125,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       </div>
 
       {/* Dedicated TikTok Linked Account Card */}
-      <div className="bg-[#10141E] border border-[#161C2C] rounded-2xl p-4 space-y-3.5">
-        <div className="flex items-center justify-between pb-2 border-b border-[#161C2C]">
+      <div className="bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-2xl p-4 space-y-3.5">
+        <div className="flex items-center justify-between pb-2 border-b border-[var(--gio-border-subtle)]">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-[#B9FC01]" />
+            <Sparkles className="w-4 h-4 text-[#A6C957]" />
             <h4 className="font-bold text-sm text-[#FFFFFF]">Conta TikTok Vinculada</h4>
           </div>
           {statusBadge()}
@@ -138,7 +138,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
           <div
             className={`p-3 rounded-xl text-xs flex items-start gap-2.5 ${
               feedbackMsg.type === 'success'
-                ? 'bg-[#20C997]/15 border border-[#20C997]/40 text-[#20C997]'
+                ? 'bg-[#A6C957]/15 border border-[#A6C957]/35 text-[#A6C957]'
                 : 'bg-[#F05262]/15 border border-[#F05262]/40 text-[#F05262]'
             }`}
           >
@@ -149,7 +149,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
 
         {linkedTikTokProfile.linked ? (
           <div className="space-y-3">
-            <div className="bg-[#080A0F] border border-[#161C2C] rounded-xl p-3 flex items-center gap-3">
+            <div className="bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl p-3 flex items-center gap-3">
               {linkedTikTokProfile.avatarUrl ? (
                 <img
                   src={linkedTikTokProfile.avatarUrl}
@@ -168,16 +168,16 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                   {linkedTikTokProfile.displayName || 'Criador TikTok'}
                 </div>
                 {handleDisplay && (
-                  <div className="text-xs font-semibold text-[#B9FC01] truncate">{handleDisplay}</div>
+                  <div className="text-xs font-semibold text-[#A6C957] truncate">{handleDisplay}</div>
                 )}
-                <div className="text-[11px] text-[#94A3B8] truncate mt-0.5">
+                <div className="text-[11px] text-[#A5B1C5] truncate mt-0.5">
                   Escopo: {linkedTikTokProfile.scope || 'user.info.basic'}
                 </div>
               </div>
             </div>
 
             <div className="flex items-center justify-between pt-1">
-              <span className="text-[11px] text-[#94A3B8]">
+              <span className="text-[11px] text-[#A5B1C5]">
                 Vínculo ativo via TikTok Login Kit v2
               </span>
               <button
@@ -193,7 +193,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-xs text-[#94A3B8] leading-relaxed">
+            <p className="text-xs text-[#A5B1C5] leading-relaxed">
               Vincule sua conta oficial do TikTok para entrar rapidamente no GIO DA SORTE com 1 clique e manter seus sorteios e inscrições centralizados.
             </p>
             <button
@@ -214,20 +214,20 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-[#080A0F]/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-50 bg-[#080D18]/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
         >
-          <div className="bg-[#10141E] border border-[#F05262]/50 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-scale-in">
+          <div className="bg-[#111B30] border border-[#F05262]/50 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-scale-in">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-[#F05262]/15 border border-[#F05262]/40 flex items-center justify-center text-[#F05262] shrink-0">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
                 <h4 className="font-bold text-sm text-[#FFFFFF]">Desconectar TikTok?</h4>
-                <p className="text-[11px] text-[#94A3B8]">Esta ação revoga o token de API oficial.</p>
+                <p className="text-[11px] text-[#A5B1C5]">Esta ação revoga o token de API oficial.</p>
               </div>
             </div>
 
-            <div className="bg-[#080A0F] border border-[#161C2C] rounded-xl p-3 text-xs text-[#94A3B8] space-y-1.5 leading-relaxed">
+            <div className="bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl p-3 text-xs text-[#A5B1C5] space-y-1.5 leading-relaxed">
               <p className="text-[#FFFFFF] font-semibold">O que acontece ao desconectar:</p>
               <ul className="list-disc pl-4 space-y-1">
                 <li>Sua conta GIO e plano continuam 100% preservados.</li>
@@ -241,7 +241,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                 type="button"
                 disabled={disconnecting}
                 onClick={() => setShowConfirmDisconnect(false)}
-                className="py-2.5 px-3 rounded-xl bg-[#10141E] hover:bg-[#161C2C] text-[#FFFFFF] text-xs font-bold transition border border-[#161C2C]"
+                className="py-2.5 px-3 rounded-xl bg-[#080D18] hover:bg-[#111B30] text-[#FFFFFF] text-xs font-bold transition border border-[var(--gio-border-subtle)]"
               >
                 Cancelar
               </button>

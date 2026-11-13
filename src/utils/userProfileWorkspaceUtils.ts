@@ -264,16 +264,16 @@ export function generateSubscriptionReceiptHtml(
   <meta charset="UTF-8" />
   <title>Recibo ${item.receiptId} — GIO DA SORTE PRO</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #080A0F; color: #F8FAFC; padding: 32px; margin: 0; }
-    .card { max-width: 680px; margin: 0 auto; background: #10141E; border: 1px solid #1E293B; border-radius: 16px; padding: 32px; }
-    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #1E293B; padding-bottom: 20px; margin-bottom: 24px; }
-    .brand { font-size: 20px; font-weight: 800; color: #FFFFFF; letter-spacing: 0.04em; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #080D18; color: #FFFFFF; padding: 32px; margin: 0; }
+    .card { max-width: 680px; margin: 0 auto; background: #111B30; border: 1px solid rgba(165, 177, 197, 0.2); border-radius: 16px; padding: 32px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(165, 177, 197, 0.2); padding-bottom: 20px; margin-bottom: 24px; }
+    .brand { font-size: 20px; font-weight: 800; color: #FFFFFF; letter-spacing: 0.02em; }
     .badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; background: #0131CD; color: #FFFFFF; }
-    .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 14px; }
-    .label { color: #94A3B8; }
-    .val { font-weight: 600; color: #F8FAFC; font-family: monospace; }
-    .total { font-size: 18px; font-weight: 800; color: #20C997; }
-    .footer { margin-top: 24px; font-size: 12px; color: #64748B; line-height: 1.5; }
+    .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(165, 177, 197, 0.12); font-size: 14px; }
+    .label { color: #A5B1C5; }
+    .val { font-weight: 600; color: #FFFFFF; font-variant-numeric: tabular-nums; }
+    .total { font-size: 18px; font-weight: 800; color: #A6C957; }
+    .footer { margin-top: 24px; font-size: 12px; color: #A5B1C5; line-height: 1.5; }
   </style>
 </head>
 <body>
@@ -281,7 +281,7 @@ export function generateSubscriptionReceiptHtml(
     <div class="header">
       <div>
         <div class="brand">GIO DA SORTE PRO</div>
-        <div style="color:#94A3B8;font-size:13px;margin-top:4px;">Comprovante de Assinatura e Serviços SaaS</div>
+        <div style="color:#A5B1C5;font-size:13px;margin-top:4px;">Comprovante de Assinatura e Serviços SaaS</div>
       </div>
       <span class="badge">${statusLabel}</span>
     </div>

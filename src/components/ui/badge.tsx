@@ -16,13 +16,13 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const badgeVariantClasses: Record<BadgeVariant, string> = {
-  default: 'bg-white/10 text-slate-200 border-white/15',
-  pro: 'bg-[#0866F5]/20 text-[#00A9FF] border-[#0866F5]/40 font-semibold',
-  gold: 'bg-[#F5B942]/20 text-[#F5B942] border-[#F5B942]/40 font-semibold',
-  success: 'bg-[#20C997]/20 text-[#20C997] border-[#20C997]/40',
-  warning: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+  default: 'bg-[#111B30] text-[#FFFFFF] border-[#A5B1C5]/20',
+  pro: 'bg-[#0131CD] text-[#FFFFFF] border-[#0131CD] font-semibold',
+  gold: 'bg-[#A6C957]/15 text-[#A6C957] border-[#A6C957]/35 font-semibold',
+  success: 'bg-[#A6C957]/15 text-[#A6C957] border-[#A6C957]/35',
+  warning: 'bg-[#111B30] text-[#A6C957] border-[#A6C957]/35',
   error: 'bg-[#F05262]/20 text-[#F05262] border-[#F05262]/40',
-  outline: 'bg-transparent text-slate-300 border-white/20',
+  outline: 'bg-transparent text-[#A5B1C5] border-[#A5B1C5]/25',
 };
 
 export const Badge: React.FC<BadgeProps> = ({

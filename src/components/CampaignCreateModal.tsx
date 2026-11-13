@@ -132,11 +132,11 @@ export const CampaignCreateModal: React.FC<CampaignCreateModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="campaign-create-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#080A0F]/85 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#080D18]/85 backdrop-blur-md animate-in fade-in duration-200"
     >
-      <div className="relative w-full max-w-2xl bg-[#10141E] border border-[#161C2C] rounded-2xl shadow-[0_24px_64px_rgba(0,0,0,0.65)] overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="relative w-full max-w-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#161C2C] bg-[#10141E]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--gio-border-subtle)] bg-[#080D18]/60">
           <div className="flex items-center gap-3">
             <img
               src="/icon.svg"
@@ -145,14 +145,14 @@ export const CampaignCreateModal: React.FC<CampaignCreateModalProps> = ({
             />
             <div>
               <h2 id="campaign-create-modal-title" className="text-base font-bold text-[#FFFFFF] tracking-tight">Nova Campanha Multi-LIVE</h2>
-              <p className="text-xs text-[#94A3B8]">Configure regras, regulamento individual, status legal e transmissões vinculadas</p>
+              <p className="text-xs text-[#A5B1C5]">Configure regras, regulamento individual, status legal e transmissões vinculadas</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Fechar modal"
-            className="p-1.5 text-[#94A3B8] hover:text-[#FFFFFF] rounded-lg hover:bg-[#161C2C] transition"
+            className="p-1.5 text-[#A5B1C5] hover:text-[#FFFFFF] rounded-lg hover:bg-[#080D18] transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -178,7 +178,7 @@ export const CampaignCreateModal: React.FC<CampaignCreateModalProps> = ({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Ex: Super Sorteio Acumulado da Semana"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#10141E] border border-[#161C2C] text-sm text-[#FFFFFF] placeholder-[#94A3B8]/60 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 transition"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] text-sm text-[#FFFFFF] placeholder-[#A5B1C5]/60 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/35 transition"
               />
             </div>
 
@@ -193,25 +193,25 @@ export const CampaignCreateModal: React.FC<CampaignCreateModalProps> = ({
                   value={prizeName}
                   onChange={(e) => setPrizeName(e.target.value)}
                   placeholder="Ex: iPhone 16 Pro Max 256GB"
-                  className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-[#10141E] border border-[#161C2C] text-sm text-[#FFFFFF] placeholder-[#94A3B8]/60 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 transition"
+                  className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] text-sm text-[#FFFFFF] placeholder-[#A5B1C5]/60 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/35 transition"
                 />
-                <Gift className="w-4 h-4 text-[#F5B942] absolute left-3 top-3" />
+                <Gift className="w-4 h-4 text-[#A6C957] absolute left-3 top-3" />
               </div>
             </div>
           </div>
 
           {/* Rules & Limits Row */}
-          <div className="p-4 rounded-xl bg-[#10141E] border border-[#161C2C] space-y-3">
+          <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-[#FFFFFF]">
                 Regras de Conversão e Limites da Campanha
               </span>
-              <span className="text-[11px] font-mono text-[#B9FC01]">Persistido no Firestore</span>
+              <span className="text-[11px] font-medium text-[#A6C957]">Persistido no Firestore</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs text-[#94A3B8] mb-1">
+                <label className="block text-xs text-[#A5B1C5] mb-1">
                   Conversão Padrão (Moedas/Bilhete)
                 </label>
                 <input
@@ -219,12 +219,12 @@ export const CampaignCreateModal: React.FC<CampaignCreateModalProps> = ({
                   min={1}
                   value={defaultRate}
                   onChange={(e) => setDefaultRate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-[#10141E] border border-[#161C2C] text-xs font-mono tabular-nums text-[#FFFFFF] font-semibold focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 transition"
+                  className="w-full px-3 py-2 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)] text-xs tabular-nums text-[#FFFFFF] font-semibold focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/30 transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-[#94A3B8] mb-1">
+                <label className="block text-xs text-[#A5B1C5] mb-1">
                   Limite Máx. por Participante
                 </label>
                 <input
@@ -233,12 +233,12 @@ export const CampaignCreateModal: React.FC<CampaignCreateModalProps> = ({
                   value={maxTicketsPerUser}
                   onChange={(e) => setMaxTicketsPerUser(e.target.value)}
                   placeholder="Sem limite (opcional)"
-                  className="w-full px-3 py-2 rounded-lg bg-[#10141E] border border-[#161C2C] text-xs font-mono tabular-nums text-[#FFFFFF] placeholder-[#94A3B8]/60 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 transition"
+                  className="w-full px-3 py-2 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)] text-xs tabular-nums text-[#FFFFFF] placeholder-[#A5B1C5]/60 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/30 transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-[#94A3B8] mb-1">
+                <label className="block text-xs text-[#A5B1C5] mb-1">
                   Limite Total da Campanha
                 </label>
                 <input
@@ -247,20 +247,20 @@ export const CampaignCreateModal: React.FC<CampaignCreateModalProps> = ({
                   value={maxTotalTickets}
                   onChange={(e) => setMaxTotalTickets(e.target.value)}
                   placeholder="Sem limite (opcional)"
-                  className="w-full px-3 py-2 rounded-lg bg-[#10141E] border border-[#161C2C] text-xs font-mono tabular-nums text-[#FFFFFF] placeholder-[#94A3B8]/60 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 transition"
+                  className="w-full px-3 py-2 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)] text-xs tabular-nums text-[#FFFFFF] placeholder-[#A5B1C5]/60 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/30 transition"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               <div>
-                <label className="block text-xs text-[#94A3B8] mb-1">
+                <label className="block text-xs text-[#A5B1C5] mb-1">
                   Modalidade do Ciclo da Campanha
                 </label>
                 <select
                   value={campaignMode}
                   onChange={(e) => setCampaignMode(e.target.value as CampaignMode)}
-                  className="w-full px-3 py-2 rounded-lg bg-[#10141E] border border-[#161C2C] text-xs text-[#FFFFFF] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 transition"
+                  className="w-full px-3 py-2 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)] text-xs text-[#FFFFFF] focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/35 transition"
                 >
                   <option value="SINGLE_DRAW">Sorteio Único (1 ciclo oficial e encerramento)</option>
                   <option value="RECURRING_RESET">Recorrente com Reset (Zera bilhetes a cada ciclo)</option>
@@ -274,7 +274,7 @@ export const CampaignCreateModal: React.FC<CampaignCreateModalProps> = ({
                     type="checkbox"
                     checked={allowDuplicateWinners}
                     onChange={(e) => setAllowDuplicateWinners(e.target.checked)}
-                    className="w-4 h-4 rounded border-[#161C2C] bg-[#10141E] text-[#0131CD] focus:ring-2 focus:ring-[#B9FC01] focus:ring-offset-1 focus:ring-offset-[#080A0F]"
+                    className="w-4 h-4 rounded border-[var(--gio-border-subtle)] bg-[#111B30] text-[#0131CD] focus:ring-2 focus:ring-[#A6C957] focus:ring-offset-1 focus:ring-offset-[#080D18]"
                   />
                   <span>Permitir ganhadores repetidos entre ciclos</span>
                 </label>
@@ -282,13 +282,13 @@ export const CampaignCreateModal: React.FC<CampaignCreateModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs text-[#94A3B8] mb-1">
+              <label className="block text-xs text-[#A5B1C5] mb-1">
                 Regra de Elegibilidade das LIVEs Vinculadas
               </label>
               <select
                 value={eligibilityRule}
                 onChange={(e) => setEligibilityRule(e.target.value as 'ALL_TICKETS' | 'CUTOFF_TIMESTAMP' | 'CAMPAIGN_WINDOW')}
-                className="w-full px-3 py-2 rounded-lg bg-[#10141E] border border-[#161C2C] text-xs text-[#FFFFFF] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 transition"
+                className="w-full px-3 py-2 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)] text-xs text-[#FFFFFF] focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/35 transition"
               >
                 <option value="ALL_TICKETS">Todos os bilhetes emitidos nas LIVEs selecionadas</option>
                 <option value="CUTOFF_TIMESTAMP">Bilhetes emitidos até a data de encerramento</option>
@@ -306,7 +306,7 @@ export const CampaignCreateModal: React.FC<CampaignCreateModalProps> = ({
                 type="datetime-local"
                 value={startDateStr}
                 onChange={(e) => setStartDateStr(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#10141E] border border-[#161C2C] text-xs font-mono text-[#FFFFFF] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 transition"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] text-xs tabular-nums text-[#FFFFFF] focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/30 transition"
               />
             </div>
 
@@ -318,7 +318,7 @@ export const CampaignCreateModal: React.FC<CampaignCreateModalProps> = ({
                 <select
                   value={cutoffDays}
                   onChange={(e) => setCutoffDays(e.target.value)}
-                  className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-[#10141E] border border-[#161C2C] text-xs text-[#FFFFFF] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 transition"
+                  className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] text-xs text-[#FFFFFF] focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/35 transition"
                 >
                   <option value="1">Encerrar em 1 dia (24h)</option>
                   <option value="3">Encerrar em 3 dias</option>
@@ -326,23 +326,23 @@ export const CampaignCreateModal: React.FC<CampaignCreateModalProps> = ({
                   <option value="15">Encerrar em 15 dias</option>
                   <option value="30">Encerrar em 30 dias (1 mês)</option>
                 </select>
-                <Calendar className="w-4 h-4 text-[#B9FC01] absolute left-3 top-2.5" />
+                <Calendar className="w-4 h-4 text-[#A6C957] absolute left-3 top-2.5" />
               </div>
             </div>
           </div>
 
           {/* Individual Campaign Regulation & Legal Status */}
-          <div className="p-4 rounded-xl bg-[#10141E] border border-[#161C2C] space-y-3 text-xs">
+          <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-3 text-xs">
             <div className="flex items-center justify-between">
               <span className="font-semibold text-[#FFFFFF]">
                 Regulamento Individual e Status Legal da Campanha
               </span>
-              <span className="text-[11px] text-[#94A3B8]">Transparência Documental</span>
+              <span className="text-[11px] text-[#A5B1C5]">Transparência Documental</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-[#94A3B8] mb-1">
+                <label className="block text-xs text-[#A5B1C5] mb-1">
                   Identificação do Organizador Responsável
                 </label>
                 <input
@@ -350,18 +350,18 @@ export const CampaignCreateModal: React.FC<CampaignCreateModalProps> = ({
                   value={organizerName}
                   onChange={(e) => setOrganizerName(e.target.value)}
                   placeholder="Nome ou Razão Social do organizador"
-                  className="w-full px-3 py-2 rounded-lg bg-[#10141E] border border-[#161C2C] text-[#FFFFFF] placeholder-[#94A3B8]/60 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 transition"
+                  className="w-full px-3 py-2 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)] text-[#FFFFFF] placeholder-[#A5B1C5]/60 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/35 transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-[#94A3B8] mb-1">
+                <label className="block text-xs text-[#A5B1C5] mb-1">
                   Status Legal / Documental
                 </label>
                 <select
                   value={legalStatus}
                   onChange={(e) => setLegalStatus(e.target.value as CampaignLegalStatus)}
-                  className="w-full px-3 py-2 rounded-lg bg-[#10141E] border border-[#161C2C] text-[#FFFFFF] font-medium focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 transition"
+                  className="w-full px-3 py-2 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)] text-[#FFFFFF] font-medium focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/35 transition"
                 >
                   <option value="Pendente de análise">Pendente de análise</option>
                   <option value="Documentação pendente">Documentação pendente</option>
@@ -377,18 +377,18 @@ export const CampaignCreateModal: React.FC<CampaignCreateModalProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-[#94A3B8] mb-1">
+                <label className="block text-xs text-[#A5B1C5] mb-1">
                   Modalidade e Divulgação dos Resultados
                 </label>
                 <input
                   type="text"
                   value={resultsDisclosureChannel}
                   onChange={(e) => setResultsDisclosureChannel(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-[#10141E] border border-[#161C2C] text-[#FFFFFF] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 transition"
+                  className="w-full px-3 py-2 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)] text-[#FFFFFF] focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/35 transition"
                 />
               </div>
               <div>
-                <label className="block text-xs text-[#94A3B8] mb-1">
+                <label className="block text-xs text-[#A5B1C5] mb-1">
                   Documentação / Número de Processo (Se aplicável)
                 </label>
                 <input
@@ -396,13 +396,13 @@ export const CampaignCreateModal: React.FC<CampaignCreateModalProps> = ({
                   value={authorizationDocumentation}
                   onChange={(e) => setAuthorizationDocumentation(e.target.value)}
                   placeholder="Informe apenas se houver documento validado"
-                  className="w-full px-3 py-2 rounded-lg bg-[#10141E] border border-[#161C2C] text-[#FFFFFF] placeholder-[#94A3B8]/60 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 transition"
+                  className="w-full px-3 py-2 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)] text-[#FFFFFF] placeholder-[#A5B1C5]/60 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/35 transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs text-[#94A3B8] mb-1">
+              <label className="block text-xs text-[#A5B1C5] mb-1">
                 Procedimento de Contestação e Regras de Participação
               </label>
               <textarea
@@ -414,7 +414,7 @@ export const CampaignCreateModal: React.FC<CampaignCreateModalProps> = ({
                   setContestationProcedure(e.target.value);
                 }}
                 placeholder="Ex: Acúmulo válido para todas as transmissões oficiais da semana. Contestações via protocolo na Central de Suporte."
-                className="w-full px-3.5 py-2 rounded-lg bg-[#10141E] border border-[#161C2C] text-xs text-[#FFFFFF] placeholder-[#94A3B8]/60 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 transition"
+                className="w-full px-3.5 py-2 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)] text-xs text-[#FFFFFF] placeholder-[#A5B1C5]/60 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/35 transition"
               />
             </div>
           </div>
@@ -425,13 +425,13 @@ export const CampaignCreateModal: React.FC<CampaignCreateModalProps> = ({
               <label className="text-xs font-semibold text-[#FFFFFF]">
                 Transmissões LIVE para Incluir Imediatamente
               </label>
-              <span className="text-xs text-[#B9FC01] font-mono tabular-nums font-medium">
+              <span className="text-xs text-[#A6C957] tabular-nums font-medium">
                 {selectedSessionIds.length} selecionada(s)
               </span>
             </div>
 
             {availableSessions.length === 0 ? (
-              <div className="p-4 rounded-xl bg-[#10141E] border border-[#161C2C] text-center text-xs text-[#94A3B8]">
+              <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] text-center text-xs text-[#A5B1C5]">
                 Nenhuma LIVE anterior gravada no banco. Você poderá vincular novas transmissões a qualquer momento com a campanha aberta.
               </div>
             ) : (
@@ -444,26 +444,26 @@ export const CampaignCreateModal: React.FC<CampaignCreateModalProps> = ({
                       onClick={() => toggleSession(session.sessionId)}
                       className={`p-2.5 rounded-xl border cursor-pointer transition flex items-center justify-between ${
                         isSelected
-                          ? 'bg-[#161C2C] border-[#0131CD] text-[#FFFFFF]'
-                          : 'bg-[#10141E] border-[#161C2C] text-[#94A3B8] hover:border-[#0131CD]/50'
+                          ? 'bg-[#080D18] border-[#0131CD] text-[#FFFFFF]'
+                          : 'bg-[#080D18]/60 border-[var(--gio-border-subtle)] text-[#A5B1C5] hover:border-[#0131CD]/50'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <Tv className="w-4 h-4 text-[#B9FC01] shrink-0" />
+                        <Tv className="w-4 h-4 text-[#A6C957] shrink-0" />
                         <div className="truncate">
                           <p className="text-xs font-medium text-[#FFFFFF] truncate">
                             {session.raffleTitle || session.roomTitle || `LIVE @${session.username}`}
                           </p>
-                          <p className="text-[11px] text-[#94A3B8] font-mono tabular-nums">
+                          <p className="text-[11px] text-[#A5B1C5] tabular-nums">
                             {session.totalCoins.toLocaleString('pt-BR')} moedas enviadas · {session.currentTicketCounter} bilhetes
                           </p>
                         </div>
                       </div>
                       <div>
                         {isSelected ? (
-                          <CheckCircle2 className="w-4 h-4 text-[#20C997]" />
+                          <CheckCircle2 className="w-4 h-4 text-[#A6C957]" />
                         ) : (
-                          <div className="w-4 h-4 rounded-full border border-[#161C2C]" />
+                          <div className="w-4 h-4 rounded-full border border-[var(--gio-border-subtle)]" />
                         )}
                       </div>
                     </div>
@@ -474,19 +474,19 @@ export const CampaignCreateModal: React.FC<CampaignCreateModalProps> = ({
           </div>
 
           {/* Actions */}
-          <div className="pt-3 border-t border-[#161C2C] flex items-center justify-end gap-3">
+          <div className="pt-3 border-t border-[var(--gio-border-subtle)] flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 text-xs font-medium text-[#94A3B8] hover:text-[#FFFFFF] transition"
+              className="px-4 py-2 text-xs font-medium text-[#A5B1C5] hover:text-[#FFFFFF] transition"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2.5 rounded-xl font-semibold text-xs text-[#FFFFFF] bg-[#0131CD] hover:brightness-110 transition flex items-center gap-1.5 disabled:opacity-50 shadow-[0_6px_20px_rgba(1, 49, 205,0.3)]"
+              className="px-5 py-2.5 rounded-xl font-semibold text-xs text-[#FFFFFF] bg-[#0131CD] hover:brightness-110 transition flex items-center gap-1.5 disabled:opacity-50 shadow-lg"
             >
               <PlusCircle className="w-4 h-4" />
               <span>{isSubmitting ? 'Salvando Campanha...' : 'Criar Campanha Acumulada'}</span>

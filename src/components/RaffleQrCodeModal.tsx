@@ -34,23 +34,23 @@ export const RaffleQrCodeModal: React.FC<RaffleQrCodeModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#080A0F]/85 backdrop-blur-md animate-fade-in">
-      <div className="bg-[#10141E] border border-[#161C2C] w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-slide-up">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#080D18]/85 backdrop-blur-md animate-fade-in">
+      <div className="bg-[#111B30] border border-[var(--gio-border-subtle)] w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-slide-up">
         {/* Header */}
-        <div className="p-5 border-b border-[#161C2C] flex items-center justify-between bg-[#10141E]">
+        <div className="p-5 border-b border-[var(--gio-border-subtle)] flex items-center justify-between bg-[#111B30]">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-[#0131CD]/20 border border-[#0131CD]/40 flex items-center justify-center text-[#FFFFFF]">
+            <div className="w-10 h-10 rounded-xl bg-[#0131CD] border border-[#0131CD] flex items-center justify-center text-[#FFFFFF]">
               <Tv className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-display font-bold text-lg text-[#FFFFFF]">QR Code para Participantes</h3>
-              <p className="text-xs text-[#94A3B8]">Para exibir na live, stories ou cartaz</p>
+              <h3 className="font-bold text-lg text-[#FFFFFF]">QR Code para Participantes</h3>
+              <p className="text-xs text-[#A5B1C5]">Para exibir na live, stories ou cartaz</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-[#94A3B8] hover:text-[#FFFFFF] p-2 rounded-xl hover:bg-[#161C2C] transition"
+            className="text-[#A5B1C5] hover:text-[#FFFFFF] p-2 rounded-xl hover:bg-[#080D18] transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -59,17 +59,17 @@ export const RaffleQrCodeModal: React.FC<RaffleQrCodeModalProps> = ({
         {/* Body */}
         <div className="p-6 text-center space-y-5">
           <div className="space-y-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#B9FC01]">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-[#A6C957]">
               {organizerName || 'GIO DA SORTE'}
             </span>
-            <h4 className="font-display font-bold text-xl text-[#FFFFFF]">{raffleTitle || 'Sorteio Oficial'}</h4>
-            <div className="inline-block mt-1 font-mono font-bold text-sm bg-[#0131CD]/20 text-[#FFFFFF] border border-[#0131CD]/40 px-3 py-1 rounded-full tabular-nums">
+            <h4 className="font-bold text-xl text-[#FFFFFF]">{raffleTitle || 'Sorteio Oficial'}</h4>
+            <div className="inline-block mt-1 font-mono font-bold text-sm bg-[#0131CD] text-[#FFFFFF] border border-[#0131CD] px-3 py-1 rounded-full tabular-nums">
               Código: #{raffleCode}
             </div>
           </div>
 
           {/* QR Code Container (Preserved bg-white for optical scanners) */}
-          <div className="p-4 bg-white rounded-2xl shadow-xl inline-block mx-auto border-4 border-[#0131CD]/40">
+          <div className="p-4 bg-[#FFFFFF] rounded-2xl shadow-xl inline-block mx-auto border-4 border-[#0131CD]">
             <img
               src={qrUrl}
               alt={`QR Code para sorteio ${raffleCode}`}
@@ -78,14 +78,14 @@ export const RaffleQrCodeModal: React.FC<RaffleQrCodeModalProps> = ({
             />
           </div>
 
-          <p className="text-xs text-[#94A3B8] max-w-xs mx-auto">
+          <p className="text-xs text-[#A5B1C5] max-w-xs mx-auto">
             Peça para os participantes apontarem a câmera do celular. O link já abre diretamente na aba de consulta com
             seus bilhetes!
           </p>
 
           {/* Link Box */}
-          <div className="p-3 bg-[#10141E] rounded-xl border border-[#161C2C] flex items-center justify-between gap-2 text-left">
-            <div className="font-mono text-xs text-[#94A3B8] truncate select-all">{directLink}</div>
+          <div className="p-3 bg-[#080D18] rounded-xl border border-[var(--gio-border-subtle)] flex items-center justify-between gap-2 text-left">
+            <div className="font-mono text-xs text-[#A5B1C5] truncate select-all">{directLink}</div>
             <button
               type="button"
               onClick={handleCopy}
@@ -93,7 +93,7 @@ export const RaffleQrCodeModal: React.FC<RaffleQrCodeModalProps> = ({
             >
               {copiedLink ? (
                 <>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#20C997]" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[#A6C957]" />
                   <span>Copiado!</span>
                 </>
               ) : (
@@ -107,11 +107,11 @@ export const RaffleQrCodeModal: React.FC<RaffleQrCodeModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-[#161C2C] bg-[#10141E] text-center">
+        <div className="p-4 border-t border-[var(--gio-border-subtle)] bg-[#080D18] text-center">
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-2.5 bg-[#161C2C] hover:bg-[#0131CD] text-[#FFFFFF] font-bold text-xs rounded-xl transition"
+            className="w-full py-2.5 bg-[#111B30] hover:bg-[#0131CD] text-[#FFFFFF] font-bold text-xs rounded-xl border border-[var(--gio-border-subtle)] transition"
           >
             Fechar Janela
           </button>

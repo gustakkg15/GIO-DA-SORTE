@@ -22,17 +22,17 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-[#0866F5] hover:bg-[#00A9FF] text-white shadow-lg shadow-[#0866F5]/20 border border-transparent',
+    'bg-[#0131CD] hover:bg-[#0131CD]/90 text-[#FFFFFF] shadow-lg shadow-[#080D18]/40 border border-white/15',
   secondary:
-    'bg-[#101F3D] hover:bg-[#182C52] text-[#F8FAFC] border border-white/10 hover:border-white/20',
+    'bg-[#111B30] hover:bg-[#111B30]/80 text-[#FFFFFF] border border-[#A5B1C5]/20 hover:border-[#0131CD]',
   outline:
-    'bg-transparent hover:bg-white/5 text-slate-200 border border-white/15 hover:border-white/30',
+    'bg-transparent hover:bg-[#111B30] text-[#FFFFFF] border border-[#A5B1C5]/25 hover:border-[#0131CD]',
   ghost:
-    'bg-transparent hover:bg-white/10 text-slate-300 hover:text-white border border-transparent',
+    'bg-transparent hover:bg-[#111B30] text-[#A5B1C5] hover:text-[#FFFFFF] border border-transparent',
   danger:
-    'bg-[#F05262] hover:bg-[#D93D4D] text-white shadow-md shadow-[#F05262]/20 border border-transparent',
+    'bg-[#F05262] hover:bg-[#F05262]/90 text-[#FFFFFF] shadow-md shadow-[#080D18]/40 border border-transparent',
   gold:
-    'bg-gradient-to-r from-[#F5B942] to-[#E5A832] hover:from-[#E5A832] hover:to-[#D49722] text-[#050D20] font-bold shadow-md shadow-[#F5B942]/20 border border-transparent',
+    'bg-[#A6C957] hover:bg-[#B5D477] text-[#080D18] font-bold shadow-md shadow-[#080D18]/40 border border-transparent',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -64,7 +64,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={type}
         disabled={isControlDisabled}
-        className={`inline-flex items-center justify-center font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00A9FF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#050D20] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 select-none ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+        className={`inline-flex items-center justify-center font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080D18] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 select-none ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
         {...props}
       >
         {isLoading ? (

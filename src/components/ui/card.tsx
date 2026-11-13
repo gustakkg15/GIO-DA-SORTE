@@ -6,12 +6,12 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const cardVariantClasses = {
-  default: 'bg-[#101F3D] border border-white/10 shadow-lg shadow-black/20',
-  glass: 'bg-[#0B1730]/80 backdrop-blur-md border border-white/10 shadow-xl',
+  default: 'bg-[#111B30] border border-[#A5B1C5]/15 shadow-lg shadow-[#080D18]/50',
+  glass: 'bg-[#111B30]/90 backdrop-blur-md border border-[#A5B1C5]/15 shadow-xl',
   interactive:
-    'bg-[#101F3D] hover:bg-[#16294D] border border-white/10 hover:border-[#00A9FF]/40 transition-all duration-200 cursor-pointer shadow-lg hover:shadow-[#00A9FF]/10',
+    'bg-[#111B30] hover:bg-[#111B30] border border-[#A5B1C5]/15 hover:border-[#0131CD] transition-all duration-200 cursor-pointer shadow-lg',
   accent:
-    'bg-gradient-to-br from-[#101F3D] to-[#0B1730] border border-[#0866F5]/30 shadow-lg shadow-[#0866F5]/10',
+    'bg-[#111B30] border border-[#0131CD]/50 shadow-lg',
 };
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
@@ -19,7 +19,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
     return (
       <div
         ref={ref}
-        className={`rounded-2xl text-[#F8FAFC] overflow-hidden ${cardVariantClasses[variant]} ${className}`}
+        className={`rounded-2xl text-[#FFFFFF] overflow-hidden ${cardVariantClasses[variant]} ${className}`}
         {...props}
       >
         {children}
@@ -35,7 +35,7 @@ export const CardHeader = React.forwardRef<
 >(({ className = '', children, ...props }, ref) => (
   <div
     ref={ref}
-    className={`p-5 sm:p-6 flex flex-col gap-1.5 border-b border-white/[0.06] ${className}`}
+    className={`p-5 sm:p-6 flex flex-col gap-1.5 border-b border-[#A5B1C5]/15 ${className}`}
     {...props}
   >
     {children}
@@ -49,7 +49,7 @@ export const CardTitle = React.forwardRef<
 >(({ className = '', children, ...props }, ref) => (
   <h3
     ref={ref}
-    className={`text-lg font-bold tracking-tight text-[#F8FAFC] ${className}`}
+    className={`text-lg font-bold tracking-tight text-[#FFFFFF] ${className}`}
     {...props}
   >
     {children}
@@ -63,7 +63,7 @@ export const CardDescription = React.forwardRef<
 >(({ className = '', children, ...props }, ref) => (
   <p
     ref={ref}
-    className={`text-xs sm:text-sm text-slate-400 leading-relaxed ${className}`}
+    className={`text-xs sm:text-sm text-[#A5B1C5] leading-relaxed ${className}`}
     {...props}
   >
     {children}

@@ -151,23 +151,23 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#080A0F]/85 backdrop-blur-md animate-fade-in"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#080D18]/85 backdrop-blur-md animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="onboarding-title"
     >
       <div
         ref={dialogRef}
-        className="relative w-full max-w-xl rounded-2xl bg-[#10141E] border border-[var(--gio-border-active)] shadow-[0_24px_60px_rgba(2,8,23,0.75)] overflow-hidden animate-slide-up"
+        className="relative w-full max-w-xl rounded-2xl bg-[#111B30] border border-[var(--gio-border-active)] shadow-[0_24px_60px_rgba(8,13,24,0.85)] overflow-hidden animate-slide-up"
       >
-        {/* Top electric blue & violet PRO bar */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-[#0131CD] via-[#0131CD] to-[#B9FC01]" />
+        {/* Top brand bar */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-[#0131CD] via-[#0131CD] to-[#A6C957]" />
 
         <div className="p-6 sm:p-8 space-y-6">
           {/* Header */}
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-12 h-12 rounded-xl bg-[#080A0F] border border-[#0131CD]/40 flex items-center justify-center p-1 shadow-[0_6px_18px_rgba(1, 49, 205,0.28)] shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-[#080D18] border border-[#0131CD]/40 flex items-center justify-center p-1 shadow-[0_6px_18px_rgba(1,49,205,0.28)] shrink-0">
                 <img
                   src="/icon.svg"
                   alt="GIO DA SORTE"
@@ -175,15 +175,15 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
                 />
               </div>
               <div className="min-w-0">
-                <span className="text-xs font-semibold text-[#B9FC01] inline-flex items-center gap-1.5">
-                  <StepIcon className="w-3.5 h-3.5 text-[#B9FC01] shrink-0" />
+                <span className="text-xs font-semibold text-[#A6C957] inline-flex items-center gap-1.5">
+                  <StepIcon className="w-3.5 h-3.5 text-[#A6C957] shrink-0" />
                   <span className="tabular-nums">
                     {stepData.badge} · Passo {stepData.step} de {ONBOARDING_STEPS.length}
                   </span>
                 </span>
                 <h2
                   id="onboarding-title"
-                  className="text-lg sm:text-xl font-display font-bold text-[#FFFFFF] leading-snug mt-0.5"
+                  className="text-lg sm:text-xl font-bold text-[#FFFFFF] leading-snug mt-0.5"
                 >
                   {stepData.title}
                 </h2>
@@ -194,20 +194,20 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Fechar guia inicial"
-              className="w-9 h-9 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] text-[#94A3B8] hover:text-[#FFFFFF] border border-[var(--gio-border-subtle)] flex items-center justify-center transition shrink-0"
+              className="w-9 h-9 rounded-xl bg-[#080D18] hover:bg-[#111B30] text-[#A5B1C5] hover:text-[#FFFFFF] border border-[var(--gio-border-subtle)] flex items-center justify-center transition shrink-0"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Description */}
-          <p className="text-sm sm:text-base text-[#94A3B8] leading-relaxed">{stepData.description}</p>
+          <p className="text-sm sm:text-base text-[#A5B1C5] leading-relaxed">{stepData.description}</p>
 
           {/* Highlights */}
-          <div className="space-y-2.5 bg-[#080A0F] border border-[var(--gio-border-subtle)] rounded-xl p-4">
+          <div className="space-y-2.5 bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl p-4">
             {stepData.highlights.map((item, idx) => (
               <div key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-[#FFFFFF]">
-                <CheckCircle2 className="w-4 h-4 text-[#20C997] shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-4 h-4 text-[#A6C957] shrink-0 mt-0.5" />
                 <span>{item}</span>
               </div>
             ))}
@@ -225,7 +225,7 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
                   className={`h-2 rounded-full transition-all ${
                     idx === currentStep
                       ? 'w-7 bg-[#0131CD] shadow-[0_0_8px_rgba(1,49,205,0.6)]'
-                      : 'w-2 bg-[#161C2C] hover:bg-[#94A3B8]'
+                      : 'w-2 bg-[#080D18] hover:bg-[#A5B1C5]'
                   }`}
                 />
               ))}
@@ -236,7 +236,7 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setCurrentStep((s) => s - 1)}
-                  className="min-h-[42px] px-4 py-2 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-semibold flex items-center gap-1.5 transition"
+                  className="min-h-[42px] px-4 py-2 rounded-xl bg-[#080D18] hover:bg-[#111B30] text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-semibold flex items-center gap-1.5 transition"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Anterior</span>
@@ -245,7 +245,7 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="min-h-[42px] px-3 py-2 rounded-xl text-[#94A3B8] hover:text-[#FFFFFF] text-xs font-medium transition"
+                  className="min-h-[42px] px-3 py-2 rounded-xl text-[#A5B1C5] hover:text-[#FFFFFF] text-xs font-medium transition"
                 >
                   Pular introdução
                 </button>
@@ -255,7 +255,7 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setCurrentStep((s) => s + 1)}
-                  className="min-h-[42px] px-5 py-2 rounded-xl bg-gradient-to-r from-[#0131CD] to-[#0131CD] text-white font-bold text-xs flex items-center gap-1.5 shadow-[0_6px_18px_rgba(1, 49, 205,0.35)] hover:brightness-110 transition"
+                  className="min-h-[42px] px-5 py-2 rounded-xl bg-gradient-to-r from-[#0131CD] to-[#0131CD] text-[#FFFFFF] font-bold text-xs flex items-center gap-1.5 shadow-[0_6px_18px_rgba(1,49,205,0.35)] hover:brightness-110 transition"
                 >
                   <span>Próximo</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -268,7 +268,7 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
                       onClose();
                       onGoToLivePro();
                     }}
-                    className="min-h-[42px] px-4 py-2 rounded-xl bg-[#B9FC01]/15 hover:bg-[#B9FC01]/25 text-[#B9FC01] border border-[#B9FC01]/45 font-bold text-xs flex items-center gap-1.5 transition"
+                    className="min-h-[42px] px-4 py-2 rounded-xl bg-[#A6C957]/15 hover:bg-[#A6C957]/25 text-[#A6C957] border border-[#A6C957]/40 font-bold text-xs flex items-center gap-1.5 transition"
                   >
                     <Radio className="w-3.5 h-3.5" />
                     <span>Abrir LIVE PRO</span>
@@ -279,7 +279,7 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
                       onClose();
                       onStartGuidedWizard();
                     }}
-                    className="min-h-[42px] px-5 py-2 rounded-xl bg-gradient-to-r from-[#0131CD] to-[#0131CD] text-white font-extrabold text-xs flex items-center gap-1.5 shadow-[0_8px_22px_rgba(1, 49, 205,0.4)] hover:brightness-110 transition"
+                    className="min-h-[42px] px-5 py-2 rounded-xl bg-gradient-to-r from-[#0131CD] to-[#0131CD] text-[#FFFFFF] font-extrabold text-xs flex items-center gap-1.5 shadow-[0_8px_22px_rgba(1,49,205,0.4)] hover:brightness-110 transition"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>Criar Meu 1º Sorteio</span>

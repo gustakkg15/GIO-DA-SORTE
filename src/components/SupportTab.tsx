@@ -106,18 +106,18 @@ export const SupportTab: React.FC<SupportTabProps> = () => {
   return (
     <div className="w-full space-y-6 animate-fade-in">
       {/* Gratitude Hero Banner */}
-      <div className="bg-gradient-to-br from-[#0131CD]/20 via-[#10141E] to-[#10141E] border border-[#0131CD]/40 rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-br from-[#0131CD]/20 via-[#111B30] to-[#111B30] border border-[#0131CD]/40 rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
         <div className="max-w-3xl space-y-3">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#0131CD]/25 border border-[#0131CD]/40 text-[#FFFFFF] text-xs font-bold uppercase tracking-wider">
-            <Heart className="w-3.5 h-3.5 fill-[#B9FC01] text-[#B9FC01]" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#0131CD]/25 border border-[#0131CD]/40 text-[#FFFFFF] text-xs font-semibold tracking-wide">
+            <Heart className="w-3.5 h-3.5 fill-[#A6C957] text-[#A6C957]" />
             <span>Suporte & Comunidade</span>
           </div>
 
-          <h2 className="font-display font-black text-2xl sm:text-3xl text-[#FFFFFF] tracking-tight">
+          <h2 className="font-bold text-2xl sm:text-3xl text-[#FFFFFF] tracking-tight">
             Apoie a Evolução Contínua do GIO DA SORTE
           </h2>
 
-          <p className="text-xs sm:text-sm text-[#94A3B8] leading-relaxed">
+          <p className="text-xs sm:text-sm text-[#A5B1C5] leading-relaxed">
             O <b className="text-[#FFFFFF]">GIO DA SORTE</b> mantém a Mesa Oficial de Sorteio gratuita para toda a comunidade, além de oferecer recursos avançados de automação no plano PRO. Você também pode apoiar voluntariamente a infraestrutura do projeto ou enviar sugestões abaixo!
           </p>
         </div>
@@ -126,22 +126,22 @@ export const SupportTab: React.FC<SupportTabProps> = () => {
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
         {/* Left Column: Direct Support with Pix & PayPal (7 cols) */}
         <div className="md:col-span-7 space-y-6">
-          <div className="bg-[#10141E] border border-[#161C2C] rounded-2xl p-6 shadow-xl space-y-5">
+          <div className="bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-2xl p-6 shadow-xl space-y-5">
             {/* Payment Method Switcher Tabs */}
-            <div className="flex items-center justify-between pb-3 border-b border-[#161C2C]">
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--gio-border-subtle)]">
               <div className="flex items-center gap-2">
-                <Coffee className="w-5 h-5 text-[#B9FC01]" />
-                <h3 className="font-display font-bold text-lg text-[#FFFFFF]">Contribuição Espontânea</h3>
+                <Coffee className="w-5 h-5 text-[#A6C957]" />
+                <h3 className="font-bold text-lg text-[#FFFFFF]">Contribuição Espontânea</h3>
               </div>
 
-              <div className="flex items-center p-1 bg-[#080A0F] border border-[#161C2C] rounded-xl">
+              <div className="flex items-center p-1 bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl">
                 <button
                   type="button"
                   onClick={() => setSelectedMethod('pix')}
                   className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition ${
                     selectedMethod === 'pix'
                       ? 'bg-[#0131CD] text-[#FFFFFF] shadow-md shadow-[#0131CD]/30'
-                      : 'text-[#94A3B8] hover:text-[#FFFFFF]'
+                      : 'text-[#A5B1C5] hover:text-[#FFFFFF]'
                   }`}
                 >
                   <QrCode className="w-3.5 h-3.5" />
@@ -153,7 +153,7 @@ export const SupportTab: React.FC<SupportTabProps> = () => {
                   className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition ${
                     selectedMethod === 'paypal'
                       ? 'bg-[#0131CD] text-[#FFFFFF] shadow-md shadow-[#0131CD]/30'
-                      : 'text-[#94A3B8] hover:text-[#FFFFFF]'
+                      : 'text-[#A5B1C5] hover:text-[#FFFFFF]'
                   }`}
                 >
                   <CreditCard className="w-3.5 h-3.5" />
@@ -166,27 +166,27 @@ export const SupportTab: React.FC<SupportTabProps> = () => {
             {selectedMethod === 'pix' && (
               <div className="space-y-4 animate-in fade-in duration-150">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-[#94A3B8]">Transferência rápida e sem taxas pelo Banco Central</span>
-                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#20C997] bg-[#20C997]/15 border border-[#20C997]/40 px-2.5 py-1 rounded-full">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#20C997]" />
+                  <span className="text-xs text-[#A5B1C5]">Transferência rápida e sem taxas pelo Banco Central</span>
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#A6C957] bg-[#A6C957]/15 border border-[#A6C957]/35 px-2.5 py-1 rounded-full">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#A6C957]" />
                     <span>Chave Oficial Verificada</span>
                   </div>
                 </div>
 
                 {/* Pix Visual Display Box */}
-                <div className="bg-[#10141E] border border-[#0131CD]/50 rounded-2xl p-5 space-y-4 shadow-lg">
+                <div className="bg-[#080D18] border border-[#0131CD]/50 rounded-2xl p-5 space-y-4 shadow-lg">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#B9FC01]">
-                      <QrCode className="w-4 h-4 text-[#B9FC01]" />
+                    <div className="flex items-center gap-2 text-xs font-semibold text-[#A6C957]">
+                      <QrCode className="w-4 h-4 text-[#A6C957]" />
                       <span>Chave Pix Oficial</span>
                     </div>
-                    <span className="text-[10px] font-mono bg-[#0131CD]/20 border border-[#0131CD]/40 text-[#FFFFFF] px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-medium bg-[#0131CD]/20 border border-[#0131CD]/40 text-[#FFFFFF] px-2 py-0.5 rounded-full">
                       Instantâneo 24h
                     </span>
                   </div>
 
-                  <div className="p-3.5 bg-[#080A0F] rounded-xl border border-[#161C2C] flex items-center justify-between gap-3">
-                    <div className="font-mono text-sm sm:text-base font-bold text-[#FFFFFF] break-all select-all">
+                  <div className="p-3.5 bg-[#111B30] rounded-xl border border-[var(--gio-border-subtle)] flex items-center justify-between gap-3">
+                    <div className="text-sm sm:text-base font-semibold text-[#FFFFFF] break-all select-all">
                       {pixKey}
                     </div>
 
@@ -197,7 +197,7 @@ export const SupportTab: React.FC<SupportTabProps> = () => {
                     >
                       {copiedPixKey ? (
                         <>
-                          <CheckCircle2 className="w-4 h-4 text-[#20C997]" />
+                          <CheckCircle2 className="w-4 h-4 text-[#A6C957]" />
                           <span>Copiada!</span>
                         </>
                       ) : (
@@ -211,23 +211,23 @@ export const SupportTab: React.FC<SupportTabProps> = () => {
 
                   {/* Suggested contribution cards */}
                   <div className="space-y-1.5">
-                    <span className="text-xs font-semibold text-[#94A3B8] block">Valores sugeridos de incentivo:</span>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-                      <div className="p-2 bg-[#10141E] border border-[#161C2C] rounded-xl">
-                        <span className="font-mono font-bold text-[#FFFFFF] block">R$ 2,00</span>
-                        <span className="text-[10px] text-[#94A3B8]">Um cafezinho ☕</span>
+                    <span className="text-xs font-semibold text-[#A5B1C5] block">Valores sugeridos de incentivo:</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs tabular-nums">
+                      <div className="p-2 bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-xl">
+                        <span className="font-semibold text-[#FFFFFF] block">R$ 2,00</span>
+                        <span className="text-[10px] text-[#A5B1C5]">Um cafezinho ☕</span>
                       </div>
-                      <div className="p-2 bg-[#10141E] border border-[#161C2C] rounded-xl">
-                        <span className="font-mono font-bold text-[#B9FC01] block">R$ 5,00</span>
-                        <span className="text-[10px] text-[#94A3B8]">Moeda da sorte 🪙</span>
+                      <div className="p-2 bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-xl">
+                        <span className="font-semibold text-[#FFFFFF] block">R$ 5,00</span>
+                        <span className="text-[10px] text-[#A5B1C5]">Moeda da sorte 🪙</span>
                       </div>
-                      <div className="p-2 bg-[#10141E] border border-[#161C2C] rounded-xl">
-                        <span className="font-mono font-bold text-[#20C997] block">R$ 10,00</span>
-                        <span className="text-[10px] text-[#94A3B8]">Incentivo top 🚀</span>
+                      <div className="p-2 bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-xl">
+                        <span className="font-semibold text-[#FFFFFF] block">R$ 10,00</span>
+                        <span className="text-[10px] text-[#A5B1C5]">Incentivo top 🚀</span>
                       </div>
-                      <div className="p-2 bg-[#10141E] border border-[#161C2C] rounded-xl">
-                        <span className="font-mono font-bold text-[#F5B942] block">R$ 25,00+</span>
-                        <span className="text-[10px] text-[#94A3B8]">Super patrono 👑</span>
+                      <div className="p-2 bg-[#111B30] border border-[#A6C957]/35 rounded-xl">
+                        <span className="font-semibold text-[#A6C957] block">R$ 25,00+</span>
+                        <span className="text-[10px] text-[#A5B1C5]">Super patrono 👑</span>
                       </div>
                     </div>
                   </div>
@@ -239,27 +239,27 @@ export const SupportTab: React.FC<SupportTabProps> = () => {
             {selectedMethod === 'paypal' && (
               <div className="space-y-4 animate-in fade-in duration-150">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-[#94A3B8]">Cartão de crédito, saldo PayPal e suporte internacional</span>
+                  <span className="text-xs text-[#A5B1C5]">Cartão de crédito, saldo PayPal e suporte internacional</span>
                   <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#FFFFFF] bg-[#0131CD]/20 border border-[#0131CD]/40 px-2.5 py-1 rounded-full">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#B9FC01]" />
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#A6C957]" />
                     <span>Conta Oficial Verificada</span>
                   </div>
                 </div>
 
                 {/* PayPal Visual Display Box */}
-                <div className="bg-[#10141E] border border-[#0131CD]/50 rounded-2xl p-5 space-y-4 shadow-lg">
+                <div className="bg-[#080D18] border border-[#0131CD]/50 rounded-2xl p-5 space-y-4 shadow-lg">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#B9FC01]">
-                      <Globe className="w-4 h-4 text-[#B9FC01]" />
+                    <div className="flex items-center gap-2 text-xs font-semibold text-[#A6C957]">
+                      <Globe className="w-4 h-4 text-[#A6C957]" />
                       <span>Conta PayPal Oficial</span>
                     </div>
-                    <span className="text-[10px] font-mono bg-[#0131CD]/20 border border-[#0131CD]/40 text-[#FFFFFF] px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-medium bg-[#0131CD]/20 border border-[#0131CD]/40 text-[#FFFFFF] px-2 py-0.5 rounded-full">
                       Cartão & Global
                     </span>
                   </div>
 
-                  <div className="p-3.5 bg-[#080A0F] rounded-xl border border-[#161C2C] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="font-mono text-sm sm:text-base font-bold text-[#FFFFFF] break-all select-all">
+                  <div className="p-3.5 bg-[#111B30] rounded-xl border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="text-sm sm:text-base font-semibold text-[#FFFFFF] break-all select-all">
                       {paypalAccount}
                     </div>
 
@@ -267,11 +267,11 @@ export const SupportTab: React.FC<SupportTabProps> = () => {
                       <button
                         type="button"
                         onClick={handleCopyPaypal}
-                        className="px-3 py-2 rounded-lg bg-[#10141E] hover:bg-[#161C2C] text-[#FFFFFF] font-bold text-xs flex items-center gap-1.5 transition active:scale-95 border border-[#161C2C]"
+                        className="px-3 py-2 rounded-lg bg-[#080D18] hover:bg-[#0131CD]/20 text-[#FFFFFF] font-bold text-xs flex items-center gap-1.5 transition active:scale-95 border border-[var(--gio-border-subtle)]"
                       >
                         {copiedPaypal ? (
                           <>
-                            <CheckCircle2 className="w-3.5 h-3.5 text-[#20C997]" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-[#A6C957]" />
                             <span>Copiado!</span>
                           </>
                         ) : (
@@ -286,7 +286,7 @@ export const SupportTab: React.FC<SupportTabProps> = () => {
                         href={getPaypalLink()}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-[#0131CD] to-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs flex items-center gap-1.5 transition active:scale-95 shadow-md shadow-[#0131CD]/30"
+                        className="px-3.5 py-2 rounded-lg bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs flex items-center gap-1.5 transition active:scale-95 shadow-md shadow-[#0131CD]/30"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
                         <span>Abrir PayPal</span>
@@ -296,43 +296,43 @@ export const SupportTab: React.FC<SupportTabProps> = () => {
 
                   {/* Suggested contribution cards for PayPal with direct links */}
                   <div className="space-y-1.5">
-                    <span className="text-xs font-semibold text-[#94A3B8] block">Valores sugeridos com 1 clique:</span>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                    <span className="text-xs font-semibold text-[#A5B1C5] block">Valores sugeridos com 1 clique:</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs tabular-nums">
                       <a
                         href={getPaypalLink(5)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 bg-[#10141E] hover:bg-[#161C2C] border border-[#161C2C] hover:border-[#0131CD]/50 rounded-xl transition group block"
+                        className="p-2 bg-[#111B30] hover:bg-[#0131CD]/20 border border-[var(--gio-border-subtle)] hover:border-[#0131CD]/50 rounded-xl transition group block"
                       >
-                        <span className="font-mono font-bold text-[#FFFFFF] group-hover:text-[#B9FC01] block">R$ 5,00</span>
-                        <span className="text-[10px] text-[#94A3B8]">Moeda da sorte 🪙</span>
+                        <span className="font-semibold text-[#FFFFFF] group-hover:text-[#A6C957] block">R$ 5,00</span>
+                        <span className="text-[10px] text-[#A5B1C5]">Moeda da sorte 🪙</span>
                       </a>
                       <a
                         href={getPaypalLink(15)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 bg-[#10141E] hover:bg-[#161C2C] border border-[#161C2C] hover:border-[#0131CD]/50 rounded-xl transition group block"
+                        className="p-2 bg-[#111B30] hover:bg-[#0131CD]/20 border border-[var(--gio-border-subtle)] hover:border-[#0131CD]/50 rounded-xl transition group block"
                       >
-                        <span className="font-mono font-bold text-[#B9FC01] group-hover:text-[#FFFFFF] block">R$ 15,00</span>
-                        <span className="text-[10px] text-[#94A3B8]">Apoio mensal ☕</span>
+                        <span className="font-semibold text-[#FFFFFF] group-hover:text-[#A6C957] block">R$ 15,00</span>
+                        <span className="text-[10px] text-[#A5B1C5]">Apoio mensal ☕</span>
                       </a>
                       <a
                         href={getPaypalLink(30)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 bg-[#10141E] hover:bg-[#161C2C] border border-[#161C2C] hover:border-[#0131CD]/50 rounded-xl transition group block"
+                        className="p-2 bg-[#111B30] hover:bg-[#0131CD]/20 border border-[var(--gio-border-subtle)] hover:border-[#0131CD]/50 rounded-xl transition group block"
                       >
-                        <span className="font-mono font-bold text-[#20C997] block">R$ 30,00</span>
-                        <span className="text-[10px] text-[#94A3B8]">Incentivo live 🚀</span>
+                        <span className="font-semibold text-[#FFFFFF] group-hover:text-[#A6C957] block">R$ 30,00</span>
+                        <span className="text-[10px] text-[#A5B1C5]">Incentivo live 🚀</span>
                       </a>
                       <a
                         href={getPaypalLink(60)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 bg-[#10141E] hover:bg-[#161C2C] border border-[#161C2C] hover:border-[#0131CD]/50 rounded-xl transition group block"
+                        className="p-2 bg-[#111B30] hover:bg-[#0131CD]/20 border border-[#A6C957]/35 hover:border-[#A6C957]/60 rounded-xl transition group block"
                       >
-                        <span className="font-mono font-bold text-[#F5B942] block">R$ 60,00+</span>
-                        <span className="text-[10px] text-[#94A3B8]">Super patrono 👑</span>
+                        <span className="font-semibold text-[#A6C957] block">R$ 60,00+</span>
+                        <span className="text-[10px] text-[#A5B1C5]">Super patrono 👑</span>
                       </a>
                     </div>
                   </div>
@@ -340,40 +340,40 @@ export const SupportTab: React.FC<SupportTabProps> = () => {
               </div>
             )}
 
-            <div className="text-xs text-[#94A3B8] flex items-center gap-1.5 justify-center">
-              <ShieldCheck className="w-4 h-4 text-[#20C997] shrink-0" />
+            <div className="text-xs text-[#A5B1C5] flex items-center gap-1.5 justify-center">
+              <ShieldCheck className="w-4 h-4 text-[#A6C957] shrink-0" />
               <span>Contribuição direta, segura e voluntária sem intermediários</span>
             </div>
           </div>
 
           {/* Transparent Cost Breakdown */}
-          <div className="bg-[#10141E] border border-[#161C2C] rounded-2xl p-6 shadow-xl space-y-4">
-            <h3 className="font-display font-bold text-base text-[#FFFFFF] flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#B9FC01]" />
+          <div className="bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-2xl p-6 shadow-xl space-y-4">
+            <h3 className="font-bold text-base text-[#FFFFFF] flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#A6C957]" />
               <span>Onde Sua Colaboração é Aplicada?</span>
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-              <div className="p-3.5 bg-[#080A0F] border border-[#161C2C] rounded-xl space-y-1">
-                <Server className="w-5 h-5 text-[#B9FC01]" />
+              <div className="p-3.5 bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl space-y-1">
+                <Server className="w-5 h-5 text-[#35B9F5]" />
                 <h4 className="font-bold text-[#FFFFFF]">Servidores & Tráfego</h4>
-                <p className="text-[#94A3B8] text-[11px]">
+                <p className="text-[#A5B1C5] text-[11px]">
                   Mantém a resposta instantânea e o tempo de atividade 24/7 sem lentidões.
                 </p>
               </div>
 
-              <div className="p-3.5 bg-[#080A0F] border border-[#161C2C] rounded-xl space-y-1">
-                <Cloud className="w-5 h-5 text-[#B9FC01]" />
+              <div className="p-3.5 bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl space-y-1">
+                <Cloud className="w-5 h-5 text-[#35B9F5]" />
                 <h4 className="font-bold text-[#FFFFFF]">Nuvem & Banco de Dados</h4>
-                <p className="text-[#94A3B8] text-[11px]">
+                <p className="text-[#A5B1C5] text-[11px]">
                   Armazenamento seguro das contas de sorteadores e bilhetes de sorteios.
                 </p>
               </div>
 
-              <div className="p-3.5 bg-[#080A0F] border border-[#161C2C] rounded-xl space-y-1">
-                <Code2 className="w-5 h-5 text-[#20C997]" />
+              <div className="p-3.5 bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl space-y-1">
+                <Code2 className="w-5 h-5 text-[#35B9F5]" />
                 <h4 className="font-bold text-[#FFFFFF]">Evolução & Inovação</h4>
-                <p className="text-[#94A3B8] text-[11px]">
+                <p className="text-[#A5B1C5] text-[11px]">
                   Criação contínua de novos modos como Roleta, Battle Royale e Overlays.
                 </p>
               </div>
@@ -384,29 +384,29 @@ export const SupportTab: React.FC<SupportTabProps> = () => {
         {/* Right Column: Support Without Spending & Gratitude Wall (5 cols) */}
         <div className="md:col-span-5 space-y-6">
           {/* Free Ways to Support Card */}
-          <div className="bg-[#10141E] border border-[#161C2C] rounded-2xl p-6 shadow-xl space-y-4">
-            <h3 className="font-display font-bold text-base text-[#FFFFFF] flex items-center gap-2">
-              <Share2 className="w-4 h-4 text-[#B9FC01]" />
+          <div className="bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-2xl p-6 shadow-xl space-y-4">
+            <h3 className="font-bold text-base text-[#FFFFFF] flex items-center gap-2">
+              <Share2 className="w-4 h-4 text-[#A5B1C5]" />
               <span>Apoie Sem Gastar Nada</span>
             </h3>
 
-            <p className="text-xs text-[#94A3B8]">
+            <p className="text-xs text-[#A5B1C5]">
               Divulgar o GIO DA SORTE nos seus grupos, lives e comunidades nos ajuda imensamente a crescer!
             </p>
 
             <button
               type="button"
               onClick={handleCopyLink}
-              className="w-full py-3 px-4 rounded-xl bg-[#080A0F] hover:bg-[#10141E] text-[#FFFFFF] font-bold text-xs flex items-center justify-center gap-2 border border-[#161C2C] hover:border-[#0131CD]/50 transition active:scale-95"
+              className="w-full py-3 px-4 rounded-xl bg-[#080D18] hover:bg-[#111B30] text-[#FFFFFF] font-bold text-xs flex items-center justify-center gap-2 border border-[var(--gio-border-subtle)] hover:border-[#0131CD]/50 transition active:scale-95"
             >
               {copiedLink ? (
                 <>
-                  <CheckCircle2 className="w-4 h-4 text-[#20C997]" />
+                  <CheckCircle2 className="w-4 h-4 text-[#A6C957]" />
                   <span>Link Copiado com Sucesso!</span>
                 </>
               ) : (
                 <>
-                  <Share2 className="w-4 h-4 text-[#B9FC01]" />
+                  <Share2 className="w-4 h-4 text-[#A5B1C5]" />
                   <span>Compartilhar Link do GIO DA SORTE</span>
                 </>
               )}
@@ -414,10 +414,10 @@ export const SupportTab: React.FC<SupportTabProps> = () => {
           </div>
 
           {/* Gratitude Wall */}
-          <div className="bg-[#10141E] border border-[#161C2C] rounded-2xl p-6 shadow-xl space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-[#161C2C]">
-              <MessageSquare className="w-4 h-4 text-[#B9FC01]" />
-              <h3 className="font-display font-bold text-base text-[#FFFFFF]">Mural de Gratidão</h3>
+          <div className="bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-2xl p-6 shadow-xl space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-[var(--gio-border-subtle)]">
+              <MessageSquare className="w-4 h-4 text-[#A5B1C5]" />
+              <h3 className="font-bold text-base text-[#FFFFFF]">Mural de Gratidão</h3>
             </div>
 
             {/* Leave a message form */}
@@ -427,7 +427,7 @@ export const SupportTab: React.FC<SupportTabProps> = () => {
                 placeholder="Seu nome ou canal..."
                 value={authorInput}
                 onChange={(e) => setAuthorInput(e.target.value)}
-                className="w-full bg-[#080A0F] border border-[#161C2C] rounded-lg p-2 text-xs text-[#FFFFFF] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35"
+                className="w-full bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-lg p-2 text-xs text-[#FFFFFF] placeholder:text-[#A5B1C5] focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/30"
               />
               <div className="flex gap-2">
                 <input
@@ -435,7 +435,7 @@ export const SupportTab: React.FC<SupportTabProps> = () => {
                   placeholder="Escreva uma mensagem de incentivo..."
                   value={messageInput}
                   onChange={(e) => setMessageInput(e.target.value)}
-                  className="flex-1 bg-[#080A0F] border border-[#161C2C] rounded-lg p-2 text-xs text-[#FFFFFF] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35"
+                  className="flex-1 bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-lg p-2 text-xs text-[#FFFFFF] placeholder:text-[#A5B1C5] focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/30"
                 />
                 <button
                   type="submit"
@@ -449,10 +449,10 @@ export const SupportTab: React.FC<SupportTabProps> = () => {
             {/* Message feed */}
             <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
               {messages.map((m) => (
-                <div key={m.id} className="p-3 bg-[#080A0F] border border-[#161C2C] rounded-xl text-xs space-y-1">
-                  <div className="flex items-center justify-between text-[#94A3B8]">
-                    <span className="font-bold text-[#B9FC01]">{m.name}</span>
-                    <span className="text-[10px] text-[#94A3B8]">{m.date}</span>
+                <div key={m.id} className="p-3 bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-xs space-y-1">
+                  <div className="flex items-center justify-between text-[#A5B1C5]">
+                    <span className="font-bold text-[#A6C957]">{m.name}</span>
+                    <span className="text-[10px] text-[#A5B1C5]">{m.date}</span>
                   </div>
                   <p className="text-[#FFFFFF] text-xs italic">"{m.text}"</p>
                 </div>

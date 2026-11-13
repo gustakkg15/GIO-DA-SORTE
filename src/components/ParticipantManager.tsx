@@ -225,20 +225,20 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
     <div className="space-y-6 min-w-0 overflow-x-hidden animate-fade-in">
       {/* Add Participant & Conversion Rule Card */}
       <div className="gio-card p-5 sm:p-6 space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--gio-border-subtle)]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#0131CD]/15 border border-[#0131CD]/35 flex items-center justify-center text-[#FFFFFF] shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-[#0131CD] border border-[#0131CD] flex items-center justify-center text-[#FFFFFF] shrink-0">
               <UserPlus className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-display font-bold text-base sm:text-lg text-[#FFFFFF]">
+                <h2 className="font-bold text-base sm:text-lg text-[#FFFFFF]">
                   Adicionar Participantes
                 </h2>
                 <span className="gio-badge-info text-[10px]">Manual ou Planilha</span>
               </div>
-              <p className="text-xs text-[#94A3B8] font-mono tabular-nums mt-0.5">
-                Regra oficial: <strong className="text-[#F5B942]">{settings.rate} moedas = 1 bilhete</strong>
+              <p className="text-xs text-[#A5B1C5] tabular-nums mt-0.5">
+                Regra oficial: <strong className="text-[#A6C957] font-semibold">{settings.rate} moedas = 1 bilhete</strong>
               </p>
             </div>
           </div>
@@ -256,7 +256,7 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
               onClick={() => setIsImportModalOpen(true)}
               className="gio-btn-secondary text-xs min-h-[38px] px-3.5 py-1.5 flex items-center gap-2"
             >
-              <FileSpreadsheet className="w-4 h-4 text-[#B9FC01]" />
+              <FileSpreadsheet className="w-4 h-4 text-[#A5B1C5]" />
               <span className="hidden sm:inline">Importar Planilha / CSV</span>
               <span className="sm:hidden">Importar</span>
             </button>
@@ -267,7 +267,7 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
               title="Exportar lista atual de participantes e saldo de moedas em CSV"
               className="gio-btn-secondary text-xs min-h-[38px] px-3.5 py-1.5 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <Download className="w-4 h-4 text-[#F5B942]" />
+              <Download className="w-4 h-4 text-[#A5B1C5]" />
               <span className="hidden sm:inline">Exportar CSV</span>
               <span className="sm:hidden">CSV</span>
             </button>
@@ -276,13 +276,13 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
 
         {/* Real Persisted Conversion Rate Bar (when onUpdateSettings is provided) */}
         {onUpdateSettings && (
-          <div className="p-3.5 rounded-xl bg-[#080A0F]/80 border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2 text-[#94A3B8]">
-              <Sliders className="w-4 h-4 text-[#F5B942] shrink-0" />
+          <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-[#A5B1C5]">
+              <Sliders className="w-4 h-4 text-[#A5B1C5] shrink-0" />
               <span>Regra de conversão deste sorteio:</span>
             </div>
             <div className="flex items-center gap-2.5 flex-wrap">
-              <div className="flex items-center gap-2 bg-[#10141E] border border-white/[0.1] rounded-lg px-3 py-1.5 shadow-xs">
+              <div className="flex items-center gap-2 bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-lg px-3 py-1.5 shadow-xs">
                 <input
                   type="number"
                   min={1}
@@ -293,12 +293,12 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                     const nextRate = Math.max(1, parseInt(e.target.value, 10) || 1);
                     onUpdateSettings({ rate: nextRate });
                   }}
-                  className="w-16 bg-transparent text-right font-mono font-bold text-xs text-[#F5B942] focus:outline-none focus:ring-2 focus:ring-[#B9FC01]/40 rounded tabular-nums"
+                  className="w-16 bg-transparent text-right font-bold text-xs text-[#A6C957] focus:outline-none focus:ring-2 focus:ring-[#A6C957]/40 rounded tabular-nums"
                 />
-                <span className="text-[11px] text-[#94A3B8]">moedas = 1 bilhete</span>
+                <span className="text-[11px] text-[#A5B1C5]">moedas = 1 bilhete</span>
               </div>
-              <div className="flex items-center gap-2 bg-[#10141E] border border-white/[0.1] rounded-lg px-3 py-1.5 shadow-xs">
-                <span className="text-[11px] text-[#94A3B8]">Capacidade:</span>
+              <div className="flex items-center gap-2 bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-lg px-3 py-1.5 shadow-xs">
+                <span className="text-[11px] text-[#A5B1C5]">Capacidade:</span>
                 <input
                   type="number"
                   min={10}
@@ -310,9 +310,9 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                     const nextTotal = Math.max(10, parseInt(e.target.value, 10) || 100);
                     onUpdateSettings({ total: nextTotal });
                   }}
-                  className="w-16 bg-transparent text-right font-mono font-bold text-xs text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#B9FC01]/40 rounded tabular-nums"
+                  className="w-16 bg-transparent text-right font-bold text-xs text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#A6C957]/40 rounded tabular-nums"
                 />
-                <span className="text-[11px] text-[#94A3B8]">bilhetes</span>
+                <span className="text-[11px] text-[#A5B1C5]">bilhetes</span>
               </div>
             </div>
           </div>
@@ -322,7 +322,7 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
         <form onSubmit={handleSingleSubmit} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
             <div className="sm:col-span-6">
-              <label htmlFor="participant-name-input" className="block text-xs text-[#94A3B8] mb-1.5 font-medium">
+              <label htmlFor="participant-name-input" className="block text-xs text-[#A5B1C5] mb-1.5 font-medium">
                 Nome completo ou @usuário
               </label>
               <input
@@ -331,11 +331,11 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
                 placeholder="Ex.: Mariana Silva (@marianasilva)"
-                className="gio-input w-full min-h-[42px] px-3.5 py-2 text-sm text-[#FFFFFF] placeholder:text-[#94A3B8]/40"
+                className="gio-input w-full min-h-[42px] px-3.5 py-2 text-sm text-[#FFFFFF] placeholder:text-[#A5B1C5]/50"
               />
             </div>
             <div className="sm:col-span-3">
-              <label htmlFor="participant-coins-input" className="block text-xs text-[#94A3B8] mb-1.5 font-medium">
+              <label htmlFor="participant-coins-input" className="block text-xs text-[#A5B1C5] mb-1.5 font-medium">
                 Moedas ({settings.rate} = 1 bil.)
               </label>
               <div className="relative">
@@ -347,9 +347,9 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                   value={coinsInput}
                   onChange={(e) => setCoinsInput(e.target.value)}
                   placeholder={`Ex.: ${settings.rate}`}
-                  className="gio-input w-full min-h-[42px] pl-3.5 pr-8 py-2 text-sm text-[#FFFFFF] placeholder:text-[#94A3B8]/40 font-mono tabular-nums"
+                  className="gio-input w-full min-h-[42px] pl-3.5 pr-8 py-2 text-sm text-[#FFFFFF] placeholder:text-[#A5B1C5]/50 tabular-nums"
                 />
-                <Coins className="w-4 h-4 text-[#F5B942] absolute right-2.5 top-3 pointer-events-none" />
+                <Coins className="w-4 h-4 text-[#A5B1C5] absolute right-2.5 top-3 pointer-events-none" />
               </div>
             </div>
             <div className="sm:col-span-3">
@@ -366,17 +366,17 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
 
         {/* Bulk Paste Accordion */}
         {isBulkOpen && (
-          <div className="pt-4 border-t border-white/[0.08] space-y-3">
-            <div className="flex items-center justify-between text-xs text-[#94A3B8]">
+          <div className="pt-4 border-t border-[var(--gio-border-subtle)] space-y-3">
+            <div className="flex items-center justify-between text-xs text-[#A5B1C5]">
               <span className="font-semibold text-[#FFFFFF]">Colar Lista Rápida</span>
-              <span className="font-mono">Formato: Nome {settings.rate} (um por linha)</span>
+              <span className="tabular-nums">Formato: Nome {settings.rate} (um por linha)</span>
             </div>
             <textarea
               rows={4}
               value={bulkText}
               onChange={(e) => setBulkText(e.target.value)}
               placeholder={`Ana ${settings.rate * 2}\nBruno, ${settings.rate}\nCarla; ${settings.rate * 3}`}
-              className="gio-input w-full p-3.5 text-xs sm:text-sm text-[#FFFFFF] placeholder:text-[#94A3B8]/40 font-mono leading-relaxed"
+              className="gio-input w-full p-3.5 text-xs sm:text-sm text-[#FFFFFF] placeholder:text-[#A5B1C5]/50 leading-relaxed"
             />
             <div className="flex justify-end gap-2.5">
               <button
@@ -399,13 +399,13 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
 
         {/* File Import Accordion */}
         {isImportOpen && (
-          <div className="pt-4 border-t border-white/[0.08] space-y-3">
+          <div className="pt-4 border-t border-[var(--gio-border-subtle)] space-y-3">
             <div className="text-xs text-[#FFFFFF] font-semibold">
               Importar de Planilha (.xlsx, .xls) ou Texto (.csv, .txt, .tsv)
             </div>
-            <div className="p-6 bg-[#080A0F] border border-dashed border-white/[0.15] rounded-xl text-center space-y-2.5">
-              <Upload className="w-7 h-7 text-[#B9FC01] mx-auto" />
-              <p className="text-xs text-[#94A3B8]">
+            <div className="p-6 bg-[#080D18] border border-dashed border-[var(--gio-border-subtle)] rounded-xl text-center space-y-2.5">
+              <Upload className="w-7 h-7 text-[#A5B1C5] mx-auto" />
+              <p className="text-xs text-[#A5B1C5]">
                 Selecione o arquivo da lista. A primeira coluna deve conter os nomes e a segunda as moedas.
               </p>
               <input
@@ -413,15 +413,15 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                 type="file"
                 accept=".csv,.txt,.tsv,.xlsx,.xls"
                 onChange={handleFileUpload}
-                className="text-xs text-[#94A3B8] file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#0131CD] file:text-[#FFFFFF] hover:file:brightness-110 cursor-pointer"
+                className="text-xs text-[#A5B1C5] file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#0131CD] file:text-[#FFFFFF] hover:file:brightness-110 cursor-pointer"
               />
             </div>
-            <label className="flex items-center gap-2 text-xs text-[#94A3B8] cursor-pointer select-none">
+            <label className="flex items-center gap-2 text-xs text-[#A5B1C5] cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={replaceOnImport}
                 onChange={(e) => setReplaceOnImport(e.target.checked)}
-                className="w-4 h-4 rounded text-[#0131CD] bg-[#080A0F] border-white/[0.15]"
+                className="w-4 h-4 rounded text-[#0131CD] bg-[#080D18] border-[var(--gio-border-subtle)]"
               />
               <span>Substituir a lista existente por esta (apagar os atuais)</span>
             </label>
@@ -433,10 +433,10 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
           <div
             className={`text-xs p-3 rounded-xl border flex items-center justify-between transition-all ${
               feedbackMsg.type === 'error'
-                ? 'bg-[#F05262]/12 border-[#F05262]/40 text-[#F05262]'
+                ? 'bg-[#F05262]/15 border-[#F05262]/40 text-[#F05262]'
                 : feedbackMsg.type === 'warn'
-                ? 'bg-[#F5B942]/12 border-[#F5B942]/40 text-[#F5B942]'
-                : 'bg-[#20C997]/12 border-[#20C997]/40 text-[#20C997]'
+                ? 'bg-[#A6C957]/15 border-[#A6C957]/35 text-[#A6C957]'
+                : 'bg-[#0131CD]/20 border-[#0131CD]/50 text-[#FFFFFF]'
             }`}
           >
             <span>{feedbackMsg.text}</span>
@@ -446,11 +446,11 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
 
       {/* Capacity & Distribution Warning */}
       {isCapacityExceeded && (
-        <div className="bg-[#F5B942]/10 border border-[#F5B942]/40 rounded-xl p-3.5 flex items-start gap-3 text-[#FFFFFF] text-xs">
-          <AlertTriangle className="w-5 h-5 shrink-0 text-[#F5B942] mt-0.5" />
+        <div className="bg-[#A6C957]/15 border border-[#A6C957]/35 rounded-xl p-3.5 flex items-start gap-3 text-[#FFFFFF] text-xs">
+          <AlertTriangle className="w-5 h-5 shrink-0 text-[#A6C957] mt-0.5" />
           <div>
             <p className="font-semibold text-[#FFFFFF]">Capacidade máxima de bilhetes atingida ({settings.total})</p>
-            <p className="text-[#94A3B8] mt-0.5">
+            <p className="text-[#A5B1C5] mt-0.5">
               Os participantes acumularam moedas para mais bilhetes do que o limite atual ({settings.total}). Aumente o limite de bilhetes acima ou nas Configurações para contemplar todos.
             </p>
           </div>
@@ -459,22 +459,22 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
 
       {/* Participants Table & List View */}
       <div className="gio-card p-5 sm:p-6 space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--gio-border-subtle)]">
           <div>
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#0131CD]/15 border border-[#0131CD]/30 flex items-center justify-center text-[#FFFFFF]">
+              <div className="w-8 h-8 rounded-lg bg-[#0131CD] border border-[#0131CD] flex items-center justify-center text-[#FFFFFF]">
                 <Users className="w-4 h-4" />
               </div>
-              <h2 className="font-display font-bold text-lg sm:text-xl text-[#FFFFFF]">
+              <h2 className="font-bold text-lg sm:text-xl text-[#FFFFFF]">
                 Participantes do Sorteio
               </h2>
-              <span className="text-xs font-mono font-bold bg-[#080A0F] border border-white/[0.1] text-[#B9FC01] px-2.5 py-0.5 rounded-md tabular-nums">
+              <span className="text-xs font-bold bg-[#080D18] border border-[var(--gio-border-subtle)] text-[#A6C957] px-2.5 py-0.5 rounded-md tabular-nums">
                 {participants.length}
               </span>
             </div>
-            <p className="text-xs text-[#94A3B8] mt-1 font-mono tabular-nums">
-              <strong className="text-[#FFFFFF]">{computed.usedCount}</strong> de{' '}
-              <strong className="text-[#FFFFFF]">{settings.total}</strong> bilhetes emitidos ({settings.rate} moedas = 1 bilhete)
+            <p className="text-xs text-[#A5B1C5] mt-1 tabular-nums">
+              <strong className="text-[#FFFFFF] font-semibold">{computed.usedCount}</strong> de{' '}
+              <strong className="text-[#FFFFFF] font-semibold">{settings.total}</strong> bilhetes emitidos ({settings.rate} moedas = 1 bilhete)
             </p>
           </div>
 
@@ -487,14 +487,14 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                 aria-label="Filtrar participante por nome"
                 value={filterQuery}
                 onChange={(e) => setFilterQuery(e.target.value)}
-                className="gio-input pl-8 pr-7 py-2 text-xs text-[#FFFFFF] placeholder:text-[#94A3B8]/40 w-full min-h-[38px]"
+                className="gio-input pl-8 pr-7 py-2 text-xs text-[#FFFFFF] placeholder:text-[#A5B1C5]/50 w-full min-h-[38px]"
               />
-              <Search className="w-3.5 h-3.5 text-[#94A3B8] absolute left-2.5 top-3 pointer-events-none" />
+              <Search className="w-3.5 h-3.5 text-[#A5B1C5] absolute left-2.5 top-3 pointer-events-none" />
               {filterQuery && (
                 <button
                   type="button"
                   onClick={() => setFilterQuery('')}
-                  className="absolute right-2 top-2.5 text-[#94A3B8] hover:text-[#FFFFFF]"
+                  className="absolute right-2 top-2.5 text-[#A5B1C5] hover:text-[#FFFFFF]"
                   title="Limpar filtro de nome"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -511,22 +511,22 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                 aria-label="Buscar por número de bilhete"
                 value={ticketSearchQuery}
                 onChange={(e) => setTicketSearchQuery(e.target.value)}
-                className={`gio-input pl-8 pr-7 py-2 text-xs w-full min-h-[38px] tabular-nums font-mono ${
+                className={`gio-input pl-8 pr-7 py-2 text-xs w-full min-h-[38px] tabular-nums ${
                   isValidTicketSearch
-                    ? 'border-[#F5B942] text-[#F5B942] bg-[#F5B942]/10 ring-1 ring-[#F5B942]/40'
-                    : 'text-[#FFFFFF] placeholder:text-[#94A3B8]/40'
+                    ? 'border-[#A6C957] text-[#A6C957] bg-[#A6C957]/15 ring-1 ring-[#A6C957]/40'
+                    : 'text-[#FFFFFF] placeholder:text-[#A5B1C5]/50'
                 }`}
               />
               <Ticket
                 className={`w-3.5 h-3.5 absolute left-2.5 top-3 pointer-events-none ${
-                  isValidTicketSearch ? 'text-[#F5B942]' : 'text-[#94A3B8]'
+                  isValidTicketSearch ? 'text-[#A6C957]' : 'text-[#A5B1C5]'
                 }`}
               />
               {ticketSearchQuery && (
                 <button
                   type="button"
                   onClick={() => setTicketSearchQuery('')}
-                  className="absolute right-2 top-2.5 text-[#94A3B8] hover:text-[#FFFFFF]"
+                  className="absolute right-2 top-2.5 text-[#A5B1C5] hover:text-[#FFFFFF]"
                   title="Limpar busca de bilhete"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -535,18 +535,18 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
             </div>
 
             {/* Sort Dropdown */}
-            <div className="flex items-center gap-1.5 bg-[#080A0F] border border-white/[0.1] rounded-lg px-2.5 py-1.5 text-xs text-[#FFFFFF] min-h-[38px]">
-              <ArrowUpDown className="w-3.5 h-3.5 text-[#94A3B8]" />
+            <div className="flex items-center gap-1.5 bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-lg px-2.5 py-1.5 text-xs text-[#FFFFFF] min-h-[38px]">
+              <ArrowUpDown className="w-3.5 h-3.5 text-[#A5B1C5]" />
               <select
                 value={sortBy}
                 aria-label="Ordenar participantes por"
                 onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                className="bg-transparent text-xs text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#B9FC01]/40 rounded cursor-pointer py-0.5"
+                className="bg-transparent text-xs text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#A6C957]/40 rounded cursor-pointer py-0.5"
               >
-                <option value="tickets-desc" className="bg-[#10141E]">Mais bilhetes</option>
-                <option value="coins-desc" className="bg-[#10141E]">Mais moedas</option>
-                <option value="name-asc" className="bg-[#10141E]">Nome (A-Z)</option>
-                <option value="recent" className="bg-[#10141E]">Mais recentes</option>
+                <option value="tickets-desc" className="bg-[#111B30]">Mais bilhetes</option>
+                <option value="coins-desc" className="bg-[#111B30]">Mais moedas</option>
+                <option value="name-asc" className="bg-[#111B30]">Nome (A-Z)</option>
+                <option value="recent" className="bg-[#111B30]">Mais recentes</option>
               </select>
             </div>
           </div>
@@ -557,28 +557,28 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
           <div
             className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm transition-all ${
               ticketHolder
-                ? 'bg-[#F5B942]/12 border-[#F5B942]/50 text-[#FFFFFF] shadow-sm'
-                : 'bg-[#080A0F] border-white/[0.1] text-[#94A3B8]'
+                ? 'bg-[#A6C957]/15 border-[#A6C957]/45 text-[#FFFFFF] shadow-sm'
+                : 'bg-[#080D18] border-[var(--gio-border-subtle)] text-[#A5B1C5]'
             }`}
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <Ticket className={`w-4 h-4 shrink-0 ${ticketHolder ? 'text-[#F5B942]' : 'text-[#94A3B8]'}`} />
+              <Ticket className={`w-4 h-4 shrink-0 ${ticketHolder ? 'text-[#A6C957]' : 'text-[#A5B1C5]'}`} />
               {ticketHolder ? (
                 <div className="truncate">
                   <span>Bilhete </span>
-                  <span className="font-mono font-bold text-[#F5B942] bg-[#10141E] border border-[#F5B942]/40 px-2 py-0.5 rounded-md mr-1.5 tabular-nums">
+                  <span className="font-bold text-[#A6C957] bg-[#111B30] border border-[#A6C957]/40 px-2 py-0.5 rounded-md mr-1.5 tabular-nums">
                     #{parsedTicketNum}
                   </span>
                   <span>pertence a </span>
                   <strong className="text-[#FFFFFF] font-semibold">{ticketHolder.participant.name}</strong>
-                  <span className="text-[#94A3B8] ml-1.5 font-mono tabular-nums">
+                  <span className="text-[#A5B1C5] ml-1.5 tabular-nums">
                     ({ticketHolder.assignedTickets} {ticketHolder.assignedTickets === 1 ? 'bilhete' : 'bilhetes'})
                   </span>
                 </div>
               ) : (
                 <div>
                   <span>Bilhete </span>
-                  <span className="font-mono font-bold text-[#FFFFFF] bg-[#10141E] border border-white/[0.1] px-2 py-0.5 rounded-md mr-1.5 tabular-nums">
+                  <span className="font-bold text-[#FFFFFF] bg-[#111B30] border border-[var(--gio-border-subtle)] px-2 py-0.5 rounded-md mr-1.5 tabular-nums">
                     #{parsedTicketNum}
                   </span>
                   <span>não atribuído a nenhum participante</span>
@@ -587,7 +587,7 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                       (fora da série #{settings.start} a #{settings.start + settings.total - 1})
                     </span>
                   ) : (
-                    <span className="text-[#94A3B8] ml-1.5">(disponível na série)</span>
+                    <span className="text-[#A5B1C5] ml-1.5">(disponível na série)</span>
                   )}
                 </div>
               )}
@@ -599,8 +599,8 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                 onClick={() => setFilterOnlyTicketMatch(!filterOnlyTicketMatch)}
                 className={`px-3 py-1 rounded-lg text-xs font-semibold transition border ${
                   filterOnlyTicketMatch
-                    ? 'bg-[#F5B942] text-[#080A0F] border-[#F5B942] font-bold shadow-xs'
-                    : 'bg-[#10141E] text-[#FFFFFF] border-white/[0.1] hover:border-white/[0.2]'
+                    ? 'bg-[#A6C957] hover:bg-[#B5D477] text-[#080D18] border-[#A6C957] font-bold shadow-xs'
+                    : 'bg-[#111B30] text-[#FFFFFF] border-[var(--gio-border-subtle)] hover:border-[#0131CD]'
                 }`}
               >
                 <span>{filterOnlyTicketMatch ? 'Filtrando Portador' : 'Destacando na Lista'}</span>
@@ -609,7 +609,7 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
               <button
                 type="button"
                 onClick={() => setTicketSearchQuery('')}
-                className="p-1 hover:bg-white/[0.08] rounded-md text-[#94A3B8] hover:text-[#FFFFFF] transition"
+                className="p-1 hover:bg-[#111B30] rounded-md text-[#A5B1C5] hover:text-[#FFFFFF] transition"
                 title="Limpar busca de bilhete"
               >
                 <X className="w-4 h-4" />
@@ -620,15 +620,15 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
 
         {/* Participant List */}
         {participants.length === 0 ? (
-          <div className="py-12 text-center space-y-2 border border-dashed border-white/[0.1] rounded-2xl bg-[#080A0F]/50">
-            <Users className="w-8 h-8 text-[#94A3B8]/40 mx-auto" />
+          <div className="py-12 text-center space-y-2 border border-dashed border-[var(--gio-border-subtle)] rounded-2xl bg-[#080D18]/50">
+            <Users className="w-8 h-8 text-[#A5B1C5]/50 mx-auto" />
             <p className="text-sm sm:text-base font-semibold text-[#FFFFFF]">Nenhum participante cadastrado ainda</p>
-            <p className="text-xs text-[#94A3B8] max-w-sm mx-auto">
+            <p className="text-xs text-[#A5B1C5] max-w-sm mx-auto">
               Adicione participantes individualmente ou importe uma planilha no formulário acima para iniciar o sorteio.
             </p>
           </div>
         ) : filteredAllocations.length === 0 ? (
-          <div className="py-10 text-center text-xs sm:text-sm text-[#94A3B8] space-y-2 border border-white/[0.05] rounded-xl bg-[#080A0F]/30">
+          <div className="py-10 text-center text-xs sm:text-sm text-[#A5B1C5] space-y-2 border border-[var(--gio-border-subtle)] rounded-xl bg-[#080D18]/30">
             <p>
               {isValidTicketSearch
                 ? `Nenhum participante possui o bilhete #${parsedTicketNum}.`
@@ -662,28 +662,28 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                   key={p.id}
                   className={`p-4 rounded-xl border transition-all duration-200 ${
                     isHoldingSearchedTicket
-                      ? 'bg-[#161C2C] border-[#F5B942] ring-1 ring-[#F5B942]/60 shadow-md'
+                      ? 'bg-[#111B30] border-[#A6C957] ring-1 ring-[#A6C957]/50 shadow-md'
                       : hasWon
-                      ? 'bg-[#080A0F]/90 border-[#20C997]/40 ring-1 ring-[#20C997]/20'
-                      : 'bg-[#080A0F]/70 border-white/[0.08] hover:border-[#0131CD]/35'
+                      ? 'bg-[#080D18] border-[#A6C957]/40 ring-1 ring-[#A6C957]/20'
+                      : 'bg-[#080D18] border-[var(--gio-border-subtle)] hover:border-[#0131CD]/50'
                   }`}
                 >
                   <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
-                      <div className="w-8 h-8 rounded-full bg-[#10141E] border border-white/[0.1] flex items-center justify-center font-bold text-xs text-[#B9FC01] shrink-0 font-mono">
+                      <div className="w-8 h-8 rounded-full bg-[#111B30] border border-[var(--gio-border-subtle)] flex items-center justify-center font-bold text-xs text-[#FFFFFF] shrink-0">
                         {p.name.charAt(0).toUpperCase()}
                       </div>
                       <span className="font-semibold text-sm sm:text-base text-[#FFFFFF] truncate max-w-[220px] sm:max-w-none">
                         {p.name}
                       </span>
                       {isHoldingSearchedTicket && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider bg-[#F5B942] text-[#080A0F] px-2 py-0.5 rounded-md flex items-center gap-1 shrink-0 font-mono tabular-nums shadow-xs">
+                        <span className="text-[11px] font-semibold bg-[#A6C957] text-[#080D18] px-2 py-0.5 rounded-md flex items-center gap-1 shrink-0 tabular-nums shadow-xs">
                           <Ticket className="w-3 h-3" />
                           <span>Portador #{parsedTicketNum}</span>
                         </span>
                       )}
                       {hasWon && (
-                        <span className="gio-badge-success text-[10px]">
+                        <span className="gio-badge-success text-[11px]">
                           <CheckCircle2 className="w-3 h-3" />
                           <span>Premiado</span>
                         </span>
@@ -691,8 +691,8 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0 ml-auto">
-                      <div className="flex items-center gap-1.5 bg-[#10141E] border border-white/[0.1] rounded-lg px-2.5 py-1 min-h-[36px] shadow-xs">
-                        <span className="text-xs text-[#94A3B8] font-medium">Moedas:</span>
+                      <div className="flex items-center gap-1.5 bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-lg px-2.5 py-1 min-h-[36px] shadow-xs">
+                        <span className="text-xs text-[#A5B1C5] font-medium">Moedas:</span>
                         <input
                           type="number"
                           min="0"
@@ -703,7 +703,7 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                             const val = parseInt(e.target.value, 10);
                             onUpdateCoins(p.id, isNaN(val) || val < 0 ? 0 : val);
                           }}
-                          className="w-18 bg-[#080A0F] border border-white/[0.1] rounded px-2 py-0.5 text-xs sm:text-sm text-right text-[#FFFFFF] font-mono font-bold focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 tabular-nums"
+                          className="w-18 bg-[#080D18] border border-[var(--gio-border-subtle)] rounded px-2 py-0.5 text-xs sm:text-sm text-right text-[#FFFFFF] font-bold focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/35 tabular-nums"
                         />
                       </div>
 
@@ -712,23 +712,23 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                         onClick={() => onRemoveParticipant(p.id)}
                         title={`Remover ${p.name}`}
                         aria-label={`Remover participante ${p.name}`}
-                        className="min-w-[36px] min-h-[36px] p-2 flex items-center justify-center text-[#94A3B8] hover:text-[#F05262] hover:bg-[#F05262]/10 rounded-lg transition"
+                        className="min-w-[36px] min-h-[36px] p-2 flex items-center justify-center text-[#A5B1C5] hover:text-[#F05262] hover:bg-[#F05262]/10 rounded-lg transition"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
 
-                  <div className="mt-3 pt-3 border-t border-white/[0.06] flex flex-wrap items-center justify-between gap-2.5 text-xs">
+                  <div className="mt-3 pt-3 border-t border-[var(--gio-border-subtle)] flex flex-wrap items-center justify-between gap-2.5 text-xs">
                     <div className="flex items-center gap-2.5 flex-wrap min-w-0">
-                      <span className="text-[#94A3B8] tabular-nums">
+                      <span className="text-[#A5B1C5] tabular-nums">
                         {alloc.assignedTickets === 0 ? (
-                          <span className="text-[#94A3B8]">
-                            Sem bilhete · Faltam <strong className="text-[#FFFFFF] font-mono">{neededNext}</strong> moedas
+                          <span className="text-[#A5B1C5]">
+                            Sem bilhete · Faltam <strong className="text-[#FFFFFF] font-semibold">{neededNext}</strong> moedas
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#0131CD]/15 border border-[#0131CD]/35 text-[#FFFFFF] font-mono font-bold">
-                            <Ticket className="w-3.5 h-3.5 text-[#B9FC01]" />
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#0131CD] border border-[#0131CD] text-[#FFFFFF] font-semibold">
+                            <Ticket className="w-3.5 h-3.5 text-[#FFFFFF]" />
                             {alloc.assignedTickets} {alloc.assignedTickets === 1 ? 'bilhete' : 'bilhetes'}
                           </span>
                         )}
@@ -741,10 +741,10 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                             return (
                               <span
                                 key={num}
-                                className={`font-mono font-semibold px-2 py-0.5 rounded-md text-xs tabular-nums transition ${
+                                className={`font-semibold px-2 py-0.5 rounded-md text-xs tabular-nums transition ${
                                   isTargetTicket
-                                    ? 'bg-[#F5B942] text-[#080A0F] font-bold ring-1 ring-[#F5B942] shadow-xs'
-                                    : 'bg-[#10141E] text-[#FFFFFF] border border-white/[0.08]'
+                                    ? 'bg-[#A6C957] text-[#080D18] font-bold ring-1 ring-[#A6C957] shadow-xs'
+                                    : 'bg-[#111B30] text-[#FFFFFF] border border-[var(--gio-border-subtle)]'
                                 }`}
                               >
                                 #{num} {isTargetTicket && '★'}
@@ -752,7 +752,7 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                             );
                           })}
                           {alloc.tickets.length > ticketsToDisplay.length && (
-                            <span className="text-[#94A3B8] text-xs font-mono tabular-nums px-1">
+                            <span className="text-[#A5B1C5] text-xs tabular-nums px-1">
                               +{alloc.tickets.length - ticketsToDisplay.length} mais
                             </span>
                           )}
@@ -760,14 +760,14 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                       )}
                     </div>
 
-                    <div className="text-[#94A3B8] text-xs flex items-center gap-2 ml-auto font-mono tabular-nums">
+                    <div className="text-[#A5B1C5] text-xs flex items-center gap-2 ml-auto tabular-nums">
                       {alloc.assignedTickets > 0 && (
-                        <span className="px-2.5 py-0.5 rounded-md bg-[#20C997]/15 border border-[#20C997]/35 text-[#20C997] font-bold">
+                        <span className="px-2.5 py-0.5 rounded-md bg-[#A6C957]/15 border border-[#A6C957]/35 text-[#A6C957] font-semibold">
                           {alloc.winProbability}% chance
                         </span>
                       )}
                       {alloc.assignedTickets < alloc.wantedTickets && (
-                        <span className="text-[#F05262] font-medium font-sans">
+                        <span className="text-[#F05262] font-medium">
                           (Faltaram {alloc.wantedTickets - alloc.assignedTickets} por limite)
                         </span>
                       )}
@@ -780,10 +780,10 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
         )}
 
         {participants.length > 0 && (
-          <div className="pt-4 border-t border-white/[0.08] flex flex-wrap items-center justify-between gap-3">
-            <span className="text-xs sm:text-sm text-[#94A3B8] tabular-nums">
+          <div className="pt-4 border-t border-[var(--gio-border-subtle)] flex flex-wrap items-center justify-between gap-3">
+            <span className="text-xs sm:text-sm text-[#A5B1C5] tabular-nums">
               Total acumulado:{' '}
-              <strong className="text-[#F5B942] font-mono text-sm">
+              <strong className="text-[#A6C957] font-bold text-sm">
                 {participants.reduce((acc, p) => acc + p.coins, 0)} moedas
               </strong>
             </span>
@@ -805,7 +805,7 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsConfirmingClear(false)}
-                  className="px-2.5 py-1 text-xs text-[#94A3B8] hover:text-[#FFFFFF]"
+                  className="px-2.5 py-1 text-xs text-[#A5B1C5] hover:text-[#FFFFFF]"
                 >
                   Cancelar
                 </button>
@@ -814,7 +814,7 @@ export const ParticipantManager: React.FC<ParticipantManagerProps> = ({
               <button
                 type="button"
                 onClick={() => setIsConfirmingClear(true)}
-                className="text-xs text-[#94A3B8] hover:text-[#F05262] transition flex items-center gap-1.5 py-1 px-2 rounded-md hover:bg-[#F05262]/10"
+                className="text-xs text-[#A5B1C5] hover:text-[#F05262] transition flex items-center gap-1.5 py-1 px-2 rounded-md hover:bg-[#F05262]/10"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Limpar todos os participantes</span>

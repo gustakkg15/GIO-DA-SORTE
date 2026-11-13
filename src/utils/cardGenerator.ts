@@ -31,72 +31,72 @@ interface ThemePalette {
 
 const THEMES: Record<string, ThemePalette> = {
   sapphire: {
-    bgStart: '#030712',
-    bgMid: '#161C2C',
-    bgEnd: '#020617',
-    glowColor1: 'rgba(37, 99, 235, 0.35)',
-    glowColor2: 'rgba(14, 165, 233, 0.15)',
-    outerBorder: '#2563eb',
-    innerBorder: 'rgba(56, 189, 248, 0.5)',
-    accent: '#38bdf8',
-    badgeStart: '#1d4ed8',
-    badgeMid: '#0ea5e9',
-    badgeEnd: '#2563eb',
-    badgeBorder: '#93c5fd',
-    badgeText: '#e0f2fe',
-    numberColor: '#ffffff',
-    prizeColor: '#38bdf8',
+    bgStart: '#080D18',
+    bgMid: '#111B30',
+    bgEnd: '#080D18',
+    glowColor1: 'rgba(1, 49, 205, 0.35)',
+    glowColor2: 'rgba(166, 201, 87, 0.12)',
+    outerBorder: '#0131CD',
+    innerBorder: 'rgba(165, 177, 197, 0.35)',
+    accent: '#A6C957',
+    badgeStart: '#0131CD',
+    badgeMid: '#0131CD',
+    badgeEnd: '#111B30',
+    badgeBorder: '#A6C957',
+    badgeText: '#FFFFFF',
+    numberColor: '#FFFFFF',
+    prizeColor: '#A6C957',
   },
   gold: {
-    bgStart: '#0c0a09',
-    bgMid: '#1c1917',
-    bgEnd: '#050403',
-    glowColor1: 'rgba(245, 158, 11, 0.35)',
-    glowColor2: 'rgba(217, 119, 6, 0.15)',
-    outerBorder: '#d97706',
-    innerBorder: 'rgba(251, 191, 36, 0.5)',
-    accent: '#fbbf24',
-    badgeStart: '#b45309',
-    badgeMid: '#f59e0b',
-    badgeEnd: '#d97706',
-    badgeBorder: '#fde68a',
-    badgeText: '#fef3c7',
-    numberColor: '#ffffff',
-    prizeColor: '#fbbf24',
+    bgStart: '#080D18',
+    bgMid: '#111B30',
+    bgEnd: '#080D18',
+    glowColor1: 'rgba(166, 201, 87, 0.22)',
+    glowColor2: 'rgba(1, 49, 205, 0.2)',
+    outerBorder: '#A6C957',
+    innerBorder: 'rgba(166, 201, 87, 0.38)',
+    accent: '#A6C957',
+    badgeStart: '#111B30',
+    badgeMid: '#0131CD',
+    badgeEnd: '#111B30',
+    badgeBorder: '#A6C957',
+    badgeText: '#A6C957',
+    numberColor: '#FFFFFF',
+    prizeColor: '#A6C957',
   },
   emerald: {
-    bgStart: '#022c22',
-    bgMid: '#064e3b',
-    bgEnd: '#021c15',
-    glowColor1: 'rgba(16, 185, 129, 0.35)',
-    glowColor2: 'rgba(5, 150, 105, 0.15)',
-    outerBorder: '#059669',
-    innerBorder: 'rgba(52, 211, 153, 0.5)',
-    accent: '#34d399',
-    badgeStart: '#047857',
-    badgeMid: '#10b981',
-    badgeEnd: '#059669',
-    badgeBorder: '#a7f3d0',
-    badgeText: '#ecfdf5',
-    numberColor: '#ffffff',
-    prizeColor: '#34d399',
+    bgStart: '#080D18',
+    bgMid: '#111B30',
+    bgEnd: '#080D18',
+    glowColor1: 'rgba(166, 201, 87, 0.24)',
+    glowColor2: 'rgba(1, 49, 205, 0.18)',
+    outerBorder: '#A6C957',
+    innerBorder: 'rgba(165, 177, 197, 0.35)',
+    accent: '#A6C957',
+    badgeStart: '#0131CD',
+    badgeMid: '#111B30',
+    badgeEnd: '#0131CD',
+    badgeBorder: '#A6C957',
+    badgeText: '#FFFFFF',
+    numberColor: '#FFFFFF',
+    prizeColor: '#A6C957',
   },
   midnight: {
-    bgStart: '#09090b',
-    bgMid: '#18181b',
-    bgEnd: '#050507',
-    glowColor1: 'rgba(168, 85, 247, 0.3)',
-    glowColor2: 'rgba(99, 102, 241, 0.15)',
-    outerBorder: '#7c3aed',
-    innerBorder: 'rgba(192, 132, 252, 0.5)',
-    accent: '#c084fc',
-    badgeStart: '#6d28d9',
-    badgeMid: '#8b5cf6',
-    badgeEnd: '#7c3aed',
-    badgeBorder: '#ddd6fe',
-    badgeText: '#f3e8ff',
-    numberColor: '#ffffff',
-    prizeColor: '#c084fc',
+    bgStart: '#080D18',
+    bgMid: '#111B30',
+    bgEnd: '#080D18',
+    glowColor1: 'rgba(1, 49, 205, 0.3)',
+    glowColor2: 'rgba(165, 177, 197, 0.12)',
+    outerBorder: '#0131CD',
+    innerBorder: 'rgba(165, 177, 197, 0.3)',
+    accent: '#FFFFFF',
+    badgeStart: '#111B30',
+    badgeMid: '#0131CD',
+    badgeEnd: '#111B30',
+    badgeBorder: '#FFFFFF',
+    badgeText: '#A5B1C5',
+    numberColor: '#FFFFFF',
+    prizeColor: '#A6C957',
   },
 };
 
@@ -168,22 +168,22 @@ export async function renderVictoryCardCanvas(
 
   // Top Header Label
   ctx.fillStyle = theme.accent;
-  ctx.font = 'bold 22px "Outfit", system-ui, sans-serif';
+  ctx.font = '700 20px "Inter", system-ui, sans-serif';
   ctx.textAlign = 'center';
-  ctx.letterSpacing = '5px';
+  ctx.letterSpacing = '2px';
   ctx.fillText(title, 600, 105);
 
   // Subtitle
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '15px "Plus Jakarta Sans", system-ui, sans-serif';
-  ctx.letterSpacing = '1px';
+  ctx.fillStyle = '#A5B1C5';
+  ctx.font = '500 15px "Inter", system-ui, sans-serif';
+  ctx.letterSpacing = '0.5px';
   ctx.fillText(subtitle, 600, 136);
 
   // Divider Line
   const divGrad = ctx.createLinearGradient(350, 0, 850, 0);
-  divGrad.addColorStop(0, 'rgba(56, 189, 248, 0)');
+  divGrad.addColorStop(0, 'rgba(1, 49, 205, 0)');
   divGrad.addColorStop(0.5, theme.accent);
-  divGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+  divGrad.addColorStop(1, 'rgba(1, 49, 205, 0)');
   ctx.strokeStyle = divGrad;
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -192,8 +192,8 @@ export async function renderVictoryCardCanvas(
   ctx.stroke();
 
   // Winner Big Name
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '900 58px "Outfit", system-ui, sans-serif';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = '800 56px "Inter", system-ui, sans-serif';
   ctx.letterSpacing = '-0.5px';
   ctx.fillText(winnerName, 600, 235);
 
@@ -218,25 +218,25 @@ export async function renderVictoryCardCanvas(
 
   // Badge Text: Number and Prize
   ctx.fillStyle = theme.badgeText;
-  ctx.font = '800 15px "Outfit", system-ui, sans-serif';
-  ctx.letterSpacing = '2px';
+  ctx.font = '700 14px "Inter", system-ui, sans-serif';
+  ctx.letterSpacing = '1.5px';
   ctx.fillText('BILHETE PREMIADO', 600, 302);
 
   ctx.fillStyle = theme.numberColor;
-  ctx.font = '900 44px "JetBrains Mono", monospace';
+  ctx.font = '800 44px "Inter", system-ui, sans-serif';
   ctx.letterSpacing = '0px';
   ctx.fillText(`#${ticketNumber}`, 600, 344);
 
   // Prize Description
   ctx.fillStyle = theme.prizeColor;
-  ctx.font = 'bold 26px "Outfit", system-ui, sans-serif';
-  ctx.letterSpacing = '0.5px';
+  ctx.font = '700 26px "Inter", system-ui, sans-serif';
+  ctx.letterSpacing = '0px';
   ctx.fillText(`Prêmio: ${prize}`, 600, 404);
 
   // Optional custom message or default context
   if (customMessage) {
-    ctx.fillStyle = '#e2e8f0';
-    ctx.font = 'italic 16px "Plus Jakarta Sans", system-ui, sans-serif';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'italic 16px "Inter", system-ui, sans-serif';
     ctx.fillText(`"${customMessage}"`, 600, 442);
   } else {
     const coinsText = participant ? `Concorreu com ${participant.coins} moedas` : 'Participante da rodada';
@@ -247,24 +247,24 @@ export async function renderVictoryCardCanvas(
       hour: '2-digit',
       minute: '2-digit',
     });
-    ctx.fillStyle = '#cbd5e1';
-    ctx.font = '15px "Plus Jakarta Sans", system-ui, sans-serif';
+    ctx.fillStyle = '#A5B1C5';
+    ctx.font = '15px "Inter", system-ui, sans-serif';
     ctx.fillText(`${coinsText} · Sorteado em ${dateText}`, 600, 442);
   }
 
   // Organizer Signature
   ctx.fillStyle = theme.accent;
-  ctx.font = 'bold 15px "Outfit", system-ui, sans-serif';
-  ctx.letterSpacing = '1px';
+  ctx.font = '700 15px "Inter", system-ui, sans-serif';
+  ctx.letterSpacing = '0.5px';
   ctx.fillText(organizerSignature, 600, 480);
 
   // Bottom Cryptographic Seal / Hash
-  ctx.fillStyle = '#64748b';
+  ctx.fillStyle = '#A5B1C5';
   ctx.font = '12px "JetBrains Mono", monospace';
   const hashText = rosterHash ? `Hash de Integridade: ${rosterHash.slice(0, 32)}...` : 'Verificação Criptográfica Ativa';
   ctx.fillText(hashText, 600, 542);
 
-  ctx.font = '11px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.font = '11px "Inter", system-ui, sans-serif';
   ctx.fillText(`Taxa: ${settings.rate} moedas por bilhete · Total na série: ${settings.total}`, 600, 562);
 
   return canvas;

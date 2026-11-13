@@ -65,18 +65,18 @@ export const Dialog: React.FC<DialogProps> = ({
     >
       <div
         ref={dialogRef}
-        className={`relative w-full bg-[#0B1730] border border-white/10 rounded-2xl shadow-2xl overflow-hidden text-[#F8FAFC] animate-in zoom-in-95 duration-200 ${maxWidthClasses[maxWidth]}`}
+        className={`relative w-full bg-[#111B30] border border-[#A5B1C5]/20 rounded-2xl shadow-2xl overflow-hidden text-[#FFFFFF] animate-in zoom-in-95 duration-200 ${maxWidthClasses[maxWidth]}`}
       >
         {(title || showCloseButton) && (
-          <div className="flex items-start justify-between gap-4 p-5 sm:p-6 border-b border-white/10 bg-[#101F3D]/50">
+          <div className="flex items-start justify-between gap-4 p-5 sm:p-6 border-b border-[#A5B1C5]/15 bg-[#080D18]/60">
             <div>
               {title && (
-                <h2 className="text-lg font-bold text-[#F8FAFC] tracking-tight">
+                <h2 className="text-lg font-bold text-[#FFFFFF] tracking-tight">
                   {title}
                 </h2>
               )}
               {description && (
-                <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                <p className="text-xs sm:text-sm text-[#A5B1C5] mt-1">
                   {description}
                 </p>
               )}
@@ -85,7 +85,7 @@ export const Dialog: React.FC<DialogProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00A9FF]"
+                className="p-1.5 rounded-lg text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957]"
                 aria-label="Fechar modal"
               >
                 <X className="w-5 h-5" />

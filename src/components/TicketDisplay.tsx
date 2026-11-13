@@ -25,11 +25,11 @@ export const TicketDisplay: React.FC<TicketDisplayProps> = ({
       {/* Glow Effect Backdrop for Stage Presence */}
       <div
         aria-hidden="true"
-        className={`pointer-events-none absolute -inset-1 rounded-3xl blur-xl opacity-40 transition-opacity duration-300 ${
+        className={`pointer-events-none absolute -inset-1 rounded-3xl blur-xl opacity-30 transition-opacity duration-300 ${
           isSpinning
-            ? 'bg-gradient-to-r from-[#0131CD] via-[#0131CD] to-[#0131CD] opacity-50'
+            ? 'bg-[#0131CD]'
             : winnerName
-            ? 'bg-gradient-to-r from-[#F5B942]/40 via-[#F5B942]/20 to-[#F5B942]/40 opacity-60'
+            ? 'bg-[#A6C957]/25'
             : 'bg-transparent opacity-0'
         }`}
       />
@@ -38,68 +38,68 @@ export const TicketDisplay: React.FC<TicketDisplayProps> = ({
       <div
         className={`relative overflow-hidden rounded-2xl border transition-all duration-300 ${
           isSpinning
-            ? 'border-[#0131CD]/60 bg-[#080A0F] shadow-2xl ring-1 ring-[#0131CD]/30'
+            ? 'border-[#0131CD]/60 bg-[#080D18] shadow-2xl ring-1 ring-[#0131CD]/30'
             : winnerName
-            ? 'border-[#F5B942]/60 bg-[#0B1528] shadow-2xl ring-1 ring-[#F5B942]/35'
-            : 'border-white/10 bg-[#080A0F] shadow-xl'
+            ? 'border-[#A6C957]/55 bg-[#080D18] shadow-2xl ring-1 ring-[#A6C957]/25'
+            : 'border-[#A5B1C5]/15 bg-[#080D18] shadow-xl'
         }`}
       >
         {/* Top Atmosphere Accent Line */}
         <div
           className={`h-1 w-full transition-colors duration-300 ${
             isSpinning
-              ? 'bg-gradient-to-r from-[#0131CD] via-[#0131CD] to-[#B9FC01]'
+              ? 'bg-[#0131CD]'
               : winnerName
-              ? 'bg-gradient-to-r from-[#F5B942] via-[#FDE047] to-[#F5B942]'
-              : 'bg-gradient-to-r from-white/10 via-[#0131CD]/30 to-white/10'
+              ? 'bg-[#A6C957]'
+              : 'bg-[#0131CD]/40'
           }`}
         />
 
         {/* Ticket Perforation Stubs (Left & Right) */}
-        <div className="hidden min-[420px]:block absolute top-1/2 -left-3.5 -translate-y-1/2 w-7 h-7 rounded-full bg-[#10141E] border-r border-white/10 z-20 shadow-inner" />
-        <div className="hidden min-[420px]:block absolute top-1/2 -right-3.5 -translate-y-1/2 w-7 h-7 rounded-full bg-[#10141E] border-l border-white/10 z-20 shadow-inner" />
+        <div className="hidden min-[420px]:block absolute top-1/2 -left-3.5 -translate-y-1/2 w-7 h-7 rounded-full bg-[#111B30] border-r border-[#A5B1C5]/15 z-20 shadow-inner" />
+        <div className="hidden min-[420px]:block absolute top-1/2 -right-3.5 -translate-y-1/2 w-7 h-7 rounded-full bg-[#111B30] border-l border-[#A5B1C5]/15 z-20 shadow-inner" />
 
         {/* Top Header Strip */}
-        <div className="px-5 py-3 bg-[#10141E] border-b border-white/[0.08] flex items-center justify-between text-xs font-semibold text-slate-400">
-          <span className="flex items-center gap-2 text-white">
-            <Ticket className="w-4 h-4 text-[#B9FC01]" />
+        <div className="px-5 py-3 bg-[#111B30] border-b border-[#A5B1C5]/15 flex items-center justify-between text-xs font-semibold text-[#A5B1C5]">
+          <span className="flex items-center gap-2 text-[#FFFFFF]">
+            <Ticket className="w-4 h-4 text-[#A5B1C5]" />
             <span className="tracking-tight">Globo Digital Oficial</span>
           </span>
 
           <span
-            className={`px-2.5 py-0.5 rounded-md font-mono text-[10px] font-bold tracking-wider uppercase tabular-nums transition-colors ${
+            className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold tabular-nums transition-colors ${
               isSpinning
-                ? 'bg-[#0131CD]/20 text-[#FFFFFF] border border-[#0131CD]/40 animate-pulse'
+                ? 'bg-[#0131CD] text-[#FFFFFF] border border-[#0131CD] animate-pulse'
                 : winnerName
-                ? 'bg-[#F5B942]/15 text-[#F5B942] border border-[#F5B942]/40'
-                : 'bg-white/5 text-slate-400 border border-white/10'
+                ? 'bg-[#A6C957]/15 text-[#A6C957] border border-[#A6C957]/35'
+                : 'bg-[#080D18] text-[#A5B1C5] border border-[#A5B1C5]/20'
             }`}
           >
-            {isSpinning ? 'EXTRAÇÃO AO VIVO' : winnerName ? 'VENCEDOR CONFIRMADO' : 'PRONTO PARA EXTRAÇÃO'}
+            {isSpinning ? 'Extração ao vivo' : winnerName ? 'Vencedor confirmado' : 'Pronto para extração'}
           </span>
         </div>
 
         {/* Center Stage: High-Precision Ticket Tumbler */}
         <div className="px-6 sm:px-10 py-8 sm:py-10 flex flex-col items-center justify-center text-center relative z-10">
-          <div className="font-mono text-xs uppercase tracking-widest text-slate-400 font-semibold mb-3">
+          <div className="text-xs text-[#A5B1C5] font-medium mb-3">
             {isSpinning
               ? 'Processando extração criptográfica CSPRNG...'
               : winnerName
-              ? 'Bilhete Sorteado Oficial'
-              : 'Aguardando Disparo do Sorteio'}
+              ? 'Bilhete sorteado oficial'
+              : 'Aguardando disparo do sorteio'}
           </div>
 
           {/* Main Lucky Number Display */}
           <div
             aria-live="polite"
-            className={`font-mono font-extrabold text-5xl sm:text-6xl md:text-7xl tracking-tight tabular-nums transition-all duration-150 ${
+            className={`font-bold text-5xl sm:text-6xl md:text-7xl tracking-tight tabular-nums transition-all duration-150 ${
               isSpinning
-                ? 'scale-105 text-[#B9FC01] drop-shadow-[0_0_24px_rgba(0,169,255,0.4)] motion-reduce:scale-100 motion-reduce:transition-none'
+                ? 'scale-105 text-[#A6C957] motion-reduce:scale-100 motion-reduce:transition-none'
                 : winnerName
-                ? 'text-[#F5B942] scale-100 drop-shadow-[0_0_28px_rgba(245,185,66,0.35)]'
+                ? 'text-[#A6C957] scale-100'
                 : isDefaultPlaceholder
-                ? 'text-[#94A3B8]'
-                : 'text-white scale-100'
+                ? 'text-[#A5B1C5]'
+                : 'text-[#FFFFFF] scale-100'
             }`}
           >
             {isDefaultPlaceholder ? '#000' : `#${displayNumber}`}
@@ -108,37 +108,37 @@ export const TicketDisplay: React.FC<TicketDisplayProps> = ({
           {/* Winner Showcase Card embedded inside stage */}
           <div className="mt-6 min-h-[4rem] flex items-center justify-center w-full">
             {winnerName && !isSpinning ? (
-              <div className="w-full max-w-md px-5 py-3.5 rounded-xl bg-[#10141E] border border-[#F5B942]/50 flex flex-col items-center gap-1.5 animate-fade-in shadow-xl">
-                <div className="flex items-center gap-2 text-white font-bold text-base sm:text-xl max-w-full">
-                  <Trophy className="w-5 h-5 text-[#F5B942] shrink-0" />
+              <div className="w-full max-w-md px-5 py-3.5 rounded-xl bg-[#111B30] border border-[#A6C957]/45 flex flex-col items-center gap-1.5 animate-fade-in shadow-xl">
+                <div className="flex items-center gap-2 text-[#FFFFFF] font-bold text-base sm:text-xl max-w-full">
+                  <Trophy className="w-5 h-5 text-[#A6C957] shrink-0" />
                   <span className="truncate">{winnerName}</span>
                 </div>
                 {winnerPrize && (
-                  <span className="text-xs font-semibold text-[#F5B942] tracking-wide truncate max-w-full font-mono">
+                  <span className="text-xs font-semibold text-[#A6C957] truncate max-w-full">
                     Prêmio: {winnerPrize}
                   </span>
                 )}
               </div>
             ) : isSpinning ? (
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#10141E] border border-[#0131CD]/30 text-xs text-[#B9FC01] font-semibold shadow-inner">
-                <Sparkles className="w-4 h-4 animate-spin text-[#B9FC01]" />
-                <span className="font-mono">Sorteando com semente criptográfica CSPRNG...</span>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#111B30] border border-[#0131CD]/50 text-xs text-[#FFFFFF] font-semibold shadow-inner">
+                <Sparkles className="w-4 h-4 animate-spin text-[#A6C957]" />
+                <span>Sorteando com semente criptográfica CSPRNG...</span>
               </div>
             ) : (
-              <p className="text-xs text-slate-400 font-medium">
-                Pressione o botão <strong className="text-white">Sortear Agora</strong> para girar o globo
+              <p className="text-xs text-[#A5B1C5] font-medium">
+                Pressione o botão <strong className="text-[#FFFFFF]">Sortear Agora</strong> para girar o globo
               </p>
             )}
           </div>
         </div>
 
         {/* Cryptographic Footer with Verifiable Security Marker */}
-        <div className="px-5 py-2.5 bg-[#10141E] border-t border-dashed border-white/10 flex items-center justify-between text-xs font-mono text-slate-400 tabular-nums">
+        <div className="px-5 py-2.5 bg-[#111B30] border-t border-dashed border-[#A5B1C5]/15 flex items-center justify-between text-xs text-[#A5B1C5] tabular-nums">
           <span className="inline-flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#20C997]" />
-            <span>{isProofVerified ? 'PROVABLY FAIR V2 AUDITADO' : 'MECANISMO CSPRNG AUDITÁVEL'}</span>
+            <ShieldCheck className="w-3.5 h-3.5 text-[#A6C957]" />
+            <span>{isProofVerified ? 'Provably Fair V2 auditado' : 'Mecanismo CSPRNG auditável'}</span>
           </span>
-          <span className="text-[#B9FC01] font-bold tracking-wider">GIO DA SORTE PRO</span>
+          <span className="text-[#A5B1C5] font-semibold">GIO DA SORTE PRO</span>
         </div>
       </div>
     </div>

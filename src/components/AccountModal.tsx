@@ -762,22 +762,22 @@ export const AccountModal: React.FC<AccountModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="account-modal-title"
-      className="fixed inset-0 z-[60] bg-[#080A0F]/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+      className="fixed inset-0 z-[60] bg-[#080D18]/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
     >
       <div
         ref={modalContainerRef}
-        className="bg-[#10141E] border border-[#161C2C] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-slide-up my-8"
+        className="bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-slide-up my-8"
       >
         {/* Header with Official Logo */}
-        <div className="flex items-center justify-between pb-3 border-b border-[#161C2C]">
+        <div className="flex items-center justify-between pb-3 border-b border-[var(--gio-border-subtle)]">
           <div className="flex items-center gap-2.5">
             <img
               src="/icon.svg"
               alt="GIO DA SORTE"
-              className="w-10 h-10 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(0,169,255,0.35)]"
+              className="w-10 h-10 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(1,49,205,0.35)]"
             />
             <div>
-              <h2 id="account-modal-title" className="font-display font-bold text-base sm:text-lg text-[#FFFFFF]">
+              <h2 id="account-modal-title" className="font-bold text-base sm:text-lg text-[#FFFFFF]">
                 {currentUser
                   ? 'Minha Conta — GIO DA SORTE'
                   : viewMode === 'login'
@@ -786,7 +786,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   ? 'Criar Conta — GIO DA SORTE'
                   : 'Recuperação de Acesso'}
               </h2>
-              <span className="text-[11px] text-[#94A3B8] block">
+              <span className="text-[11px] text-[#A5B1C5] block">
                 {currentUser ? 'Perfil Seguro & Sincronização em Nuvem' : 'Acesso autenticado e protegido'}
               </span>
             </div>
@@ -795,7 +795,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Fechar modal"
-            className="p-1.5 text-[#94A3B8] hover:text-[#FFFFFF] rounded-lg transition hover:bg-[#10141E] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40"
+            className="p-1.5 text-[#A5B1C5] hover:text-[#FFFFFF] rounded-lg transition hover:bg-[#080D18] focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40"
           >
             <X className="w-5 h-5" />
           </button>
@@ -806,9 +806,9 @@ export const AccountModal: React.FC<AccountModalProps> = ({
           <div
             role="status"
             aria-live="polite"
-            className="p-3 bg-[#20C997]/15 border border-[#20C997]/40 rounded-xl text-xs text-[#20C997] flex items-start gap-2.5 animate-in fade-in"
+            className="p-3 bg-[#A6C957]/15 border border-[#A6C957]/40 rounded-xl text-xs text-[#A6C957] flex items-start gap-2.5 animate-in fade-in"
           >
-            <CheckCircle2 className="w-4 h-4 text-[#20C997] shrink-0 mt-0.5" />
+            <CheckCircle2 className="w-4 h-4 text-[#A6C957] shrink-0 mt-0.5" />
             <span className="leading-relaxed">{successMsg}</span>
           </div>
         )}
@@ -828,7 +828,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
         {currentUser ? (
           <div className="space-y-4">
             {/* User Profile Card */}
-            <div className="bg-[#10141E] border border-[#161C2C] p-4 rounded-xl flex items-center gap-3.5">
+            <div className="bg-[#080D18] border border-[var(--gio-border-subtle)] p-4 rounded-xl flex items-center gap-3.5">
               {currentUser.photoURL ? (
                 <img
                   src={currentUser.photoURL}
@@ -848,10 +848,10 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                     {currentUser.displayName || 'Sorteador Autenticado'}
                   </span>
                 </div>
-                <div className="text-xs text-[#94A3B8] truncate">{currentUser.email}</div>
+                <div className="text-xs text-[#A5B1C5] truncate">{currentUser.email}</div>
                 <div className="flex items-center gap-2 mt-1">
                   {currentUser.emailVerified ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] text-[#20C997] font-semibold bg-[#20C997]/15 border border-[#20C997]/40 px-2 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-[11px] text-[#A6C957] font-semibold bg-[#A6C957]/15 border border-[#A6C957]/40 px-2 py-0.5 rounded-full">
                       <Check className="w-3 h-3" /> E-mail Verificado
                     </span>
                   ) : (
@@ -859,7 +859,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       type="button"
                       onClick={handleSendVerificationEmail}
                       disabled={loading}
-                      className="inline-flex items-center gap-1 text-[11px] text-[#F5B942] hover:brightness-110 font-semibold bg-[#F5B942]/15 border border-[#F5B942]/40 px-2 py-0.5 rounded-full transition"
+                      className="inline-flex items-center gap-1 text-[11px] text-[#A6C957] hover:brightness-110 font-semibold bg-[#A6C957]/15 border border-[#A6C957]/40 px-2 py-0.5 rounded-full transition"
                     >
                       <ShieldAlert className="w-3 h-3" /> Verificar E-mail
                     </button>
@@ -873,18 +873,18 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 disabled={loading}
                 title="Desconectar da conta"
                 aria-label="Desconectar da conta"
-                className="p-2 text-[#94A3B8] hover:text-[#F05262] hover:bg-[#080A0F] rounded-lg transition"
+                className="p-2 text-[#A5B1C5] hover:text-[#F05262] hover:bg-[#111B30] rounded-lg transition"
               >
                 <LogOut className="w-5 h-5" />
               </button>
             </div>
 
             {/* Cloud Sync Status */}
-            <div className="bg-[#080A0F] border border-[#0131CD]/40 rounded-xl p-3.5 text-xs text-[#FFFFFF] flex items-start gap-2.5">
-              <Cloud className="w-4 h-4 text-[#B9FC01] shrink-0 mt-0.5" />
+            <div className="bg-[#080D18] border border-[#0131CD]/40 rounded-xl p-3.5 text-xs text-[#FFFFFF] flex items-start gap-2.5">
+              <Cloud className="w-4 h-4 text-[#A6C957] shrink-0 mt-0.5" />
               <div>
                 <span className="font-bold text-[#FFFFFF] block">Sincronização Segura em Nuvem</span>
-                <span className="text-[#94A3B8]">
+                <span className="text-[#A5B1C5]">
                   Seus participantes e configurações são salvos com controle de acesso exclusivo para a sua conta.
                 </span>
               </div>
@@ -906,18 +906,18 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 type="button"
                 disabled={loading}
                 onClick={handleManualLoad}
-                className="py-2.5 px-3 rounded-xl bg-[#10141E] hover:bg-[#161C2C] text-[#FFFFFF] font-bold text-xs flex items-center justify-center gap-1.5 transition border border-[#161C2C] active:scale-95 disabled:opacity-50"
+                className="py-2.5 px-3 rounded-xl bg-[#080D18] hover:bg-[#111B30] text-[#FFFFFF] font-bold text-xs flex items-center justify-center gap-1.5 transition border border-[var(--gio-border-subtle)] active:scale-95 disabled:opacity-50"
               >
-                <RefreshCw className="w-4 h-4 text-[#B9FC01]" />
+                <RefreshCw className="w-4 h-4 text-[#A6C957]" />
                 <span>Recarregar da Nuvem</span>
               </button>
             </div>
 
             {/* Phase 11: Linked TikTok Identity Management (Flow 2 Link & Unlink) */}
-            <div className="bg-[#10141E] border border-[#161C2C] rounded-xl p-3.5 space-y-3">
+            <div className="bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl p-3.5 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Link2 className="w-4 h-4 text-[#B9FC01]" />
+                  <Link2 className="w-4 h-4 text-[#A6C957]" />
                   <span className="text-xs font-bold text-[#FFFFFF]">
                     Identidade TikTok OAuth 2.0
                   </span>
@@ -925,8 +925,8 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 <span
                   className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
                     linkedTikTokProfile.linked
-                      ? 'bg-[#20C997]/15 text-[#20C997] border-[#20C997]/40'
-                      : 'bg-[#080A0F] text-[#94A3B8] border-[#161C2C]'
+                      ? 'bg-[#A6C957]/15 text-[#A6C957] border-[#A6C957]/40'
+                      : 'bg-[#111B30] text-[#A5B1C5] border-[var(--gio-border-subtle)]'
                   }`}
                 >
                   {linkedTikTokProfile.linked ? 'VINCULADA' : 'NÃO VINCULADA'}
@@ -935,7 +935,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
               {linkedTikTokProfile.linked ? (
                 <div className="space-y-2.5">
-                  <div className="bg-[#080A0F] border border-[#161C2C] rounded-lg p-2.5 flex items-center justify-between gap-2">
+                  <div className="bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-lg p-2.5 flex items-center justify-between gap-2">
                     <div className="min-w-0">
                       <div className="text-xs font-bold text-[#FFFFFF] truncate">
                         {linkedTikTokProfile.displayName || 'Criador TikTok'}
@@ -943,7 +943,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                           ? ` (@${linkedTikTokProfile.username.replace(/^@/, '')})`
                           : ''}
                       </div>
-                      <div className="text-[11px] text-[#94A3B8] truncate">
+                      <div className="text-[11px] text-[#A5B1C5] truncate">
                         open_id verificado • Escopo: {linkedTikTokProfile.scope || 'user.info.basic'}
                       </div>
                     </div>
@@ -957,13 +957,13 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       <span>Desconectar TikTok</span>
                     </button>
                   </div>
-                  <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                  <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
                     Desconectar o TikTok revoga os tokens OAuth sem excluir sua conta GIO nem interromper sorteios ou workers de LIVE ativos.
                   </p>
                 </div>
               ) : !showLinkStepUpModal ? (
                 <div className="space-y-2">
-                  <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                  <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
                     Vincule sua conta oficial do TikTok a esta conta GIO para entrar com 1 clique mantendo seus sorteios e plano.
                   </p>
                   <button
@@ -980,10 +980,10 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   </button>
                 </div>
               ) : (
-                <div className="bg-[#080A0F] border border-[#0131CD]/40 rounded-lg p-3 space-y-2.5">
+                <div className="bg-[#111B30] border border-[#0131CD]/40 rounded-lg p-3 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-[#FFFFFF] flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-[#B9FC01]" />
+                      <ShieldCheck className="w-3.5 h-3.5 text-[#A6C957]" />
                       Confirmação de Segurança Obrigatória
                     </span>
                     <button
@@ -992,12 +992,12 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                         setShowLinkStepUpModal(false);
                         setLinkReauthPassword('');
                       }}
-                      className="text-[11px] text-[#94A3B8] hover:text-[#FFFFFF]"
+                      className="text-[11px] text-[#A5B1C5] hover:text-[#FFFFFF]"
                     >
                       Cancelar
                     </button>
                   </div>
-                  <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                  <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
                     Por segurança, confirme sua identidade atual (Senha ou Google Auth) antes de vincular um perfil do TikTok. Contas TikTok já vinculadas a outro usuário são bloqueadas.
                   </p>
                   {currentUser.email && (
@@ -1007,7 +1007,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                         value={linkReauthPassword}
                         onChange={(e) => setLinkReauthPassword(e.target.value)}
                         placeholder="Digite sua senha atual para confirmar"
-                        className="w-full px-3 py-2 text-xs bg-[#10141E] border border-[#161C2C] rounded-lg text-[#FFFFFF] placeholder-[#94A3B8]/70 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40"
+                        className="w-full px-3 py-2 text-xs bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-lg text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40"
                       />
                       <button
                         type="submit"
@@ -1022,7 +1022,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                     type="button"
                     disabled={tiktokLoading}
                     onClick={handleLinkWithGoogleReauth}
-                    className="w-full py-2 px-3 rounded-lg bg-[#10141E] hover:bg-[#161C2C] border border-[#161C2C] text-[#FFFFFF] font-semibold text-xs transition disabled:opacity-50"
+                    className="w-full py-2 px-3 rounded-lg bg-[#080D18] hover:bg-[#111B30] border border-[var(--gio-border-subtle)] text-[#FFFFFF] font-semibold text-xs transition disabled:opacity-50"
                   >
                     Confirmar com Google Auth e Vincular TikTok
                   </button>
@@ -1031,21 +1031,21 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             </div>
 
             {/* Sensitive Action: Change Password (Step-up Verification) */}
-            <div className="pt-2 border-t border-[#161C2C]">
+            <div className="pt-2 border-t border-[var(--gio-border-subtle)]">
               {!showChangePassword ? (
                 <button
                   type="button"
                   onClick={() => setShowChangePassword(true)}
-                  className="w-full py-2 px-3 text-xs font-semibold text-[#94A3B8] hover:text-[#FFFFFF] bg-[#080A0F] hover:bg-[#10141E] border border-[#161C2C] rounded-xl flex items-center justify-center gap-2 transition"
+                  className="w-full py-2 px-3 text-xs font-semibold text-[#A5B1C5] hover:text-[#FFFFFF] bg-[#080D18] hover:bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-xl flex items-center justify-center gap-2 transition"
                 >
-                  <KeyRound className="w-4 h-4 text-[#B9FC01]" />
+                  <KeyRound className="w-4 h-4 text-[#A6C957]" />
                   <span>Alterar Senha de Acesso (Verificação em 2 Etapas)</span>
                 </button>
               ) : (
-                <form onSubmit={handleChangePassword} className="bg-[#080A0F] border border-[#161C2C] p-4 rounded-xl space-y-3">
+                <form onSubmit={handleChangePassword} className="bg-[#080D18] border border-[var(--gio-border-subtle)] p-4 rounded-xl space-y-3">
                   <div className="flex items-center justify-between pb-1">
                     <span className="text-xs font-bold text-[#FFFFFF] flex items-center gap-1.5">
-                      <KeyRound className="w-3.5 h-3.5 text-[#B9FC01]" />
+                      <KeyRound className="w-3.5 h-3.5 text-[#A6C957]" />
                       Alterar Senha (Requer Senha Atual)
                     </span>
                     <button
@@ -1056,14 +1056,14 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                         setNewPassword('');
                         setConfirmNewPassword('');
                       }}
-                      className="text-[11px] text-[#94A3B8] hover:text-[#FFFFFF]"
+                      className="text-[11px] text-[#A5B1C5] hover:text-[#FFFFFF]"
                     >
                       Cancelar
                     </button>
                   </div>
 
                   <div>
-                    <label htmlFor="current-password-input" className="block text-[11px] font-medium text-[#94A3B8] mb-1">
+                    <label htmlFor="current-password-input" className="block text-[11px] font-medium text-[#A5B1C5] mb-1">
                       Senha Atual (Verificação de Segurança)
                     </label>
                     <input
@@ -1074,12 +1074,12 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       placeholder="Sua senha atual"
-                      className="w-full px-3 py-2 text-xs bg-[#10141E] border border-[#161C2C] rounded-lg text-[#FFFFFF] placeholder-[#94A3B8]/70 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40"
+                      className="w-full px-3 py-2 text-xs bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-lg text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="new-password-input" className="block text-[11px] font-medium text-[#94A3B8] mb-1">
+                    <label htmlFor="new-password-input" className="block text-[11px] font-medium text-[#A5B1C5] mb-1">
                       Nova Senha ou Frase-Senha (Mín. 8 caracteres)
                     </label>
                     <div className="relative">
@@ -1091,13 +1091,13 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="Nova senha ou frase longa"
-                        className="w-full px-3 py-2 pr-9 text-xs bg-[#10141E] border border-[#161C2C] rounded-lg text-[#FFFFFF] placeholder-[#94A3B8]/70 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40"
+                        className="w-full px-3 py-2 pr-9 text-xs bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-lg text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40"
                       />
                       <button
                         type="button"
                         onClick={() => setShowNewPassword(!showNewPassword)}
                         aria-label={showNewPassword ? 'Ocultar nova senha' : 'Exibir nova senha'}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#FFFFFF]"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#A5B1C5] hover:text-[#FFFFFF]"
                       >
                         {showNewPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </button>
@@ -1105,7 +1105,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   </div>
 
                   <div>
-                    <label htmlFor="confirm-new-password-input" className="block text-[11px] font-medium text-[#94A3B8] mb-1">
+                    <label htmlFor="confirm-new-password-input" className="block text-[11px] font-medium text-[#A5B1C5] mb-1">
                       Confirmar Nova Senha
                     </label>
                     <input
@@ -1116,7 +1116,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={confirmNewPassword}
                       onChange={(e) => setConfirmNewPassword(e.target.value)}
                       placeholder="Repita a nova senha"
-                      className="w-full px-3 py-2 text-xs bg-[#10141E] border border-[#161C2C] rounded-lg text-[#FFFFFF] placeholder-[#94A3B8]/70 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40"
+                      className="w-full px-3 py-2 text-xs bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-lg text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40"
                     />
                   </div>
 
@@ -1135,9 +1135,9 @@ export const AccountModal: React.FC<AccountModalProps> = ({
               <button
                 type="button"
                 onClick={onOpenProfileWorkspace}
-                className="w-full py-2.5 px-4 rounded-xl bg-[#0131CD] hover:bg-[#0866F5] text-[#FFFFFF] border border-[#B9FC01]/40 font-bold text-xs flex items-center justify-center gap-2 transition"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] border border-[#A6C957]/40 font-bold text-xs flex items-center justify-center gap-2 transition"
               >
-                <User className="w-4 h-4 text-[#B9FC01]" />
+                <User className="w-4 h-4 text-[#A6C957]" />
                 <span>Abrir Central Completa de Perfil e Configurações</span>
               </button>
             )}
@@ -1147,7 +1147,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
           <div className="space-y-4">
             {/* View Selector Tabs (Login vs Register) */}
             {viewMode !== 'forgot_password' && (
-              <div className="grid grid-cols-2 p-1 bg-[#080A0F] border border-[#161C2C] rounded-xl text-xs font-bold">
+              <div className="grid grid-cols-2 p-1 bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-xs font-bold">
                 <button
                   type="button"
                   onClick={() => {
@@ -1158,7 +1158,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   className={`py-2 rounded-lg transition ${
                     viewMode === 'login'
                       ? 'bg-[#0131CD] text-[#FFFFFF] shadow-sm'
-                      : 'text-[#94A3B8] hover:text-[#FFFFFF]'
+                      : 'text-[#A5B1C5] hover:text-[#FFFFFF]'
                   }`}
                 >
                   Entrar
@@ -1173,7 +1173,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   className={`py-2 rounded-lg transition ${
                     viewMode === 'register'
                       ? 'bg-[#0131CD] text-[#FFFFFF] shadow-sm'
-                      : 'text-[#94A3B8] hover:text-[#FFFFFF]'
+                      : 'text-[#A5B1C5] hover:text-[#FFFFFF]'
                   }`}
                 >
                   Criar Conta
@@ -1185,7 +1185,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             {viewMode === 'login' && (
               <form onSubmit={handleEmailLogin} className="space-y-3.5">
                 <div>
-                  <label htmlFor="login-email" className="block text-xs font-medium text-[#94A3B8] mb-1">
+                  <label htmlFor="login-email" className="block text-xs font-medium text-[#A5B1C5] mb-1">
                     E-mail
                   </label>
                   <div className="relative">
@@ -1198,15 +1198,15 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="seu.email@exemplo.com"
-                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#080A0F] border border-[#161C2C] rounded-xl text-[#FFFFFF] placeholder-[#94A3B8]/70 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40 transition"
+                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40 transition"
                     />
-                    <Mail className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Mail className="w-4 h-4 text-[#A5B1C5] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label htmlFor="login-password" className="block text-xs font-medium text-[#94A3B8]">
+                    <label htmlFor="login-password" className="block text-xs font-medium text-[#A5B1C5]">
                       Senha ou Frase-Senha
                     </label>
                     <button
@@ -1216,7 +1216,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                         setErrorMsg(null);
                         setSuccessMsg(null);
                       }}
-                      className="text-[11px] text-[#B9FC01] hover:text-[#FFFFFF] transition"
+                      className="text-[11px] text-[#A6C957] hover:text-[#FFFFFF] transition"
                     >
                       Esqueceu a senha?
                     </button>
@@ -1230,14 +1230,14 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-9 pr-10 py-2.5 text-sm bg-[#080A0F] border border-[#161C2C] rounded-xl text-[#FFFFFF] placeholder-[#94A3B8]/70 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40 transition"
+                      className="w-full pl-9 pr-10 py-2.5 text-sm bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40 transition"
                     />
-                    <Lock className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Lock className="w-4 h-4 text-[#A5B1C5] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       aria-label={showPassword ? 'Ocultar senha' : 'Exibir senha'}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#FFFFFF] p-1 rounded transition"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A5B1C5] hover:text-[#FFFFFF] p-1 rounded transition"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -1246,8 +1246,8 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
                 {/* Rate limit lock alert */}
                 {throttleRemaining > 0 && (
-                  <div className="p-2.5 bg-[#F5B942]/15 border border-[#F5B942]/40 rounded-xl text-xs text-[#F5B942] flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-[#F5B942] shrink-0" />
+                  <div className="p-2.5 bg-[#A6C957]/15 border border-[#A6C957]/40 rounded-xl text-xs text-[#A6C957] flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-[#A6C957] shrink-0" />
                     <span>Aguarde {throttleRemaining}s antes de tentar novamente.</span>
                   </div>
                 )}
@@ -1267,7 +1267,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             {viewMode === 'register' && (
               <form onSubmit={handleRegister} className="space-y-3.5">
                 <div>
-                  <label htmlFor="reg-name" className="block text-xs font-medium text-[#94A3B8] mb-1">
+                  <label htmlFor="reg-name" className="block text-xs font-medium text-[#A5B1C5] mb-1">
                     Nome ou Canal (Opcional)
                   </label>
                   <div className="relative">
@@ -1279,14 +1279,14 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                       placeholder="Ex: Gusta Games"
-                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#080A0F] border border-[#161C2C] rounded-xl text-[#FFFFFF] placeholder-[#94A3B8]/70 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40 transition"
+                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40 transition"
                     />
-                    <User className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <User className="w-4 h-4 text-[#A5B1C5] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="reg-email" className="block text-xs font-medium text-[#94A3B8] mb-1">
+                  <label htmlFor="reg-email" className="block text-xs font-medium text-[#A5B1C5] mb-1">
                     E-mail
                   </label>
                   <div className="relative">
@@ -1298,14 +1298,14 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="seu.email@exemplo.com"
-                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#080A0F] border border-[#161C2C] rounded-xl text-[#FFFFFF] placeholder-[#94A3B8]/70 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40 transition"
+                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40 transition"
                     />
-                    <Mail className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Mail className="w-4 h-4 text-[#A5B1C5] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="reg-password" className="block text-xs font-medium text-[#94A3B8] mb-1">
+                  <label htmlFor="reg-password" className="block text-xs font-medium text-[#A5B1C5] mb-1">
                     Senha ou Frase-Senha (Mínimo 8 caracteres)
                   </label>
                   <div className="relative">
@@ -1317,14 +1317,14 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Ex: chuva de moedas no gio 2026"
-                      className="w-full pl-9 pr-10 py-2.5 text-sm bg-[#080A0F] border border-[#161C2C] rounded-xl text-[#FFFFFF] placeholder-[#94A3B8]/70 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40 transition"
+                      className="w-full pl-9 pr-10 py-2.5 text-sm bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40 transition"
                     />
-                    <Lock className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Lock className="w-4 h-4 text-[#A5B1C5] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       aria-label={showPassword ? 'Ocultar senha' : 'Exibir senha'}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#FFFFFF] p-1 rounded transition"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A5B1C5] hover:text-[#FFFFFF] p-1 rounded transition"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -1333,16 +1333,16 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   {/* Passphrase Strength Visualizer */}
                   {password.length > 0 && (
                     <div className="mt-2 space-y-1">
-                      <div className="h-1.5 w-full bg-[#161C2C] rounded-full overflow-hidden flex">
+                      <div className="h-1.5 w-full bg-[#080D18] rounded-full overflow-hidden flex">
                         <div
                           className={`h-full transition-all duration-300 ${
                             registrationPassEvaluation.score === 0
                               ? 'w-1/4 bg-[#F05262]'
                               : registrationPassEvaluation.score === 1
-                              ? 'w-2/4 bg-[#F5B942]'
+                              ? 'w-2/4 bg-[#A5B1C5]'
                               : registrationPassEvaluation.score === 2
                               ? 'w-3/4 bg-[#0131CD]'
-                              : 'w-full bg-[#20C997]'
+                              : 'w-full bg-[#A6C957]'
                           }`}
                         />
                       </div>
@@ -1352,25 +1352,25 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                             registrationPassEvaluation.score === 0
                               ? 'text-[#F05262]'
                               : registrationPassEvaluation.score === 1
-                              ? 'text-[#F5B942]'
+                              ? 'text-[#A5B1C5]'
                               : registrationPassEvaluation.score === 2
-                              ? 'text-[#B9FC01]'
-                              : 'text-[#20C997]'
+                              ? 'text-[#FFFFFF]'
+                              : 'text-[#A6C957]'
                           }`}
                         >
                           {registrationPassEvaluation.label}
                         </span>
-                        <span className="text-[#94A3B8]">{registrationPassEvaluation.feedback}</span>
+                        <span className="text-[#A5B1C5]">{registrationPassEvaluation.feedback}</span>
                       </div>
                     </div>
                   )}
-                  <p className="text-[11px] text-[#94A3B8] mt-1">
+                  <p className="text-[11px] text-[#A5B1C5] mt-1">
                     Você pode usar frases longas com espaços, letras e palavras. Não forçamos regras de caracteres desnecessárias.
                   </p>
                 </div>
 
                 {/* Explicit Legal Acceptance Checkbox (Fase 11) */}
-                <label className="p-3 rounded-xl bg-[#080A0F] border border-[#161C2C] flex items-start gap-2.5 text-[11px] text-[#94A3B8] cursor-pointer">
+                <label className="p-3 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex items-start gap-2.5 text-[11px] text-[#A5B1C5] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={acceptedTermsOnRegister}
@@ -1385,7 +1385,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                         onClose();
                         onOpenLegalDocument?.('termos-de-uso');
                       }}
-                      className="text-[#B9FC01] underline hover:text-[#FFFFFF] font-semibold"
+                      className="text-[#A6C957] underline hover:text-[#FFFFFF] font-semibold"
                     >
                       Termos de Uso
                     </button>{' '}
@@ -1396,7 +1396,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                         onClose();
                         onOpenLegalDocument?.('politica-de-privacidade');
                       }}
-                      className="text-[#B9FC01] underline hover:text-[#FFFFFF] font-semibold"
+                      className="text-[#A6C957] underline hover:text-[#FFFFFF] font-semibold"
                     >
                       Política de Privacidade (LGPD)
                     </button>{' '}
@@ -1418,12 +1418,12 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             {/* 3. FORGOT PASSWORD VIEW (Anti-enumeration compliant) */}
             {viewMode === 'forgot_password' && (
               <form onSubmit={handleForgotPassword} className="space-y-3.5">
-                <div className="bg-[#080A0F] border border-[#0131CD]/40 p-3 rounded-xl text-xs text-[#94A3B8] leading-relaxed">
+                <div className="bg-[#080D18] border border-[#0131CD]/40 p-3 rounded-xl text-xs text-[#A5B1C5] leading-relaxed">
                   Digite seu e-mail abaixo. Se houver uma conta registrada, enviaremos um link seguro de uso único para redefinir sua senha.
                 </div>
 
                 <div>
-                  <label htmlFor="reset-email" className="block text-xs font-medium text-[#94A3B8] mb-1">
+                  <label htmlFor="reset-email" className="block text-xs font-medium text-[#A5B1C5] mb-1">
                     E-mail Cadastrado
                   </label>
                   <div className="relative">
@@ -1436,9 +1436,9 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="seu.email@exemplo.com"
-                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#080A0F] border border-[#161C2C] rounded-xl text-[#FFFFFF] placeholder-[#94A3B8]/70 focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/40 transition"
+                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40 transition"
                     />
-                    <Mail className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Mail className="w-4 h-4 text-[#A5B1C5] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
                 </div>
 
@@ -1458,7 +1458,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                     setErrorMsg(null);
                     setSuccessMsg(null);
                   }}
-                  className="w-full py-2 text-xs font-semibold text-[#94A3B8] hover:text-[#FFFFFF] flex items-center justify-center gap-1.5 transition"
+                  className="w-full py-2 text-xs font-semibold text-[#A5B1C5] hover:text-[#FFFFFF] flex items-center justify-center gap-1.5 transition"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Voltar para tela de login</span>
@@ -1471,10 +1471,10 @@ export const AccountModal: React.FC<AccountModalProps> = ({
               <>
                 <div className="relative my-3">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-[#161C2C]" />
+                    <div className="w-full border-t border-[var(--gio-border-subtle)]" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-[#10141E] px-2 text-[#94A3B8] text-[10px] font-bold tracking-wider">
+                    <span className="bg-[#111B30] px-2 text-[#A5B1C5] text-[10px] font-bold tracking-wider">
                       ou conecte com
                     </span>
                   </div>
@@ -1488,7 +1488,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                     onClick={handleTikTokLoginOAuth}
                     className="w-full py-2.5 px-4 bg-gradient-to-r from-[#0131CD] to-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-md shadow-[#0131CD]/25 active:scale-95 disabled:opacity-50 cursor-pointer"
                   >
-                    <Sparkles className="w-4 h-4 text-[#F5B942]" />
+                    <Sparkles className="w-4 h-4 text-[#A6C957]" />
                     <span>
                       {tiktokLoading ? 'Conectando ao TikTok OAuth...' : 'Continuar com TikTok (OAuth Oficial)'}
                     </span>
@@ -1499,9 +1499,9 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                     type="button"
                     disabled={loading || tiktokLoading}
                     onClick={handleGoogleSignIn}
-                    className="w-full py-2.5 px-4 bg-[#10141E] hover:bg-[#161C2C] text-[#FFFFFF] border border-[#161C2C] hover:border-[#0131CD]/50 font-semibold text-xs rounded-xl transition flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                    className="w-full py-2.5 px-4 bg-[#080D18] hover:bg-[#111B30] text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[#0131CD]/50 font-semibold text-xs rounded-xl transition flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
                   >
-                    <User className="w-4 h-4 text-[#B9FC01]" />
+                    <User className="w-4 h-4 text-[#A6C957]" />
                     <span>Continuar com Google</span>
                   </button>
                 </div>
@@ -1509,8 +1509,8 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             )}
 
             {/* Security Guarantee Note */}
-            <div className="pt-2 text-[11px] text-[#94A3B8] flex items-center justify-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#20C997] shrink-0" />
+            <div className="pt-2 text-[11px] text-[#A5B1C5] flex items-center justify-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#A6C957] shrink-0" />
               <span>Criptografia de senhas e autenticação gerenciada por Google Firebase</span>
             </div>
           </div>

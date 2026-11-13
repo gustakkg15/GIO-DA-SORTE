@@ -12,14 +12,14 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon.svg'],
+        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon.svg', 'logo.png'],
         manifest: {
           id: './',
           name: 'GIO DA SORTE',
           short_name: 'GIODASORTE',
           description: 'GIO DA SORTE - Sistema de sorteio proporcional por moedas e bilhetes da sorte com roleta e animações.',
           theme_color: '#0131CD',
-          background_color: '#080A0F',
+          background_color: '#080D18',
           display: 'standalone',
           orientation: 'portrait-primary',
           start_url: './',
@@ -46,7 +46,13 @@ export default defineConfig(() => {
           ],
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+          skipWaiting: true,
+          clientsClaim: true,
+          cleanupOutdatedCaches: true,
+          globPatterns: [
+            '**/*.{js,mjs,css,html,ico,png,jpg,jpeg,webp,gif,svg,avif,woff,woff2,ttf,otf,eot,webmanifest}',
+          ],
+          globIgnores: ['**/404.html', '**/*.zip'],
           maximumFileSizeToCacheInBytes: 15 * 1024 * 1024, // 15 MiB
           navigateFallbackDenylist: [/^\/api\//, /^\/__/, /^\/_aistudio/],
           runtimeCaching: [
@@ -58,18 +64,29 @@ export default defineConfig(() => {
               handler: 'NetworkOnly',
             },
             {
-              urlPattern: ({ request, url }) =>
-                !url.pathname.startsWith('/api/') &&
-                (request.destination === 'script' ||
+              urlPattern: ({ request, url, sameOrigin }) => {
+                const isExcludedPath =
+                  url.pathname.startsWith('/api/') ||
+                  url.pathname.startsWith('/__') ||
+                  url.pathname.startsWith('/_aistudio');
+                if (isExcludedPath) return false;
+                return (
+                  request.destination === 'script' ||
                   request.destination === 'style' ||
                   request.destination === 'font' ||
-                  /\.(?:js|mjs|css|woff2?|ttf|eot)$/i.test(url.pathname)),
+                  request.destination === 'worker' ||
+                  request.destination === 'manifest' ||
+                  /\.(?:js|mjs|cjs|css|woff2?|ttf|otf|eot|webmanifest|map)$/i.test(url.pathname) ||
+                  (sameOrigin &&
+                    (url.pathname.startsWith('/assets/') || /\.json$/i.test(url.pathname)))
+                );
+              },
               handler: 'StaleWhileRevalidate',
               options: {
                 cacheName: 'gio-static-assets-cache',
                 expiration: {
-                  maxEntries: 150,
-                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+                  maxEntries: 250,
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 dias
                 },
                 cacheableResponse: {
                   statuses: [0, 200],
@@ -77,16 +94,48 @@ export default defineConfig(() => {
               },
             },
             {
-              urlPattern: ({ request, url }) =>
-                !url.pathname.startsWith('/api/') &&
-                (request.destination === 'image' ||
-                  /\.(?:png|jpe?g|webp|gif|svg|ico|avif)$/i.test(url.pathname)),
+              urlPattern: ({ request, url }) => {
+                const isExcludedPath =
+                  url.pathname.startsWith('/api/') ||
+                  url.pathname.startsWith('/__') ||
+                  url.pathname.startsWith('/_aistudio');
+                if (isExcludedPath) return false;
+                return (
+                  request.destination === 'image' ||
+                  /\.(?:png|jpe?g|webp|gif|svg|ico|avif|bmp|tiff?)$/i.test(url.pathname)
+                );
+              },
               handler: 'StaleWhileRevalidate',
               options: {
                 cacheName: 'gio-images-cache',
                 expiration: {
-                  maxEntries: 200,
-                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+                  maxEntries: 300,
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 dias
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+            {
+              urlPattern: ({ request, url }) => {
+                const isExcludedPath =
+                  url.pathname.startsWith('/api/') ||
+                  url.pathname.startsWith('/__') ||
+                  url.pathname.startsWith('/_aistudio');
+                if (isExcludedPath) return false;
+                return (
+                  request.destination === 'audio' ||
+                  request.destination === 'video' ||
+                  /\.(?:mp3|wav|ogg|webm|mp4)$/i.test(url.pathname)
+                );
+              },
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'gio-media-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 dias
                 },
                 cacheableResponse: {
                   statuses: [0, 200],

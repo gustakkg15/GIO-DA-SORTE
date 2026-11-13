@@ -153,13 +153,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   );
 
   return (
-    <header className="sticky top-0 z-20 h-[70px] bg-[#080A0F]/95 backdrop-blur-md border-b border-white/[0.08] flex items-center justify-between gap-2 px-3.5 sm:px-6 lg:px-8 select-none">
+    <header className="sticky top-0 z-20 h-[70px] bg-[#080D18]/95 backdrop-blur-md border-b border-[#A5B1C5]/15 flex items-center justify-between gap-2 px-3.5 sm:px-6 lg:px-8 select-none">
       {/* Left: Mobile Menu Button + Module Title & Breadcrumb */}
       <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
         <button
           type="button"
           onClick={onOpenMobileMenu}
-          className="lg:hidden min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-2.5 rounded-xl bg-[#10141E] border border-white/10 text-[#FFFFFF] hover:bg-[#161C2C] hover:border-white/20 transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01]"
+          className="lg:hidden min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-2.5 rounded-xl bg-[#111B30] border border-[#A5B1C5]/20 text-[#FFFFFF] hover:border-[#0131CD] transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957]"
           aria-label="Abrir menu de navegação lateral"
           aria-controls="mobile-navigation-drawer"
         >
@@ -167,7 +167,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </button>
 
         <div className="min-w-0 flex-1">
-          <span className="hidden sm:block font-mono text-[10px] font-bold uppercase tracking-wider text-[#B9FC01] leading-none mb-0.5 truncate">
+          <span className="hidden sm:block text-[11px] font-semibold text-[#A5B1C5] leading-none mb-1 truncate">
             {breadcrumb.section}
           </span>
           <h1
@@ -176,7 +176,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           >
             {breadcrumb.title}
           </h1>
-          <p className="hidden xl:block text-xs text-slate-400 truncate mt-0.5 leading-none">
+          <p className="hidden xl:block text-xs text-[#A5B1C5] truncate mt-0.5 leading-none">
             {breadcrumb.subtitle}
           </p>
         </div>
@@ -191,7 +191,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           title={`${connMeta.titleHint} — Clique para abrir TikTok LIVE`}
           className={`hidden lg:flex min-h-[36px] items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
             connMeta.state === 'DISCONNECTED'
-              ? 'bg-[#10141E] hover:bg-[#161C2C] text-slate-300 hover:text-white border-white/10'
+              ? 'bg-[#111B30] hover:border-[#0131CD] text-[#A5B1C5] hover:text-[#FFFFFF] border-[#A5B1C5]/20'
               : connMeta.badgeClass
           }`}
         >
@@ -199,7 +199,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           <Radio className="w-3.5 h-3.5 shrink-0" />
           <span>{connMeta.label}</span>
           {connMeta.state === 'CONNECTED' && liveConnectedUsername && (
-            <span className="hidden xl:inline font-mono text-white">
+            <span className="hidden xl:inline text-[#FFFFFF] font-medium">
               · @{liveConnectedUsername.replace(/^@+/, '')}
             </span>
           )}
@@ -207,12 +207,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
         {/* Save / Sync Status Indicator */}
         <div
-          className="hidden xl:flex min-h-[36px] items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 bg-[#10141E] border border-white/10"
+          className="hidden xl:flex min-h-[36px] items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-[#A5B1C5] bg-[#111B30] border border-[#A5B1C5]/20"
           title="Status de salvamento dos dados"
         >
           {syncStatus === 'saving' ? (
             <>
-              <Loader2 className="w-3.5 h-3.5 text-[#B9FC01] animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 text-[#A6C957] animate-spin" />
               <span>Salvando...</span>
             </>
           ) : syncStatus === 'error' ? (
@@ -222,12 +222,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             </>
           ) : syncStatus === 'offline' ? (
             <>
-              <span className="w-2 h-2 rounded-full bg-slate-400" />
+              <span className="w-2 h-2 rounded-full bg-[#A5B1C5]" />
               <span>Salvo local</span>
             </>
           ) : (
             <>
-              <Check className="w-3.5 h-3.5 text-[#20C997]" />
+              <Check className="w-3.5 h-3.5 text-[#A6C957]" />
               <span className="text-[#FFFFFF]">Salvo</span>
             </>
           )}
@@ -236,26 +236,26 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         {/* Grouped Utility Controls */}
         <div
           ref={utilitiesMenuRef}
-          className="relative flex items-center bg-[#10141E] border border-white/10 rounded-xl p-0.5 shadow-xs"
+          className="relative flex items-center bg-[#111B30] border border-[#A5B1C5]/20 rounded-xl p-0.5 shadow-xs"
         >
           <button
             type="button"
             onClick={onToggleSound}
-            className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-2 rounded-lg text-slate-400 hover:text-white hover:bg-[#161C2C] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01]"
+            className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-2 rounded-lg text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957]"
             title={soundEnabled ? 'Silenciar áudio' : 'Ativar efeitos sonoros'}
             aria-label={soundEnabled ? 'Silenciar áudio' : 'Ativar efeitos sonoros'}
           >
             {soundEnabled ? (
-              <Volume2 className="w-4 h-4 text-[#B9FC01]" />
+              <Volume2 className="w-4 h-4 text-[#FFFFFF]" />
             ) : (
-              <VolumeX className="w-4 h-4 text-[#94A3B8]" />
+              <VolumeX className="w-4 h-4 text-[#A5B1C5]" />
             )}
           </button>
 
           <button
             type="button"
             onClick={onOpenPresentation}
-            className="hidden lg:inline-flex min-w-[44px] min-h-[44px] items-center justify-center p-2 rounded-lg text-slate-400 hover:text-white hover:bg-[#161C2C] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01]"
+            className="hidden lg:inline-flex min-w-[44px] min-h-[44px] items-center justify-center p-2 rounded-lg text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957]"
             title="Modo Apresentação (Telão)"
             aria-label="Modo Apresentação (Telão)"
           >
@@ -265,7 +265,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           <button
             type="button"
             onClick={onOpenPrintSheet}
-            className="hidden lg:inline-flex min-w-[44px] min-h-[44px] items-center justify-center p-2 rounded-lg text-slate-400 hover:text-white hover:bg-[#161C2C] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01]"
+            className="hidden lg:inline-flex min-w-[44px] min-h-[44px] items-center justify-center p-2 rounded-lg text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957]"
             title="Imprimir Folha de Bilhetes"
             aria-label="Imprimir Folha de Bilhetes"
           >
@@ -275,7 +275,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           <button
             type="button"
             onClick={onOpenObsOverlay}
-            className="hidden lg:inline-flex min-w-[44px] min-h-[44px] items-center justify-center p-2 rounded-lg text-slate-400 hover:text-white hover:bg-[#161C2C] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01]"
+            className="hidden lg:inline-flex min-w-[44px] min-h-[44px] items-center justify-center p-2 rounded-lg text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957]"
             title="OBS Studio Overlay Transparente"
             aria-label="OBS Studio Overlay Transparente"
           >
@@ -287,7 +287,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             ref={triggerButtonRef}
             type="button"
             onClick={() => setIsUtilitiesMenuOpen((prev) => !prev)}
-            className="lg:hidden min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-2 rounded-lg text-slate-300 hover:text-white hover:bg-[#161C2C] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01]"
+            className="lg:hidden min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-2 rounded-lg text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957]"
             title="Utilitários de transmissão e impressão"
             aria-label="Utilitários de transmissão e impressão"
             aria-expanded={isUtilitiesMenuOpen}
@@ -300,7 +300,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <div
               role="menu"
               aria-label="Menu de utilitários rápidos"
-              className="lg:hidden absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-24px)] rounded-xl bg-[#10141E] border border-[#161C2C] shadow-2xl p-1.5 z-50 space-y-1 animate-fade-in"
+              className="lg:hidden absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-24px)] rounded-xl bg-[#111B30] border border-[#A5B1C5]/20 shadow-2xl p-1.5 z-50 space-y-1 animate-fade-in"
             >
               <button
                 type="button"
@@ -310,9 +310,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                   onOpenPresentation();
                   triggerButtonRef.current?.focus();
                 }}
-                className="w-full min-h-[44px] px-3 py-2 rounded-lg text-xs font-medium text-[#FFFFFF] hover:bg-[#161C2C] flex items-center gap-2.5 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01]"
+                className="w-full min-h-[44px] px-3 py-2 rounded-lg text-xs font-medium text-[#FFFFFF] hover:bg-[#080D18] flex items-center gap-2.5 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957]"
               >
-                <Tv className="w-4 h-4 text-[#B9FC01] shrink-0" />
+                <Tv className="w-4 h-4 text-[#A5B1C5] shrink-0" />
                 <span>Modo Apresentação (Telão)</span>
               </button>
 
@@ -324,9 +324,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                   onOpenPrintSheet();
                   triggerButtonRef.current?.focus();
                 }}
-                className="w-full min-h-[44px] px-3 py-2 rounded-lg text-xs font-medium text-[#FFFFFF] hover:bg-[#161C2C] flex items-center gap-2.5 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01]"
+                className="w-full min-h-[44px] px-3 py-2 rounded-lg text-xs font-medium text-[#FFFFFF] hover:bg-[#080D18] flex items-center gap-2.5 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957]"
               >
-                <Printer className="w-4 h-4 text-[#20C997] shrink-0" />
+                <Printer className="w-4 h-4 text-[#A5B1C5] shrink-0" />
                 <span>Imprimir Folha de Bilhetes</span>
               </button>
 
@@ -338,13 +338,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                   onOpenObsOverlay();
                   triggerButtonRef.current?.focus();
                 }}
-                className="w-full min-h-[44px] px-3 py-2 rounded-lg text-xs font-medium text-[#FFFFFF] hover:bg-[#161C2C] flex items-center gap-2.5 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01]"
+                className="w-full min-h-[44px] px-3 py-2 rounded-lg text-xs font-medium text-[#FFFFFF] hover:bg-[#080D18] flex items-center gap-2.5 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957]"
               >
                 <Video className="w-4 h-4 text-[#FFFFFF] shrink-0" />
                 <span>OBS Studio Overlay Transparente</span>
               </button>
 
-              <div className="border-t border-[#161C2C] my-1 pt-1">
+              <div className="border-t border-[#A5B1C5]/15 my-1 pt-1">
                 <button
                   type="button"
                   role="menuitem"
@@ -353,13 +353,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                     onSelectTab('tiktok');
                     triggerButtonRef.current?.focus();
                   }}
-                  className="w-full min-h-[44px] px-3 py-2 rounded-lg text-xs font-medium text-[#FFFFFF] hover:bg-[#161C2C] flex items-center justify-between gap-2 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01]"
+                  className="w-full min-h-[44px] px-3 py-2 rounded-lg text-xs font-medium text-[#FFFFFF] hover:bg-[#080D18] flex items-center justify-between gap-2 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957]"
                 >
                   <span className="flex items-center gap-2.5 truncate">
-                    <Radio className="w-4 h-4 text-[#B9FC01] shrink-0" />
+                    <Radio className="w-4 h-4 text-[#A6C957] shrink-0" />
                     <span className="truncate">TikTok LIVE</span>
                   </span>
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-[#94A3B8] shrink-0">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] text-[#A5B1C5] shrink-0">
                     <span className={`w-2 h-2 rounded-full ${connMeta.dotClass}`} />
                     <span>{connMeta.label}</span>
                   </span>
@@ -376,7 +376,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             onClick={onStartNewRaffle}
             title="Novo Sorteio"
             aria-label="Novo Sorteio"
-            className="gio-btn-primary min-w-[44px] min-h-[44px] px-2.5 md:px-3.5 py-2 text-xs font-semibold inline-flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01]"
+            className="gio-btn-primary min-w-[44px] min-h-[44px] px-2.5 md:px-3.5 py-2 text-xs font-semibold inline-flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957]"
           >
             <Plus className="w-4 h-4 stroke-[2.5] shrink-0" />
             <span className="hidden md:inline">Novo Sorteio</span>
@@ -387,11 +387,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         <button
           type="button"
           onClick={onOpenAccount}
-          className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-0.5 rounded-xl text-[#FFFFFF] hover:ring-2 hover:ring-[#0131CD] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01]"
+          className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-0.5 rounded-xl text-[#FFFFFF] hover:ring-2 hover:ring-[#0131CD] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957]"
           title={currentUser?.email || 'Minha Conta'}
           aria-label="Abrir perfil da conta"
         >
-          <div className="w-8 h-8 rounded-xl bg-[#10141E] flex items-center justify-center text-xs font-semibold text-[#FFFFFF] border border-white/10 shadow-xs">
+          <div className="w-8 h-8 rounded-xl bg-[#111B30] flex items-center justify-center text-xs font-semibold text-[#FFFFFF] border border-[#A5B1C5]/20 shadow-xs">
             {currentUser?.photoURL ? (
               <img
                 src={currentUser.photoURL}

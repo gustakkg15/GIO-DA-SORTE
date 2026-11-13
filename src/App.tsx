@@ -1614,7 +1614,7 @@ export default function App() {
   }, [participants.length, computed.allocations, settings]);
 
   return (
-    <div className="min-h-screen bg-[#080A0F] text-[#FFFFFF] flex font-sans transition-colors duration-300">
+    <div className="min-h-screen bg-[#080D18] text-[#FFFFFF] flex font-sans transition-colors duration-300">
       {/* Sidebar: Fixa no Desktop (260px ou 76px) & Drawer no Mobile */}
       <Sidebar
         activeTab={activeTab}
@@ -1701,22 +1701,22 @@ export default function App() {
         {activeTab === 'draw' && (
           <div className="space-y-6 animate-fade-in min-w-0">
             {/* Cabeçalho Contextual e Barra das Modalidades de Sorteio */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(0,0,0,0.45)] space-y-4">
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(0,0,0,0.45)] space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <h1 className="text-lg sm:text-xl font-bold text-[#FFFFFF] tracking-tight">
                     Central de Sorteios
                   </h1>
-                  <p className="text-xs text-[#94A3B8]">
+                  <p className="text-xs text-[#A5B1C5]">
                     Escolha a modalidade desejada abaixo para configurar, validar participantes e realizar o sorteio.
                   </p>
                 </div>
-                <div className="flex items-center gap-2.5 text-xs text-[#94A3B8] tabular-nums">
-                  <span className="px-3 py-1.5 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)]">
-                    Participantes: <strong className="text-[#FFFFFF] font-mono">{participants.length}</strong>
+                <div className="flex items-center gap-2.5 text-xs text-[#A5B1C5] tabular-nums">
+                  <span className="px-3 py-1.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
+                    Participantes: <strong className="text-[#FFFFFF] font-semibold tabular-nums">{participants.length}</strong>
                   </span>
-                  <span className="px-3 py-1.5 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)]">
-                    Bilhetes Elegíveis: <strong className="text-[#B9FC01] font-mono">{computed.eligibleTickets.length}</strong>
+                  <span className="px-3 py-1.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
+                    Bilhetes Elegíveis: <strong className="text-[#A6C957] font-semibold tabular-nums">{computed.eligibleTickets.length}</strong>
                   </span>
                 </div>
               </div>
@@ -1735,20 +1735,20 @@ export default function App() {
                   onClick={() => setRafflesSubTab('arena')}
                   className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between gap-1 ${
                     rafflesSubTab === 'arena'
-                      ? 'bg-[#0131CD] text-white border-[#B9FC01]/60 shadow-[0_6px_20px_rgba(1,49,205,0.45)]'
-                      : 'bg-[#080A0F] text-[#FFFFFF] border-[var(--gio-border-subtle)] hover:bg-[#161C2C] hover:border-[var(--gio-border-active)]'
+                      ? 'bg-[#0131CD] text-white border-[#0131CD] shadow-[0_6px_20px_rgba(1,49,205,0.4)]'
+                      : 'bg-[#080D18] text-[#FFFFFF] border-[var(--gio-border-subtle)] hover:bg-[#111B30] hover:border-[var(--gio-border-active)]'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-bold flex items-center gap-1.5">
-                      <Ticket className="w-4 h-4 shrink-0 text-[#B9FC01]" />
+                      <Ticket className={`w-4 h-4 shrink-0 ${rafflesSubTab === 'arena' ? 'text-[#FFFFFF]' : 'text-[#A6C957]'}`} />
                       <span>1. Roleta e Globo</span>
                     </span>
                     <span
-                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
                         rafflesSubTab === 'arena'
-                          ? 'bg-[#B9FC01] text-[#080A0F]'
-                          : 'bg-[#10141E] text-[#B9FC01] border border-[#B9FC01]/35'
+                          ? 'bg-[#A6C957] text-[#080D18]'
+                          : 'bg-[#111B30] text-[#A6C957] border border-[#A6C957]/35'
                       }`}
                     >
                       Principal
@@ -1756,7 +1756,7 @@ export default function App() {
                   </div>
                   <span
                     className={`text-[11px] leading-tight ${
-                      rafflesSubTab === 'arena' ? 'text-white/90 font-medium' : 'text-[#94A3B8]'
+                      rafflesSubTab === 'arena' ? 'text-white/90 font-medium' : 'text-[#A5B1C5]'
                     }`}
                   >
                     Mesa visual por moedas ou nomes
@@ -1771,19 +1771,19 @@ export default function App() {
                   onClick={() => setRafflesSubTab('participants')}
                   className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between gap-1 ${
                     rafflesSubTab === 'participants'
-                      ? 'bg-[#0131CD] text-white border-[#B9FC01]/60 shadow-[0_6px_20px_rgba(1,49,205,0.45)]'
-                      : 'bg-[#080A0F] text-[#FFFFFF] border-[var(--gio-border-subtle)] hover:bg-[#161C2C] hover:border-[var(--gio-border-active)]'
+                      ? 'bg-[#0131CD] text-white border-[#0131CD] shadow-[0_6px_20px_rgba(1,49,205,0.4)]'
+                      : 'bg-[#080D18] text-[#FFFFFF] border-[var(--gio-border-subtle)] hover:bg-[#111B30] hover:border-[var(--gio-border-active)]'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold flex items-center gap-1.5">
-                      <Users className="w-4 h-4 shrink-0 text-[#B9FC01]" />
+                    <span className="text-xs font-bold flex items-center gap-1.5 tabular-nums">
+                      <Users className={`w-4 h-4 shrink-0 ${rafflesSubTab === 'participants' ? 'text-[#FFFFFF]' : 'text-[#A5B1C5]'}`} />
                       <span>2. Participantes ({participants.length})</span>
                     </span>
                   </div>
                   <span
                     className={`text-[11px] leading-tight ${
-                      rafflesSubTab === 'participants' ? 'text-white/90 font-medium' : 'text-[#94A3B8]'
+                      rafflesSubTab === 'participants' ? 'text-white/90 font-medium' : 'text-[#A5B1C5]'
                     }`}
                   >
                     Nomes, bilhetes e moedas
@@ -1798,19 +1798,19 @@ export default function App() {
                   onClick={() => setRafflesSubTab('history')}
                   className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between gap-1 ${
                     rafflesSubTab === 'history'
-                      ? 'bg-[#0131CD] text-white border-[#B9FC01]/60 shadow-[0_6px_20px_rgba(1,49,205,0.45)]'
-                      : 'bg-[#080A0F] text-[#FFFFFF] border-[var(--gio-border-subtle)] hover:bg-[#161C2C] hover:border-[var(--gio-border-active)]'
+                      ? 'bg-[#0131CD] text-white border-[#0131CD] shadow-[0_6px_20px_rgba(1,49,205,0.4)]'
+                      : 'bg-[#080D18] text-[#FFFFFF] border-[var(--gio-border-subtle)] hover:bg-[#111B30] hover:border-[var(--gio-border-active)]'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold flex items-center gap-1.5">
-                      <Trophy className={`w-4 h-4 shrink-0 ${rafflesSubTab === 'history' ? 'text-[#B9FC01]' : 'text-[#F5B942]'}`} />
+                    <span className="text-xs font-bold flex items-center gap-1.5 tabular-nums">
+                      <Trophy className={`w-4 h-4 shrink-0 ${rafflesSubTab === 'history' ? 'text-[#FFFFFF]' : 'text-[#A6C957]'}`} />
                       <span>3. Histórico ({winners.length})</span>
                     </span>
                   </div>
                   <span
                     className={`text-[11px] leading-tight ${
-                      rafflesSubTab === 'history' ? 'text-white/90 font-medium' : 'text-[#94A3B8]'
+                      rafflesSubTab === 'history' ? 'text-white/90 font-medium' : 'text-[#A5B1C5]'
                     }`}
                   >
                     Resultados, certificados e auditoria
@@ -1825,18 +1825,18 @@ export default function App() {
                   onClick={() => setRafflesSubTab('wizard')}
                   className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between gap-1 ${
                     rafflesSubTab === 'wizard'
-                      ? 'bg-[#161C2C] text-[#FFFFFF] border-[#B9FC01]/60'
-                      : 'bg-[#080A0F]/85 text-[#94A3B8] border-[var(--gio-border-subtle)] hover:text-[#FFFFFF] hover:bg-[#161C2C]'
+                      ? 'bg-[#0131CD] text-[#FFFFFF] border-[#0131CD] shadow-[0_6px_20px_rgba(1,49,205,0.4)]'
+                      : 'bg-[#080D18]/85 text-[#A5B1C5] border-[var(--gio-border-subtle)] hover:text-[#FFFFFF] hover:bg-[#111B30]'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-bold flex items-center gap-1.5">
-                      <Sparkles className="w-4 h-4 shrink-0 text-[#B9FC01]" />
+                      <Sparkles className={`w-4 h-4 shrink-0 ${rafflesSubTab === 'wizard' ? 'text-[#FFFFFF]' : 'text-[#A5B1C5]'}`} />
                       <span>4. Assistente Guiado</span>
                     </span>
-                    <span className="text-[10px] text-[#94A3B8]">Opcional</span>
+                    <span className={`text-[10px] ${rafflesSubTab === 'wizard' ? 'text-white/80' : 'text-[#A5B1C5]'}`}>Opcional</span>
                   </div>
-                  <span className="text-[11px] leading-tight text-[#94A3B8]">
+                  <span className={`text-[11px] leading-tight ${rafflesSubTab === 'wizard' ? 'text-white/90' : 'text-[#A5B1C5]'}`}>
                     Configuração passo a passo
                   </span>
                 </button>
@@ -1922,13 +1922,13 @@ export default function App() {
 
             {/* OPÇÃO 3: HISTÓRICO (Ganhadores, Cartão VIP, Certificados e Auditoria — Redesign 2.0) */}
             {rafflesSubTab === 'history' && (
-              <div className="p-5 sm:p-6 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(0,0,0,0.45)] space-y-5">
+              <div className="p-5 sm:p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(0,0,0,0.45)] space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--gio-border-subtle)]">
                   <div>
                     <h2 className="text-lg sm:text-xl font-bold text-[#FFFFFF]">
                       Histórico de Resultados e Certificados
                     </h2>
-                    <p className="text-xs text-[#94A3B8]">
+                    <p className="text-xs text-[#A5B1C5]">
                       Consulte todos os ganhadores registrados, emita o Cartão VIP ou baixe o Relatório Oficial em PDF com hash SHA-256.
                     </p>
                   </div>
@@ -1936,7 +1936,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setIsPrizeQueueOpen(true)}
-                      className="min-h-[40px] px-4 py-2 rounded-xl bg-[#161C2C] hover:bg-white/[0.08] text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] text-xs font-semibold transition"
+                      className="min-h-[40px] px-4 py-2 rounded-xl bg-[#080D18] hover:bg-white/[0.08] text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] text-xs font-semibold transition"
                     >
                       Gerenciar Fila de Prêmios
                     </button>
@@ -1952,21 +1952,21 @@ export default function App() {
                 </div>
 
                 {/* Integrity Summary Strip */}
-                <div className="p-3.5 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-2 text-[#20C997] font-semibold">
+                <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 text-[#A6C957] font-semibold">
                     <ShieldCheck className="w-4 h-4 shrink-0" />
                     <span>Hash SHA-256 da Série Atual:</span>
                   </div>
-                  <span className="font-mono text-[11px] text-[#94A3B8] truncate select-all tabular-nums">
+                  <span className="font-mono text-[11px] text-[#A5B1C5] truncate select-all tabular-nums">
                     {rosterHash || 'Calculando hash...'}
                   </span>
                 </div>
 
                 {winners.length === 0 ? (
-                  <div className="p-8 rounded-xl bg-[#080A0F] border border-[var(--gio-border-subtle)] text-center space-y-3">
-                    <Trophy className="w-8 h-8 text-[#F5B942] mx-auto" />
+                  <div className="p-8 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] text-center space-y-3">
+                    <Trophy className="w-8 h-8 text-[#A6C957] mx-auto" />
                     <p className="text-sm font-bold text-[#FFFFFF]">Nenhum resultado registrado nesta sessão</p>
-                    <p className="text-xs text-[#94A3B8]">
+                    <p className="text-xs text-[#A5B1C5]">
                       Realize um sorteio na aba Roleta e Globo para registrar o primeiro ganhador.
                     </p>
                     <button
@@ -1978,16 +1978,16 @@ export default function App() {
                     </button>
                   </div>
                 ) : (
-                  <div className="divide-y divide-[var(--gio-border-subtle)] rounded-xl border border-[var(--gio-border-subtle)] bg-[#080A0F] overflow-hidden">
+                  <div className="divide-y divide-[var(--gio-border-subtle)] rounded-xl border border-[var(--gio-border-subtle)] bg-[#080D18] overflow-hidden">
                     {winners.map((w) => (
-                      <div key={w.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm hover:bg-[#161C2C]/40 transition-colors">
+                      <div key={w.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm hover:bg-[#111B30]/60 transition-colors">
                         <div className="flex items-center gap-3 min-w-0">
-                          <span className="px-2.5 py-1 rounded-lg bg-[#10141E] border border-[#F5B942]/40 text-[#F5B942] font-mono font-bold tabular-nums shrink-0">
+                          <span className="px-2.5 py-1 rounded-lg bg-[#111B30] border border-[#A6C957]/35 text-[#A6C957] font-semibold tabular-nums shrink-0">
                             #{w.number}
                           </span>
                           <div className="min-w-0">
                             <div className="font-semibold text-[#FFFFFF] truncate">{w.name}</div>
-                            <div className="text-xs text-[#94A3B8] tabular-nums">
+                            <div className="text-xs text-[#A5B1C5] tabular-nums">
                               {w.prize} · {formatDateTime(w.drawnAt)}
                             </div>
                           </div>
@@ -1996,15 +1996,15 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => setCelebrationWinner(w)}
-                            className="px-3 py-1.5 rounded-lg bg-[#10141E] hover:bg-[#161C2C] text-[#FFFFFF] border border-[var(--gio-border-subtle)] font-medium text-xs flex items-center gap-1.5 transition"
+                            className="px-3 py-1.5 rounded-lg bg-[#111B30] hover:bg-white/[0.08] text-[#FFFFFF] border border-[var(--gio-border-subtle)] font-medium text-xs flex items-center gap-1.5 transition"
                           >
-                            <Maximize2 className="w-3.5 h-3.5 text-[#B9FC01]" />
+                            <Maximize2 className="w-3.5 h-3.5 text-[#A5B1C5]" />
                             <span>Telão</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => setSelectedWinnerForCard(w)}
-                            className="px-3 py-1.5 rounded-lg bg-[#10141E] hover:bg-[#161C2C] text-[#F5B942] border border-[#F5B942]/40 font-semibold text-xs flex items-center gap-1.5 transition"
+                            className="px-3 py-1.5 rounded-lg bg-[#111B30] hover:bg-[#A6C957]/15 text-[#A6C957] border border-[#A6C957]/35 font-semibold text-xs flex items-center gap-1.5 transition"
                           >
                             <Award className="w-3.5 h-3.5" />
                             <span>Cartão VIP</span>
@@ -2013,7 +2013,7 @@ export default function App() {
                             type="button"
                             onClick={() => handleRemoveWinner(w.id)}
                             title="Remover ganhador"
-                            className="min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] p-2 flex items-center justify-center rounded-lg bg-[#10141E] hover:bg-[#F05262]/15 text-[#94A3B8] hover:text-[#F05262] border border-[var(--gio-border-subtle)] transition"
+                            className="min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] p-2 flex items-center justify-center rounded-lg bg-[#111B30] hover:bg-[#F05262]/15 text-[#A5B1C5] hover:text-[#F05262] border border-[var(--gio-border-subtle)] transition"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -2075,30 +2075,30 @@ export default function App() {
         {/* 4. PARTICIPANTES (CADASTRO, LISTA, FILTROS E CONSULTA DE BILHETES) */}
         {activeTab === 'search' && (
           <div className="space-y-6 animate-fade-in">
-            <div className="p-2.5 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(0,0,0,0.45)] flex flex-wrap items-center justify-between gap-2">
+            <div className="p-2.5 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(0,0,0,0.45)] flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => setParticipantsSubTab('manage')}
                   className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
                     participantsSubTab === 'manage'
-                      ? 'bg-[#0131CD] text-white border border-[#B9FC01]/50 shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
-                      : 'text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C]'
+                      ? 'bg-[#0131CD] text-white border border-[#0131CD] shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
+                      : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]'
                   }`}
                 >
-                  <Users className={`w-4 h-4 ${participantsSubTab === 'manage' ? 'text-[#B9FC01]' : ''}`} />
-                  <span>Lista de Participantes ({participants.length})</span>
+                  <Users className="w-4 h-4" />
+                  <span className="tabular-nums">Lista de Participantes ({participants.length})</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setParticipantsSubTab('lookup')}
                   className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
                     participantsSubTab === 'lookup'
-                      ? 'bg-[#0131CD] text-white border border-[#B9FC01]/50 shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
-                      : 'text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C]'
+                      ? 'bg-[#0131CD] text-white border border-[#0131CD] shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
+                      : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]'
                   }`}
                 >
-                  <Search className={`w-4 h-4 ${participantsSubTab === 'lookup' ? 'text-[#B9FC01]' : ''}`} />
+                  <Search className="w-4 h-4" />
                   <span>Consultar Bilhetes e QR Code</span>
                 </button>
               </div>
@@ -2106,9 +2106,9 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => handleOpenLiveProTab('audit')}
-                className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] text-xs font-semibold flex items-center gap-1.5 transition"
+                className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-[#080D18] hover:bg-white/[0.08] text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] text-xs font-semibold flex items-center gap-1.5 transition"
               >
-                <Radio className="w-3.5 h-3.5 text-[#B9FC01]" />
+                <Radio className="w-3.5 h-3.5 text-[#A6C957]" />
                 <span>Participantes da TikTok LIVE</span>
               </button>
             </div>
@@ -2145,12 +2145,12 @@ export default function App() {
         {/* 5. RELATÓRIOS (ESTATÍSTICAS, BILHETES EMITIDOS, HISTÓRICO E EXPORTAÇÃO) */}
         {activeTab === 'stats' && (
           <div className="space-y-6 animate-fade-in">
-            <div className="p-5 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(0,0,0,0.45)] flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="p-5 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(0,0,0,0.45)] flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div>
                 <h1 className="text-lg sm:text-xl font-bold text-[#FFFFFF] tracking-tight">
                   Relatórios, Estatísticas e Exportação
                 </h1>
-                <p className="text-xs text-[#94A3B8]">
+                <p className="text-xs text-[#A5B1C5]">
                   Analise as probabilidades matemáticas de cada participante, emita certificados PDF e exporte planilhas.
                 </p>
               </div>
@@ -2159,17 +2159,17 @@ export default function App() {
                   type="button"
                   onClick={handleExportFullReportCsv}
                   disabled={participants.length === 0}
-                  className="min-h-[40px] px-4 py-2 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] disabled:opacity-40 text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] text-xs font-semibold flex items-center gap-1.5 transition"
+                  className="min-h-[40px] px-4 py-2 rounded-xl bg-[#080D18] hover:bg-white/[0.08] disabled:opacity-40 text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] text-xs font-semibold flex items-center gap-1.5 transition"
                 >
-                  <Download className="w-4 h-4 text-[#B9FC01]" />
+                  <Download className="w-4 h-4 text-[#A5B1C5]" />
                   <span>Exportar Planilha CSV</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsPrintSheetOpen(true)}
-                  className="min-h-[40px] px-4 py-2 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] text-xs font-semibold flex items-center gap-1.5 transition"
+                  className="min-h-[40px] px-4 py-2 rounded-xl bg-[#080D18] hover:bg-white/[0.08] text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] text-xs font-semibold flex items-center gap-1.5 transition"
                 >
-                  <Printer className="w-4 h-4 text-[#F5B942]" />
+                  <Printer className="w-4 h-4 text-[#A5B1C5]" />
                   <span>Folha de Bilhetes</span>
                 </button>
                 <button
@@ -2221,17 +2221,17 @@ export default function App() {
         {/* 7. CONFIGURAÇÕES (AMBIENTE DE PERFIL, REGRAS, AJUDA, SUPORTE & CENTRAL LEGAL) */}
         {(activeTab === 'settings' || activeTab === 'help' || activeTab === 'support') && (
           <div className="space-y-6 animate-fade-in">
-            <div className="p-2.5 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(0,0,0,0.45)] flex flex-wrap items-center gap-1.5">
+            <div className="p-2.5 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(0,0,0,0.45)] flex flex-wrap items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => setSettingsSubTab('profile')}
                 className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
                   settingsSubTab === 'profile'
-                    ? 'bg-[#0131CD] text-white border border-[#B9FC01]/50 shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
-                    : 'text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C]'
+                    ? 'bg-[#0131CD] text-white border border-[#0131CD] shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
+                    : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]'
                 }`}
               >
-                <User className={`w-4 h-4 ${settingsSubTab === 'profile' ? 'text-[#B9FC01]' : ''}`} />
+                <User className="w-4 h-4" />
                 <span>Meu Perfil e Configurações</span>
               </button>
 
@@ -2240,11 +2240,11 @@ export default function App() {
                 onClick={() => setSettingsSubTab('preferences')}
                 className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
                   settingsSubTab === 'preferences'
-                    ? 'bg-[#0131CD] text-white border border-[#B9FC01]/50 shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
-                    : 'text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C]'
+                    ? 'bg-[#0131CD] text-white border border-[#0131CD] shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
+                    : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]'
                 }`}
               >
-                <Settings className={`w-4 h-4 ${settingsSubTab === 'preferences' ? 'text-[#B9FC01]' : ''}`} />
+                <Settings className="w-4 h-4" />
                 <span>Regras e Backup da Rifa</span>
               </button>
 
@@ -2253,11 +2253,11 @@ export default function App() {
                 onClick={() => setSettingsSubTab('help')}
                 className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
                   settingsSubTab === 'help'
-                    ? 'bg-[#0131CD] text-white border border-[#B9FC01]/50 shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
-                    : 'text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C]'
+                    ? 'bg-[#0131CD] text-white border border-[#0131CD] shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
+                    : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]'
                 }`}
               >
-                <HelpCircle className={`w-4 h-4 ${settingsSubTab === 'help' ? 'text-[#B9FC01]' : ''}`} />
+                <HelpCircle className="w-4 h-4" />
                 <span>Como Funciona</span>
               </button>
 
@@ -2266,11 +2266,11 @@ export default function App() {
                 onClick={() => setSettingsSubTab('support')}
                 className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
                   settingsSubTab === 'support'
-                    ? 'bg-[#0131CD] text-white border border-[#B9FC01]/50 shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
-                    : 'text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C]'
+                    ? 'bg-[#0131CD] text-white border border-[#0131CD] shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
+                    : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]'
                 }`}
               >
-                <Heart className={`w-4 h-4 ${settingsSubTab === 'support' ? 'text-[#B9FC01]' : ''}`} />
+                <Heart className="w-4 h-4" />
                 <span>Suporte</span>
               </button>
 
@@ -2279,11 +2279,11 @@ export default function App() {
                 onClick={() => setSettingsSubTab('legal')}
                 className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
                   settingsSubTab === 'legal'
-                    ? 'bg-[#0131CD] text-white border border-[#B9FC01]/50 shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
-                    : 'text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C]'
+                    ? 'bg-[#0131CD] text-white border border-[#0131CD] shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
+                    : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]'
                 }`}
               >
-                <Scale className={`w-4 h-4 ${settingsSubTab === 'legal' ? 'text-[#B9FC01]' : ''}`} />
+                <Scale className="w-4 h-4" />
                 <span>Central Legal e LGPD</span>
               </button>
             </div>

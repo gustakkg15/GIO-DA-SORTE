@@ -126,17 +126,17 @@ export const BattleRoyaleModal: React.FC<BattleRoyaleModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#080A0F]/95 backdrop-blur-xl flex flex-col justify-between p-3 sm:p-6 overflow-y-auto animate-fade-in">
+    <div className="fixed inset-0 z-50 bg-[#080D18]/95 backdrop-blur-xl flex flex-col justify-between p-3 sm:p-6 overflow-y-auto animate-fade-in">
       <div className="animate-slide-up max-w-5xl mx-auto w-full flex flex-col flex-1 justify-between space-y-4">
         {/* Top Header */}
-        <div className="flex items-center justify-between w-full pb-3 sm:pb-4 border-b border-[#161C2C] gap-2 shrink-0">
+        <div className="flex items-center justify-between w-full pb-3 sm:pb-4 border-b border-[var(--gio-border-subtle)] gap-2 shrink-0">
           <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#F5B942]/20 border border-[#F5B942]/40 text-[#F5B942] font-bold flex items-center justify-center shadow-lg shrink-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#A6C957]/15 border border-[#A6C957]/35 text-[#A6C957] font-bold flex items-center justify-center shadow-lg shrink-0">
               <Flame className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
-              <h2 className="font-display font-bold text-lg sm:text-xl text-[#FFFFFF] truncate">Battle Royale</h2>
-              <p className="text-[11px] sm:text-xs text-[#94A3B8] truncate">Eliminatória por fases até o campeão</p>
+              <h2 className="font-bold text-lg sm:text-xl text-[#FFFFFF] truncate">Battle Royale</h2>
+              <p className="text-[11px] sm:text-xs text-[#A5B1C5] truncate">Eliminatória por fases até o campeão</p>
             </div>
           </div>
 
@@ -146,7 +146,7 @@ export const BattleRoyaleModal: React.FC<BattleRoyaleModalProps> = ({
               onClick={handleReset}
               title="Reiniciar torneio"
               aria-label="Reiniciar torneio eliminatório"
-              className="min-w-[40px] min-h-[40px] p-2 flex items-center justify-center text-[#94A3B8] hover:text-[#FFFFFF] bg-[#10141E] border border-[#161C2C] rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080A0F]"
+              className="min-w-[40px] min-h-[40px] p-2 flex items-center justify-center text-[#A5B1C5] hover:text-[#FFFFFF] bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080D18]"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
@@ -155,7 +155,7 @@ export const BattleRoyaleModal: React.FC<BattleRoyaleModalProps> = ({
               onClick={onClose}
               title="Fechar torneio"
               aria-label="Fechar torneio eliminatório"
-              className="min-w-[40px] min-h-[40px] p-2 flex items-center justify-center text-[#94A3B8] hover:text-[#FFFFFF] bg-[#10141E] border border-[#161C2C] rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080A0F]"
+              className="min-w-[40px] min-h-[40px] p-2 flex items-center justify-center text-[#A5B1C5] hover:text-[#FFFFFF] bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080D18]"
             >
               <X className="w-5 h-5" />
             </button>
@@ -166,36 +166,36 @@ export const BattleRoyaleModal: React.FC<BattleRoyaleModalProps> = ({
         <div className="max-w-4xl w-full mx-auto my-auto py-6 space-y-6">
           {/* Round HUD */}
           <div className="text-center space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#10141E] border border-[#0131CD]/40 text-[#B9FC01] text-xs font-bold uppercase tracking-wider">
-              <ShieldAlert className="w-3.5 h-3.5 text-[#F5B942]" />
-              <span className="font-mono tabular-nums">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#111B30] border border-[#0131CD]/40 text-[#A6C957] text-xs font-semibold tracking-wide">
+              <ShieldAlert className="w-3.5 h-3.5 text-[#A6C957]" />
+              <span className="tabular-nums">
                 {champion
                   ? 'Torneio Concluído'
                   : `Fase ${roundNumber} · Restam ${survivorsList.length} Sobreviventes (${survivingTickets.length} Bilhetes)`}
               </span>
             </div>
 
-            <h3 className="font-display font-bold text-3xl sm:text-4xl text-[#FFFFFF] tracking-tight">
+            <h3 className="font-bold text-3xl sm:text-4xl text-[#FFFFFF] tracking-tight">
               {champion
-                ? 'TEMOS UM GRANDE CAMPEÃO!'
+                ? 'Temos um Grande Campeão!'
                 : survivorsList.length === 2
-                ? 'DUELO FINAL 1 x 1'
+                ? 'Duelo Final 1 x 1'
                 : survivorsList.length <= 4
-                ? 'GRANDE SEMIFINAL'
+                ? 'Grande Semifinal'
                 : 'Sobrevivência dos Bilhetes'}
             </h3>
           </div>
 
           {/* Champion Reveal Card */}
           {champion ? (
-            <div className="bg-[#10141E] border-2 border-[#F5B942] text-[#FFFFFF] rounded-2xl p-8 sm:p-12 text-center shadow-2xl max-w-xl mx-auto space-y-4 ring-4 ring-[#F5B942]/20 animate-in zoom-in-95 duration-300">
-              <Trophy className="w-16 h-16 mx-auto text-[#F5B942] drop-shadow-md" />
-              <div className="text-xs font-bold uppercase tracking-widest text-[#F5B942]">Vencedor Supremo</div>
-              <div className="text-4xl sm:text-5xl font-display font-bold text-[#FFFFFF] tracking-tight">
+            <div className="bg-[#111B30] border-2 border-[#A6C957] text-[#FFFFFF] rounded-2xl p-8 sm:p-12 text-center shadow-2xl max-w-xl mx-auto space-y-4 ring-4 ring-[#A6C957]/20 animate-in zoom-in-95 duration-300">
+              <Trophy className="w-16 h-16 mx-auto text-[#A6C957] drop-shadow-md" />
+              <div className="text-xs font-semibold uppercase tracking-wider text-[#A6C957]">Vencedor Supremo</div>
+              <div className="text-4xl sm:text-5xl font-bold text-[#FFFFFF] tracking-tight">
                 {champion.name}
               </div>
-              <div className="font-mono font-bold text-2xl text-[#B9FC01] tabular-nums">Bilhete Premiado: #{champion.number}</div>
-              <p className="text-xs font-medium text-[#94A3B8]">
+              <div className="font-bold text-2xl text-[#A6C957] tabular-nums">Bilhete Premiado: #{champion.number}</div>
+              <p className="text-xs font-medium text-[#A5B1C5]">
                 Sobreviveu a todas as etapas eliminatórias do Battle Royale!
               </p>
             </div>
@@ -206,12 +206,12 @@ export const BattleRoyaleModal: React.FC<BattleRoyaleModalProps> = ({
                 {survivorsList.map((contender) => (
                   <div
                     key={contender.id}
-                    className="bg-[#10141E] border border-[#161C2C] rounded-xl p-3 flex flex-col justify-between transition-all"
+                    className="bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-xl p-3 flex flex-col justify-between transition-all"
                   >
                     <div className="font-bold text-sm text-[#FFFFFF] truncate">{contender.name}</div>
-                    <div className="mt-2 flex items-center justify-between text-xs text-[#94A3B8] font-mono tabular-nums">
-                      <span className="text-[#F5B942] font-semibold">{contender.ticketsCount} bilhetes</span>
-                      <span className="text-[10px] text-[#94A3B8]">
+                    <div className="mt-2 flex items-center justify-between text-xs text-[#A5B1C5] tabular-nums">
+                      <span className="text-[#A6C957] font-semibold">{contender.ticketsCount} bilhetes</span>
+                      <span className="text-[10px] text-[#A5B1C5]">
                         #{contender.numbers[0]}
                         {contender.numbers.length > 1 ? `…` : ''}
                       </span>
@@ -236,9 +236,9 @@ export const BattleRoyaleModal: React.FC<BattleRoyaleModalProps> = ({
                 type="button"
                 disabled={isEliminating || survivingTickets.length <= 1}
                 onClick={handleNextElimination}
-                className={`py-4 px-8 rounded-xl font-display font-bold text-lg flex items-center gap-3 transition-all active:scale-95 shadow-xl ${
+                className={`py-4 px-8 rounded-xl font-bold text-lg flex items-center gap-3 transition-all active:scale-95 shadow-xl ${
                   isEliminating
-                    ? 'bg-[#161C2C] text-[#94A3B8] cursor-not-allowed'
+                    ? 'bg-[#111B30] text-[#A5B1C5] cursor-not-allowed'
                     : 'bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] cursor-pointer'
                 }`}
               >
@@ -261,7 +261,7 @@ export const BattleRoyaleModal: React.FC<BattleRoyaleModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="text-center text-xs text-[#94A3B8]">
+        <div className="text-center text-xs text-[#A5B1C5]">
           Cada bilhete concorre igualmente. Quem possui mais moedas tem mais bilhetes e maior chance de sobreviver!
         </div>
       </div>

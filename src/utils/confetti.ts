@@ -21,7 +21,7 @@ export async function fireWinnerConfetti() {
       particleCount: 80,
       spread: 45,
       startVelocity: 60,
-      colors: ['#38bdf8', '#2563eb', '#fbbf24', '#ffffff', '#06b6d4'],
+      colors: ['#0131CD', '#A6C957', '#FFFFFF', '#A5B1C5'],
       shapes: ['star', 'circle', 'square'],
       scalar: 1.1,
     });
@@ -33,7 +33,7 @@ export async function fireWinnerConfetti() {
       spread: 110,
       decay: 0.92,
       startVelocity: 42,
-      colors: ['#0284c7', '#38bdf8', '#f59e0b', '#67e8f9', '#ec4899'],
+      colors: ['#0131CD', '#A6C957', '#FFFFFF', '#A5B1C5'],
       shapes: ['circle', 'square'],
       scalar: 0.9,
     });
@@ -44,7 +44,7 @@ export async function fireWinnerConfetti() {
       particleCount: 150,
       spread: 90,
       origin: { y: 0.65 },
-      colors: ['#2563eb', '#38bdf8', '#f59e0b', '#ffffff'],
+      colors: ['#0131CD', '#A6C957', '#FFFFFF', '#A5B1C5'],
     });
   }
 }
@@ -58,10 +58,10 @@ export async function fireWinnerFireworks(durationMs = 2800) {
 
   const animationEnd = Date.now() + durationMs;
   const colors = [
-    ['#ff0055', '#ff5500', '#ffd700'], // Ruby & Gold
-    ['#00f2fe', '#4facfe', '#00c6ff'], // Neon Cyan & Sky
-    ['#7928ca', '#ff0080', '#b92b27'], // Violet & Magenta
-    ['#00f5d4', '#7b2cbf', '#fee440'], // Emerald & Royal Gold
+    ['#0131CD', '#A6C957', '#FFFFFF'],
+    ['#A6C957', '#FFFFFF', '#A5B1C5'],
+    ['#0131CD', '#FFFFFF', '#A6C957'],
+    ['#0131CD', '#A6C957', '#A5B1C5'],
   ];
 
   let colorIdx = 0;
@@ -112,7 +112,7 @@ export async function fireWinnerFireworks(durationMs = 2800) {
           spread: 80,
           origin: { x: 0.5, y: 0.6 },
           startVelocity: 55,
-          colors: ['#fbbf24', '#ffffff', '#38bdf8', '#f43f5e'],
+          colors: ['#0131CD', '#A6C957', '#FFFFFF', '#A5B1C5'],
           zIndex: 99999,
           shapes: ['star', 'circle'],
           scalar: 1.2,

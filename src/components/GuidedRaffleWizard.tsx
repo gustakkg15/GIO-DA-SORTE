@@ -185,16 +185,16 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
   };
 
   return (
-    <div className="rounded-xl bg-[#10141E] border border-[#161C2C] shadow-xl overflow-hidden animate-fade-in">
+    <div className="rounded-xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-xl overflow-hidden animate-fade-in">
       {/* Header & Progress Bar */}
-      <div className="p-5 sm:p-6 bg-[#10141E] border-b border-[#161C2C] space-y-4">
+      <div className="p-5 sm:p-6 bg-[#111B30] border-b border-[var(--gio-border-subtle)] space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2 text-xs text-[#B9FC01] font-semibold">
-              <Sparkles className="w-3.5 h-3.5 text-[#F5B942]" />
+            <div className="flex items-center gap-2 text-xs text-[#A6C957] font-semibold">
+              <Sparkles className="w-3.5 h-3.5 text-[#A6C957]" />
               <span>Assistente Guiado Opcional</span>
               <span aria-hidden="true">·</span>
-              <span className="font-mono tabular-nums">Etapa {step} de 6</span>
+              <span className="tabular-nums">Etapa {step} de 6</span>
             </div>
             <h2 className="text-lg sm:text-xl font-semibold text-[#FFFFFF] mt-0.5">
               Etapa {step} — {WIZARD_STEPS[step - 1].title}
@@ -205,7 +205,7 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
             <button
               type="button"
               onClick={onCloseWizard}
-              className="self-start sm:self-auto min-h-[38px] px-3.5 py-1.5 rounded-lg bg-[#10141E] hover:bg-[#161C2C] text-[#FFFFFF] border border-[#161C2C] text-xs font-semibold transition"
+              className="self-start sm:self-auto min-h-[38px] px-3.5 py-1.5 rounded-lg bg-[#080D18] hover:bg-[#0131CD]/20 text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-semibold transition"
             >
               Ir Direto para Roleta e Globo
             </button>
@@ -224,19 +224,19 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                 onClick={() => setStep(s.number)}
                 className={`min-h-[40px] px-2.5 py-2 rounded-lg text-left border transition flex items-center gap-2 ${
                   isActive
-                    ? 'bg-[#161C2C] border-[#0131CD] text-[#FFFFFF] font-semibold'
+                    ? 'bg-[#080D18] border-[#0131CD] text-[#FFFFFF] font-semibold'
                     : isCompleted
-                    ? 'bg-[#10141E] border-[#20C997]/40 text-[#20C997] font-medium hover:bg-[#161C2C]'
-                    : 'bg-[#10141E] border-[#161C2C] text-[#94A3B8] hover:text-[#FFFFFF]'
+                    ? 'bg-[#080D18] border-[#A6C957]/40 text-[#A6C957] font-medium hover:bg-[#111B30]'
+                    : 'bg-[#080D18] border-[var(--gio-border-subtle)] text-[#A5B1C5] hover:text-[#FFFFFF]'
                 }`}
               >
                 <span
-                  className={`w-5 h-5 rounded-full text-[11px] font-mono font-bold flex items-center justify-center shrink-0 tabular-nums ${
+                  className={`w-5 h-5 rounded-full text-[11px] font-bold flex items-center justify-center shrink-0 tabular-nums ${
                     isActive
                       ? 'bg-[#0131CD] text-[#FFFFFF]'
                       : isCompleted
-                      ? 'bg-[#20C997]/20 text-[#20C997]'
-                      : 'bg-[#10141E] text-[#94A3B8]'
+                      ? 'bg-[#A6C957] text-[#080D18]'
+                      : 'bg-[#111B30] text-[#A5B1C5]'
                   }`}
                 >
                   {isCompleted ? '✓' : s.number}
@@ -251,8 +251,8 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
       {/* Step Content Area */}
       <div className="p-5 sm:p-6 space-y-6">
         {stepFeedback && (
-          <div className="p-3 rounded-lg bg-[#20C997]/15 border border-[#20C997]/40 text-[#FFFFFF] text-xs font-medium flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#20C997] shrink-0" />
+          <div className="p-3 rounded-lg bg-[#A6C957]/15 border border-[#A6C957]/35 text-[#FFFFFF] text-xs font-medium flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-[#A6C957] shrink-0" />
             <span>{stepFeedback}</span>
           </div>
         )}
@@ -260,7 +260,7 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
         {/* ETAPA 1 — ESCOLHER MODALIDADE */}
         {step === 1 && (
           <div className="space-y-5">
-            <p className="text-sm text-[#94A3B8]">
+            <p className="text-sm text-[#A5B1C5]">
               Escolha como você deseja conduzir o seu sorteio. Você pode avançar livremente ou voltar à mesa principal a qualquer momento.
             </p>
 
@@ -271,25 +271,25 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                 onClick={() => setModality('traditional')}
                 className={`p-5 rounded-xl border text-left transition flex flex-col justify-between gap-4 ${
                   modality === 'traditional'
-                    ? 'bg-[#161C2C] border-[#0131CD] ring-1 ring-[#0131CD]/50'
-                    : 'bg-[#10141E] border-[#161C2C] hover:border-[#0131CD]/40'
+                    ? 'bg-[#080D18] border-[#0131CD] ring-1 ring-[#0131CD]/50'
+                    : 'bg-[#080D18] border-[var(--gio-border-subtle)] hover:border-[#0131CD]/40'
                 }`}
               >
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-lg bg-[#10141E] border border-[#161C2C] flex items-center justify-center text-[#B9FC01]">
+                    <div className="w-10 h-10 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)] flex items-center justify-center text-[#35B9F5]">
                       <Ticket className="w-5 h-5" />
                     </div>
-                    <span className="text-[11px] font-semibold text-[#20C997]">Livre</span>
+                    <span className="text-[11px] font-semibold text-[#A6C957]">Livre</span>
                   </div>
                   <h3 className="text-base font-semibold text-[#FFFFFF]">
                     1. Roleta e Globo (Moedas ou Nomes)
                   </h3>
-                  <p className="text-xs text-[#94A3B8] leading-relaxed">
+                  <p className="text-xs text-[#A5B1C5] leading-relaxed">
                     Ideal para listas manuais, planilhas CSV/Excel ou apoiadores onde você define quantas moedas valem 1 bilhete.
                   </p>
                 </div>
-                <div className="text-xs font-semibold text-[#B9FC01] flex items-center gap-1">
+                <div className="text-xs font-semibold text-[#A6C957] flex items-center gap-1">
                   <span>{modality === 'traditional' ? 'Modalidade selecionada ✓' : 'Selecionar esta modalidade'}</span>
                 </div>
               </button>
@@ -300,13 +300,13 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                 onClick={() => setModality('tiktok_comments')}
                 className={`p-5 rounded-xl border text-left transition flex flex-col justify-between gap-4 ${
                   modality === 'tiktok_comments'
-                    ? 'bg-[#161C2C] border-[#B9FC01] ring-1 ring-[#B9FC01]/50'
-                    : 'bg-[#10141E] border-[#161C2C] hover:border-[#B9FC01]/45'
+                    ? 'bg-[#080D18] border-[#A6C957] ring-1 ring-[#A6C957]/40'
+                    : 'bg-[#080D18] border-[var(--gio-border-subtle)] hover:border-[#A6C957]/45'
                 }`}
               >
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-lg bg-[#B9FC01]/15 border border-[#B9FC01]/40 flex items-center justify-center text-[#B9FC01]">
+                    <div className="w-10 h-10 rounded-lg bg-[#A6C957]/15 border border-[#A6C957]/35 flex items-center justify-center text-[#A6C957]">
                       <MessageSquare className="w-5 h-5" />
                     </div>
                     <span className="gio-badge-pro">
@@ -317,13 +317,13 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                   <h3 className="text-base font-semibold text-[#FFFFFF]">
                     2. Sorteador de Comentários
                   </h3>
-                  <p className="text-xs text-[#94A3B8] leading-relaxed">
+                  <p className="text-xs text-[#A5B1C5] leading-relaxed">
                     {isPro
                       ? 'Carregue comentários de vídeo do TikTok ou cole @arrobas para sortear com filtros de palavra-chave e menções.'
                       : 'Recurso exclusivo do plano PRO. Sorteie entre comentários do TikTok com filtros inteligentes.'}
                   </p>
                 </div>
-                <div className="text-xs font-semibold text-[#B9FC01] flex items-center gap-1">
+                <div className="text-xs font-semibold text-[#A6C957] flex items-center gap-1">
                   <span>{modality === 'tiktok_comments' ? 'Modalidade selecionada ✓' : 'Selecionar esta modalidade'}</span>
                 </div>
               </button>
@@ -334,13 +334,13 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                 onClick={() => setModality('tiktok_live_pro')}
                 className={`p-5 rounded-xl border text-left transition flex flex-col justify-between gap-4 ${
                   modality === 'tiktok_live_pro'
-                    ? 'bg-[#161C2C] border-[#B9FC01] ring-1 ring-[#B9FC01]/50'
-                    : 'bg-[#10141E] border-[#161C2C] hover:border-[#B9FC01]/45'
+                    ? 'bg-[#080D18] border-[#A6C957] ring-1 ring-[#A6C957]/40'
+                    : 'bg-[#080D18] border-[var(--gio-border-subtle)] hover:border-[#A6C957]/45'
                 }`}
               >
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-lg bg-[#B9FC01]/15 border border-[#B9FC01]/40 flex items-center justify-center text-[#B9FC01]">
+                    <div className="w-10 h-10 rounded-lg bg-[#A6C957]/15 border border-[#A6C957]/35 flex items-center justify-center text-[#A6C957]">
                       <Radio className="w-5 h-5" />
                     </div>
                     <span className="gio-badge-pro">
@@ -351,11 +351,11 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                   <h3 className="text-base font-semibold text-[#FFFFFF]">
                     3. Sorteio por Presentes LIVE
                   </h3>
-                  <p className="text-xs text-[#94A3B8] leading-relaxed">
+                  <p className="text-xs text-[#A5B1C5] leading-relaxed">
                     Utiliza os participantes e bilhetes gerados automaticamente durante a sua transmissão no TikTok LIVE.
                   </p>
                 </div>
-                <div className="text-xs font-semibold text-[#B9FC01] flex items-center gap-1">
+                <div className="text-xs font-semibold text-[#A6C957] flex items-center gap-1">
                   <span>{modality === 'tiktok_live_pro' ? 'Modalidade selecionada ✓' : 'Selecionar esta modalidade'}</span>
                 </div>
               </button>
@@ -366,7 +366,7 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
         {/* ETAPA 2 — CONFIGURAR AS REGRAS */}
         {step === 2 && (
           <div className="space-y-5">
-            <p className="text-sm text-[#94A3B8]">
+            <p className="text-sm text-[#A5B1C5]">
               Defina o prêmio e a regra de conversão deste sorteio. Os valores abaixo refletem e atualizam sua configuração persistida.
             </p>
 
@@ -382,9 +382,9 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                     onUpdateSettings({ prizeName: e.target.value, currentPrize: e.target.value })
                   }
                   placeholder="Ex: PIX R$ 500,00 ou Prêmio Principal"
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-[#10141E] border border-[#161C2C] text-sm text-[#FFFFFF] focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-[#080D18] border border-[var(--gio-border-subtle)] text-sm text-[#FFFFFF] focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/30"
                 />
-                <span className="text-[11px] text-[#94A3B8] mt-1 block">
+                <span className="text-[11px] text-[#A5B1C5] mt-1 block">
                   Aparecerá na mesa, no Cartão VIP e no Certificado PDF.
                 </span>
               </div>
@@ -400,30 +400,30 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                   onChange={(e) =>
                     onUpdateSettings({ rate: Math.max(1, parseInt(e.target.value, 10) || 1) })
                   }
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-[#10141E] border border-[#161C2C] text-sm text-[#F5B942] font-mono font-bold focus:outline-none focus:border-[#B9FC01] focus:ring-2 focus:ring-[#B9FC01]/35 tabular-nums"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-[#080D18] border border-[var(--gio-border-subtle)] text-sm text-[#A6C957] font-bold focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/30 tabular-nums"
                 />
-                <span className="text-[11px] text-[#94A3B8] mt-1 block">
+                <span className="text-[11px] text-[#A5B1C5] mt-1 block">
                   Configuração ativa persistida: cada {settings.rate} moedas geram 1 bilhete numerado.
                 </span>
               </div>
             </div>
 
             {/* Progressive Disclosure: Advanced Options */}
-            <div className="border border-[#161C2C] rounded-xl bg-[#10141E] overflow-hidden">
+            <div className="border border-[var(--gio-border-subtle)] rounded-xl bg-[#080D18] overflow-hidden">
               <button
                 type="button"
                 onClick={() => setShowAdvancedRules(!showAdvancedRules)}
-                className="w-full px-4 py-3 flex items-center justify-between text-xs font-semibold text-[#FFFFFF] hover:bg-[#161C2C] transition"
+                className="w-full px-4 py-3 flex items-center justify-between text-xs font-semibold text-[#FFFFFF] hover:bg-[#111B30] transition"
               >
                 <span className="flex items-center gap-2">
-                  <Settings className="w-4 h-4 text-[#B9FC01]" />
+                  <Settings className="w-4 h-4 text-[#A5B1C5]" />
                   <span>Opções Avançadas (Capacidade de Bilhetes, Contagem Regressiva e Repetição)</span>
                 </span>
-                {showAdvancedRules ? <ChevronUp className="w-4 h-4 text-[#94A3B8]" /> : <ChevronDown className="w-4 h-4 text-[#94A3B8]" />}
+                {showAdvancedRules ? <ChevronUp className="w-4 h-4 text-[#A5B1C5]" /> : <ChevronDown className="w-4 h-4 text-[#A5B1C5]" />}
               </button>
 
               {showAdvancedRules && (
-                <div className="p-4 pt-3 border-t border-[#161C2C] grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 pt-3 border-t border-[var(--gio-border-subtle)] grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-[#FFFFFF] mb-1">
                       Capacidade Máxima de Bilhetes
@@ -436,7 +436,7 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                       onChange={(e) =>
                         onUpdateSettings({ total: Math.max(10, parseInt(e.target.value, 10) || 100) })
                       }
-                      className="w-full px-3 py-2 rounded-lg bg-[#10141E] border border-[#161C2C] text-xs text-[#FFFFFF] font-mono tabular-nums"
+                      className="w-full px-3 py-2 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)] text-xs text-[#FFFFFF] tabular-nums"
                     />
                   </div>
 
@@ -454,7 +454,7 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                           countdownSeconds: Math.max(0, Math.min(30, parseInt(e.target.value, 10) || 0)),
                         })
                       }
-                      className="w-full px-3 py-2 rounded-lg bg-[#10141E] border border-[#161C2C] text-xs text-[#FFFFFF] font-mono tabular-nums"
+                      className="w-full px-3 py-2 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)] text-xs text-[#FFFFFF] tabular-nums"
                     />
                   </div>
 
@@ -464,7 +464,7 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                         type="checkbox"
                         checked={!settings.exclude}
                         onChange={(e) => onUpdateSettings({ exclude: !e.target.checked })}
-                        className="rounded border-[#161C2C] bg-[#10141E] text-[#0131CD]"
+                        className="rounded border-[var(--gio-border-subtle)] bg-[#111B30] text-[#0131CD]"
                       />
                       <span>Permitir que a mesma pessoa ganhe mais de 1 vez</span>
                     </label>
@@ -479,9 +479,9 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
         {step === 3 && (
           <div className="space-y-5">
             {modality === 'tiktok_live_pro' ? (
-              <div className="p-6 rounded-xl bg-[#10141E] border border-[#161C2C] space-y-4">
+              <div className="p-6 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-4">
                 <div className="flex items-start gap-3.5">
-                  <div className="w-11 h-11 rounded-xl bg-[#B9FC01]/15 border border-[#B9FC01]/40 flex items-center justify-center text-[#B9FC01] shrink-0">
+                  <div className="w-11 h-11 rounded-xl bg-[#A6C957]/15 border border-[#A6C957]/35 flex items-center justify-center text-[#A6C957] shrink-0">
                     <Radio className="w-5 h-5" />
                   </div>
                   <div className="space-y-1">
@@ -491,7 +491,7 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                       </h3>
                       <span className="gio-badge-pro">PRO</span>
                     </div>
-                    <p className="text-xs text-[#94A3B8] leading-relaxed">
+                    <p className="text-xs text-[#A5B1C5] leading-relaxed">
                       Na modalidade LIVE, os participantes e bilhetes são contabilizados em tempo real pelo motor oficial conforme os presentes são enviados.
                     </p>
                   </div>
@@ -509,9 +509,9 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                     </button>
                   </div>
                 ) : (
-                  <div className="p-4 rounded-xl bg-[#B9FC01]/10 border border-[#B9FC01]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="p-4 rounded-xl bg-[#A6C957]/10 border border-[#A6C957]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5 text-xs text-[#FFFFFF]">
-                      <Lock className="w-4 h-4 text-[#B9FC01] shrink-0" />
+                      <Lock className="w-4 h-4 text-[#A6C957] shrink-0" />
                       <span>
                         A captura automática de presentes da LIVE requer o plano PRO ativo.
                       </span>
@@ -519,7 +519,7 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                     <button
                       type="button"
                       onClick={onOpenSubscription}
-                      className="min-h-[36px] px-4 py-1.5 rounded-lg bg-[#B9FC01] hover:brightness-105 text-[#080A0F] font-bold text-xs shrink-0 transition"
+                      className="min-h-[36px] px-4 py-1.5 rounded-lg bg-[#A6C957] hover:bg-[#B5D477] text-[#080D18] font-bold text-xs shrink-0 transition"
                     >
                       Ver Plano PRO
                     </button>
@@ -527,9 +527,9 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                 )}
               </div>
             ) : modality === 'tiktok_comments' ? (
-              <div className="p-6 rounded-xl bg-[#10141E] border border-[#B9FC01]/35 space-y-4">
+              <div className="p-6 rounded-xl bg-[#080D18] border border-[#A6C957]/35 space-y-4">
                 <div className="flex items-start gap-3.5">
-                  <div className="w-11 h-11 rounded-xl bg-[#B9FC01]/15 border border-[#B9FC01]/40 flex items-center justify-center text-[#B9FC01] shrink-0">
+                  <div className="w-11 h-11 rounded-xl bg-[#A6C957]/15 border border-[#A6C957]/35 flex items-center justify-center text-[#A6C957] shrink-0">
                     <MessageSquare className="w-5 h-5" />
                   </div>
                   <div className="space-y-1">
@@ -539,7 +539,7 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                       </h3>
                       <span className="gio-badge-pro">PRO</span>
                     </div>
-                    <p className="text-xs text-[#94A3B8] leading-relaxed">
+                    <p className="text-xs text-[#A5B1C5] leading-relaxed">
                       Extraia comentários por link de vídeo do TikTok ou importe listas com filtros anti-duplicidade, palavra-chave obrigatória e certificado SHA-256.
                     </p>
                   </div>
@@ -557,9 +557,9 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                     </button>
                   </div>
                 ) : (
-                  <div className="p-4 rounded-xl bg-[#B9FC01]/10 border border-[#B9FC01]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="p-4 rounded-xl bg-[#A6C957]/10 border border-[#A6C957]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5 text-xs text-[#FFFFFF]">
-                      <Lock className="w-4 h-4 text-[#B9FC01] shrink-0" />
+                      <Lock className="w-4 h-4 text-[#A6C957] shrink-0" />
                       <span>
                         O Sorteador de Comentários do TikTok é exclusivo do plano PRO ativo.
                       </span>
@@ -567,7 +567,7 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                     <button
                       type="button"
                       onClick={onOpenSubscription}
-                      className="min-h-[36px] px-4 py-1.5 rounded-lg bg-[#B9FC01] hover:brightness-105 text-[#080A0F] font-bold text-xs shrink-0 transition"
+                      className="min-h-[36px] px-4 py-1.5 rounded-lg bg-[#A6C957] hover:bg-[#B5D477] text-[#080D18] font-bold text-xs shrink-0 transition"
                     >
                       Ver Plano PRO
                     </button>
@@ -579,15 +579,15 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                 {/* Individual Add */}
                 <form
                   onSubmit={handleAddSingleQuick}
-                  className="p-5 rounded-xl bg-[#10141E] border border-[#161C2C] space-y-4"
+                  className="p-5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-4"
                 >
                   <div className="flex items-center gap-2 text-sm font-semibold text-[#FFFFFF]">
-                    <UserPlus className="w-4 h-4 text-[#B9FC01]" />
+                    <UserPlus className="w-4 h-4 text-[#A5B1C5]" />
                     <span>Adicionar Participante Individualmente</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="sm:col-span-2">
-                      <label className="block text-[11px] font-medium text-[#94A3B8] mb-1">
+                      <label className="block text-[11px] font-medium text-[#A5B1C5] mb-1">
                         Nome ou @usuário
                       </label>
                       <input
@@ -595,11 +595,11 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                         value={quickName}
                         onChange={(e) => setQuickName(e.target.value)}
                         placeholder="Ex: @maria_silva"
-                        className="w-full px-3 py-2 rounded-lg bg-[#10141E] border border-[#161C2C] text-xs text-[#FFFFFF]"
+                        className="w-full px-3 py-2 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)] text-xs text-[#FFFFFF]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-medium text-[#94A3B8] mb-1">
+                      <label className="block text-[11px] font-medium text-[#A5B1C5] mb-1">
                         Moedas
                       </label>
                       <input
@@ -607,7 +607,7 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                         min={1}
                         value={quickCoins}
                         onChange={(e) => setQuickCoins(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg bg-[#10141E] border border-[#161C2C] text-xs text-[#F5B942] font-mono font-bold tabular-nums"
+                        className="w-full px-3 py-2 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)] text-xs text-[#A6C957] font-bold tabular-nums"
                       />
                     </div>
                   </div>
@@ -620,10 +620,10 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                 </form>
 
                 {/* Bulk / Comments Paste */}
-                <div className="p-5 rounded-xl bg-[#10141E] border border-[#161C2C] space-y-3">
+                <div className="p-5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 text-sm font-semibold text-[#FFFFFF]">
-                      <FileSpreadsheet className="w-4 h-4 text-[#B9FC01]" />
+                      <FileSpreadsheet className="w-4 h-4 text-[#A5B1C5]" />
                       <span>Colar Lista de Nomes</span>
                     </div>
                   </div>
@@ -632,12 +632,12 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                     value={bulkListText}
                     onChange={(e) => setBulkListText(e.target.value)}
                     placeholder={`Cole 1 por linha. Exemplo:\n@joao_oficial ${settings.rate * 2}\n@ana_carolina ${settings.rate}\nou apenas os nomes`}
-                    className="w-full p-3 rounded-lg bg-[#10141E] border border-[#161C2C] text-xs text-[#FFFFFF] font-mono"
+                    className="w-full p-3 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)] text-xs text-[#FFFFFF] font-sans"
                   />
                   <button
                     type="button"
                     onClick={handlePasteListQuick}
-                    className="w-full min-h-[40px] py-2 rounded-lg bg-[#161C2C] hover:bg-[#0131CD]/20 text-[#FFFFFF] border border-[#0131CD]/30 font-semibold text-xs transition"
+                    className="w-full min-h-[40px] py-2 rounded-lg bg-[#111B30] hover:bg-[#0131CD]/20 text-[#FFFFFF] border border-[#0131CD]/30 font-semibold text-xs transition"
                   >
                     Carregar Lista de Participantes
                   </button>
@@ -650,21 +650,21 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
         {/* ETAPA 4 — CONFERIR PARTICIPANTES */}
         {step === 4 && (
           <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#10141E] p-4 rounded-xl border border-[#161C2C]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#080D18] p-4 rounded-xl border border-[var(--gio-border-subtle)]">
               <div className="flex flex-wrap items-center gap-4 text-xs tabular-nums">
                 <div>
-                  <span className="text-[#94A3B8]">Participantes Cadastrados:</span>{' '}
-                  <strong className="text-[#FFFFFF] font-mono text-sm">{participants.length}</strong>
+                  <span className="text-[#A5B1C5]">Participantes Cadastrados:</span>{' '}
+                  <strong className="text-[#FFFFFF] text-sm">{participants.length}</strong>
                 </div>
-                <span aria-hidden="true" className="text-[#161C2C]">·</span>
+                <span aria-hidden="true" className="text-[#A5B1C5]/30">·</span>
                 <div>
-                  <span className="text-[#94A3B8]">Com Bilhetes Elegíveis:</span>{' '}
-                  <strong className="text-[#20C997] font-mono text-sm">{eligibleParticipantsCount}</strong>
+                  <span className="text-[#A5B1C5]">Com Bilhetes Elegíveis:</span>{' '}
+                  <strong className="text-[#A6C957] text-sm">{eligibleParticipantsCount}</strong>
                 </div>
-                <span aria-hidden="true" className="text-[#161C2C]">·</span>
+                <span aria-hidden="true" className="text-[#A5B1C5]/30">·</span>
                 <div>
-                  <span className="text-[#94A3B8]">Total de Bilhetes:</span>{' '}
-                  <strong className="text-[#F5B942] font-mono text-sm">{eligibleTicketsCount}</strong>
+                  <span className="text-[#A5B1C5]">Total de Bilhetes:</span>{' '}
+                  <strong className="text-[#A6C957] text-sm">{eligibleTicketsCount}</strong>
                 </div>
               </div>
 
@@ -673,29 +673,29 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                 value={searchParticipant}
                 onChange={(e) => setSearchParticipant(e.target.value)}
                 placeholder="Pesquisar participante..."
-                className="px-3 py-1.5 rounded-lg bg-[#10141E] border border-[#161C2C] text-xs text-[#FFFFFF]"
+                className="px-3 py-1.5 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)] text-xs text-[#FFFFFF]"
               />
             </div>
 
             {filteredAllocations.length === 0 ? (
-              <div className="p-8 rounded-xl bg-[#10141E] border border-[#161C2C] text-center space-y-2">
-                <Users className="w-7 h-7 text-[#94A3B8] mx-auto" />
+              <div className="p-8 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] text-center space-y-2">
+                <Users className="w-7 h-7 text-[#A5B1C5] mx-auto" />
                 <p className="text-sm font-semibold text-[#FFFFFF]">Nenhum participante encontrado</p>
-                <p className="text-xs text-[#94A3B8]">
+                <p className="text-xs text-[#A5B1C5]">
                   Volte para a Etapa 3 para adicionar participantes ou cole uma lista.
                 </p>
               </div>
             ) : (
-              <div className="max-h-64 overflow-y-auto rounded-xl border border-[#161C2C] divide-y divide-[#161C2C] bg-[#10141E]">
+              <div className="max-h-64 overflow-y-auto rounded-xl border border-[var(--gio-border-subtle)] divide-y divide-[var(--gio-border-subtle)] bg-[#080D18]">
                 {filteredAllocations.slice(0, 50).map((alloc) => (
                   <div
                     key={alloc.participant.id}
                     className="px-4 py-2.5 flex items-center justify-between gap-3 text-xs"
                   >
                     <div className="font-semibold text-[#FFFFFF] truncate">{alloc.participant.name}</div>
-                    <div className="flex items-center gap-4 shrink-0 font-mono tabular-nums">
-                      <span className="text-[#94A3B8]">{alloc.participant.coins} moedas</span>
-                      <span className="text-[#F5B942] font-bold">{alloc.assignedTickets} bilhete(s)</span>
+                    <div className="flex items-center gap-4 shrink-0 tabular-nums">
+                      <span className="text-[#A5B1C5]">{alloc.participant.coins} moedas</span>
+                      <span className="text-[#A6C957] font-bold">{alloc.assignedTickets} bilhete(s)</span>
                     </div>
                   </div>
                 ))}
@@ -706,32 +706,32 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
 
         {/* ETAPA 5 — INICIAR O SORTEIO */}
         {step === 5 && (
-          <div className="p-6 sm:p-8 rounded-xl bg-[#10141E] border border-[#161C2C] text-center space-y-5">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-xl bg-[#10141E] border border-[#F5B942]/50 text-[#FFFFFF] font-mono font-bold text-3xl tabular-nums">
+          <div className="p-6 sm:p-8 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] text-center space-y-5">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-xl bg-[#111B30] border border-[#A6C957]/45 text-[#FFFFFF] font-bold text-3xl tabular-nums">
               {currentDisplayNumber === '?' ? '—' : `#${currentDisplayNumber}`}
             </div>
 
             <div className="space-y-1 max-w-md mx-auto">
               <h3 className="text-lg sm:text-xl font-semibold text-[#FFFFFF]">
                 Prêmio em disputa:{' '}
-                <span className="text-[#F5B942]">{activePrizeContext.prizeName}</span>
+                <span className="text-[#A6C957]">{activePrizeContext.prizeName}</span>
               </h3>
-              <p className="text-xs text-[#94A3B8] font-mono tabular-nums">
+              <p className="text-xs text-[#A5B1C5] tabular-nums">
                 {eligibleTicketsCount} bilhetes concorrendo entre {eligibleParticipantsCount} participantes elegíveis.
               </p>
             </div>
 
             {!isAuthenticated && (
-              <div className="max-w-lg mx-auto p-3.5 rounded-xl bg-[#F5B942]/10 border border-[#F5B942]/35 text-left flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-xs text-white">
-                  <Lock className="w-4 h-4 text-[#F5B942] shrink-0" />
+              <div className="max-w-lg mx-auto p-3.5 rounded-xl bg-[#A6C957]/10 border border-[#A6C957]/35 text-left flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-xs text-[#FFFFFF]">
+                  <Lock className="w-4 h-4 text-[#A6C957] shrink-0" />
                   <span>Conecte sua conta para autorizar o sorteio oficial no servidor.</span>
                 </div>
                 {onOpenAccount && (
                   <button
                     type="button"
                     onClick={onOpenAccount}
-                    className="min-h-[34px] px-3.5 py-1.5 rounded-lg bg-[#F5B942] hover:bg-[#E5A932] text-slate-950 font-bold text-xs flex items-center gap-1.5 shrink-0 transition"
+                    className="min-h-[34px] px-3.5 py-1.5 rounded-lg bg-[#A6C957] hover:bg-[#B5D477] text-[#080D18] font-bold text-xs flex items-center gap-1.5 shrink-0 transition"
                   >
                     <LogIn className="w-3.5 h-3.5" />
                     <span>Conectar Conta</span>
@@ -775,9 +775,9 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                   onUpdateSettings({ drawMode: 'wheel' });
                   onTriggerDraw('wheel');
                 }}
-                className="min-h-[46px] px-5 py-3 rounded-xl bg-[#10141E] hover:bg-[#161C2C] text-[#FFFFFF] border border-[#161C2C] font-semibold text-xs sm:text-sm flex items-center gap-2 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                className="min-h-[46px] px-5 py-3 rounded-xl bg-[#111B30] hover:bg-[#0131CD]/20 text-[#FFFFFF] border border-[var(--gio-border-subtle)] font-semibold text-xs sm:text-sm flex items-center gap-2 transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <Sparkles className="w-4 h-4 text-[#F5B942]" />
+                <Sparkles className="w-4 h-4 text-[#A6C957]" />
                 <span>Girar Roleta Visual</span>
               </button>
             </div>
@@ -788,21 +788,21 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
         {step === 6 && (
           <div className="space-y-5">
             {latestWinner ? (
-              <div className="p-6 rounded-xl bg-[#10141E] border border-[#F5B942]/50 space-y-5">
+              <div className="p-6 rounded-xl bg-[#080D18] border border-[#A6C957]/45 space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-xl bg-[#10141E] border border-[#F5B942] text-[#F5B942] flex items-center justify-center font-mono font-bold text-xl tabular-nums">
+                    <div className="w-14 h-14 rounded-xl bg-[#111B30] border border-[#A6C957] text-[#A6C957] flex items-center justify-center font-bold text-xl tabular-nums">
                       #{latestWinner.number}
                     </div>
                     <div>
-                      <span className="text-xs font-medium text-[#20C997]">
+                      <span className="text-xs font-medium text-[#A6C957]">
                         Último Ganhador Oficial · Registrado
                       </span>
                       <h3 className="text-xl sm:text-2xl font-semibold text-[#FFFFFF]">
                         {latestWinner.name}
                       </h3>
-                      <p className="text-xs text-[#94A3B8]">
-                        Prêmio: <strong className="text-[#F5B942]">{latestWinner.prize || settings.prizeName || 'Prêmio Principal'}</strong>
+                      <p className="text-xs text-[#A5B1C5]">
+                        Prêmio: <strong className="text-[#A6C957]">{latestWinner.prize || settings.prizeName || 'Prêmio Principal'}</strong>
                       </p>
                     </div>
                   </div>
@@ -819,20 +819,20 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                     <button
                       type="button"
                       onClick={onOpenAuditReport}
-                      className="min-h-[40px] px-4 py-2 rounded-lg bg-[#10141E] hover:bg-[#161C2C] text-[#FFFFFF] border border-[#161C2C] font-semibold text-xs flex items-center gap-1.5"
+                      className="min-h-[40px] px-4 py-2 rounded-lg bg-[#111B30] hover:bg-[#0131CD]/20 text-[#FFFFFF] border border-[var(--gio-border-subtle)] font-semibold text-xs flex items-center gap-1.5"
                     >
-                      <FileText className="w-4 h-4 text-[#F5B942]" />
+                      <FileText className="w-4 h-4 text-[#A5B1C5]" />
                       <span>Certificado PDF</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => handleCopyResult(latestWinner)}
-                      className="min-h-[40px] px-3.5 py-2 rounded-lg bg-[#10141E] hover:bg-[#161C2C] text-[#FFFFFF] border border-[#161C2C] font-medium text-xs flex items-center gap-1.5"
+                      className="min-h-[40px] px-3.5 py-2 rounded-lg bg-[#111B30] hover:bg-[#0131CD]/20 text-[#FFFFFF] border border-[var(--gio-border-subtle)] font-medium text-xs flex items-center gap-1.5"
                     >
                       {copiedWinnerId === latestWinner.id ? (
-                        <Check className="w-3.5 h-3.5 text-[#20C997]" />
+                        <Check className="w-3.5 h-3.5 text-[#A6C957]" />
                       ) : (
-                        <Copy className="w-3.5 h-3.5 text-[#94A3B8]" />
+                        <Copy className="w-3.5 h-3.5 text-[#A5B1C5]" />
                       )}
                       <span>{copiedWinnerId === latestWinner.id ? 'Copiado!' : 'Copiar Texto'}</span>
                     </button>
@@ -840,10 +840,10 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="p-8 rounded-xl bg-[#10141E] border border-[#161C2C] text-center space-y-3">
-                <Trophy className="w-8 h-8 text-[#F5B942] mx-auto" />
+              <div className="p-8 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] text-center space-y-3">
+                <Trophy className="w-8 h-8 text-[#A6C957] mx-auto" />
                 <h3 className="text-base font-semibold text-[#FFFFFF]">Nenhum sorteio realizado ainda nesta sessão</h3>
-                <p className="text-xs text-[#94A3B8]">
+                <p className="text-xs text-[#A5B1C5]">
                   Volte para a Etapa 5 e clique em &ldquo;Sortear Agora&rdquo; para revelar o ganhador.
                 </p>
               </div>
@@ -852,12 +852,12 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
         )}
 
         {/* Bottom Wizard Navigation Controls */}
-        <div className="pt-4 border-t border-[#161C2C] flex items-center justify-between gap-3">
+        <div className="pt-4 border-t border-[var(--gio-border-subtle)] flex items-center justify-between gap-3">
           <button
             type="button"
             disabled={step === 1}
             onClick={() => setStep((s) => Math.max(1, s - 1))}
-            className="min-h-[40px] px-4 py-2 rounded-lg bg-[#10141E] hover:bg-[#161C2C] disabled:opacity-40 text-[#FFFFFF] border border-[#161C2C] text-xs font-semibold flex items-center gap-1.5 transition"
+            className="min-h-[40px] px-4 py-2 rounded-lg bg-[#080D18] hover:bg-[#0131CD]/20 disabled:opacity-40 text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-semibold flex items-center gap-1.5 transition"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Etapa Anterior</span>
@@ -885,7 +885,7 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="min-h-[40px] px-5 py-2 rounded-lg bg-[#161C2C] hover:bg-[#0131CD]/20 text-[#FFFFFF] border border-[#0131CD]/30 font-semibold text-xs transition"
+              className="min-h-[40px] px-5 py-2 rounded-lg bg-[#080D18] hover:bg-[#0131CD]/20 text-[#FFFFFF] border border-[#0131CD]/30 font-semibold text-xs transition"
             >
               Reiniciar Assistente
             </button>
