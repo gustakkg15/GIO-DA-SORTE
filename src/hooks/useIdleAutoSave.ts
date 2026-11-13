@@ -3,6 +3,7 @@ import { Participant, RaffleSettings, Winner } from '../types';
 import { idleStorage, AutoSaveStatus } from '../utils/idleStorage';
 
 interface UseIdleAutoSaveProps {
+  ownerUid?: string | null;
   settings: RaffleSettings;
   participants: Participant[];
   winners: Winner[];
@@ -10,6 +11,7 @@ interface UseIdleAutoSaveProps {
 }
 
 export function useIdleAutoSave({
+  ownerUid = null,
   settings,
   participants,
   winners,
@@ -18,6 +20,7 @@ export function useIdleAutoSave({
   const [status, setStatus] = useState<AutoSaveStatus>(() => idleStorage.getStatus());
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(() => idleStorage.getLastSavedAt());
   const isFirstMount = useRef(true);
+  const lastOwnerUidRef = useRef<string | null>(ownerUid ?? null);
 
   // Subscribe to controller status updates
   useEffect(() => {
@@ -28,6 +31,15 @@ export function useIdleAutoSave({
     return unsubscribe;
   }, []);
 
+  // Synchronize active owner UID on idleStorage whenever auth identity changes
+  useEffect(() => {
+    const normalizedUid = ownerUid ?? null;
+    if (lastOwnerUidRef.current !== normalizedUid) {
+      lastOwnerUidRef.current = normalizedUid;
+      idleStorage.setActiveOwnerUid(normalizedUid);
+    }
+  }, [ownerUid]);
+
   // When data changes, queue idle save
   useEffect(() => {
     // Avoid re-writing identical initial state on first mount
@@ -36,9 +48,10 @@ export function useIdleAutoSave({
       return;
     }
 
+    idleStorage.setActiveOwnerUid(ownerUid ?? null);
     // If currently drawing, defer without urgency so animations remain 60fps
     idleStorage.scheduleSave({ settings, participants, winners }, false);
-  }, [settings, participants, winners, isDrawing]);
+  }, [ownerUid, settings, participants, winners, isDrawing]);
 
   const flushNow = useCallback(() => {
     return idleStorage.flush();
@@ -50,3 +63,4 @@ export function useIdleAutoSave({
     flushNow,
   };
 }
+

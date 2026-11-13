@@ -49,6 +49,8 @@ import {
 } from '../utils/authSecurity';
 import { recordDocumentAcceptance } from '../utils/legalAndComplianceService';
 import { getApiUrl } from '../utils/apiConfig';
+import { idleStorage } from '../utils/idleStorage';
+import { tiktokConnector } from '../utils/tiktokConnector';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -61,6 +63,7 @@ interface AccountModalProps {
   participants: Participant[];
   winners: Winner[];
   onOpenLegalDocument?: (slug: LegalDocumentSlug) => void;
+  onOpenProfileWorkspace?: () => void;
 }
 
 type AuthViewMode = 'login' | 'register' | 'forgot_password';
@@ -73,6 +76,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   onSaveToCloud,
   onLoadFromCloud,
   onOpenLegalDocument,
+  onOpenProfileWorkspace,
 }) => {
   const [viewMode, setViewMode] = useState<AuthViewMode>('login');
   const [acceptedTermsOnRegister, setAcceptedTermsOnRegister] = useState(false);
@@ -483,11 +487,12 @@ export const AccountModal: React.FC<AccountModalProps> = ({
     }
   };
 
-  // 5. Operation 1 — Logout GIO (Ends only browser session; preserves TikTok authorization & active LIVE workers)
+  // 5. Operation 1 — Logout GIO (Ends only browser session & clears local cache; preserves Firestore data, TikTok authorization & active LIVE workers)
   const handleSignOut = async () => {
     setLoading(true);
     setErrorMsg(null);
     setSuccessMsg(null);
+    const activeUid = currentUser?.uid || null;
 
     try {
       if (currentUser) {
@@ -503,13 +508,15 @@ export const AccountModal: React.FC<AccountModalProps> = ({
           }).catch(() => {});
         }
       }
+      idleStorage.clearLocalCacheOnLogout(activeUid);
+      tiktokConnector.detachClientStreamOnly({ clearLocalCache: true });
       await signOut(auth);
       clearForm();
       setShowChangePassword(false);
       setShowLinkStepUpModal(false);
       setLinkedTikTokProfile({ linked: false, openId: null });
       setSuccessMsg(
-        'Sessão GIO encerrada neste navegador. Autorização TikTok e workers de LIVE ativos e autorizados foram preservados.'
+        'Sessão GIO e cache local encerrados neste navegador. Seus dados armazenados no Firestore e workers de LIVE ativos foram preservados.'
       );
       setTimeout(() => setSuccessMsg(null), 3500);
     } catch {
@@ -1123,6 +1130,17 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 </form>
               )}
             </div>
+
+            {onOpenProfileWorkspace && (
+              <button
+                type="button"
+                onClick={onOpenProfileWorkspace}
+                className="w-full py-2.5 px-4 rounded-xl bg-[#0131CD] hover:bg-[#0866F5] text-[#FFFFFF] border border-[#B9FC01]/40 font-bold text-xs flex items-center justify-center gap-2 transition"
+              >
+                <User className="w-4 h-4 text-[#B9FC01]" />
+                <span>Abrir Central Completa de Perfil e Configurações</span>
+              </button>
+            )}
           </div>
         ) : (
           /* UNATHENTICATED VIEWS: LOGIN / REGISTER / FORGOT */

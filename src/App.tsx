@@ -78,6 +78,8 @@ import { AuditReportModal } from './components/AuditReportModal';
 import { LegalTrustCenter } from './components/LegalTrustCenter';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { Footer } from './components/Footer';
+import { UserProfileSettingsWorkspace } from './components/UserProfileSettingsWorkspace';
+import type { ProfileWorkspaceSectionId } from './utils/userProfileWorkspaceUtils';
 import { useIdleAutoSave } from './hooks/useIdleAutoSave';
 import { idleStorage } from './utils/idleStorage';
 import { getApiUrl, apiFetch, safeApiJson } from './utils/apiConfig';
@@ -209,7 +211,8 @@ export default function App() {
   const [rafflesSubTab, setRafflesSubTab] = useState<'arena' | 'participants' | 'history' | 'wizard'>('arena');
   const [participantsSubTab, setParticipantsSubTab] = useState<'manage' | 'lookup'>('manage');
   const [reportsSubTab, setReportsSubTab] = useState<'overview' | 'ExportAndHistory'>('overview');
-  const [settingsSubTab, setSettingsSubTab] = useState<'preferences' | 'profile' | 'help' | 'support' | 'legal'>('preferences');
+  const [settingsSubTab, setSettingsSubTab] = useState<'preferences' | 'profile' | 'help' | 'support' | 'legal'>('profile');
+  const [profileWorkspaceSection, setProfileWorkspaceSection] = useState<ProfileWorkspaceSectionId>('profile');
   const [tiktokInitialTab, setTiktokInitialTab] = useState<'feed' | 'motor1' | 'motor2' | 'audit' | 'monitor'>('feed');
   const [tiktokInitialMode, setTiktokInitialMode] = useState<'live_pro' | 'traditional_comments'>('live_pro');
   const [legalInitialSlug, setLegalInitialSlug] = useState<LegalDocumentSlug>('termos-de-uso');
@@ -563,15 +566,43 @@ export default function App() {
     setIsViewingExternalRaffle(false);
   }, [localBackupRaffle]);
 
-  // Auth state listener (R-03: Loads authoritative state from backend API, never clobbering governance fields)
+  // Track the last authenticated UID to enforce strict UID isolation and prevent cross-account contamination
+  const lastAuthenticatedUidRef = useRef<string | null>(null);
+  const cloudSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auth state listener (R-03 & Regras Fundamentais 1, 2, 3 e 4:
+  // 1. Isolamento estrito por UID
+  // 2. Firestore como fonte oficial dos dados
+  // 3. Logout limpa a sessão e o cache local sem apagar os dados armazenados no Firestore
+  // 4. Workers continuam processando eventos mesmo com o site fechado ou após logout)
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      // Immediately cancel any pending debounced UI settings cloud save from previous auth state
+      if (cloudSaveTimerRef.current) {
+        clearTimeout(cloudSaveTimerRef.current);
+        cloudSaveTimerRef.current = null;
+      }
+
       // Immediately invalidate any in-flight verification and clear previous admin privileges
       adminVerificationReqIdRef.current++;
       setIsAdminAuthorized(false);
 
       setCurrentUser(user);
       if (user) {
+        const previousUid = lastAuthenticatedUidRef.current;
+        const isSwitchingFromAnotherAccount = previousUid !== null && previousUid !== user.uid;
+        lastAuthenticatedUidRef.current = user.uid;
+
+        // Bind local idle cache strictly to this authenticated UID
+        idleStorage.setActiveOwnerUid(user.uid);
+
+        // If switching directly from another UID in the same browser session, purge previous user's memory state first
+        if (isSwitchingFromAnotherAccount) {
+          setParticipants([]);
+          setWinners([]);
+          setDisplayNumber('?');
+        }
+
         setPlanConfirmationState('LOADING');
         await verifyAdminStatusWithBackend(user);
         const userRef = doc(db, 'users', user.uid);
@@ -591,6 +622,32 @@ export default function App() {
           console.warn('Profile sync notice:', err);
         }
 
+        // Helper to hydrate directly from Firestore `users/{uid}/raffles/default` if HTTP API is unreachable
+        const hydrateDirectlyFromFirestore = async (): Promise<boolean> => {
+          try {
+            const directSnap = await getDoc(doc(db, 'users', user.uid, 'raffles', 'default'));
+            if (directSnap.exists()) {
+              const cloudRaffle = directSnap.data();
+              if (Array.isArray(cloudRaffle.participants)) {
+                setParticipants(cloudRaffle.participants);
+              }
+              if (cloudRaffle.settings && typeof cloudRaffle.settings === 'object') {
+                setSettings((s) => ({ ...s, ...cloudRaffle.settings }));
+              }
+              if (Array.isArray(cloudRaffle.winners)) {
+                setWinners(cloudRaffle.winners);
+                setDisplayNumber(cloudRaffle.winners[0]?.number ?? '?');
+              }
+              setSyncStatus('synced');
+              setSyncErrorMessage(null);
+              return true;
+            }
+          } catch (firestoreErr) {
+            console.warn('Direct Firestore raffle read fallback notice:', firestoreErr);
+          }
+          return false;
+        };
+
         try {
           const idToken = await user.getIdToken();
           const authHeaders = {
@@ -609,14 +666,28 @@ export default function App() {
               ? stateData.raffle.winners
               : [];
             const remoteDrawSeq = Number(stateData.raffle.drawSequence || 0);
-            const localParticipants = participantsRef.current;
 
-            // Preserve unplayed local roster if cloud document exists but is completely empty/unplayed
+            // Rule 1 & Rule 2: Firestore is the official source of truth.
+            // Seed local participants into a brand-new empty Firestore raffle if they belong
+            // to this same UID's isolated local cache or to the current anonymous tab before first login
+            // (never when switching from another authenticated UID).
+            const uidLocalSnapshot = idleStorage.readLocalStateForUid(user.uid);
+            const uidScopedParticipants = Array.isArray(uidLocalSnapshot?.participants)
+              ? uidLocalSnapshot!.participants
+              : [];
+            const seedParticipants =
+              uidScopedParticipants.length > 0
+                ? uidScopedParticipants
+                : !isSwitchingFromAnotherAccount && participantsRef.current.length > 0
+                ? participantsRef.current
+                : [];
+
             if (
               remoteParticipants.length === 0 &&
               remoteWinners.length === 0 &&
               remoteDrawSeq === 0 &&
-              localParticipants.length > 0
+              !isSwitchingFromAnotherAccount &&
+              seedParticipants.length > 0
             ) {
               const pushRes = await safeApiJson<any>('/api/raffle/participant/mutate', {
                 method: 'POST',
@@ -624,7 +695,7 @@ export default function App() {
                 body: JSON.stringify({
                   raffleId: 'default',
                   action: 'bulkAddParticipants',
-                  items: localParticipants,
+                  items: seedParticipants,
                   replace: true,
                 }),
               });
@@ -648,31 +719,37 @@ export default function App() {
                 );
               }
             } else {
-              if (Array.isArray(stateData.raffle.participants)) {
-                setParticipants(stateData.raffle.participants);
-              }
+              // Firestore is the authoritative source of truth for this UID
+              setParticipants(remoteParticipants);
               if (stateData.raffle.settings) {
                 setSettings((s) => ({ ...s, ...stateData.raffle.settings }));
               }
-              if (Array.isArray(stateData.raffle.winners)) {
-                setWinners(stateData.raffle.winners);
-                setDisplayNumber(stateData.raffle.winners[0]?.number ?? '?');
-              }
+              setWinners(remoteWinners);
+              setDisplayNumber(remoteWinners[0]?.number ?? '?');
               setSyncStatus('synced');
               setSyncErrorMessage(null);
             }
           } else if (stateRes.status === 404 && !stateRes.isHtml) {
-            // Bootstrap initial authoritative raffle once when document does not exist yet on backend
-            const currentLocalSettings = settingsRef.current;
-            const currentLocalParticipants = participantsRef.current;
+            // Bootstrap initial authoritative raffle in Firestore for this UID
+            const uidLocalSnapshot = idleStorage.readLocalStateForUid(user.uid);
+            const bootSettings = uidLocalSnapshot?.settings || settingsRef.current;
+            const uidScopedParticipants = Array.isArray(uidLocalSnapshot?.participants)
+              ? uidLocalSnapshot!.participants
+              : [];
+            const bootParticipants =
+              uidScopedParticipants.length > 0
+                ? uidScopedParticipants
+                : !isSwitchingFromAnotherAccount && participantsRef.current.length > 0
+                ? participantsRef.current
+                : [];
             const bootRes = await safeApiJson<any>('/api/raffle/sync', {
               method: 'POST',
               headers: authHeaders,
               body: JSON.stringify({
                 raffleId: 'default',
-                title: currentLocalSettings.raffleTitle || 'GIO DA SORTE',
-                settings: currentLocalSettings,
-                participants: currentLocalParticipants,
+                title: bootSettings.raffleTitle || 'GIO DA SORTE',
+                settings: bootSettings,
+                participants: bootParticipants,
               }),
             });
             if (bootRes.ok && bootRes.data?.ok && bootRes.data.raffle) {
@@ -689,32 +766,75 @@ export default function App() {
               setSyncErrorMessage(null);
             }
           } else if (stateRes.htmlReason === 'COOKIE_CHECK_REDIRECT') {
-            setSyncStatus('error');
-            setSyncErrorMessage(
-              stateRes.error ||
-                'Sessão de cookies do Preview bloqueada (/__cookie_check.html). Recarregue a página.'
-            );
+            const recoveredFromFirestore = await hydrateDirectlyFromFirestore();
+            if (!recoveredFromFirestore) {
+              setSyncStatus('error');
+              setSyncErrorMessage(
+                stateRes.error ||
+                  'Sessão de cookies do Preview bloqueada (/__cookie_check.html). Recarregue a página.'
+              );
+            }
           } else if (stateRes.isHtml || stateRes.status === 404 || stateRes.status === 0) {
-            // Static host or backend route unavailable; preserve local data
-            setSyncStatus('offline');
+            // Try direct Firestore read first so Firestore remains the official source of truth
+            const recoveredFromFirestore = await hydrateDirectlyFromFirestore();
+            if (!recoveredFromFirestore) {
+              setSyncStatus('offline');
+            }
           } else {
-            setSyncStatus('error');
-            setSyncErrorMessage(
-              stateRes.error || 'Não foi possível carregar o estado oficial do servidor.'
-            );
+            const recoveredFromFirestore = await hydrateDirectlyFromFirestore();
+            if (!recoveredFromFirestore) {
+              setSyncStatus('error');
+              setSyncErrorMessage(
+                stateRes.error || 'Não foi possível carregar o estado oficial do servidor.'
+              );
+            }
           }
         } catch (err) {
           console.warn('Initial authoritative raffle fetch notice:', err);
-          setSyncStatus('offline');
+          const recoveredFromFirestore = await hydrateDirectlyFromFirestore();
+          if (!recoveredFromFirestore) {
+            setSyncStatus('offline');
+          }
         }
+
+        // Rule 4: Synchronize with any active background TikTok LIVE worker owned by this UID
+        tiktokConnector.syncWithBackendStatus({ triggerAutoRecovery: true }).catch(() => {});
       } else {
+        // Rule 3: Logout clears the browser session and local cache,
+        // without deleting or overwriting any data stored in Firestore,
+        // and Rule 4: detaches only the client SSE stream while backend workers keep running.
+        const loggedOutUid = lastAuthenticatedUidRef.current;
+        lastAuthenticatedUidRef.current = null;
         adminVerificationReqIdRef.current++;
         setIsAdminAuthorized(false);
+
+        // 1. Clear localStorage/sessionStorage caches and cancel pending idle saves
+        idleStorage.clearLocalCacheOnLogout(loggedOutUid);
+
+        // 2. Detach browser SSE stream & clear local feed cache WITHOUT stopping backend workers
+        tiktokConnector.detachClientStreamOnly({ clearLocalCache: true });
+
+        // 3. Reset in-memory React state so the logged-out browser has no residual user data
+        const cleanDefaultSettings: RaffleSettings = {
+          ...DEFAULT_SETTINGS,
+          drawMode: 'drum',
+          prizes: [
+            { id: 'pz1', name: '1º Lugar - Prêmio Principal', rank: 1 },
+            { id: 'pz2', name: '2º Lugar - Prêmio Especial', rank: 2 },
+            { id: 'pz3', name: '3º Lugar - Prêmio de Participação', rank: 3 },
+          ],
+        };
+        setSettings(cleanDefaultSettings);
+        setParticipants([]);
+        setWinners([]);
+        setDisplayNumber('?');
+
         const freeEnt = resetClientPlanAndAuthState();
         setPlanEntitlement(freeEnt);
         clearComplianceSessionCacheOnLogout();
         setLiveSessionsSummary([]);
         setLegalInitialPortalTab((prev) => (prev === 'admin_legal' ? 'documents' : prev));
+        setSyncStatus('synced');
         setSyncErrorMessage(null);
         setDrawErrorMessage(null);
       }
@@ -772,7 +892,7 @@ export default function App() {
     }
   }, [currentUser, isDrawing, countdownRemaining, settings]);
 
-  // R-03: Load from Cloud Function — Reads authoritative raffle state exclusively from backend API
+  // R-03 & Rule 2: Load from Cloud Function — Reads authoritative raffle state from Firestore (via backend API or direct Firestore read fallback)
   const loadFromCloud = useCallback(async () => {
     if (!currentUser) return;
     try {
@@ -786,7 +906,25 @@ export default function App() {
         const data = res.data;
         if (data.raffle.settings) setSettings((s) => ({ ...s, ...data.raffle.settings }));
         if (Array.isArray(data.raffle.participants)) setParticipants(data.raffle.participants);
-        if (Array.isArray(data.raffle.winners)) setWinners(data.raffle.winners);
+        if (Array.isArray(data.raffle.winners)) {
+          setWinners(data.raffle.winners);
+          setDisplayNumber(data.raffle.winners[0]?.number ?? '?');
+        }
+        setSyncStatus('synced');
+        return;
+      }
+      // Direct Firestore fallback so Firestore is always the authoritative source of truth
+      const directSnap = await getDoc(doc(db, 'users', currentUser.uid, 'raffles', 'default'));
+      if (directSnap.exists()) {
+        const cloudRaffle = directSnap.data();
+        if (cloudRaffle.settings && typeof cloudRaffle.settings === 'object') {
+          setSettings((s) => ({ ...s, ...cloudRaffle.settings }));
+        }
+        if (Array.isArray(cloudRaffle.participants)) setParticipants(cloudRaffle.participants);
+        if (Array.isArray(cloudRaffle.winners)) {
+          setWinners(cloudRaffle.winners);
+          setDisplayNumber(cloudRaffle.winners[0]?.number ?? '?');
+        }
         setSyncStatus('synced');
       } else if (res.isHtml || res.status === 404) {
         setSyncStatus('offline');
@@ -796,8 +934,9 @@ export default function App() {
     }
   }, [currentUser]);
 
-  // Idle Auto-Save (local browser backup only)
+  // Idle Auto-Save (UID-isolated local browser cache)
   const { autoSaveStatus, lastSavedAt, flushNow } = useIdleAutoSave({
+    ownerUid: currentUser?.uid ?? null,
     settings,
     participants,
     winners,
@@ -805,7 +944,6 @@ export default function App() {
   });
 
   // Debounced UI preferences cloud save if logged in and not drawing
-  const cloudSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     if (currentUser && !isDrawing && countdownRemaining === null) {
       if (cloudSaveTimerRef.current) clearTimeout(cloudSaveTimerRef.current);
@@ -1281,6 +1419,8 @@ export default function App() {
             });
             setSettings(applied.settings);
             setWinners(applied.winners);
+            setSyncStatus('synced');
+            setSyncErrorMessage(null);
             idleStorage.scheduleSave(
               {
                 settings: applied.settings,
@@ -2078,23 +2218,10 @@ export default function App() {
           />
         )}
 
-        {/* 7. CONFIGURAÇÕES (REGRAS, PERFIL, AJUDA, SUPORTE & CENTRAL LEGAL) */}
+        {/* 7. CONFIGURAÇÕES (AMBIENTE DE PERFIL, REGRAS, AJUDA, SUPORTE & CENTRAL LEGAL) */}
         {(activeTab === 'settings' || activeTab === 'help' || activeTab === 'support') && (
           <div className="space-y-6 animate-fade-in">
             <div className="p-2.5 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(0,0,0,0.45)] flex flex-wrap items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setSettingsSubTab('preferences')}
-                className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
-                  settingsSubTab === 'preferences'
-                    ? 'bg-[#0131CD] text-white border border-[#B9FC01]/50 shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
-                    : 'text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C]'
-                }`}
-              >
-                <Settings className={`w-4 h-4 ${settingsSubTab === 'preferences' ? 'text-[#B9FC01]' : ''}`} />
-                <span>Regras, Backup e Áudio</span>
-              </button>
-
               <button
                 type="button"
                 onClick={() => setSettingsSubTab('profile')}
@@ -2105,7 +2232,20 @@ export default function App() {
                 }`}
               >
                 <User className={`w-4 h-4 ${settingsSubTab === 'profile' ? 'text-[#B9FC01]' : ''}`} />
-                <span>Minha Conta e Nuvem</span>
+                <span>Meu Perfil e Configurações</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSettingsSubTab('preferences')}
+                className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
+                  settingsSubTab === 'preferences'
+                    ? 'bg-[#0131CD] text-white border border-[#B9FC01]/50 shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
+                    : 'text-[#94A3B8] hover:text-[#FFFFFF] hover:bg-[#161C2C]'
+                }`}
+              >
+                <Settings className={`w-4 h-4 ${settingsSubTab === 'preferences' ? 'text-[#B9FC01]' : ''}`} />
+                <span>Regras e Backup da Rifa</span>
               </button>
 
               <button
@@ -2164,32 +2304,43 @@ export default function App() {
             )}
 
             {settingsSubTab === 'profile' && (
-              <div className="p-6 rounded-2xl bg-[#10141E] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(0,0,0,0.45)] space-y-4">
-                <h2 className="text-lg font-bold text-[#FFFFFF]">
-                  Perfil do Organizador e Sincronização na Nuvem
-                </h2>
-                <p className="text-xs sm:text-sm text-[#94A3B8]">
-                  {currentUser
-                    ? `Conectado como ${currentUser.displayName || currentUser.email}. Seus sorteios são sincronizados automaticamente.`
-                    : 'Conecte sua conta para salvar seus sorteios na nuvem e acessá-los de qualquer dispositivo.'}
-                </p>
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsAccountOpen(true)}
-                    className="gio-btn-primary min-h-[42px] px-5 py-2.5 rounded-xl text-white font-semibold text-xs transition"
-                  >
-                    {currentUser ? 'Gerenciar Conta e Backup na Nuvem' : 'Conectar Minha Conta'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsOnboardingOpen(true)}
-                    className="min-h-[42px] px-4 py-2.5 rounded-xl bg-[#080A0F] hover:bg-[#161C2C] text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] font-semibold text-xs transition"
-                  >
-                    Reabrir Tutorial de Boas-Vindas
-                  </button>
-                </div>
-              </div>
+              <UserProfileSettingsWorkspace
+                activeSection={profileWorkspaceSection}
+                onChangeSection={setProfileWorkspaceSection}
+                currentUser={currentUser}
+                syncStatus={syncStatus}
+                onSaveToCloud={saveToCloud}
+                onLoadFromCloud={loadFromCloud}
+                onOpenAccountModal={() => setIsAccountOpen(true)}
+                settings={settings}
+                participants={participants}
+                winners={winners}
+                computed={computed}
+                rosterHash={rosterHash}
+                onUpdateSettings={handleUpdateSettings}
+                onRestoreState={handleRestoreRaffleState}
+                onResetToSample={handleResetToSample}
+                onResetCoinsOnly={handleResetCoinsOnly}
+                onOpenAuditReport={() => setIsAuditReportOpen(true)}
+                soundEnabled={soundActive}
+                onToggleSound={handleToggleSound}
+                proEntitlement={planEntitlement}
+                onSwitchPlan={handleSwitchPlanTier}
+                onNavigateToSubscriptionTab={() => {
+                  setActiveTab('subscription');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                onNavigateToLivePro={() => handleOpenLiveProTab('feed')}
+                onOpenLegalDocument={handleOpenLegalDocument}
+                onOpenCookieSettings={() => setIsCookiePreferencesOpen(true)}
+                onOpenOnboarding={() => setIsOnboardingOpen(true)}
+                onOpenQuickSubTab={(sub) => {
+                  setSettingsSubTab(sub);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                liveConnectionState={liveConnectionState}
+                liveConnectedUsername={liveConnectedUsername}
+              />
             )}
 
             {settingsSubTab === 'help' && <HowItWorks settings={settings} />}
@@ -2238,6 +2389,12 @@ export default function App() {
         onOpenLegalDocument={(slug) => {
           setIsAccountOpen(false);
           handleOpenLegalDocument(slug);
+        }}
+        onOpenProfileWorkspace={() => {
+          setIsAccountOpen(false);
+          setActiveTab('settings');
+          setSettingsSubTab('profile');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
       />
 

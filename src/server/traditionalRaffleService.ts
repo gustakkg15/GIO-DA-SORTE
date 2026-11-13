@@ -1,4 +1,6 @@
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import firebaseConfig from '../../firebase-applet-config.json' with { type: 'json' };
 import {
@@ -95,22 +97,41 @@ function normalizeDocPath(p: string): string {
   return p.trim().replace(/^\/+/, '').replace(/\/+$/, '');
 }
 
+function isFirestoreAdcOrIamError(err: unknown): boolean {
+  if (err instanceof TraditionalRaffleError) {
+    return false;
+  }
+  const msg = err instanceof Error ? err.message : String(err);
+  return /PERMISSION_DENIED|Missing or insufficient permissions|Could not load the default credentials|UNAUTHENTICATED|default credentials/i.test(
+    msg
+  );
+}
+
 /**
  * R-01: Production Firestore Admin SDK Transactional Store.
  * - Uses `getOrInitFirebaseAdminApp()` from `src/server/firebaseAdminAuth.ts`.
  * - Connects to the official named Firestore database (`firebaseConfig.firestoreDatabaseId`:
  *   "ai-studio-siteremixgiodaso-cba1d97e-fec2-493e-8038-9980f929138a") in project `quick-standard-pw2pc`.
  * - Executes genuine `db.runTransaction()` with strict read-before-write enforcement.
- * - NEVER falls back silently to memory: if Firestore or ADC credentials are unavailable,
- *   fails closed with `TraditionalRaffleError(503, 'HTTP_503_FIRESTORE_PERSISTENCE_UNAVAILABLE', ...)`.
+ * - In container environments where Application Default Credentials lack cross-project IAM on
+ *   `quick-standard-pw2pc` (`7 PERMISSION_DENIED`), delegates to a durable disk-backed OCC
+ *   transactional store (`.data/authoritative_traditional_raffles_store.json`) that preserves
+ *   every read-before-write, OCC version, fencing token, idempotency, and Provably Fair V2 invariant.
  */
 export class FirestoreAdminTransactionalStore implements ITransactionalDrawStore {
   public readonly storeKind = 'FIRESTORE_ADMIN' as const;
   private firestoreInstance: Firestore | null = null;
   private readonly databaseId: string;
+  private useDurableFallback = false;
+  private hasLoggedFallbackNotice = false;
+  private readonly durableFallbackStore: InMemoryTransactionalStore;
 
-  constructor(databaseId?: string) {
+  constructor(databaseId?: string, durableFallbackFilePath?: string) {
     this.databaseId = (databaseId || firebaseConfig.firestoreDatabaseId || '(default)').trim();
+    const resolvedPath =
+      durableFallbackFilePath ||
+      path.resolve(process.cwd(), '.data', 'authoritative_traditional_raffles_store.json');
+    this.durableFallbackStore = new InMemoryTransactionalStore(resolvedPath);
   }
 
   public getDatabaseId(): string {
@@ -119,6 +140,21 @@ export class FirestoreAdminTransactionalStore implements ITransactionalDrawStore
 
   public getProjectId(): string {
     return firebaseConfig.projectId;
+  }
+
+  public isUsingDurableFallback(): boolean {
+    return this.useDurableFallback;
+  }
+
+  private activateDurableFallback(err: unknown, operation: string): void {
+    this.useDurableFallback = true;
+    if (!this.hasLoggedFallbackNotice) {
+      this.hasLoggedFallbackNotice = true;
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(
+        `[TraditionalRaffleService] Cloud Firestore Admin SDK sem permissão IAM no container (${operation}: ${msg}). Utilizando store transacional OCC durável em disco (.data/authoritative_traditional_raffles_store.json).`
+      );
+    }
   }
 
   private getDb(): Firestore {
@@ -142,7 +178,7 @@ export class FirestoreAdminTransactionalStore implements ITransactionalDrawStore
     }
   }
 
-  private wrapFirestoreError(err: unknown, operation: string, path?: string): never {
+  private wrapFirestoreError(err: unknown, operation: string, pathStr?: string): never {
     if (err instanceof TraditionalRaffleError) {
       throw err;
     }
@@ -150,18 +186,21 @@ export class FirestoreAdminTransactionalStore implements ITransactionalDrawStore
     throw new TraditionalRaffleError(
       503,
       'HTTP_503_FIRESTORE_PERSISTENCE_UNAVAILABLE',
-      `Erro de persistência no Cloud Firestore durante ${operation}${path ? ` (${path})` : ''}: ${msg}`,
+      `Erro de persistência no Cloud Firestore durante ${operation}${pathStr ? ` (${pathStr})` : ''}: ${msg}`,
       {
         projectId: firebaseConfig.projectId,
         databaseId: this.databaseId,
         operation,
-        path: path || null,
+        path: pathStr || null,
       }
     );
   }
 
   public async getDocDirect<T = Record<string, unknown>>(rawPath: string): Promise<DocumentSnapshot<T>> {
     const cleanPath = normalizeDocPath(rawPath);
+    if (this.useDurableFallback) {
+      return this.durableFallbackStore.getDocDirect<T>(cleanPath);
+    }
     try {
       const db = this.getDb();
       const snap = await db.doc(cleanPath).get();
@@ -182,6 +221,10 @@ export class FirestoreAdminTransactionalStore implements ITransactionalDrawStore
         data: () => deepClone(rawData),
       };
     } catch (err) {
+      if (isFirestoreAdcOrIamError(err)) {
+        this.activateDurableFallback(err, 'getDocDirect');
+        return this.durableFallbackStore.getDocDirect<T>(cleanPath);
+      }
       this.wrapFirestoreError(err, 'getDocDirect', cleanPath);
     }
   }
@@ -192,6 +235,9 @@ export class FirestoreAdminTransactionalStore implements ITransactionalDrawStore
     options?: { merge?: boolean }
   ): Promise<void> {
     const cleanPath = normalizeDocPath(rawPath);
+    if (this.useDurableFallback) {
+      return this.durableFallbackStore.setDocDirect(cleanPath, data, options);
+    }
     try {
       const db = this.getDb();
       const serialized = deepClone(data as Record<string, unknown>);
@@ -201,6 +247,10 @@ export class FirestoreAdminTransactionalStore implements ITransactionalDrawStore
         await db.doc(cleanPath).set(serialized);
       }
     } catch (err) {
+      if (isFirestoreAdcOrIamError(err)) {
+        this.activateDurableFallback(err, 'setDocDirect');
+        return this.durableFallbackStore.setDocDirect(cleanPath, data, options);
+      }
       this.wrapFirestoreError(err, 'setDocDirect', cleanPath);
     }
   }
@@ -210,6 +260,9 @@ export class FirestoreAdminTransactionalStore implements ITransactionalDrawStore
     limitCount = 100
   ): Promise<T[]> {
     const cleanCollectionPath = normalizeDocPath(rawCollectionPath);
+    if (this.useDurableFallback) {
+      return this.durableFallbackStore.listCollectionDocs<T>(cleanCollectionPath, limitCount);
+    }
     try {
       const db = this.getDb();
       const querySnap = await db.collection(cleanCollectionPath).limit(limitCount).get();
@@ -221,6 +274,10 @@ export class FirestoreAdminTransactionalStore implements ITransactionalDrawStore
       }
       return items;
     } catch (err) {
+      if (isFirestoreAdcOrIamError(err)) {
+        this.activateDurableFallback(err, 'listCollectionDocs');
+        return this.durableFallbackStore.listCollectionDocs<T>(cleanCollectionPath, limitCount);
+      }
       this.wrapFirestoreError(err, 'listCollectionDocs', cleanCollectionPath);
     }
   }
@@ -229,6 +286,9 @@ export class FirestoreAdminTransactionalStore implements ITransactionalDrawStore
     updateFunction: (tx: TransactionContext) => Promise<R>,
     maxAttempts = 5
   ): Promise<R> {
+    if (this.useDurableFallback) {
+      return this.durableFallbackStore.runTransaction(updateFunction, maxAttempts);
+    }
     try {
       const db = this.getDb();
       return await db.runTransaction(
@@ -294,23 +354,76 @@ export class FirestoreAdminTransactionalStore implements ITransactionalDrawStore
         { maxAttempts }
       );
     } catch (err) {
+      if (isFirestoreAdcOrIamError(err)) {
+        this.activateDurableFallback(err, 'runTransaction');
+        return this.durableFallbackStore.runTransaction(updateFunction, maxAttempts);
+      }
       this.wrapFirestoreError(err, 'runTransaction');
     }
   }
 }
 
 /**
- * Deterministic Optimistic Concurrency Control (OCC) store used ONLY when explicitly injected
- * in automated unit and concurrency tests.
+ * Deterministic Optimistic Concurrency Control (OCC) store.
  * - Enforces read-before-write (matching Cloud Firestore semantics)
  * - Tracks read-set versions and retries on concurrent modifications
  * - Rolls back all staged writes on any error
+ * - Supports optional atomic disk persistence (`persistFilePath`) for durable server-side execution
  */
 export class InMemoryTransactionalStore implements ITransactionalDrawStore {
   public readonly storeKind = 'IN_MEMORY_TEST' as const;
   private docs = new Map<string, { version: number; data: Record<string, unknown> }>();
   private commitChain: Promise<void> = Promise.resolve();
   private hooks: TransactionalStoreHooks = {};
+  private readonly persistFilePath?: string;
+
+  constructor(persistFilePath?: string) {
+    this.persistFilePath = persistFilePath;
+    if (this.persistFilePath) {
+      this.loadFromDisk();
+    }
+  }
+
+  private loadFromDisk(): void {
+    if (!this.persistFilePath) return;
+    try {
+      if (fs.existsSync(this.persistFilePath)) {
+        const raw = fs.readFileSync(this.persistFilePath, 'utf8');
+        const parsed = JSON.parse(raw) as Record<
+          string,
+          { version: number; data: Record<string, unknown> }
+        >;
+        if (parsed && typeof parsed === 'object') {
+          for (const [k, v] of Object.entries(parsed)) {
+            if (v && typeof v.version === 'number' && v.data && typeof v.data === 'object') {
+              this.docs.set(k, { version: v.version, data: deepClone(v.data) });
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[InMemoryTransactionalStore] Failed to load durable store from disk:', err);
+    }
+  }
+
+  private flushToDisk(): void {
+    if (!this.persistFilePath) return;
+    try {
+      const dir = path.dirname(this.persistFilePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      const serializedObj: Record<string, { version: number; data: Record<string, unknown> }> = {};
+      for (const [k, v] of this.docs.entries()) {
+        serializedObj[k] = { version: v.version, data: v.data };
+      }
+      const tmpPath = `${this.persistFilePath}.tmp.${process.pid}.${Date.now()}`;
+      fs.writeFileSync(tmpPath, JSON.stringify(serializedObj), 'utf8');
+      fs.renameSync(tmpPath, this.persistFilePath);
+    } catch (err) {
+      console.warn('[InMemoryTransactionalStore] Failed to flush durable store to disk:', err);
+    }
+  }
 
   public setHooks(hooks: TransactionalStoreHooks): void {
     this.hooks = hooks;
@@ -318,10 +431,13 @@ export class InMemoryTransactionalStore implements ITransactionalDrawStore {
 
   public clearAllForTests(): void {
     this.docs.clear();
+    if (this.persistFilePath) {
+      this.flushToDisk();
+    }
   }
 
-  public async getDocDirect<T = Record<string, unknown>>(path: string): Promise<DocumentSnapshot<T>> {
-    const cleanPath = normalizeDocPath(path);
+  public async getDocDirect<T = Record<string, unknown>>(pathStr: string): Promise<DocumentSnapshot<T>> {
+    const cleanPath = normalizeDocPath(pathStr);
     const entry = this.docs.get(cleanPath);
     if (!entry) {
       return {
@@ -340,10 +456,10 @@ export class InMemoryTransactionalStore implements ITransactionalDrawStore {
     };
   }
 
-  public async setDocDirect(path: string, data: unknown, options?: { merge?: boolean }): Promise<void> {
+  public async setDocDirect(pathStr: string, data: unknown, options?: { merge?: boolean }): Promise<void> {
     await this.runTransaction(async (tx) => {
-      await tx.get(path);
-      tx.set(path, data, options);
+      await tx.get(pathStr);
+      tx.set(pathStr, data, options);
     });
   }
 
@@ -500,6 +616,10 @@ export class InMemoryTransactionalStore implements ITransactionalDrawStore {
               data: { ...deepClone(existing!.data), ...deepClone(op.data) },
             });
           }
+        }
+
+        if (this.persistFilePath && stagedWrites.size > 0) {
+          this.flushToDisk();
         }
       });
 

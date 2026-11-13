@@ -621,5 +621,163 @@ export async function runTraditionalDrawEndToEndTests(): Promise<{
     }
   });
 
+  // Test 12: executeAuthoritativeTraditionalDrawFlow synchronizes roster when backend doc has 0 eligible tickets
+  await test('Cliente DrawFlow: sincroniza lista via /api/raffle/participant/mutate quando pre-commit retorna HTTP_400_NO_ELIGIBLE_TICKETS', async () => {
+    const settings = buildRankedSettings();
+    const participants = [
+      { id: 'p1', name: 'Helena', coins: 300, addedAt: 1000 },
+      { id: 'p2', name: 'Igor', coins: 200, addedAt: 1001 },
+    ];
+    const callSequence: string[] = [];
+    let precommitCount = 0;
+
+    const apiCall: ApiJsonCaller = (async <T = any>(
+      endpointPath: string,
+      init?: RequestInit
+    ): Promise<SafeJsonResponse<T>> => {
+      const body = init?.body ? JSON.parse(String(init.body)) : {};
+      callSequence.push(
+        endpointPath === '/api/raffle/participant/mutate'
+          ? `${endpointPath}:${body.action}`
+          : endpointPath
+      );
+
+      if (endpointPath === '/api/raffle/draw/pre-commit') {
+        precommitCount++;
+        if (precommitCount === 1) {
+          return {
+            ok: false,
+            status: 400,
+            isHtml: false,
+            error: 'Não há bilhetes elegíveis para realizar o pré-compromisso do sorteio.',
+            data: {
+              ok: false,
+              code: 'HTTP_400_NO_ELIGIBLE_TICKETS',
+              message: 'Não há bilhetes elegíveis para realizar o pré-compromisso do sorteio.',
+            } as unknown as T,
+          };
+        }
+        return {
+          ok: true,
+          status: 200,
+          data: {
+            ok: true,
+            commitmentHash: 'e'.repeat(64),
+            rosterVersion: 3,
+            drawSequence: 0,
+            fencingToken: 1,
+          } as unknown as T,
+        };
+      }
+
+      if (endpointPath === '/api/raffle/participant/mutate') {
+        return {
+          ok: true,
+          status: 200,
+          data: { ok: true, raffle: { participants } } as unknown as T,
+        };
+      }
+
+      if (endpointPath === '/api/raffle/draw') {
+        const winner: Winner = {
+          id: `win_${body.drawId}`,
+          drawId: body.drawId,
+          participantId: 'p1',
+          name: 'Helena',
+          number: 1,
+          prize: body.prizeName,
+          drawnAt: 1700000000000,
+        };
+        return {
+          ok: true,
+          status: 200,
+          data: {
+            ok: true,
+            winningTicket: { number: 1, participantId: 'p1', name: 'Helena' },
+            winner,
+            updatedWinners: [winner],
+          } as unknown as T,
+        };
+      }
+
+      throw new Error(`Unexpected endpoint: ${endpointPath}`);
+    }) as ApiJsonCaller;
+
+    const outcome = await executeAuthoritativeTraditionalDrawFlow({
+      idToken: 'valid_tok',
+      mode: 'drum',
+      settings,
+      participants,
+      apiCall,
+    });
+
+    assert.deepStrictEqual(callSequence, [
+      '/api/raffle/draw/pre-commit',
+      '/api/raffle/participant/mutate:updateRaffleAllocationSettings',
+      '/api/raffle/participant/mutate:bulkAddParticipants',
+      '/api/raffle/draw/pre-commit',
+      '/api/raffle/draw',
+    ]);
+    assert.strictEqual(outcome.winner.name, 'Helena');
+    assert.strictEqual(outcome.winningTicket.number, 1);
+  });
+
+  // Test 13: Default production traditionalRaffleService instance completes full official draw without 503 ADC error
+  await test('Production Service Instance: traditionalRaffleService executa sorteio completo e persiste vencedor com prova Provably Fair V2', async () => {
+    const { traditionalRaffleService } = await import('../server/traditionalRaffleService.ts');
+    const ownerUid = `uid_prod_mesa_${Date.now()}`;
+    const raffleId = 'default';
+    const settings = buildRankedSettings();
+
+    await traditionalRaffleService.syncOrInitRaffleState({
+      authenticatedUid: ownerUid,
+      raffleId,
+      settings,
+      participants: [
+        { id: 'p1', name: 'Lucas Sorteado', coins: 200, addedAt: 1000 },
+        { id: 'p2', name: 'Mariana', coins: 100, addedAt: 1001 },
+      ],
+      strictClientGovernance: true,
+    });
+
+    const pre = await traditionalRaffleService.createDrawPrecommit({
+      authenticatedUid: ownerUid,
+      raffleId,
+    });
+    assert.match(pre.commitmentHash, /^[0-9a-f]{64}$/);
+
+    const drawId = `draw_prod_${Date.now()}`;
+    const res = await traditionalRaffleService.executeOfficialDraw({
+      authenticatedUid: ownerUid,
+      raffleId,
+      drawId,
+      idempotencyKey: `idem_${drawId}`,
+      commitmentHash: pre.commitmentHash,
+      clientEntropy: crypto.randomBytes(32).toString('hex'),
+      expectedRosterVersion: pre.rosterVersion,
+      expectedDrawSequence: pre.drawSequence,
+      fencingToken: pre.fencingToken,
+      drawMode: 'drum',
+      winnerCount: 1,
+      prizeId: 'pz1',
+      prizeName: '1º Lugar - PIX R$ 500',
+    });
+
+    assert.strictEqual(res.statusCode, 200);
+    const body = res.body as any;
+    assert.strictEqual(body.ok, true);
+    assert.ok(body.winner && body.winner.name);
+    assert.ok(typeof body.winner.number === 'number');
+    assert.ok(body.proof && body.proof.protocolVersion === 'GIO_PF_V2');
+
+    const persistedState = await traditionalRaffleService.getRaffleStateForOwner(ownerUid, raffleId);
+    assert.strictEqual(persistedState.winners.length, 1);
+    assert.strictEqual(persistedState.winners[0].id, body.winner.id);
+
+    const ledgerBundle = await traditionalRaffleService.getVerifiedLedgerBundle(pre.commitmentHash);
+    assert.strictEqual(ledgerBundle.valid, true);
+    assert.strictEqual(ledgerBundle.terminalType, 'REVEALED');
+  });
+
   return { passed, total };
 }

@@ -13,6 +13,8 @@ import { runFirestoreIntegrationAudit } from './firestoreIntegration.test.ts';
 import { runPayPalIntegrationTests } from './paypalIntegration.test.ts';
 import { runPayPalCheckoutRouteDiagnostics } from './paypalCheckoutRoute.test.ts';
 import { runTraditionalDrawEndToEndTests } from './traditionalDrawEndToEnd.test.ts';
+import { runUserProfileWorkspaceTests } from './userProfileWorkspace.test.ts';
+import { runArchitectureRulesTests } from './architectureRules.test.ts';
 
 async function main() {
   console.log('========================================================================');
@@ -59,12 +61,22 @@ async function main() {
     grandTotalPassed += ppRouteResults.passed;
     grandTotalCount += ppRouteResults.total;
 
-    // 8. Traditional Draw End-to-End & Session Winner Integrity Tests (7 tests)
+    // 8. Traditional Draw End-to-End & Session Winner Integrity Tests (11 tests)
     const mesaE2EResults = await runTraditionalDrawEndToEndTests();
     grandTotalPassed += mesaE2EResults.passed;
     grandTotalCount += mesaE2EResults.total;
 
-    // 9. Firestore Environment Integration Audit (FASE 5H)
+    // 9. User Profile & Settings Workspace Tests (6 tests)
+    const profileWorkspaceResults = await runUserProfileWorkspaceTests();
+    grandTotalPassed += profileWorkspaceResults.passed;
+    grandTotalCount += profileWorkspaceResults.total;
+
+    // 10. Fundamental Architecture Rules Tests (6 tests)
+    const archRulesResults = await runArchitectureRulesTests();
+    grandTotalPassed += archRulesResults.passed;
+    grandTotalCount += archRulesResults.total;
+
+    // 11. Firestore Environment Integration Audit (FASE 5H)
     await runFirestoreIntegrationAudit();
 
     const durationMs = Date.now() - startTime;

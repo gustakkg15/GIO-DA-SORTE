@@ -83,8 +83,8 @@ const MANAGEMENT_NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'settings',
-    label: 'Configurações',
-    description: 'Regras, backup e suporte',
+    label: 'Perfil e Ajustes',
+    description: 'Meu perfil, segurança e dados',
     icon: Settings,
   },
 ];

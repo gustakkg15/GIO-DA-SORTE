@@ -2,6 +2,7 @@ import { STORAGE_KEY } from './raffle';
 import { Participant, RaffleSettings, Winner } from '../types';
 
 export interface StoragePayload {
+  ownerUid?: string | null;
   settings: RaffleSettings;
   participants: Participant[];
   winners: Winner[];
@@ -11,7 +12,17 @@ export interface StoragePayload {
 
 export type AutoSaveStatus = 'saved' | 'saving' | 'pending' | 'error';
 
+export function getStorageKeyForUid(uid?: string | null): string {
+  const cleanUid = typeof uid === 'string' ? uid.trim() : '';
+  return cleanUid ? `${STORAGE_KEY}_uid_${cleanUid}` : STORAGE_KEY;
+}
+
 export interface IdleStorageManager {
+  setActiveOwnerUid: (uid: string | null) => void;
+  getActiveOwnerUid: () => string | null;
+  getActiveStorageKey: () => string;
+  readLocalStateForUid: (uid: string | null) => StoragePayload | null;
+  clearLocalCacheOnLogout: (uid?: string | null) => void;
   scheduleSave: (payload: { settings: RaffleSettings; participants: Participant[]; winners: Winner[] }, immediate?: boolean) => void;
   flush: () => boolean;
   getStatus: () => AutoSaveStatus;
@@ -22,11 +33,13 @@ export interface IdleStorageManager {
 
 /**
  * Robust Idle Storage Manager utilizing requestIdleCallback
+ * - Enforces strict UID isolation for local cache keys (`giodasorte_state_v1_uid_${uid}`)
  * - Defers heavy JSON serialization & localStorage writes to browser idle periods
  * - Never drops frames during rapid wheel spins, drum animations, or suspense countdowns
- * - Guarantees 100% data loss prevention by flushing on beforeunload, pagehide, and visibilitychange
+ * - Supports safe logout cache purge (`clearLocalCacheOnLogout`) without touching Firestore
  */
-class IdleAutoSaveController {
+class IdleAutoSaveController implements IdleStorageManager {
+  private activeOwnerUid: string | null = null;
   private pendingPayload: StoragePayload | null = null;
   private isDirty = false;
   private status: AutoSaveStatus = 'saved';
@@ -47,6 +60,117 @@ class IdleAutoSaveController {
       window.addEventListener('beforeunload', this.boundBeforeUnload);
       window.addEventListener('pagehide', this.boundPageHide);
       document.addEventListener('visibilitychange', this.boundVisibilityChange);
+    }
+  }
+
+  public setActiveOwnerUid(uid: string | null): void {
+    const normalized = typeof uid === 'string' && uid.trim() ? uid.trim() : null;
+    if (this.activeOwnerUid !== normalized) {
+      // Cancel any pending save from the previous UID context before switching
+      this.cancelScheduled();
+      this.pendingPayload = null;
+      this.isDirty = false;
+      this.activeOwnerUid = normalized;
+    }
+  }
+
+  public getActiveOwnerUid(): string | null {
+    return this.activeOwnerUid;
+  }
+
+  public getActiveStorageKey(): string {
+    return getStorageKeyForUid(this.activeOwnerUid);
+  }
+
+  /**
+   * Reads local state strictly isolated for the given UID (or null for anonymous).
+   * Prevents cross-UID contamination if a payload belongs to a different ownerUid.
+   */
+  public readLocalStateForUid(uid: string | null): StoragePayload | null {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') return null;
+    const normalizedUid = typeof uid === 'string' && uid.trim() ? uid.trim() : null;
+    const targetKey = getStorageKeyForUid(normalizedUid);
+    try {
+      const raw = localStorage.getItem(targetKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as StoragePayload;
+      if (!parsed || typeof parsed !== 'object') return null;
+      const payloadUid =
+        typeof parsed.ownerUid === 'string' && parsed.ownerUid.trim()
+          ? parsed.ownerUid.trim()
+          : null;
+      if (normalizedUid && payloadUid !== normalizedUid) {
+        return null;
+      }
+      if (!normalizedUid && payloadUid !== null) {
+        return null;
+      }
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Rule 3: Logout clears the browser session and local cache immediately,
+   * cancelling any pending idle writes, while NEVER deleting cloud/Firestore data.
+   */
+  public clearLocalCacheOnLogout(uid?: string | null): void {
+    this.cancelScheduled();
+    this.pendingPayload = null;
+    this.isDirty = false;
+    const previousUid = uid !== undefined ? uid : this.activeOwnerUid;
+    this.activeOwnerUid = null;
+    this.setStatus('saved');
+
+    if (typeof window === 'undefined') return;
+
+    try {
+      const keysToRemove = new Set<string>([
+        STORAGE_KEY,
+        `${STORAGE_KEY}_backup`,
+        `${STORAGE_KEY}_backup_ts`,
+        'gio_organizer_handle_v1',
+        'gio_organizer_bio_v1',
+        'gio_active_live_session_id',
+        'gio_active_live_username',
+        'gio_active_live_rule_id',
+      ]);
+
+      if (previousUid && previousUid.trim()) {
+        const cleanUid = previousUid.trim();
+        const uidKey = getStorageKeyForUid(cleanUid);
+        keysToRemove.add(uidKey);
+        keysToRemove.add(`${uidKey}_backup`);
+        keysToRemove.add(`${uidKey}_backup_ts`);
+        keysToRemove.add(`gio_organizer_handle_v1_${cleanUid}`);
+        keysToRemove.add(`gio_organizer_bio_v1_${cleanUid}`);
+      }
+
+      if (typeof localStorage !== 'undefined') {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (
+            key &&
+            (key.startsWith(`${STORAGE_KEY}_uid_`) ||
+              key.startsWith('gio_organizer_handle_v1_') ||
+              key.startsWith('gio_organizer_bio_v1_'))
+          ) {
+            keysToRemove.add(key);
+          }
+        }
+        for (const key of keysToRemove) {
+          localStorage.removeItem(key);
+        }
+      }
+
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('gio_active_live_session_id');
+        sessionStorage.removeItem('gio_active_live_username');
+        sessionStorage.removeItem('gio_active_live_rule_id');
+      }
+    } catch {
+      // Ignore storage access errors in restricted environments
     }
   }
 
@@ -92,6 +216,7 @@ class IdleAutoSaveController {
     immediate = false
   ): void {
     this.pendingPayload = {
+      ownerUid: this.activeOwnerUid,
       ...data,
       updatedAt: Date.now(),
       version: 2,
@@ -148,8 +273,8 @@ class IdleAutoSaveController {
   }
 
   /**
-   * Immediately flushes pending payload to localStorage synchronously.
-   * Guarantees that data is never lost on tab close, reload, or crash.
+   * Immediately flushes pending payload to localStorage synchronously under the UID-scoped key.
+   * Guarantees that data is never lost on tab close, reload, or crash, and never leaks across UIDs.
    */
   public flush(): boolean {
     if (!this.isDirty || !this.pendingPayload) {
@@ -160,15 +285,17 @@ class IdleAutoSaveController {
     this.cancelScheduled();
     this.setStatus('saving');
 
+    const targetKey = getStorageKeyForUid(this.pendingPayload.ownerUid ?? this.activeOwnerUid);
+
     try {
       // Preserve previous valid snapshot in safety backup slot before overwriting
-      const existingRaw = localStorage.getItem(STORAGE_KEY);
+      const existingRaw = localStorage.getItem(targetKey);
       if (existingRaw) {
-        localStorage.setItem(`${STORAGE_KEY}_backup`, existingRaw);
+        localStorage.setItem(`${targetKey}_backup`, existingRaw);
       }
 
       const serialized = JSON.stringify(this.pendingPayload);
-      localStorage.setItem(STORAGE_KEY, serialized);
+      localStorage.setItem(targetKey, serialized);
       this.isDirty = false;
       this.lastSavedAt = Date.now();
       this.setStatus('saved');
@@ -188,7 +315,7 @@ class IdleAutoSaveController {
               : this.pendingPayload.settings.prizeImage,
           },
         };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(compactPayload));
+        localStorage.setItem(targetKey, JSON.stringify(compactPayload));
         this.isDirty = false;
         this.lastSavedAt = Date.now();
         this.setStatus('saved');
@@ -203,15 +330,16 @@ class IdleAutoSaveController {
   }
 
   /**
-   * Creates an explicit timestamped backup of current localStorage state
+   * Creates an explicit timestamped backup of current localStorage state for the active UID
    */
   public createSafetyBackup(): boolean {
     if (typeof window === 'undefined') return false;
+    const targetKey = this.getActiveStorageKey();
     try {
-      const current = localStorage.getItem(STORAGE_KEY);
+      const current = localStorage.getItem(targetKey);
       if (current) {
-        localStorage.setItem(`${STORAGE_KEY}_backup`, current);
-        localStorage.setItem(`${STORAGE_KEY}_backup_ts`, String(Date.now()));
+        localStorage.setItem(`${targetKey}_backup`, current);
+        localStorage.setItem(`${targetKey}_backup_ts`, String(Date.now()));
         return true;
       }
       return false;
@@ -221,12 +349,13 @@ class IdleAutoSaveController {
   }
 
   /**
-   * Restores state from the safety backup if available
+   * Restores state from the safety backup for the active UID if available
    */
   public restoreFromSafetyBackup(): StoragePayload | null {
     if (typeof window === 'undefined') return null;
+    const targetKey = this.getActiveStorageKey();
     try {
-      const backupRaw = localStorage.getItem(`${STORAGE_KEY}_backup`);
+      const backupRaw = localStorage.getItem(`${targetKey}_backup`);
       if (!backupRaw) return null;
       return JSON.parse(backupRaw) as StoragePayload;
     } catch {
@@ -266,4 +395,5 @@ class IdleAutoSaveController {
 
 // Singleton instance to be shared across React hooks and window listeners
 export const idleStorage = new IdleAutoSaveController();
+
 

@@ -1152,6 +1152,14 @@ export class TikTokLiveConnector {
         this.cachedDiagnostics = diag;
       }
     });
+
+    // Rule 4: When the user closes the site/tab, detach ONLY the client SSE stream
+    // so server-side TikTok LIVE workers continue processing events uninterrupted.
+    if (typeof window !== 'undefined') {
+      window.addEventListener('pagehide', () => {
+        this.detachClientStreamOnly({ clearLocalCache: false });
+      });
+    }
   }
 
   public getEventBus(): EventBus {
@@ -1296,7 +1304,10 @@ export class TikTokLiveConnector {
   public async syncWithBackendStatus(options?: { triggerAutoRecovery?: boolean }): Promise<TikTokConnectionStatus | null> {
     try {
       const query = options?.triggerAutoRecovery ? '?recover=1' : '';
-      const statusRes = await safeApiJson<any>(`/api/tiktok/status${query}`);
+      const authHeaders = await getAuthBearerHeaders().catch(() => ({} as Record<string, string>));
+      const statusRes = await safeApiJson<any>(`/api/tiktok/status${query}`, {
+        headers: authHeaders,
+      });
       if (!statusRes.ok || !statusRes.data) return null;
       const statusData = statusRes.data;
 
@@ -1489,6 +1500,37 @@ export class TikTokLiveConnector {
         warning: errorMessage,
       });
       throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Rule 3 & Rule 4: Detaches ONLY the browser SSE/WebSocket listener without calling
+   * POST /api/tiktok/disconnect. Ensures server-side workers keep processing events
+   * when the user closes the browser tab or logs out of the browser session.
+   */
+  public detachClientStreamOnly(options?: { clearLocalCache?: boolean }): void {
+    this.client.disconnect();
+    if (options?.clearLocalCache) {
+      this.cachedGiftsFeed = [];
+      this.cachedMemberFeed = [];
+      this.cachedDiagnostics = null;
+      this.appliedSequenceNumbers.clear();
+      this.appliedEventKeys.clear();
+      writeStoredValue(ACTIVE_SESSION_STORAGE_KEY, '');
+      writeStoredValue(ACTIVE_USERNAME_STORAGE_KEY, '');
+      writeStoredValue(ACTIVE_RULE_STORAGE_KEY, '');
+      this.connectorState = 'DISCONNECTED';
+      this.lastKnownStatus = {
+        state: 'DISCONNECTED',
+        sessionId: this.currentSessionId,
+        activeRuleId: this.activeRuleId,
+        roomUsername: this.currentUsername,
+        viewerCount: 0,
+        totalGiftsReceived: 0,
+        totalCoinsCollected: 0,
+      };
+      this.eventBus.emit('connection_state', 'DISCONNECTED');
+      this.eventBus.emit('status', this.lastKnownStatus);
     }
   }
 

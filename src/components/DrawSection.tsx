@@ -433,6 +433,72 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
           </div>
         )}
 
+        {/* 3.5. Official Winner Spotlight Card (Mesa Oficial de Sorteio) */}
+        {latestWinner && !isDrawing && (
+          <div
+            data-testid="official-winner-spotlight"
+            className="relative p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#080A0F] via-[#101F3D] to-[#080A0F] border-2 border-[#F5B942]/60 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in"
+          >
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-14 h-14 rounded-2xl bg-[#F5B942]/15 border border-[#F5B942]/50 flex flex-col items-center justify-center shrink-0 text-[#F5B942] shadow-inner">
+                <span className="text-[9px] font-mono uppercase tracking-wider text-[#F5B942]/80">
+                  Bilhete
+                </span>
+                <span className="text-base font-mono font-black leading-none mt-0.5">
+                  #{latestWinner.number}
+                </span>
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#20C997]/15 text-[#20C997] border border-[#20C997]/30 text-[10px] font-mono font-bold uppercase tracking-wider">
+                    <Trophy className="w-3 h-3" />
+                    Vencedor Oficial Contemplado
+                  </span>
+                  {latestWinner.proof?.eventHash && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#0131CD]/30 text-[#35B9F5] border border-[#35B9F5]/30 text-[10px] font-mono font-semibold">
+                      <ShieldCheck className="w-3 h-3 text-[#20C997]" />
+                      Provably Fair V2 Auditado
+                    </span>
+                  )}
+                </div>
+                <div className="text-lg sm:text-xl font-black text-white truncate mt-1">
+                  {latestWinner.name}
+                </div>
+                <div className="text-xs text-slate-300 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                  <span className="text-[#F5B942] font-semibold">{latestWinner.prize}</span>
+                  <span className="text-slate-600">•</span>
+                  <span className="font-mono text-[11px] text-slate-400">
+                    {formatDateTime(latestWinner.drawnAt)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => onOpenCelebration(latestWinner)}
+                className="min-h-[38px] px-3.5 py-2 rounded-xl bg-[#F5B942]/15 hover:bg-[#F5B942]/25 text-[#F5B942] border border-[#F5B942]/40 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+              >
+                <Trophy className="w-4 h-4" />
+                <span>Tela de Celebração</span>
+              </button>
+              {latestWinner.proof && (
+                <button
+                  type="button"
+                  onClick={() => setIsProofOpen((prev) => !prev)}
+                  className="min-h-[38px] px-3.5 py-2 rounded-xl bg-[#161C2C] hover:bg-[#0131CD] text-white border border-white/15 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                >
+                  <ShieldCheck className="w-4 h-4 text-[#20C997]" />
+                  <span>
+                    {isProofOpen ? 'Ocultar Prova Criptográfica' : 'Ver Prova Criptográfica'}
+                  </span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {drawErrorMessage && (
           <div
             role="alert"

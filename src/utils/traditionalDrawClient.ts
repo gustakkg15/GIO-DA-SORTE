@@ -122,10 +122,16 @@ export function applyAuthoritativeDrawOutcome(params: {
 } {
   const { prevSettings, prevWinners, outcome } = params;
 
+  const normalizedWinner: Winner = {
+    ...outcome.winner,
+    number: Number(outcome.winner.number ?? outcome.winningTicket.number),
+    proof: outcome.winner.proof || outcome.proof,
+  };
+
   const winners =
     Array.isArray(outcome.updatedWinners) && outcome.updatedWinners.length > 0
-      ? outcome.updatedWinners
-      : mergeWinnerList(prevWinners, outcome.winner);
+      ? mergeWinnerList(outcome.updatedWinners, normalizedWinner)
+      : mergeWinnerList(prevWinners, normalizedWinner);
 
   const settings: RaffleSettings = outcome.updatedSettings
     ? {
@@ -167,7 +173,9 @@ export type ApiJsonCaller = <T = any>(
 
 /**
  * Executes the strict two-phase Provably Fair V2 authoritative draw against the backend:
- * 1) POST /api/raffle/draw/pre-commit (bootstrapping /api/raffle/sync only on 404 JSON)
+ * 1) POST /api/raffle/draw/pre-commit (bootstrapping /api/raffle/sync on 404 JSON, or syncing
+ *    active roster via /api/raffle/participant/mutate if the backend doc has 0 eligible tickets
+ *    while the organizer has active participants)
  * 2) Generate 256-bit client entropy via WebCrypto CSPRNG
  * 3) POST /api/raffle/draw with fencingToken, expectedRosterVersion, expectedDrawSequence, prizeId & prizeName
  *
@@ -242,6 +250,48 @@ export async function executeAuthoritativeTraditionalDrawFlow(params: {
       headers: makeAuthHeaders(currentToken),
       body: JSON.stringify({ raffleId }),
     });
+  }
+
+  // If the backend raffle doc exists but has 0 eligible tickets while the organizer has active
+  // participants on the table, synchronize settings & roster via the authoritative mutation endpoint
+  const isNoEligibleTicketsError =
+    precommitRes.status === 400 &&
+    !precommitRes.isHtml &&
+    params.participants.length > 0 &&
+    (precommitRes.data?.code === 'HTTP_400_NO_ELIGIBLE_TICKETS' ||
+      /HTTP_400_NO_ELIGIBLE_TICKETS|bilhetes elegíveis/i.test(
+        String(precommitRes.error || precommitRes.data?.message || precommitRes.data?.error || '')
+      ));
+
+  if (isNoEligibleTicketsError) {
+    await apiCall<any>('/api/raffle/participant/mutate', {
+      method: 'POST',
+      headers: makeAuthHeaders(currentToken),
+      body: JSON.stringify({
+        raffleId,
+        action: 'updateRaffleAllocationSettings',
+        settingsPatch: params.settings,
+      }),
+    });
+
+    const syncRosterRes = await apiCall<any>('/api/raffle/participant/mutate', {
+      method: 'POST',
+      headers: makeAuthHeaders(currentToken),
+      body: JSON.stringify({
+        raffleId,
+        action: 'bulkAddParticipants',
+        items: params.participants,
+        replace: true,
+      }),
+    });
+
+    if (syncRosterRes.ok && syncRosterRes.data?.ok) {
+      precommitRes = await apiCall<any>('/api/raffle/draw/pre-commit', {
+        method: 'POST',
+        headers: makeAuthHeaders(currentToken),
+        body: JSON.stringify({ raffleId }),
+      });
+    }
   }
 
   if (!precommitRes.ok || !precommitRes.data?.ok) {
