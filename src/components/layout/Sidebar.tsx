@@ -258,37 +258,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={() => handleItemClick('dashboard')}
-            className="flex items-center gap-3 text-left group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957] rounded-xl min-w-0 btn-tactile"
+            className="flex items-center gap-2.5 text-left group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957] rounded-xl min-w-0 btn-tactile"
             title="GIO DA SORTE — Ir para o Painel"
           >
-            {/* Official Brand Logo Emblem */}
-            <div className="w-10 h-10 shrink-0 flex items-center justify-center rounded-xl bg-[#080D18] border border-[#0131CD]/45 shadow-[0_4px_14px_rgba(1,49,205,0.28)] overflow-hidden">
-              <img
-                src="/logo.png"
-                alt="Logotipo Oficial GIO DA SORTE"
-                className="w-full h-full object-cover"
-              />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Logotipo Oficial GIO DA SORTE"
+              className="h-8 w-auto object-contain rounded-lg border border-[#0131CD]/45 shadow-[0_4px_14px_rgba(1,49,205,0.28)] shrink-0"
+            />
 
             {!isCompact && (
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-sm tracking-tight text-[#FFFFFF] group-hover:text-[#A6C957] transition-colors truncate">
-                    GIO DA SORTE
-                  </span>
-                  <span
-                    className={`text-[10px] font-semibold tracking-wide px-1.5 py-0.5 rounded-md ${
-                      isProPlan
-                        ? 'bg-[#A6C957]/15 text-[#A6C957] border border-[#A6C957]/35'
-                        : 'bg-[#0131CD]/20 text-[#FFFFFF] border border-[#0131CD]/40'
-                    }`}
-                  >
-                    {isProPlan ? 'PRO' : 'FREE'}
-                  </span>
-                </div>
-                <p className="text-[11px] font-medium text-[#A5B1C5] truncate">
-                  Plataforma Oficial de Sorteios
-                </p>
+              <div className="min-w-0 flex items-center gap-2">
+                <span className="font-bold text-sm tracking-tight text-[#FFFFFF] group-hover:text-[#A6C957] transition-colors truncate">
+                  GIO DA SORTE
+                </span>
+                <span
+                  className={`text-[10px] font-semibold tracking-wide px-1.5 py-0.5 rounded-md shrink-0 ${
+                    isProPlan
+                      ? 'bg-[#A6C957]/15 text-[#A6C957] border border-[#A6C957]/35'
+                      : 'bg-[#0131CD]/20 text-[#FFFFFF] border border-[#0131CD]/40'
+                  }`}
+                >
+                  {isProPlan ? 'PRO' : 'FREE'}
+                </span>
               </div>
             )}
           </button>

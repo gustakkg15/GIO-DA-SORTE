@@ -99,25 +99,20 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center justify-between gap-2 lg:gap-3 h-16">
             {/* Brand Wordmark & Official Logo */}
             <div className="flex items-center gap-2.5 whitespace-nowrap shrink-0">
-              <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[#080D18] border border-[#0131CD]/45 shadow-sm overflow-hidden flex items-center justify-center shrink-0">
+              <button
+                type="button"
+                onClick={() => handleTabClick('dashboard')}
+                className="text-left flex items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080D18] rounded-lg group"
+              >
                 <img
                   src="/logo.png"
                   alt="Logotipo Oficial GIO DA SORTE"
                   referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover"
+                  className="h-8 w-auto object-contain rounded-lg border border-[#0131CD]/45 shadow-sm shrink-0"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                   }}
                 />
-              </div>
-              <button
-                type="button"
-                onClick={() => handleTabClick('dashboard')}
-                className="text-left flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080D18] rounded-lg group"
-              >
-                <span className="font-bold text-base sm:text-lg tracking-tight text-[#FFFFFF] group-hover:text-[#A6C957] transition-colors">
-                  GIO DA SORTE
-                </span>
                 <span className="text-[10px] font-semibold tracking-wide px-1.5 py-0.5 rounded bg-[#A6C957]/15 text-[#A6C957] border border-[#A6C957]/35">
                   PRO
                 </span>

@@ -154,7 +154,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-20 h-[70px] bg-[#080D18]/95 backdrop-blur-md border-b border-[#A5B1C5]/15 flex items-center justify-between gap-2 px-3.5 sm:px-6 lg:px-8 select-none">
-      {/* Left: Mobile Menu Button + Module Title & Breadcrumb */}
+      {/* Left: Mobile Menu Button + Official Logo & Module Title */}
       <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
         <button
           type="button"
@@ -169,14 +169,14 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         <button
           type="button"
           onClick={() => onSelectTab('dashboard')}
-          className="lg:hidden w-9 h-9 rounded-xl bg-[#080D18] border border-[#0131CD]/45 shadow-sm overflow-hidden shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957]"
+          className="inline-flex items-center rounded-lg shrink-0 transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957]"
           title="GIO DA SORTE — Ir para o Painel"
           aria-label="GIO DA SORTE — Ir para o Painel"
         >
           <img
             src="/logo.png"
             alt="Logotipo Oficial GIO DA SORTE"
-            className="w-full h-full object-cover"
+            className="h-8 w-auto object-contain rounded-lg border border-[#0131CD]/45 shadow-[0_2px_12px_rgba(1,49,205,0.35)] shrink-0"
           />
         </button>
 
