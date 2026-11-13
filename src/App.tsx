@@ -82,6 +82,14 @@ import { useIdleAutoSave } from './hooks/useIdleAutoSave';
 import { idleStorage } from './utils/idleStorage';
 import { getApiUrl, apiFetch, safeApiJson } from './utils/apiConfig';
 import {
+  AuthoritativeDrawResultPayload,
+  applyAuthoritativeDrawOutcome,
+  executeAuthoritativeTraditionalDrawFlow,
+  mergeWinnerList,
+  resolveActivePrizeContext,
+  validateDrawPreflight,
+} from './utils/traditionalDrawClient';
+import {
   Sparkles,
   Ticket,
   MessageSquare,
@@ -173,6 +181,28 @@ export default function App() {
     }
     return [];
   });
+
+  // Always-fresh refs for async closures (auth hydration, serialized mutations, drum animation)
+  const settingsRef = useRef<RaffleSettings>(settings);
+  settingsRef.current = settings;
+  const participantsRef = useRef<Participant[]>(participants);
+  participantsRef.current = participants;
+  const winnersRef = useRef<Winner[]>(winners);
+  winnersRef.current = winners;
+  const pendingMutationPromiseRef = useRef<Promise<void>>(Promise.resolve());
+  const drumTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (drumTimeoutRef.current) {
+        clearTimeout(drumTimeoutRef.current);
+        drumTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   // Main Navigation & Sub-Navigation States
   const [activeTab, setActiveTab] = useState<AppNavigationTab>('dashboard');
@@ -450,6 +480,7 @@ export default function App() {
   // Cloud Sync & Account Modal State
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'synced' | 'saving' | 'offline' | 'error'>('synced');
+  const [syncErrorMessage, setSyncErrorMessage] = useState<string | null>(null);
 
   // Interactive Modals State
   const [isPresentationOpen, setIsPresentationOpen] = useState(false);
@@ -571,26 +602,77 @@ export default function App() {
           });
           if (stateRes.ok && stateRes.data?.ok && stateRes.data.raffle) {
             const stateData = stateRes.data;
-            if (Array.isArray(stateData.raffle.participants)) {
-              setParticipants(stateData.raffle.participants);
+            const remoteParticipants = Array.isArray(stateData.raffle.participants)
+              ? stateData.raffle.participants
+              : [];
+            const remoteWinners = Array.isArray(stateData.raffle.winners)
+              ? stateData.raffle.winners
+              : [];
+            const remoteDrawSeq = Number(stateData.raffle.drawSequence || 0);
+            const localParticipants = participantsRef.current;
+
+            // Preserve unplayed local roster if cloud document exists but is completely empty/unplayed
+            if (
+              remoteParticipants.length === 0 &&
+              remoteWinners.length === 0 &&
+              remoteDrawSeq === 0 &&
+              localParticipants.length > 0
+            ) {
+              const pushRes = await safeApiJson<any>('/api/raffle/participant/mutate', {
+                method: 'POST',
+                headers: authHeaders,
+                body: JSON.stringify({
+                  raffleId: 'default',
+                  action: 'bulkAddParticipants',
+                  items: localParticipants,
+                  replace: true,
+                }),
+              });
+              if (pushRes.ok && pushRes.data?.ok && pushRes.data.raffle) {
+                if (Array.isArray(pushRes.data.raffle.participants)) {
+                  setParticipants(pushRes.data.raffle.participants);
+                }
+                if (pushRes.data.raffle.settings) {
+                  setSettings((s) => ({ ...s, ...pushRes.data.raffle.settings }));
+                }
+                if (Array.isArray(pushRes.data.raffle.winners)) {
+                  setWinners(pushRes.data.raffle.winners);
+                  setDisplayNumber(pushRes.data.raffle.winners[0]?.number ?? '?');
+                }
+                setSyncStatus('synced');
+                setSyncErrorMessage(null);
+              } else {
+                setSyncStatus('error');
+                setSyncErrorMessage(
+                  pushRes.error || 'Falha ao enviar a lista local para o servidor.'
+                );
+              }
+            } else {
+              if (Array.isArray(stateData.raffle.participants)) {
+                setParticipants(stateData.raffle.participants);
+              }
+              if (stateData.raffle.settings) {
+                setSettings((s) => ({ ...s, ...stateData.raffle.settings }));
+              }
+              if (Array.isArray(stateData.raffle.winners)) {
+                setWinners(stateData.raffle.winners);
+                setDisplayNumber(stateData.raffle.winners[0]?.number ?? '?');
+              }
+              setSyncStatus('synced');
+              setSyncErrorMessage(null);
             }
-            if (stateData.raffle.settings) {
-              setSettings((s) => ({ ...s, ...stateData.raffle.settings }));
-            }
-            if (Array.isArray(stateData.raffle.winners)) {
-              setWinners(stateData.raffle.winners);
-            }
-            setSyncStatus('synced');
           } else if (stateRes.status === 404 && !stateRes.isHtml) {
             // Bootstrap initial authoritative raffle once when document does not exist yet on backend
+            const currentLocalSettings = settingsRef.current;
+            const currentLocalParticipants = participantsRef.current;
             const bootRes = await safeApiJson<any>('/api/raffle/sync', {
               method: 'POST',
               headers: authHeaders,
               body: JSON.stringify({
                 raffleId: 'default',
-                title: settings.raffleTitle || 'GIO DA SORTE',
-                settings,
-                participants,
+                title: currentLocalSettings.raffleTitle || 'GIO DA SORTE',
+                settings: currentLocalSettings,
+                participants: currentLocalParticipants,
               }),
             });
             if (bootRes.ok && bootRes.data?.ok && bootRes.data.raffle) {
@@ -601,15 +683,29 @@ export default function App() {
               }
               if (Array.isArray(bootData.raffle.winners)) {
                 setWinners(bootData.raffle.winners);
+                setDisplayNumber(bootData.raffle.winners[0]?.number ?? '?');
               }
               setSyncStatus('synced');
+              setSyncErrorMessage(null);
             }
-          } else if (stateRes.isHtml || stateRes.status === 404) {
+          } else if (stateRes.htmlReason === 'COOKIE_CHECK_REDIRECT') {
+            setSyncStatus('error');
+            setSyncErrorMessage(
+              stateRes.error ||
+                'Sessão de cookies do Preview bloqueada (/__cookie_check.html). Recarregue a página.'
+            );
+          } else if (stateRes.isHtml || stateRes.status === 404 || stateRes.status === 0) {
             // Static host or backend route unavailable; preserve local data
             setSyncStatus('offline');
+          } else {
+            setSyncStatus('error');
+            setSyncErrorMessage(
+              stateRes.error || 'Não foi possível carregar o estado oficial do servidor.'
+            );
           }
         } catch (err) {
           console.warn('Initial authoritative raffle fetch notice:', err);
+          setSyncStatus('offline');
         }
       } else {
         adminVerificationReqIdRef.current++;
@@ -619,6 +715,8 @@ export default function App() {
         clearComplianceSessionCacheOnLogout();
         setLiveSessionsSummary([]);
         setLegalInitialPortalTab((prev) => (prev === 'admin_legal' ? 'documents' : prev));
+        setSyncErrorMessage(null);
+        setDrawErrorMessage(null);
       }
     });
 
@@ -747,47 +845,95 @@ export default function App() {
     setSoundEnabled(next);
   };
 
-  // R-04: Central helper to execute authoritative roster/settings mutations on the backend
+  // R-04: Central helper to execute authoritative roster/settings mutations sequentially on the backend
   const mutateAuthoritativeRaffle = useCallback(
     async (mutationPayload: Record<string, unknown>) => {
       if (!currentUser) return;
-      setSyncStatus('saving');
-      try {
-        const idToken = await currentUser.getIdToken();
-        const res = await safeApiJson<any>('/api/raffle/participant/mutate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${idToken}`,
-          },
-          body: JSON.stringify({
-            raffleId: 'default',
-            ...mutationPayload,
-          }),
-        });
-        if (res.ok && res.data?.ok && res.data.raffle) {
-          const data = res.data;
-          if (Array.isArray(data.raffle.participants)) {
-            setParticipants(data.raffle.participants);
-          }
-          if (data.raffle.settings) {
-            setSettings((prev) => ({ ...prev, ...data.raffle.settings }));
-          }
-          if (Array.isArray(data.raffle.winners)) {
-            setWinners(data.raffle.winners);
-          }
-          setSyncStatus('synced');
-        } else if (res.isHtml || res.status === 404) {
-          setSyncStatus('offline');
-        } else {
-          setSyncStatus('error');
-        }
-      } catch {
-        setSyncStatus('offline');
+      if (cloudSaveTimerRef.current) {
+        clearTimeout(cloudSaveTimerRef.current);
+        cloudSaveTimerRef.current = null;
       }
+
+      const runMutation = async () => {
+        setSyncStatus('saving');
+        try {
+          const idToken = await currentUser.getIdToken();
+          const res = await safeApiJson<any>('/api/raffle/participant/mutate', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({
+              raffleId: 'default',
+              ...mutationPayload,
+            }),
+          });
+          if (res.ok && res.data?.ok && res.data.raffle) {
+            const data = res.data;
+            if (Array.isArray(data.raffle.participants)) {
+              setParticipants(data.raffle.participants);
+            }
+            if (data.raffle.settings) {
+              setSettings((prev) => ({ ...prev, ...data.raffle.settings }));
+            }
+            if (Array.isArray(data.raffle.winners)) {
+              setWinners(data.raffle.winners);
+            }
+            setSyncStatus('synced');
+            setSyncErrorMessage(null);
+            setDrawErrorMessage(null);
+          } else if (res.isHtml || res.status === 404 || res.status === 0) {
+            setSyncStatus('offline');
+            setSyncErrorMessage(
+              res.error || 'Servidor temporariamente inacessível para sincronizar alterações.'
+            );
+          } else {
+            setSyncStatus('error');
+            setSyncErrorMessage(
+              res.error ||
+                res.data?.message ||
+                res.data?.error ||
+                'Erro ao sincronizar alteração com o servidor.'
+            );
+          }
+        } catch {
+          setSyncStatus('offline');
+          setSyncErrorMessage('Sem conexão com o servidor para salvar a alteração.');
+        }
+      };
+
+      const chained = pendingMutationPromiseRef.current.then(runMutation, runMutation);
+      pendingMutationPromiseRef.current = chained;
+      return chained;
     },
     [currentUser]
   );
+
+  // Explicit recovery sync button: pushes local roster & allocation rules atomically to backend
+  const syncLocalRosterToCloud = useCallback(async () => {
+    if (!currentUser) {
+      setIsAccountOpen(true);
+      return;
+    }
+    if (cloudSaveTimerRef.current) {
+      clearTimeout(cloudSaveTimerRef.current);
+      cloudSaveTimerRef.current = null;
+    }
+
+    const currentSettings = settingsRef.current;
+    const currentParticipants = participantsRef.current;
+
+    await mutateAuthoritativeRaffle({
+      action: 'updateRaffleAllocationSettings',
+      settingsPatch: currentSettings,
+    });
+    await mutateAuthoritativeRaffle({
+      action: 'bulkAddParticipants',
+      items: currentParticipants,
+      replace: true,
+    });
+  }, [currentUser, mutateAuthoritativeRaffle]);
 
   // R-04 Handler 1: Add Participant -> POST /api/raffle/participant/mutate (action: 'addParticipant')
   const handleAddParticipant = useCallback(
@@ -906,14 +1052,83 @@ export default function App() {
     [mutateAuthoritativeRaffle]
   );
 
-  // Winner actions
-  const handleRemoveWinner = (winnerId: string) => {
-    setWinners((prev) => prev.filter((w) => w.id !== winnerId));
-  };
+  // Winner actions (synced cleanly with backend session list + prize tier claims, never deleting audit ledger)
+  const handleRemoveWinner = useCallback(
+    (winnerId: string) => {
+      setWinners((prev) => {
+        const next = prev.filter((w) => w.id !== winnerId);
+        setDisplayNumber(next[0]?.number ?? '?');
+        return next;
+      });
+      setCelebrationWinner((prev) => (prev?.id === winnerId ? null : prev));
+      void mutateAuthoritativeRaffle({
+        action: 'removeSessionWinner',
+        winnerId,
+      });
+    },
+    [mutateAuthoritativeRaffle]
+  );
 
-  const handleClearWinners = () => {
+  const handleClearWinners = useCallback(() => {
     setWinners([]);
-  };
+    setDisplayNumber('?');
+    setCelebrationWinner(null);
+    void mutateAuthoritativeRaffle({
+      action: 'clearSessionWinners',
+    });
+  }, [mutateAuthoritativeRaffle]);
+
+  const handleRestoreRaffleState = useCallback(
+    async (state: { settings: RaffleSettings; participants: Participant[]; winners: Winner[] }) => {
+      setSettings(state.settings);
+      setParticipants(state.participants);
+      setWinners(state.winners);
+      setDisplayNumber(state.winners[0]?.number ?? '?');
+      setCelebrationWinner(null);
+      await mutateAuthoritativeRaffle({
+        action: 'clearSessionWinners',
+      });
+      await mutateAuthoritativeRaffle({
+        action: 'updateRaffleAllocationSettings',
+        settingsPatch: state.settings,
+      });
+      await mutateAuthoritativeRaffle({
+        action: 'bulkAddParticipants',
+        items: state.participants,
+        replace: true,
+      });
+    },
+    [mutateAuthoritativeRaffle]
+  );
+
+  const handleResetToSample = useCallback(async () => {
+    setParticipants(INITIAL_SAMPLE_PARTICIPANTS);
+    setWinners([]);
+    setDisplayNumber('?');
+    setCelebrationWinner(null);
+    await mutateAuthoritativeRaffle({
+      action: 'clearSessionWinners',
+    });
+    await mutateAuthoritativeRaffle({
+      action: 'bulkAddParticipants',
+      items: INITIAL_SAMPLE_PARTICIPANTS,
+      replace: true,
+    });
+  }, [mutateAuthoritativeRaffle]);
+
+  const handleResetCoinsOnly = useCallback(async () => {
+    const zeroed = participantsRef.current.map((p) => ({ ...p, coins: 0 }));
+    setParticipants(zeroed);
+    await mutateAuthoritativeRaffle({
+      action: 'bulkAddParticipants',
+      items: zeroed,
+      replace: true,
+    });
+  }, [mutateAuthoritativeRaffle]);
+
+  const handleCloseCelebration = useCallback(() => {
+    setCelebrationWinner(null);
+  }, []);
 
   // Authoritative Backend Draw State (Fase 1.7.0 / Fase 1.7.2)
   const [predeterminedWinningTicket, setPredeterminedWinningTicket] = useState<{
@@ -923,33 +1138,78 @@ export default function App() {
   } | null>(null);
   const [drawErrorMessage, setDrawErrorMessage] = useState<string | null>(null);
   const pendingAuthoritativeWinnerRef = useRef<Winner | null>(null);
+  const pendingAuthoritativeOutcomeRef = useRef<AuthoritativeDrawResultPayload | null>(null);
 
   // Wheel spin conclusion handler (records the authoritative backend Winner after animation completes)
-  const handleWheelSpinEnd = (chosenTicket: { number: number; participantId: string; name: string }) => {
-    setDisplayNumber(chosenTicket.number);
-    setIsDrawing(false);
-    drawingRef.current = false;
+  const handleWheelSpinEnd = useCallback(
+    (chosenTicket: { number: number; participantId: string; name: string }) => {
+      setDisplayNumber(chosenTicket.number);
+      setIsDrawing(false);
+      drawingRef.current = false;
 
-    const authoritativeWinner: Winner = pendingAuthoritativeWinnerRef.current || {
-      id: generateUid(),
-      participantId: chosenTicket.participantId,
-      name: chosenTicket.name,
-      number: chosenTicket.number,
-      prize: settings.prizeName || settings.currentPrize || 'Roleta da Fortuna',
-      drawnAt: Date.now(),
-    };
-    pendingAuthoritativeWinnerRef.current = null;
+      const authoritativeOutcome = pendingAuthoritativeOutcomeRef.current;
+      const authoritativeWinner: Winner =
+        authoritativeOutcome?.winner ||
+        pendingAuthoritativeWinnerRef.current || {
+          id: generateUid(),
+          participantId: chosenTicket.participantId,
+          name: chosenTicket.name,
+          number: chosenTicket.number,
+          prize: resolveActivePrizeContext(settingsRef.current).prizeName,
+          drawnAt: Date.now(),
+        };
+      pendingAuthoritativeWinnerRef.current = null;
+      pendingAuthoritativeOutcomeRef.current = null;
 
-    setWinners((prev) => {
-      const next = [authoritativeWinner, ...prev];
-      idleStorage.scheduleSave({ settings, participants, winners: next }, true);
-      return next;
-    });
-    setCelebrationWinner(authoritativeWinner);
-  };
+      if (authoritativeOutcome) {
+        const applied = applyAuthoritativeDrawOutcome({
+          prevSettings: settingsRef.current,
+          prevWinners: winnersRef.current,
+          outcome: authoritativeOutcome,
+        });
+        setSettings(applied.settings);
+        setWinners(applied.winners);
+        idleStorage.scheduleSave(
+          {
+            settings: applied.settings,
+            participants: participantsRef.current,
+            winners: applied.winners,
+          },
+          true
+        );
+      } else {
+        setWinners((prev) => {
+          const next = mergeWinnerList(prev, authoritativeWinner);
+          idleStorage.scheduleSave(
+            { settings: settingsRef.current, participants: participantsRef.current, winners: next },
+            true
+          );
+          return next;
+        });
+      }
+
+      setCelebrationWinner(authoritativeWinner);
+      setPredeterminedWinningTicket(null);
+    },
+    []
+  );
 
   // Authoritative Traditional Draw execution (Backend Provably Fair V2 — R-04 compliant)
   const drawingRef = useRef(false);
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
+  const rafflesSubTabRef = useRef(rafflesSubTab);
+  rafflesSubTabRef.current = rafflesSubTab;
+
+  // If the user switches away from Mesa Oficial mid-spin after backend already committed a wheel winner,
+  // flush the pending outcome so isDrawing resets and the winner is never lost.
+  useEffect(() => {
+    const isWheelMounted = activeTab === 'draw' && rafflesSubTab === 'arena';
+    if (!isWheelMounted && pendingAuthoritativeOutcomeRef.current) {
+      handleWheelSpinEnd(pendingAuthoritativeOutcomeRef.current.winningTicket);
+    }
+  }, [activeTab, rafflesSubTab, handleWheelSpinEnd]);
+
   const executeAuthoritativeDraw = useCallback(
     async (mode: 'drum' | 'wheel' = 'drum') => {
       if (drawingRef.current || isDrawing) return;
@@ -957,8 +1217,14 @@ export default function App() {
       if (pool.length === 0) return;
 
       if (!currentUser) {
-        setDrawErrorMessage('Autenticação obrigatória para realizar sorteios oficiais auditáveis.');
+        setDrawErrorMessage('Conecte sua conta antes de sortear. A extração oficial usa criptografia Provably Fair V2 auditada no servidor.');
         return;
+      }
+
+      // Cancel any pending debounced UI sync & await queued roster/settings mutations first
+      if (cloudSaveTimerRef.current) {
+        clearTimeout(cloudSaveTimerRef.current);
+        cloudSaveTimerRef.current = null;
       }
 
       drawingRef.current = true;
@@ -966,109 +1232,26 @@ export default function App() {
       setDrawErrorMessage(null);
 
       try {
+        await pendingMutationPromiseRef.current;
+
         const idToken = (await currentUser.getIdToken()) || '';
-        if (!idToken) {
-          throw new Error('Autenticação necessária para realizar sorteios oficiais no servidor.');
-        }
-
-        const authHeaders = {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        };
-
-        // 1. Request cryptographic pre-commitment from authoritative backend
-        let precommitRes = await safeApiJson<any>('/api/raffle/draw/pre-commit', {
-          method: 'POST',
-          headers: authHeaders,
-          body: JSON.stringify({ raffleId: 'default' }),
+        const outcome = await executeAuthoritativeTraditionalDrawFlow({
+          idToken,
+          refreshIdToken: async () => (await currentUser.getIdToken(true)) || '',
+          mode,
+          settings: settingsRef.current,
+          participants: participantsRef.current,
+          raffleId: 'default',
         });
 
-        // If raffle document has never been created on backend yet (404 JSON), bootstrap once and retry pre-commit
-        if (precommitRes.status === 404 && !precommitRes.isHtml) {
-          const bootRes = await safeApiJson<any>('/api/raffle/sync', {
-            method: 'POST',
-            headers: authHeaders,
-            body: JSON.stringify({
-              raffleId: 'default',
-              title: settings.raffleTitle || 'Sorteio Oficial GIO DA SORTE',
-              settings,
-              participants,
-            }),
-          });
-          if (!bootRes.ok || !bootRes.data?.ok) {
-            throw new Error(
-              bootRes.error || bootRes.data?.message || 'Servidor indisponível para inicializar rifa.'
-            );
-          }
+        const chosenTicket = outcome.winningTicket;
+        const authoritativeWinner = outcome.winner;
 
-          precommitRes = await safeApiJson<any>('/api/raffle/draw/pre-commit', {
-            method: 'POST',
-            headers: authHeaders,
-            body: JSON.stringify({ raffleId: 'default' }),
-          });
-        }
-
-        if (!precommitRes.ok || !precommitRes.data?.ok) {
-          throw new Error(
-            precommitRes.error ||
-              precommitRes.data?.message ||
-              precommitRes.data?.error ||
-              'Servidor indisponível para pré-compromisso do sorteio.'
-          );
-        }
-
-        const precommitData = precommitRes.data;
-
-        // 2. Generate 256-bit client entropy (E_client) using WebCrypto CSPRNG
-        const entropyBytes = new Uint8Array(32);
-        window.crypto.getRandomValues(entropyBytes);
-        const clientEntropy = Array.from(entropyBytes)
-          .map((b) => b.toString(16).padStart(2, '0'))
-          .join('');
-
-        const randSuffix = Array.from(entropyBytes.slice(0, 6))
-          .map((b) => b.toString(16).padStart(2, '0'))
-          .join('');
-        const drawId = `draw_trad_${Date.now()}_${randSuffix}`;
-        const idempotencyKey = `idem_${drawId}`;
-
-        // 3. Execute authoritative draw on backend
-        const drawRes = await safeApiJson<any>('/api/raffle/draw', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${idToken}`,
-          },
-          body: JSON.stringify({
-            raffleId: 'default',
-            drawId,
-            idempotencyKey,
-            commitmentHash: precommitData.commitmentHash,
-            clientEntropy,
-            expectedRosterVersion: precommitData.rosterVersion,
-            expectedDrawSequence: precommitData.drawSequence,
-            fencingToken: precommitData.fencingToken,
-            drawMode: mode,
-            winnerCount: 1,
-            prizeId: 'NONE',
-            prizeName: settings.prizeName || settings.currentPrize || 'Prêmio Oficial',
-          }),
-        });
-
-        if (!drawRes.ok || !drawRes.data?.ok || !drawRes.data.winningTicket || !drawRes.data.winner) {
-          throw new Error(
-            drawRes.error ||
-              drawRes.data?.message ||
-              drawRes.data?.error ||
-              'O servidor de sorteios rejeitou a confirmação oficial do resultado.'
-          );
-        }
-
-        const chosenTicket: { number: number; participantId: string; name: string } =
-          drawRes.data.winningTicket;
-        const authoritativeWinner: Winner = drawRes.data.winner;
-
-        if (mode === 'wheel') {
+        // Only spin FortuneWheel visually when DrawSection arena (which mounts FortuneWheel) is visible
+        const isWheelMounted =
+          activeTabRef.current === 'draw' && rafflesSubTabRef.current === 'arena';
+        if (mode === 'wheel' && isWheelMounted) {
+          pendingAuthoritativeOutcomeRef.current = outcome;
           pendingAuthoritativeWinnerRef.current = authoritativeWinner;
           setPredeterminedWinningTicket(chosenTicket);
           setWheelSpinSignal((s) => s + 1);
@@ -1076,24 +1259,36 @@ export default function App() {
         }
 
         // Visual drum roll animation landing strictly on the backend-determined winning ticket
-        const duration = settings.spinDuration || 3000;
+        const duration = settingsRef.current.spinDuration || 3000;
         const startTime = Date.now();
         let tickCount = 0;
 
         const tick = () => {
+          if (!isMountedRef.current) return;
           const elapsed = Date.now() - startTime;
           const progress = Math.min(1, elapsed / duration);
 
           if (progress >= 1) {
+            drumTimeoutRef.current = null;
             setDisplayNumber(chosenTicket.number);
             setIsDrawing(false);
             drawingRef.current = false;
 
-            setWinners((prev) => {
-              const next = [authoritativeWinner, ...prev];
-              idleStorage.scheduleSave({ settings, participants, winners: next }, true);
-              return next;
+            const applied = applyAuthoritativeDrawOutcome({
+              prevSettings: settingsRef.current,
+              prevWinners: winnersRef.current,
+              outcome,
             });
+            setSettings(applied.settings);
+            setWinners(applied.winners);
+            idleStorage.scheduleSave(
+              {
+                settings: applied.settings,
+                participants: participantsRef.current,
+                winners: applied.winners,
+              },
+              true
+            );
             setCelebrationWinner(authoritativeWinner);
             playWinnerFanfare();
             fireWinnerConfetti();
@@ -1109,11 +1304,15 @@ export default function App() {
           }
 
           const nextDelay = 35 + Math.pow(progress, 2.5) * 220;
-          setTimeout(tick, nextDelay);
+          drumTimeoutRef.current = setTimeout(tick, nextDelay);
         };
 
         tick();
       } catch (err) {
+        if (drumTimeoutRef.current) {
+          clearTimeout(drumTimeoutRef.current);
+          drumTimeoutRef.current = null;
+        }
         setIsDrawing(false);
         drawingRef.current = false;
         setDrawErrorMessage(
@@ -1123,21 +1322,27 @@ export default function App() {
         );
       }
     },
-    [
-      isDrawing,
-      computed.eligibleTickets,
-      currentUser,
-      settings,
-      participants,
-    ]
+    [isDrawing, computed.eligibleTickets, currentUser]
   );
 
-  // Unified Draw Trigger
+  // Unified Draw Trigger (validates auth & eligibility BEFORE starting 10s countdown)
   const handleTriggerDraw = useCallback(
     (mode: 'drum' | 'wheel' = 'drum') => {
-      if (drawingRef.current || isDrawing || countdownRemaining !== null) return;
-      if (computed.eligibleTickets.length === 0) return;
+      const preflight = validateDrawPreflight({
+        isAuthenticated: Boolean(currentUser),
+        isDrawing: drawingRef.current || isDrawing,
+        isCountdownActive: countdownRemaining !== null,
+        eligibleTicketsCount: computed.eligibleTickets.length,
+      });
 
+      if (!preflight.canProceed) {
+        if (preflight.errorMessage) {
+          setDrawErrorMessage(preflight.errorMessage);
+        }
+        return;
+      }
+
+      setDrawErrorMessage(null);
       const countdownTime = settings.countdownSeconds !== undefined ? settings.countdownSeconds : 10;
       if (countdownTime <= 0) {
         executeAuthoritativeDraw(mode);
@@ -1148,7 +1353,14 @@ export default function App() {
       setCountdownRemaining(countdownTime);
       playCountdownTick(countdownTime);
     },
-    [isDrawing, countdownRemaining, computed.eligibleTickets.length, settings.countdownSeconds, executeAuthoritativeDraw]
+    [
+      currentUser,
+      isDrawing,
+      countdownRemaining,
+      computed.eligibleTickets.length,
+      settings.countdownSeconds,
+      executeAuthoritativeDraw,
+    ]
   );
 
   // Countdown timer decrement effect
@@ -1516,21 +1728,16 @@ export default function App() {
                     onOpenCelebration={(w) => setCelebrationWinner(w)}
                     onOpenAuditReport={() => setIsAuditReportOpen(true)}
                     rosterHash={rosterHash}
-                    onRestoreState={(state) => {
-                      setSettings(state.settings);
-                      setParticipants(state.participants);
-                      setWinners(state.winners);
-                    }}
-                    onResetToSample={() => {
-                      setParticipants(INITIAL_SAMPLE_PARTICIPANTS);
-                      setWinners([]);
-                      setDisplayNumber('?');
-                    }}
-                    onResetCoinsOnly={() => {
-                      setParticipants((prev) => prev.map((p) => ({ ...p, coins: 0 })));
-                    }}
+                    onRestoreState={handleRestoreRaffleState}
+                    onResetToSample={handleResetToSample}
+                    onResetCoinsOnly={handleResetCoinsOnly}
                     predeterminedWinningTicket={predeterminedWinningTicket}
                     drawErrorMessage={drawErrorMessage}
+                    isAuthenticated={Boolean(currentUser)}
+                    onOpenAccount={() => setIsAccountOpen(true)}
+                    syncStatus={syncStatus}
+                    syncErrorMessage={syncErrorMessage}
+                    onRetrySync={syncLocalRosterToCloud}
                   />
                 </div>
 
@@ -1702,6 +1909,9 @@ export default function App() {
                 }}
                 onOpenSubscription={() => setActiveTab('subscription')}
                 onCloseWizard={() => setRafflesSubTab('arena')}
+                isAuthenticated={Boolean(currentUser)}
+                onOpenAccount={() => setIsAccountOpen(true)}
+                drawErrorMessage={drawErrorMessage}
               />
             )}
           </div>
@@ -1945,19 +2155,9 @@ export default function App() {
                 winners={winners}
                 computed={computed}
                 onUpdateSettings={handleUpdateSettings}
-                onRestoreState={(state) => {
-                  setSettings(state.settings);
-                  setParticipants(state.participants);
-                  setWinners(state.winners);
-                }}
-                onResetToSample={() => {
-                  setParticipants(INITIAL_SAMPLE_PARTICIPANTS);
-                  setWinners([]);
-                  setDisplayNumber('?');
-                }}
-                onResetCoinsOnly={() => {
-                  setParticipants((prev) => prev.map((p) => ({ ...p, coins: 0 })));
-                }}
+                onRestoreState={handleRestoreRaffleState}
+                onResetToSample={handleResetToSample}
+                onResetCoinsOnly={handleResetCoinsOnly}
                 onOpenAuditReport={() => setIsAuditReportOpen(true)}
                 rosterHash={rosterHash}
               />
@@ -2054,6 +2254,9 @@ export default function App() {
         soundEnabled={soundActive}
         onToggleSound={handleToggleSound}
         onUpdateSettings={handleUpdateSettings}
+        drawErrorMessage={drawErrorMessage}
+        isAuthenticated={Boolean(currentUser)}
+        onOpenAccount={() => setIsAccountOpen(true)}
       />
 
       {/* Battle Royale Elimination Tournament Modal */}
@@ -2109,6 +2312,7 @@ export default function App() {
         currentDisplayNumber={displayNumber}
         isDrawing={isDrawing}
         onDraw={() => handleTriggerDraw('drum')}
+        drawErrorMessage={drawErrorMessage}
       />
 
       {/* Print Sheet Modal */}
@@ -2151,7 +2355,7 @@ export default function App() {
         rosterHash={rosterHash}
         computed={computed}
         participantsCount={participants.length}
-        onClose={() => setCelebrationWinner(null)}
+        onClose={handleCloseCelebration}
         onOpenVictoryCard={(w) => setSelectedWinnerForCard(w)}
       />
 

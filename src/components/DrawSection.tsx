@@ -21,11 +21,16 @@ import {
   ChevronDown,
   ChevronUp,
   Sliders,
+  Lock,
+  RefreshCw,
+  LogIn,
 } from 'lucide-react';
 import { ComputedRaffle, RaffleSettings, Winner, Participant } from '../types';
 import { TicketDisplay } from './TicketDisplay';
 import { FortuneWheel } from './FortuneWheel';
 import { formatDateTime } from '../utils/raffle';
+import { resolveActivePrizeContext } from '../utils/traditionalDrawClient';
+import { safeApiJson } from '../utils/apiConfig';
 import { PrizeConfigModal } from './PrizeConfigModal';
 import { SettingsBackup } from './SettingsBackup';
 
@@ -59,6 +64,17 @@ interface DrawSectionProps {
   onResetCoinsOnly: () => void;
   predeterminedWinningTicket?: { number: number; participantId: string; name: string } | null;
   drawErrorMessage?: string | null;
+  isAuthenticated?: boolean;
+  onOpenAccount?: () => void;
+  syncStatus?: 'synced' | 'saving' | 'offline' | 'error';
+  syncErrorMessage?: string | null;
+  onRetrySync?: () => void;
+  onVerifyLedger?: (commitmentHash: string) => Promise<{
+    ok: boolean;
+    valid?: boolean;
+    terminalType?: string;
+    error?: string;
+  }>;
 }
 
 export const DrawSection: React.FC<DrawSectionProps> = ({
@@ -87,11 +103,27 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
   onResetCoinsOnly,
   predeterminedWinningTicket,
   drawErrorMessage,
+  isAuthenticated = false,
+  onOpenAccount,
+  syncStatus = 'synced',
+  syncErrorMessage = null,
+  onRetrySync,
+  onVerifyLedger,
 }) => {
   const [isConfirmingClearWinners, setIsConfirmingClearWinners] = useState(false);
   const [copiedHash, setCopiedHash] = useState(false);
+  const [copiedProof, setCopiedProof] = useState(false);
   const [isPrizeModalOpen, setIsPrizeModalOpen] = useState(false);
   const [isExtrasOpen, setIsExtrasOpen] = useState(false);
+  const [isProofOpen, setIsProofOpen] = useState(false);
+  const [verifyingLedger, setVerifyingLedger] = useState(false);
+  const [ledgerCheckResult, setLedgerCheckResult] = useState<{
+    commitmentHash: string;
+    ok: boolean;
+    valid?: boolean;
+    terminalType?: string;
+    message: string;
+  } | null>(null);
 
   const handleCopyHash = () => {
     if (!rosterHash) return;
@@ -100,18 +132,75 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
     setTimeout(() => setCopiedHash(false), 2000);
   };
 
+  const handleCopyProofJson = (winner: Winner) => {
+    if (!winner.proof) return;
+    const payload = {
+      winnerId: winner.id,
+      winnerName: winner.name,
+      ticketNumber: winner.number,
+      prize: winner.prize,
+      drawnAt: winner.drawnAt,
+      proof: winner.proof,
+    };
+    navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+    setCopiedProof(true);
+    setTimeout(() => setCopiedProof(false), 2000);
+  };
+
+  const handleVerifyLedgerProof = async (commitmentHash: string) => {
+    if (!commitmentHash || verifyingLedger) return;
+    setVerifyingLedger(true);
+    try {
+      const result = onVerifyLedger
+        ? await onVerifyLedger(commitmentHash)
+        : await (async () => {
+            const res = await safeApiJson<any>(
+              `/api/raffle/ledger/${encodeURIComponent(commitmentHash)}`
+            );
+            return {
+              ok: Boolean(res.ok && res.data?.ok),
+              valid: Boolean(res.data?.valid),
+              terminalType: res.data?.terminalType,
+              error: res.error || res.data?.message || res.data?.error,
+            };
+          })();
+
+      if (result.ok && result.valid) {
+        setLedgerCheckResult({
+          commitmentHash,
+          ok: true,
+          valid: true,
+          terminalType: result.terminalType,
+          message: `Cadeia criptográfica validada no servidor (${result.terminalType || 'REVEALED'}).`,
+        });
+      } else {
+        setLedgerCheckResult({
+          commitmentHash,
+          ok: false,
+          valid: false,
+          message: result.error || 'Não foi possível validar o ledger no momento.',
+        });
+      }
+    } catch {
+      setLedgerCheckResult({
+        commitmentHash,
+        ok: false,
+        valid: false,
+        message: 'Falha de comunicação ao consultar o ledger público.',
+      });
+    } finally {
+      setVerifyingLedger(false);
+    }
+  };
+
   const eligibleCount = computed.eligibleTickets.length;
   const latestWinner = winners.length > 0 ? winners[0] : null;
   const drawMode = settings.drawMode || 'drum';
 
   const prizes = settings.prizes || [];
-  const nextRankedPrize = [...prizes]
-    .sort((a, b) => a.rank - b.rank)
-    .find((p) => !p.winnerId);
-
-  const activePrizeLabel = nextRankedPrize
-    ? nextRankedPrize.name
-    : settings.prizeName || settings.currentPrize || 'Prêmio Principal';
+  const activePrizeContext = resolveActivePrizeContext(settings);
+  const nextRankedPrize = activePrizeContext.rankedTier;
+  const activePrizeLabel = activePrizeContext.prizeName;
 
   const canDraw = !isDrawing && eligibleCount > 0;
 
@@ -160,8 +249,9 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
           <div className="flex items-center bg-[#080A0F] p-1 rounded-xl border border-white/10 self-start sm:self-auto shadow-inner">
             <button
               type="button"
+              disabled={isDrawing}
               onClick={() => onUpdateSettings({ drawMode: 'drum' })}
-              className={`min-h-[38px] px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
+              className={`min-h-[38px] px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all disabled:opacity-50 ${
                 drawMode === 'drum'
                   ? 'bg-[#0131CD] text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
@@ -172,8 +262,9 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
             </button>
             <button
               type="button"
+              disabled={isDrawing}
               onClick={() => onUpdateSettings({ drawMode: 'wheel' })}
-              className={`min-h-[38px] px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
+              className={`min-h-[38px] px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all disabled:opacity-50 ${
                 drawMode === 'wheel'
                   ? 'bg-[#0131CD] text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
@@ -184,6 +275,67 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
             </button>
           </div>
         </div>
+
+        {/* 1B. Readiness & Security Banner (Auth / Cloud Sync / Roster Hash) */}
+        {!isAuthenticated ? (
+          <div className="relative p-3.5 sm:p-4 rounded-xl bg-[#F5B942]/10 border border-[#F5B942]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start sm:items-center gap-2.5 text-xs text-white">
+              <Lock className="w-4 h-4 text-[#F5B942] shrink-0 mt-0.5 sm:mt-0" />
+              <div>
+                <span className="font-bold text-[#F5B942]">Conta desconectada: </span>
+                <span className="text-slate-200">
+                  O sorteio oficial exige sessão autenticada para gerar compromisso criptográfico (Provably Fair V2) e gravar no ledger do servidor.
+                </span>
+              </div>
+            </div>
+            {onOpenAccount && (
+              <button
+                type="button"
+                onClick={onOpenAccount}
+                className="min-h-[36px] px-4 py-1.5 rounded-lg bg-[#F5B942] hover:bg-[#E5A932] text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 shrink-0 transition"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Conectar Conta</span>
+              </button>
+            )}
+          </div>
+        ) : (syncStatus === 'error' || syncStatus === 'offline' || syncErrorMessage) ? (
+          <div className="relative p-3.5 sm:p-4 rounded-xl bg-[#F05262]/10 border border-[#F05262]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start sm:items-center gap-2.5 text-xs text-white">
+              <AlertCircle className="w-4 h-4 text-[#F05262] shrink-0 mt-0.5 sm:mt-0" />
+              <div>
+                <span className="font-bold text-[#F05262]">
+                  {syncStatus === 'offline' ? 'Servidor temporariamente inacessível: ' : 'Pendência de sincronização: '}
+                </span>
+                <span className="text-slate-200">
+                  {syncErrorMessage || 'Sincronize a lista de participantes com o servidor antes de iniciar o sorteio oficial.'}
+                </span>
+              </div>
+            </div>
+            {onRetrySync && (
+              <button
+                type="button"
+                onClick={onRetrySync}
+                className="min-h-[36px] px-3.5 py-1.5 rounded-lg bg-[#161C2C] hover:bg-[#0131CD] text-white border border-white/15 font-semibold text-xs flex items-center justify-center gap-1.5 shrink-0 transition"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-[#B9FC01]" />
+                <span>Sincronizar Lista</span>
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="relative px-3.5 py-2.5 rounded-xl bg-[#080A0F]/80 border border-white/[0.07] flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-400">
+            <span className="inline-flex items-center gap-1.5 text-[#20C997] font-semibold">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Provably Fair V2 · Servidor Sincronizado</span>
+            </span>
+            {rosterHash && (
+              <span className="truncate max-w-[240px] sm:max-w-xs" title={rosterHash}>
+                Hash Lista: {rosterHash.slice(0, 14)}…
+              </span>
+            )}
+          </div>
+        )}
 
         {/* 2. Prominent Prize Showcase Card */}
         <div className="relative p-4 sm:p-5 rounded-xl bg-[#080A0F] border border-white/10 flex items-center justify-between gap-4 shadow-sm">
@@ -238,6 +390,7 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
                 winnerName={latestWinner ? latestWinner.name : null}
                 winnerPrize={latestWinner ? latestWinner.prize : null}
                 themeMode={settings.themeMode}
+                isProofVerified={Boolean(latestWinner?.proof?.eventHash)}
               />
             </div>
 
@@ -281,9 +434,61 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
         )}
 
         {drawErrorMessage && (
-          <div className="flex items-start gap-3 text-xs text-[#F05262] bg-[#F05262]/10 border border-[#F05262]/30 rounded-xl p-4 animate-fade-in">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[#F05262]" />
-            <div className="leading-relaxed font-medium">{drawErrorMessage}</div>
+          <div
+            role="alert"
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#F05262] bg-[#F05262]/10 border border-[#F05262]/30 rounded-xl p-4 animate-fade-in"
+          >
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[#F05262]" />
+              <div className="leading-relaxed font-medium">{drawErrorMessage}</div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {(drawErrorMessage.includes('__cookie_check') ||
+                drawErrorMessage.includes('cookies do Preview')) && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== 'undefined') window.location.reload();
+                    }}
+                    className="min-h-[34px] px-3 py-1.5 rounded-lg bg-[#0131CD] hover:brightness-110 text-white font-semibold text-xs flex items-center gap-1.5 transition"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Recarregar Página</span>
+                  </button>
+                  {typeof window !== 'undefined' && (
+                    <a
+                      href={window.location.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="min-h-[34px] px-3 py-1.5 rounded-lg bg-[#161C2C] hover:bg-[#0131CD] text-white border border-white/15 font-semibold text-xs flex items-center gap-1.5 transition"
+                    >
+                      <span>Abrir em Nova Aba</span>
+                    </a>
+                  )}
+                </>
+              )}
+              {!isAuthenticated && onOpenAccount && (
+                <button
+                  type="button"
+                  onClick={onOpenAccount}
+                  className="min-h-[34px] px-3 py-1.5 rounded-lg bg-[#F5B942] hover:bg-[#E5A932] text-slate-950 font-bold text-xs flex items-center gap-1.5 transition"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Conectar Conta</span>
+                </button>
+              )}
+              {isAuthenticated && onRetrySync && (
+                <button
+                  type="button"
+                  onClick={onRetrySync}
+                  className="min-h-[34px] px-3 py-1.5 rounded-lg bg-[#161C2C] hover:bg-[#0131CD] text-white border border-white/15 font-semibold text-xs flex items-center gap-1.5 transition"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-[#B9FC01]" />
+                  <span>Ressincronizar</span>
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -301,58 +506,151 @@ export const DrawSection: React.FC<DrawSectionProps> = ({
 
         {/* 4. Winner Spotlight & Verification Bar in Ouro Nobre */}
         {latestWinner && !isDrawing && (
-          <div className="p-5 rounded-xl bg-[#080A0F] border border-[#F5B942]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in shadow-xl">
-            <div className="min-w-0">
-              <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#F5B942] block">
-                Último Ganhador Contemplado
-              </span>
-              <div className="text-base sm:text-lg font-bold text-white truncate font-mono tabular-nums mt-0.5">
-                <span className="text-[#F5B942]">#{latestWinner.number}</span> ·{' '}
-                <span className="font-sans font-extrabold text-white">{latestWinner.name}</span>
-              </div>
-              {latestWinner.proof && (
-                <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] font-mono text-slate-400">
-                  <span className="px-1.5 py-0.5 rounded bg-[#20C997]/15 text-[#20C997] border border-[#20C997]/30 font-bold">
-                    PROVABLY FAIR V2 (BACKEND AUTORITATIVO)
-                  </span>
-                  <span title={latestWinner.proof.commitmentHash}>
-                    C_server: {latestWinner.proof.commitmentHash.slice(0, 12)}…
-                  </span>
-                  <span title={latestWinner.proof.eventHash}>
-                    Ledger H1: {latestWinner.proof.eventHash.slice(0, 12)}…
-                  </span>
+          <div className="p-5 rounded-xl bg-[#080A0F] border border-[#F5B942]/40 space-y-4 animate-fade-in shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="min-w-0">
+                <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#F5B942] block">
+                  Último Ganhador Contemplado
+                </span>
+                <div className="text-base sm:text-lg font-bold text-white truncate font-mono tabular-nums mt-0.5">
+                  <span className="text-[#F5B942]">#{latestWinner.number}</span> ·{' '}
+                  <span className="font-sans font-extrabold text-white">{latestWinner.name}</span>
                 </div>
-              )}
+                <div className="text-xs text-slate-400 mt-0.5 truncate">
+                  {latestWinner.prize || activePrizeLabel} · {formatDateTime(latestWinner.drawnAt)}
+                </div>
+                {latestWinner.proof && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] font-mono text-slate-400">
+                    <span className="px-1.5 py-0.5 rounded bg-[#20C997]/15 text-[#20C997] border border-[#20C997]/30 font-bold">
+                      PROVABLY FAIR V2 (BACKEND AUTORITATIVO)
+                    </span>
+                    <span title={latestWinner.proof.commitmentHash}>
+                      C_server: {latestWinner.proof.commitmentHash.slice(0, 12)}…
+                    </span>
+                    <span title={latestWinner.proof.eventHash}>
+                      Ledger H1: {latestWinner.proof.eventHash.slice(0, 12)}…
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsProofOpen((prev) => !prev)}
+                      className="px-2 py-0.5 rounded bg-[#10141E] hover:bg-[#161C2C] text-[#B9FC01] border border-[#B9FC01]/30 font-semibold transition"
+                    >
+                      {isProofOpen ? 'Ocultar Auditoria' : 'Auditoria Criptográfica'}
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onOpenCelebration(latestWinner)}
+                  className="gio-btn-secondary min-h-[38px] px-3.5 py-2 text-xs font-semibold flex items-center gap-1.5"
+                  title="Abrir tela cheia de celebração para telão ou live"
+                >
+                  <Maximize2 className="w-3.5 h-3.5 text-[#B9FC01]" />
+                  <span>Telão</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onOpenVictoryCard(latestWinner)}
+                  className="min-h-[38px] px-3.5 py-2 rounded-xl bg-[#F5B942] hover:bg-[#E5A932] text-slate-950 text-xs font-bold flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all active:scale-[0.98]"
+                  title="Gerar Cartão VIP para redes sociais"
+                >
+                  <Award className="w-4 h-4" />
+                  <span>Cartão VIP</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={onOpenAuditReport}
+                  className="gio-btn-secondary min-h-[38px] px-3.5 py-2 text-xs font-semibold flex items-center gap-1.5 text-[#B9FC01] border-[#0131CD]/30 hover:border-[#0131CD]"
+                  title="Emitir laudo PDF oficial auditado"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Certificado PDF</span>
+                </button>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => onOpenCelebration(latestWinner)}
-                className="gio-btn-secondary min-h-[38px] px-3.5 py-2 text-xs font-semibold flex items-center gap-1.5"
-                title="Abrir tela cheia de celebração para telão ou live"
-              >
-                <Maximize2 className="w-3.5 h-3.5 text-[#B9FC01]" />
-                <span>Telão</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onOpenVictoryCard(latestWinner)}
-                className="min-h-[38px] px-3.5 py-2 rounded-xl bg-[#F5B942] hover:bg-[#E5A932] text-slate-950 text-xs font-bold flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all active:scale-[0.98]"
-                title="Gerar Cartão VIP para redes sociais"
-              >
-                <Award className="w-4 h-4" />
-                <span>Cartão VIP</span>
-              </button>
-              <button
-                type="button"
-                onClick={onOpenAuditReport}
-                className="gio-btn-secondary min-h-[38px] px-3.5 py-2 text-xs font-semibold flex items-center gap-1.5 text-[#B9FC01] border-[#0131CD]/30 hover:border-[#0131CD]"
-                title="Emitir laudo PDF oficial auditado"
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Certificado PDF</span>
-              </button>
-            </div>
+
+            {isProofOpen && latestWinner.proof && (
+              <div className="pt-3 border-t border-white/10 space-y-3 text-[11px] font-mono">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="p-2.5 rounded-lg bg-[#10141E] border border-white/10">
+                    <span className="text-slate-400 block text-[10px]">drawId / Sequência</span>
+                    <span className="text-white break-all">
+                      {latestWinner.proof.drawId} (#{latestWinner.proof.drawSequence})
+                    </span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-[#10141E] border border-white/10">
+                    <span className="text-slate-400 block text-[10px]">Commitment (C_server)</span>
+                    <span className="text-[#20C997] break-all">{latestWinner.proof.commitmentHash}</span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-[#10141E] border border-white/10">
+                    <span className="text-slate-400 block text-[10px]">Server Seed (S_server)</span>
+                    <span className="text-white break-all">{latestWinner.proof.serverSeed}</span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-[#10141E] border border-white/10">
+                    <span className="text-slate-400 block text-[10px]">Client Entropy (E_client)</span>
+                    <span className="text-white break-all">{latestWinner.proof.clientEntropy}</span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-[#10141E] border border-white/10">
+                    <span className="text-slate-400 block text-[10px]">Salt + Hash da Lista</span>
+                    <span className="text-slate-300 break-all">
+                      {latestWinner.proof.salt} · {latestWinner.proof.rosterSha256Hash}
+                    </span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-[#10141E] border border-white/10">
+                    <span className="text-slate-400 block text-[10px]">Ledger Hash Chain (H1)</span>
+                    <span className="text-[#B9FC01] break-all">{latestWinner.proof.eventHash}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={verifyingLedger}
+                      onClick={() => handleVerifyLedgerProof(latestWinner.proof!.commitmentHash)}
+                      className="min-h-[34px] px-3 py-1.5 rounded-lg bg-[#0131CD] hover:brightness-110 disabled:opacity-50 text-white font-sans font-semibold text-xs flex items-center gap-1.5 transition"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-[#B9FC01]" />
+                      <span>
+                        {verifyingLedger ? 'Validando Ledger...' : 'Verificar Ledger no Servidor'}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyProofJson(latestWinner)}
+                      className="min-h-[34px] px-3 py-1.5 rounded-lg bg-[#10141E] hover:bg-[#161C2C] text-white border border-white/10 font-sans font-semibold text-xs flex items-center gap-1.5 transition"
+                    >
+                      {copiedProof ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-[#20C997]" />
+                          <span className="text-[#20C997]">Prova Copiada</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Copiar Prova JSON</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {ledgerCheckResult &&
+                    ledgerCheckResult.commitmentHash === latestWinner.proof.commitmentHash && (
+                      <span
+                        className={`text-xs font-sans font-semibold px-2.5 py-1 rounded-lg border ${
+                          ledgerCheckResult.ok
+                            ? 'bg-[#20C997]/15 text-[#20C997] border-[#20C997]/30'
+                            : 'bg-[#F05262]/15 text-[#F05262] border-[#F05262]/30'
+                        }`}
+                      >
+                        {ledgerCheckResult.message}
+                      </span>
+                    )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

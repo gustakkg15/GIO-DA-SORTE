@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, Sparkles, Play, Award, Gift, Volume2, VolumeX, Clock } from 'lucide-react';
+import { X, Sparkles, Play, Award, Gift, Volume2, VolumeX, Clock, AlertCircle, LogIn } from 'lucide-react';
 import { ComputedRaffle, RaffleSettings, Winner } from '../types';
 
 interface PresentationModalProps {
@@ -14,6 +14,9 @@ interface PresentationModalProps {
   soundEnabled: boolean;
   onToggleSound: () => void;
   onUpdateSettings?: (patch: Partial<RaffleSettings>) => void;
+  drawErrorMessage?: string | null;
+  isAuthenticated?: boolean;
+  onOpenAccount?: () => void;
 }
 
 export const PresentationModal: React.FC<PresentationModalProps> = ({
@@ -28,6 +31,9 @@ export const PresentationModal: React.FC<PresentationModalProps> = ({
   soundEnabled,
   onToggleSound,
   onUpdateSettings,
+  drawErrorMessage = null,
+  isAuthenticated = true,
+  onOpenAccount,
 }) => {
   useEffect(() => {
     if (!isOpen) return;
@@ -204,6 +210,28 @@ export const PresentationModal: React.FC<PresentationModalProps> = ({
 
           {/* Big Presentation CTA */}
           <div className="mt-8 flex flex-col items-center gap-3">
+            {drawErrorMessage && (
+              <div
+                role="alert"
+                className="w-full max-w-xl p-3.5 rounded-xl bg-[#F05262]/15 border border-[#F05262]/40 text-xs text-[#FFFFFF] flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+              >
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-[#F05262] shrink-0 mt-0.5" />
+                  <span>{drawErrorMessage}</span>
+                </div>
+                {!isAuthenticated && onOpenAccount && (
+                  <button
+                    type="button"
+                    onClick={onOpenAccount}
+                    className="px-3 py-1.5 rounded-lg bg-[#F5B942] text-slate-950 font-bold text-xs flex items-center gap-1 shrink-0"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>Conectar Conta</span>
+                  </button>
+                )}
+              </div>
+            )}
+
             <button
               type="button"
               disabled={!canDraw}

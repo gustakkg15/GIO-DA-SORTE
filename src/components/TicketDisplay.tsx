@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Trophy, Ticket, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Trophy, Ticket, ShieldCheck } from 'lucide-react';
 import { ThemeMode } from '../types';
 
 interface TicketDisplayProps {
@@ -8,6 +8,7 @@ interface TicketDisplayProps {
   winnerName?: string | null;
   winnerPrize?: string | null;
   themeMode?: ThemeMode;
+  isProofVerified?: boolean;
 }
 
 export const TicketDisplay: React.FC<TicketDisplayProps> = ({
@@ -15,11 +16,12 @@ export const TicketDisplay: React.FC<TicketDisplayProps> = ({
   isSpinning,
   winnerName,
   winnerPrize,
+  isProofVerified = false,
 }) => {
   const isDefaultPlaceholder = displayNumber === '?' || displayNumber === '';
 
   return (
-    <div className="relative w-full max-w-xl mx-auto my-2 select-none">
+    <div className="relative w-full max-w-xl mx-auto my-1 select-none">
       {/* Glow Effect Backdrop for Stage Presence */}
       <div
         aria-hidden="true"
@@ -38,7 +40,7 @@ export const TicketDisplay: React.FC<TicketDisplayProps> = ({
           isSpinning
             ? 'border-[#0131CD]/60 bg-[#080A0F] shadow-2xl ring-1 ring-[#0131CD]/30'
             : winnerName
-            ? 'border-[#F5B942]/50 bg-[#0B1528] shadow-2xl ring-1 ring-[#F5B942]/30'
+            ? 'border-[#F5B942]/60 bg-[#0B1528] shadow-2xl ring-1 ring-[#F5B942]/35'
             : 'border-white/10 bg-[#080A0F] shadow-xl'
         }`}
       >
@@ -73,12 +75,12 @@ export const TicketDisplay: React.FC<TicketDisplayProps> = ({
                 : 'bg-white/5 text-slate-400 border border-white/10'
             }`}
           >
-            {isSpinning ? 'EXTRAÇÃO AO VIVO' : winnerName ? 'CONTEMPLADO' : 'PRONTO PARA EXTRAÇÃO'}
+            {isSpinning ? 'EXTRAÇÃO AO VIVO' : winnerName ? 'VENCEDOR CONFIRMADO' : 'PRONTO PARA EXTRAÇÃO'}
           </span>
         </div>
 
         {/* Center Stage: High-Precision Ticket Tumbler */}
-        <div className="px-6 sm:px-10 py-8 sm:py-12 flex flex-col items-center justify-center text-center relative z-10">
+        <div className="px-6 sm:px-10 py-8 sm:py-10 flex flex-col items-center justify-center text-center relative z-10">
           <div className="font-mono text-xs uppercase tracking-widest text-slate-400 font-semibold mb-3">
             {isSpinning
               ? 'Processando extração criptográfica CSPRNG...'
@@ -89,6 +91,7 @@ export const TicketDisplay: React.FC<TicketDisplayProps> = ({
 
           {/* Main Lucky Number Display */}
           <div
+            aria-live="polite"
             className={`font-mono font-extrabold text-5xl sm:text-6xl md:text-7xl tracking-tight tabular-nums transition-all duration-150 ${
               isSpinning
                 ? 'scale-105 text-[#B9FC01] drop-shadow-[0_0_24px_rgba(0,169,255,0.4)] motion-reduce:scale-100 motion-reduce:transition-none'
@@ -103,10 +106,10 @@ export const TicketDisplay: React.FC<TicketDisplayProps> = ({
           </div>
 
           {/* Winner Showcase Card embedded inside stage */}
-          <div className="mt-6 min-h-[3.5rem] flex items-center justify-center w-full">
+          <div className="mt-6 min-h-[4rem] flex items-center justify-center w-full">
             {winnerName && !isSpinning ? (
-              <div className="w-full max-w-md px-5 py-3.5 rounded-xl bg-[#10141E] border border-[#F5B942]/40 flex flex-col items-center gap-1.5 animate-fade-in shadow-xl">
-                <div className="flex items-center gap-2 text-white font-bold text-base sm:text-lg max-w-full">
+              <div className="w-full max-w-md px-5 py-3.5 rounded-xl bg-[#10141E] border border-[#F5B942]/50 flex flex-col items-center gap-1.5 animate-fade-in shadow-xl">
+                <div className="flex items-center gap-2 text-white font-bold text-base sm:text-xl max-w-full">
                   <Trophy className="w-5 h-5 text-[#F5B942] shrink-0" />
                   <span className="truncate">{winnerName}</span>
                 </div>
@@ -133,7 +136,7 @@ export const TicketDisplay: React.FC<TicketDisplayProps> = ({
         <div className="px-5 py-2.5 bg-[#10141E] border-t border-dashed border-white/10 flex items-center justify-between text-xs font-mono text-slate-400 tabular-nums">
           <span className="inline-flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-[#20C997]" />
-            <span>MECANISMO CSPRNG AUDITÁVEL</span>
+            <span>{isProofVerified ? 'PROVABLY FAIR V2 AUDITADO' : 'MECANISMO CSPRNG AUDITÁVEL'}</span>
           </span>
           <span className="text-[#B9FC01] font-bold tracking-wider">GIO DA SORTE PRO</span>
         </div>

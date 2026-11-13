@@ -40,11 +40,31 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [currentAngle, setCurrentAngle] = useState<number>(0);
   const [activeContender, setActiveContender] = useState<string>('');
+  const currentAngleRef = useRef<number>(0);
+  const rafIdRef = useRef<number | null>(null);
+  const lastSpinSignalRef = useRef<number>(spinSignal ?? 0);
+  const onSpinStartRef = useRef(onSpinStart);
+  const onSpinEndRef = useRef(onSpinEnd);
+
+  useEffect(() => {
+    onSpinStartRef.current = onSpinStart;
+  }, [onSpinStart]);
+
+  useEffect(() => {
+    onSpinEndRef.current = onSpinEnd;
+  }, [onSpinEnd]);
 
   // Build proportional slices based on eligible participants and their tickets
-  const eligibleParticipantIds = new Set(computed.eligibleTickets.map((t) => t.participantId));
-  const eligibleSlices = computed.allocations.filter(
-    (a) => a.assignedTickets > 0 && eligibleParticipantIds.has(a.participant.id)
+  const eligibleParticipantIds = React.useMemo(
+    () => new Set(computed.eligibleTickets.map((t) => t.participantId)),
+    [computed.eligibleTickets]
+  );
+  const eligibleSlices = React.useMemo(
+    () =>
+      computed.allocations.filter(
+        (a) => a.assignedTickets > 0 && eligibleParticipantIds.has(a.participant.id)
+      ),
+    [computed.allocations, eligibleParticipantIds]
   );
 
   const totalEligibleTickets = computed.eligibleTickets.length;
@@ -67,22 +87,32 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     });
   }, [eligibleSlices, totalEligibleTickets]);
 
+  const slicesRef = useRef(slicesWithAngles);
+  useEffect(() => {
+    slicesRef.current = slicesWithAngles;
+  }, [slicesWithAngles]);
+
   // Ref for animation loop state
   const spinStateRef = useRef<{
     spinning: boolean;
-    angularVelocity: number;
-    angle: number;
-    targetAngle: number;
     chosenTicket: { number: number; participantId: string; name: string } | null;
     lastTickSlice: number;
   }>({
     spinning: false,
-    angularVelocity: 0,
-    angle: 0,
-    targetAngle: 0,
     chosenTicket: null,
     lastTickSlice: -1,
   });
+
+  // Cleanup animation frame on unmount
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+      spinStateRef.current.spinning = false;
+    };
+  }, []);
 
   // Draw the wheel on Canvas
   const drawWheel = useCallback(
@@ -99,7 +129,6 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       ctx.clearRect(0, 0, size, size);
 
       if (slicesWithAngles.length === 0) {
-        // Empty wheel placeholder in Dark Tech Navy
         ctx.save();
         ctx.translate(center, center);
         ctx.beginPath();
@@ -125,7 +154,6 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       ctx.translate(center, center);
       ctx.rotate(rotation);
 
-      // Draw each slice
       slicesWithAngles.forEach((slice) => {
         ctx.beginPath();
         ctx.moveTo(0, 0);
@@ -139,7 +167,6 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
         ctx.strokeStyle = '#080A0F';
         ctx.stroke();
 
-        // Draw Participant Name along the radius if slice is wide enough
         const sliceAngle = slice.endAngle - slice.startAngle;
         if (sliceAngle > 0.09) {
           ctx.save();
@@ -172,7 +199,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
 
       ctx.restore();
 
-      // Draw Outer Ring in Dark Tech Navy & PRO Gold / Electric Blue
+      // Outer Rim
       ctx.save();
       ctx.translate(center, center);
       ctx.beginPath();
@@ -185,7 +212,6 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       ctx.strokeStyle = rimGrad;
       ctx.stroke();
 
-      // Rim Pegs (dots around the rim)
       const pegCount = Math.max(12, Math.min(36, slicesWithAngles.length * 2));
       for (let i = 0; i < pegCount; i++) {
         const ang = (i / pegCount) * Math.PI * 2 + rotation;
@@ -225,7 +251,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
 
       ctx.restore();
 
-      // Draw Top Fixed Needle / Indicator Pointer (pointing DOWN into top of wheel at angle -PI/2)
+      // Top Fixed Needle
       ctx.save();
       ctx.translate(center, 12);
       ctx.beginPath();
@@ -239,7 +265,6 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       ctx.lineWidth = 2.5;
       ctx.stroke();
 
-      // Needle pin center
       ctx.beginPath();
       ctx.arc(0, 5, 3, 0, Math.PI * 2);
       ctx.fillStyle = '#080A0F';
@@ -249,87 +274,92 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     [slicesWithAngles]
   );
 
-  // Redraw when angle or slices change
   useEffect(() => {
     drawWheel(currentAngle);
   }, [currentAngle, drawWheel]);
 
-  // Handle Spin Execution with Physics (Authoritative Backend Target Only)
-  const startSpin = (targetWinnerTicket?: { number: number; participantId: string; name: string } | null) => {
-    const resolvedTicket = targetWinnerTicket || predeterminedWinningTicket;
-    if (spinStateRef.current.spinning) return;
-    if (!resolvedTicket) return;
+  // Execute visual spin strictly targeting backend-determined winning ticket
+  const startSpin = useCallback(
+    (chosenTicket: { number: number; participantId: string; name: string }) => {
+      if (spinStateRef.current.spinning) return;
 
-    onSpinStart();
+      onSpinStartRef.current();
 
-    const chosenTicket = resolvedTicket;
-    const chosenSlice = slicesWithAngles.find((s) => s.item.participant.id === chosenTicket.participantId);
-
-    // The needle points at the top of the canvas, which is -Math.PI / 2 (or 3*PI/2)
-    const targetMid = chosenSlice ? chosenSlice.midAngle : 0;
-    const needleAngle = (3 * Math.PI) / 2;
-
-    // Add 8 full rotations for visual suspense (purely visual, does not alter winner)
-    const extraRotations = 8 * (Math.PI * 2);
-    const targetAngle = currentAngle + extraRotations + (needleAngle - ((currentAngle + targetMid) % (Math.PI * 2)));
-
-    spinStateRef.current = {
-      spinning: true,
-      angularVelocity: 0,
-      angle: currentAngle,
-      targetAngle,
-      chosenTicket,
-      lastTickSlice: -1,
-    };
-
-    const startTime = performance.now();
-    const duration = 4500;
-    const startAngle = currentAngle;
-
-    const animate = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(1, elapsed / duration);
-
-      // Smooth custom ease-out cubic
-      const easeOut = 1 - Math.pow(1 - progress, 3.5);
-      const newAngle = startAngle + (targetAngle - startAngle) * easeOut;
-
-      setCurrentAngle(newAngle);
-
-      // Identify currently pointed slice and play needle click
-      const normalizedAngle = (needleAngle - (newAngle % (Math.PI * 2)) + Math.PI * 4) % (Math.PI * 2);
-      const currentSliceIdx = slicesWithAngles.findIndex(
-        (s) => normalizedAngle >= s.startAngle && normalizedAngle < s.endAngle
+      const currentSlices = slicesRef.current;
+      const chosenSlice = currentSlices.find(
+        (s) => s.item.participant.id === chosenTicket.participantId
       );
 
-      if (currentSliceIdx !== -1 && currentSliceIdx !== spinStateRef.current.lastTickSlice) {
-        spinStateRef.current.lastTickSlice = currentSliceIdx;
-        setActiveContender(slicesWithAngles[currentSliceIdx].item.participant.name);
-        playWheelTick(Math.max(0.04, 0.15 * (1 - progress)));
-      }
+      const startAngle = currentAngleRef.current;
+      const targetMid = chosenSlice ? chosenSlice.midAngle : 0;
+      const needleAngle = (3 * Math.PI) / 2; // Top 12 o'clock pointer
+      const twoPi = Math.PI * 2;
+      const currentAtNeedle = ((startAngle + targetMid) % twoPi + twoPi) % twoPi;
+      const deltaToNeedle = ((needleAngle - currentAtNeedle) % twoPi + twoPi) % twoPi;
+      const extraRotations = 8 * twoPi;
+      const targetAngle = startAngle + extraRotations + deltaToNeedle;
 
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        // Spin finished
-        spinStateRef.current.spinning = false;
-        playWinnerFanfare();
-        fireWinnerConfetti();
-        if (spinStateRef.current.chosenTicket) {
-          onSpinEnd(spinStateRef.current.chosenTicket);
+      spinStateRef.current = {
+        spinning: true,
+        chosenTicket,
+        lastTickSlice: -1,
+      };
+
+      const startTime = performance.now();
+      const duration = 4500;
+
+      const animate = (now: number) => {
+        const elapsed = now - startTime;
+        const progress = Math.min(1, elapsed / duration);
+        const easeOut = 1 - Math.pow(1 - progress, 3.5);
+        const newAngle = startAngle + (targetAngle - startAngle) * easeOut;
+
+        currentAngleRef.current = newAngle;
+        setCurrentAngle(newAngle);
+
+        const activeSlices = slicesRef.current;
+        if (activeSlices.length > 0) {
+          const normalizedAngle = ((needleAngle - newAngle) % twoPi + twoPi) % twoPi;
+          const currentSliceIdx = activeSlices.findIndex(
+            (s) => normalizedAngle >= s.startAngle && normalizedAngle < s.endAngle
+          );
+
+          if (currentSliceIdx !== -1 && currentSliceIdx !== spinStateRef.current.lastTickSlice) {
+            spinStateRef.current.lastTickSlice = currentSliceIdx;
+            setActiveContender(activeSlices[currentSliceIdx].item.participant.name);
+            playWheelTick(Math.max(0.04, 0.15 * (1 - progress)));
+          }
         }
-      }
-    };
 
-    requestAnimationFrame(animate);
-  };
+        if (progress < 1) {
+          rafIdRef.current = requestAnimationFrame(animate);
+        } else {
+          rafIdRef.current = null;
+          spinStateRef.current.spinning = false;
+          setActiveContender(chosenTicket.name);
+          playWinnerFanfare();
+          fireWinnerConfetti();
+          onSpinEndRef.current(chosenTicket);
+        }
+      };
 
-  // Trigger spin when parent fires spinSignal with predeterminedWinningTicket
+      rafIdRef.current = requestAnimationFrame(animate);
+    },
+    []
+  );
+
+  // Trigger spin once per new spinSignal from parent with authoritative ticket
   useEffect(() => {
-    if (spinSignal && spinSignal > 0 && predeterminedWinningTicket) {
+    if (
+      spinSignal &&
+      spinSignal > 0 &&
+      spinSignal !== lastSpinSignalRef.current &&
+      predeterminedWinningTicket
+    ) {
+      lastSpinSignalRef.current = spinSignal;
       startSpin(predeterminedWinningTicket);
     }
-  }, [spinSignal, predeterminedWinningTicket]);
+  }, [spinSignal, predeterminedWinningTicket, startSpin]);
 
   const handleUserTrigger = () => {
     if (spinStateRef.current.spinning || isDrawing) return;
@@ -341,15 +371,16 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
 
   return (
     <div className="flex flex-col items-center justify-center space-y-4">
-      {/* Current Pointer Name Badge */}
+      {/* Live Contender / Status Indicator */}
       <div className="min-h-[32px] flex items-center justify-center">
         {isDrawing && activeContender ? (
           <div className="px-3.5 py-1 rounded-lg bg-[#161C2C] border border-[#F5B942]/60 text-[#FFFFFF] font-semibold text-xs animate-pulse">
             Apontando: <span className="text-[#F5B942]">{activeContender}</span>
           </div>
-        ) : latestWinner ? (
-          <div className="px-3.5 py-1 rounded-lg bg-[#161C2C] text-[#FFFFFF] font-semibold text-xs border border-[#0131CD]/50 tabular-nums">
-            Último vencedor: <span className="text-[#B9FC01]">{latestWinner.name}</span> (<span className="font-mono">#{latestWinner.number}</span>)
+        ) : latestWinner && !isDrawing ? (
+          <div className="px-4 py-1.5 rounded-lg bg-[#161C2C] text-[#FFFFFF] font-semibold text-xs border border-[#F5B942]/60 tabular-nums shadow-md">
+            Contemplado: <span className="text-[#F5B942] font-bold">{latestWinner.name}</span> ·{' '}
+            <span className="font-mono text-[#B9FC01]">#{latestWinner.number}</span>
           </div>
         ) : (
           <div className="text-xs text-[#94A3B8] font-mono tabular-nums">
@@ -375,9 +406,9 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
         type="button"
         disabled={isDrawing || computed.eligibleTickets.length === 0}
         onClick={handleUserTrigger}
-        className={`w-full min-h-[48px] py-3.5 px-6 rounded-xl font-semibold text-sm sm:text-base flex items-center justify-center gap-2.5 transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080A0F] ${
+        className={`w-full min-h-[52px] py-3.5 px-6 rounded-xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2.5 transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B9FC01] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080A0F] ${
           !isDrawing && computed.eligibleTickets.length > 0
-            ? 'bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] shadow-md cursor-pointer'
+            ? 'bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] shadow-xl shadow-blue-600/25 cursor-pointer'
             : 'bg-[#161C2C] text-[#94A3B8] border border-[#161C2C] cursor-not-allowed opacity-60'
         }`}
       >
@@ -389,7 +420,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
         ) : (
           <>
             <Play className="w-4 h-4 fill-current" />
-            <span>Sortear Agora na Roleta</span>
+            <span>SORTEAR AGORA NA ROLETA</span>
           </>
         )}
       </button>

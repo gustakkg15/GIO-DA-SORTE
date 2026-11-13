@@ -43,34 +43,43 @@ export const WinnerCelebrationOverlay: React.FC<WinnerCelebrationOverlayProps> =
   const [copied, setCopied] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [pdfDownloaded, setPdfDownloaded] = useState(false);
+  const onCloseRef = React.useRef(onClose);
+  const celebratedWinnerKeyRef = React.useRef<string | null>(null);
 
   useEffect(() => {
-    if (!winner) return;
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
-    // Play fanfare sound
-    playWinnerFanfare();
+  useEffect(() => {
+    if (!winner) {
+      celebratedWinnerKeyRef.current = null;
+      return;
+    }
 
-    // Fire spectacular tsParticles grand celebration: fireworks + confetti
-    fireCelebrationGrandShow();
+    const winnerKey = `${winner.id}_${winner.drawnAt}`;
+    let timer1: ReturnType<typeof setTimeout> | null = null;
 
-    // Secondary victory fireworks wave
-    const timer1 = setTimeout(() => {
-      fireWinnerFireworks(2200);
-    }, 1200);
+    if (celebratedWinnerKeyRef.current !== winnerKey) {
+      celebratedWinnerKeyRef.current = winnerKey;
+      playWinnerFanfare();
+      fireCelebrationGrandShow();
+      timer1 = setTimeout(() => {
+        fireWinnerFireworks(2200);
+      }, 1200);
+    }
 
-    // Keyboard escape listener
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        onCloseRef.current();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      clearTimeout(timer1);
+      if (timer1) clearTimeout(timer1);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [winner, onClose]);
+  }, [winner]);
 
   if (!winner) return null;
 

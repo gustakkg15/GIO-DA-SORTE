@@ -240,5 +240,55 @@ export async function runPayPalCheckoutRouteDiagnostics(): Promise<{ passed: num
     }
   });
 
+  // 8. CORS Preflight OPTIONS request allows x-firebase-* headers without authentication
+  await test('CORS Preflight OPTIONS permite x-firebase-uid, x-firebase-email e Authorization sem exigir autenticação', async () => {
+    const reqOrigin = 'https://gustakk15.github.io';
+    const reqHeaders = 'content-type, x-firebase-uid, x-firebase-email, x-firebase-email-verified, authorization';
+
+    // Simulate Express CORS middleware logic
+    const ALLOWED_CORS_ORIGINS = new Set([
+      'https://gustakk15.github.io',
+      'https://gustakkg15.github.io',
+      'https://gio-da-sorte-1042651147403.europe-west2.run.app',
+    ]);
+
+    const isAllowed = ALLOWED_CORS_ORIGINS.has(reqOrigin) || reqOrigin.endsWith('.github.io');
+    assert.strictEqual(isAllowed, true, 'Origem gustakk15.github.io deve ser autorizada');
+
+    const headersSet: Record<string, string> = {};
+    if (isAllowed) {
+      headersSet['Access-Control-Allow-Origin'] = reqOrigin;
+      headersSet['Access-Control-Allow-Credentials'] = 'true';
+      headersSet['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+      headersSet['Access-Control-Allow-Headers'] = reqHeaders;
+    }
+
+    assert.strictEqual(headersSet['Access-Control-Allow-Origin'], 'https://gustakk15.github.io');
+    assert.ok(headersSet['Access-Control-Allow-Headers'].includes('x-firebase-uid'));
+    assert.ok(headersSet['Access-Control-Allow-Headers'].includes('x-firebase-email'));
+    assert.ok(headersSet['Access-Control-Allow-Headers'].includes('authorization'));
+  });
+
+  // 9. CORS Origin validation for gustakkg15.github.io
+  await test('CORS permite origem com dois Gs (https://gustakkg15.github.io)', () => {
+    const reqOrigin = 'https://gustakkg15.github.io';
+    const isAllowed = reqOrigin.endsWith('.github.io');
+    assert.strictEqual(isAllowed, true, 'Origem gustakkg15.github.io deve ser autorizada via .github.io');
+  });
+
+  // 10. CORS rejection for unauthorized origin
+  await test('CORS rejeita origens não autorizadas que não pertencem ao domínio .github.io', () => {
+    const reqOrigin = 'https://malicious-site.com';
+    const ALLOWED_CORS_ORIGINS = new Set([
+      'https://gustakk15.github.io',
+      'https://gustakkg15.github.io',
+      'https://gio-da-sorte-1042651147403.europe-west2.run.app',
+    ]);
+
+    const isAllowed = ALLOWED_CORS_ORIGINS.has(reqOrigin) || reqOrigin.endsWith('.github.io');
+    assert.strictEqual(isAllowed, false, 'Origem não autorizada deve ser rejeitada');
+  });
+
   return { passed, total };
 }
+

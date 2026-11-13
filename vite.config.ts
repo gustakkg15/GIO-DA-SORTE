@@ -48,6 +48,52 @@ export default defineConfig(() => {
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           maximumFileSizeToCacheInBytes: 15 * 1024 * 1024, // 15 MiB
+          navigateFallbackDenylist: [/^\/api\//, /^\/__/, /^\/_aistudio/],
+          runtimeCaching: [
+            {
+              urlPattern: ({ url }) =>
+                url.pathname.startsWith('/api/') ||
+                url.pathname.startsWith('/__') ||
+                url.pathname.startsWith('/_aistudio'),
+              handler: 'NetworkOnly',
+            },
+            {
+              urlPattern: ({ request, url }) =>
+                !url.pathname.startsWith('/api/') &&
+                (request.destination === 'script' ||
+                  request.destination === 'style' ||
+                  request.destination === 'font' ||
+                  /\.(?:js|mjs|css|woff2?|ttf|eot)$/i.test(url.pathname)),
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'gio-static-assets-cache',
+                expiration: {
+                  maxEntries: 150,
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+            {
+              urlPattern: ({ request, url }) =>
+                !url.pathname.startsWith('/api/') &&
+                (request.destination === 'image' ||
+                  /\.(?:png|jpe?g|webp|gif|svg|ico|avif)$/i.test(url.pathname)),
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'gio-images-cache',
+                expiration: {
+                  maxEntries: 200,
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+          ],
         },
         devOptions: {
           enabled: false,

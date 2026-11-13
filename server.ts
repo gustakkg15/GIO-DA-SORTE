@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import express, { type Request, type Response } from 'express';
+import express, { type NextFunction, type Request, type Response } from 'express';
 import fs from 'fs';
 import http from 'http';
 import path from 'path';
@@ -169,6 +169,7 @@ app.use(express.json());
 
 // CORS configuration for GitHub Pages frontend, Cloud Run and AI Studio preview environments
 const ALLOWED_CORS_ORIGINS = new Set<string>([
+  'https://gustakk15.github.io',
   'https://gustakkg15.github.io',
   'https://gio-da-sorte-1042651147403.europe-west2.run.app',
   'https://ais-pre-bodr7wggvyyl4p2jtskel4-749434257827.europe-west2.run.app',
@@ -181,12 +182,23 @@ app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-tiktok-oauth-initiator');
+    const requestHeaders = req.headers['access-control-request-headers'];
+    const allowedHeaders = requestHeaders
+      ? String(requestHeaders)
+      : 'Content-Type, Authorization, x-firebase-uid, x-firebase-email, x-firebase-email-verified, x-tiktok-oauth-initiator, x-tiktok-oauth-state';
+    res.setHeader('Access-Control-Allow-Headers', allowedHeaders);
     res.setHeader('Vary', 'Origin');
   }
   if (req.method === 'OPTIONS') {
     return res.status(204).end();
   }
+  next();
+});
+
+// Garantir que nenhuma resposta /api/* seja armazenada em cache por navegador, proxy ou Service Worker
+app.use('/api', (_req: Request, res: Response, next: NextFunction) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
   next();
 });
 
@@ -6113,6 +6125,7 @@ app.post('/api/raffle/participant/mutate', requireFirebaseAuth, async (req: Requ
       action,
       participant,
       participantId,
+      winnerId,
       eligible,
       coins,
       name,
@@ -6182,6 +6195,18 @@ app.post('/api/raffle/participant/mutate', requireFirebaseAuth, async (req: Requ
         authenticatedUid,
         raffleId,
         settingsPatch: settingsPatch || {},
+        autoCreateIfMissing: true,
+      });
+    } else if (action === 'removeSessionWinner') {
+      updated = await traditionalRaffleService.removeSessionWinner({
+        authenticatedUid,
+        raffleId,
+        winnerId: String(winnerId || ''),
+      });
+    } else if (action === 'clearSessionWinners') {
+      updated = await traditionalRaffleService.clearSessionWinners({
+        authenticatedUid,
+        raffleId,
         autoCreateIfMissing: true,
       });
     } else {
@@ -6411,6 +6436,48 @@ app.get('/api/raffle/ledger/:commitmentHash', async (req: Request, res: Response
   } catch (err) {
     handleTraditionalRaffleError(res, err);
   }
+});
+
+// Garantir que nenhuma rota /api/* inexistente caia no SPA fallback HTML do Vite ou dist/index.html
+app.use('/api', (req: Request, res: Response) => {
+  res.status(404).json({
+    ok: false,
+    success: false,
+    code: 'API_ROUTE_NOT_FOUND',
+    error: `Rota de API não encontrada: ${req.method} ${req.originalUrl}`,
+  });
+});
+
+// Garantir que erros do Express/body-parser (JSON malformado ou exceções não tratadas em /api/*)
+// sempre retornem JSON estruturado, nunca páginas HTML padrão do Express.
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  if (res.headersSent) {
+    return next(err);
+  }
+  const isApiRequest = req.originalUrl?.startsWith('/api') || req.path?.startsWith('/api');
+  if (err?.type === 'entity.parse.failed' || (err instanceof SyntaxError && (err as any).status === 400)) {
+    return res.status(400).json({
+      ok: false,
+      success: false,
+      code: 'INVALID_JSON_BODY',
+      error: 'Corpo JSON da requisição é inválido ou malformado.',
+    });
+  }
+  if (isApiRequest) {
+    const statusCode =
+      typeof err?.status === 'number' && err.status >= 400 && err.status < 600
+        ? err.status
+        : typeof err?.statusCode === 'number' && err.statusCode >= 400 && err.statusCode < 600
+          ? err.statusCode
+          : 500;
+    return res.status(statusCode).json({
+      ok: false,
+      success: false,
+      code: err?.code || 'INTERNAL_SERVER_ERROR',
+      error: err instanceof Error ? err.message : 'Erro interno no servidor de API.',
+    });
+  }
+  return next(err);
 });
 
 // ==========================================

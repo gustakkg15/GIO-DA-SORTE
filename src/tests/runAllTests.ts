@@ -12,6 +12,7 @@ import { runConcurrencyAdvancedTests } from './concurrencyAdvanced.test.ts';
 import { runFirestoreIntegrationAudit } from './firestoreIntegration.test.ts';
 import { runPayPalIntegrationTests } from './paypalIntegration.test.ts';
 import { runPayPalCheckoutRouteDiagnostics } from './paypalCheckoutRoute.test.ts';
+import { runTraditionalDrawEndToEndTests } from './traditionalDrawEndToEnd.test.ts';
 
 async function main() {
   console.log('========================================================================');
@@ -58,7 +59,12 @@ async function main() {
     grandTotalPassed += ppRouteResults.passed;
     grandTotalCount += ppRouteResults.total;
 
-    // 8. Firestore Environment Integration Audit (FASE 5H)
+    // 8. Traditional Draw End-to-End & Session Winner Integrity Tests (7 tests)
+    const mesaE2EResults = await runTraditionalDrawEndToEndTests();
+    grandTotalPassed += mesaE2EResults.passed;
+    grandTotalCount += mesaE2EResults.total;
+
+    // 9. Firestore Environment Integration Audit (FASE 5H)
     await runFirestoreIntegrationAudit();
 
     const durationMs = Date.now() - startTime;

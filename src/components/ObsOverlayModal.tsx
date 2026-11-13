@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Video, Play, Sparkles, Trophy } from 'lucide-react';
+import { X, Video, Play, Sparkles, Trophy, AlertCircle } from 'lucide-react';
 import { ComputedRaffle, RaffleSettings, Winner } from '../types';
 
 interface ObsOverlayModalProps {
@@ -11,6 +11,7 @@ interface ObsOverlayModalProps {
   currentDisplayNumber: number | string;
   isDrawing: boolean;
   onDraw: () => void;
+  drawErrorMessage?: string | null;
 }
 
 export const ObsOverlayModal: React.FC<ObsOverlayModalProps> = ({
@@ -22,6 +23,7 @@ export const ObsOverlayModal: React.FC<ObsOverlayModalProps> = ({
   currentDisplayNumber,
   isDrawing,
   onDraw,
+  drawErrorMessage = null,
 }) => {
   const [backgroundMode, setBackgroundMode] = useState<'transparent' | 'green' | 'dark'>('transparent');
   const [showControls, setShowControls] = useState(true);
@@ -168,6 +170,16 @@ export const ObsOverlayModal: React.FC<ObsOverlayModalProps> = ({
           ) : (
             <div className="text-xs text-[#94A3B8]">
               {isDrawing ? 'Sorteando ao vivo...' : 'Pressione Espaço ou clique abaixo'}
+            </div>
+          )}
+
+          {drawErrorMessage && (
+            <div
+              role="alert"
+              className="p-2.5 rounded-xl bg-[#F05262]/15 border border-[#F05262]/40 text-left flex items-start gap-2 text-[11px] text-[#FFFFFF]"
+            >
+              <AlertCircle className="w-3.5 h-3.5 text-[#F05262] shrink-0 mt-0.5" />
+              <span>{drawErrorMessage}</span>
             </div>
           )}
 

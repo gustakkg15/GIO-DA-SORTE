@@ -1,6 +1,0 @@
-{
-  "summary":  "Adiciona ao plano arquitetural o Estudo e Especificação do Redesign 2.0 do Admin Dashboard do GIO DA SORTE PRO com base na referência do Reel (@_code_and_chill_), combinando a nova paleta de alto contraste (#0131CD, #FFFFFF, #B9FC01, #080A0F) com o rigor de Motion Design sem dependências extras (CSS Transitions/Framer Motion nativo com prefers-reduced-motion) e as diretrizes anti-slop da recém-instalada skill Unslop.",
-  "updatedAt":  "2026-11-08T21:13:07.775557303Z",
-  "requestFeedback":  true,
-  "userFacing":  true
-}

@@ -49,11 +49,19 @@ export async function apiFetch(
 ): Promise<Response> {
   const fullUrl = getApiUrl(endpointPath);
   const options: RequestInit = {
+    cache: init?.cache || 'no-store',
     ...init,
     credentials: init?.credentials || 'include',
   };
   return fetch(fullUrl, options);
 }
+
+export type NonJsonHtmlReason =
+  | 'COOKIE_CHECK_REDIRECT'
+  | 'SPA_FALLBACK_HTML'
+  | 'NOT_FOUND_HTML'
+  | 'GATEWAY_OR_PROXY_HTML'
+  | 'UNKNOWN_NON_JSON';
 
 export interface SafeJsonResponse<T = any> {
   ok: boolean;
@@ -61,6 +69,79 @@ export interface SafeJsonResponse<T = any> {
   data?: T;
   error?: string;
   isHtml?: boolean;
+  redirected?: boolean;
+  finalUrl?: string;
+  htmlReason?: NonJsonHtmlReason;
+}
+
+function sanitizeDiagnosticUrl(rawUrl: string | undefined): string {
+  if (!rawUrl) return '';
+  try {
+    const parsed = new URL(
+      rawUrl,
+      typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : 'http://localhost'
+    );
+    return `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    return rawUrl.split('?')[0] || '';
+  }
+}
+
+function classifyNonJsonResponse(params: {
+  status: number;
+  statusText: string;
+  fullUrl: string;
+  finalUrl: string;
+  redirected: boolean;
+  bodyText: string;
+}): { htmlReason: NonJsonHtmlReason; message: string } {
+  const { status, statusText, fullUrl, finalUrl, redirected, bodyText } = params;
+  const sample = bodyText.slice(0, 4096);
+
+  if (
+    (redirected && finalUrl.includes('__cookie_check')) ||
+    finalUrl.includes('__cookie_check.html') ||
+    /<title>\s*Cookie check\s*<\/title>/i.test(sample) ||
+    sample.includes('authFlowTestCookieIsSet')
+  ) {
+    return {
+      htmlReason: 'COOKIE_CHECK_REDIRECT',
+      message:
+        'A sessão de cookies do Preview expirou ou foi bloqueada pelo navegador (/__cookie_check.html). Recarregue a página ou abra em uma nova aba para autenticar antes de sortear.',
+    };
+  }
+
+  if (
+    sample.includes('id="root"') ||
+    sample.includes("id='root'") ||
+    /<title>[^<]*GIO DA SORTE/i.test(sample)
+  ) {
+    return {
+      htmlReason: 'SPA_FALLBACK_HTML',
+      message: `Resposta não-JSON do servidor (${status} SPA HTML Fallback). URL: ${fullUrl}`,
+    };
+  }
+
+  if (status === 404) {
+    return {
+      htmlReason: 'NOT_FOUND_HTML',
+      message: `Resposta não-JSON do servidor (${status} ${statusText || 'HTML'}). URL: ${fullUrl}`,
+    };
+  }
+
+  if (status === 502 || status === 503 || status === 504) {
+    return {
+      htmlReason: 'GATEWAY_OR_PROXY_HTML',
+      message: `Resposta não-JSON do servidor (${status} ${statusText || 'HTML'}). URL: ${fullUrl}`,
+    };
+  }
+
+  return {
+    htmlReason: 'UNKNOWN_NON_JSON',
+    message: `Resposta não-JSON do servidor (${status} ${statusText || 'HTML'}). URL: ${fullUrl}`,
+  };
 }
 
 /**
@@ -80,28 +161,59 @@ export async function safeApiJson<T = any>(
     const res = await apiFetch(endpointPath, init);
     const contentType = (res.headers.get('content-type') || '').toLowerCase();
     const isJson = contentType.includes('application/json');
+    const redirected = Boolean((res as any).redirected);
+    const finalUrl = sanitizeDiagnosticUrl((res as any).url);
 
     console.log(
-      `[GIO API Response] ${method} ${fullUrl} -> Status: ${res.status}, Content-Type: "${contentType}", IS_JSON: ${isJson}`
+      `[GIO API Response] ${method} ${fullUrl} -> Status: ${res.status}, Redirected: ${redirected}, FinalURL: "${finalUrl || fullUrl}", Content-Type: "${contentType}", IS_JSON: ${isJson}`
     );
 
-    // Catch non-JSON (e.g. 404.html from GitHub Pages or 502/503 warmup.html from Nginx)
+    // Catch non-JSON (e.g. Preview /__cookie_check.html 302->200, SPA index.html fallback, 404.html, 502/503 warmup)
     if (!isJson) {
-      const sampleText = await res.text().catch(() => '');
-      const limitedSample = sampleText.slice(0, 200).replace(/\s+/g, ' ');
+      const rawText = await res.text().catch(() => '');
+      const limitedSample = rawText.slice(0, 200).replace(/\s+/g, ' ');
+      const classified = classifyNonJsonResponse({
+        status: res.status,
+        statusText: res.statusText,
+        fullUrl,
+        finalUrl,
+        redirected,
+        bodyText: rawText,
+      });
+
       console.warn(
-        `[GIO API Response NON-JSON] ${method} ${fullUrl} retornou conteúdo não-JSON (${res.status} ${res.statusText}). Amostra: "${limitedSample}..."`
+        `[GIO API Response NON-JSON] ${method} ${fullUrl} (${classified.htmlReason}) status=${res.status} redirected=${redirected} finalUrl="${finalUrl}". Amostra: "${limitedSample}..."`
       );
 
       return {
         ok: false,
         status: res.status,
         isHtml: true,
-        error: `Resposta não-JSON do servidor (${res.status} ${res.statusText || 'HTML'}). URL: ${fullUrl}`,
+        redirected,
+        finalUrl: finalUrl || undefined,
+        htmlReason: classified.htmlReason,
+        error: classified.message,
       };
     }
 
-    const data = await res.json();
+    const rawJsonText = await res.text().catch(() => '');
+    let data: any;
+    try {
+      data = rawJsonText ? JSON.parse(rawJsonText) : null;
+    } catch {
+      const limitedSample = rawJsonText.slice(0, 200).replace(/\s+/g, ' ');
+      console.warn(
+        `[GIO API Invalid JSON] ${method} ${fullUrl} -> HTTP ${res.status} com JSON malformado. Amostra: "${limitedSample}..."`
+      );
+      return {
+        ok: false,
+        status: res.status,
+        redirected,
+        finalUrl: finalUrl || undefined,
+        error: `Resposta JSON inválida ou incompleta do servidor (${res.status}). URL: ${fullUrl}`,
+      };
+    }
+
     if (!res.ok) {
       console.warn(
         `[GIO API Response ERROR] ${method} ${fullUrl} -> HTTP ${res.status}:`,
@@ -111,6 +223,8 @@ export async function safeApiJson<T = any>(
         ok: false,
         status: res.status,
         data,
+        redirected,
+        finalUrl: finalUrl || undefined,
         error: data?.message || data?.error || `Erro HTTP ${res.status}`,
       };
     }
@@ -120,6 +234,8 @@ export async function safeApiJson<T = any>(
       ok: true,
       status: res.status,
       data,
+      redirected,
+      finalUrl: finalUrl || undefined,
     };
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : 'Falha na conexão de rede com o servidor.';

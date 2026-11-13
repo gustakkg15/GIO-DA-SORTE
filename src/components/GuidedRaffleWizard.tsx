@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Sparkles,
   Trophy,
@@ -21,6 +21,8 @@ import {
   ChevronUp,
   Lock,
   Crown,
+  AlertCircle,
+  LogIn,
 } from 'lucide-react';
 import {
   ComputedRaffle,
@@ -30,6 +32,7 @@ import {
   Winner,
 } from '../types';
 import { parseRawTextList } from '../utils/raffle';
+import { resolveActivePrizeContext } from '../utils/traditionalDrawClient';
 
 export type WizardModality = 'traditional' | 'tiktok_comments' | 'tiktok_live_pro';
 
@@ -51,6 +54,9 @@ interface GuidedRaffleWizardProps {
   onOpenCommentsSorter: () => void;
   onOpenSubscription: () => void;
   onCloseWizard?: () => void;
+  isAuthenticated?: boolean;
+  onOpenAccount?: () => void;
+  drawErrorMessage?: string | null;
 }
 
 const WIZARD_STEPS = [
@@ -80,6 +86,9 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
   onOpenCommentsSorter,
   onOpenSubscription,
   onCloseWizard,
+  isAuthenticated = false,
+  onOpenAccount,
+  drawErrorMessage = null,
 }) => {
   const [step, setStep] = useState<number>(1);
   const [modality, setModality] = useState<WizardModality>('traditional');
@@ -95,10 +104,31 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
   const [searchParticipant, setSearchParticipant] = useState('');
   const [copiedWinnerId, setCopiedWinnerId] = useState<string | null>(null);
 
+  // Track pending draw initiated from Step 5 so we advance to Step 6 only when backend confirms the new winner
+  const awaitingWizardDrawRef = useRef(false);
+  const previousTopWinnerIdRef = useRef<string | null>(null);
+
   const isPro = entitlement.active && entitlement.tier === 'PRO';
   const eligibleTicketsCount = computed.eligibleTickets.length;
   const eligibleParticipantsCount = computed.allocations.filter((a) => a.assignedTickets > 0).length;
   const latestWinner = winners.length > 0 ? winners[0] : null;
+  const activePrizeContext = resolveActivePrizeContext(settings);
+
+  useEffect(() => {
+    if (!awaitingWizardDrawRef.current) return;
+    if (isDrawing) return;
+
+    const topWinnerId = winners[0]?.id ?? null;
+    if (topWinnerId && topWinnerId !== previousTopWinnerIdRef.current) {
+      awaitingWizardDrawRef.current = false;
+      setStep(6);
+      return;
+    }
+
+    if (drawErrorMessage) {
+      awaitingWizardDrawRef.current = false;
+    }
+  }, [isDrawing, winners, drawErrorMessage]);
 
   const notifyFeedback = (msg: string) => {
     setStepFeedback(msg);
@@ -683,20 +713,52 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
 
             <div className="space-y-1 max-w-md mx-auto">
               <h3 className="text-lg sm:text-xl font-semibold text-[#FFFFFF]">
-                Prêmio em disputa: <span className="text-[#F5B942]">{settings.prizeName || settings.currentPrize || 'Prêmio Principal'}</span>
+                Prêmio em disputa:{' '}
+                <span className="text-[#F5B942]">{activePrizeContext.prizeName}</span>
               </h3>
               <p className="text-xs text-[#94A3B8] font-mono tabular-nums">
                 {eligibleTicketsCount} bilhetes concorrendo entre {eligibleParticipantsCount} participantes elegíveis.
               </p>
             </div>
 
+            {!isAuthenticated && (
+              <div className="max-w-lg mx-auto p-3.5 rounded-xl bg-[#F5B942]/10 border border-[#F5B942]/35 text-left flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-xs text-white">
+                  <Lock className="w-4 h-4 text-[#F5B942] shrink-0" />
+                  <span>Conecte sua conta para autorizar o sorteio oficial no servidor.</span>
+                </div>
+                {onOpenAccount && (
+                  <button
+                    type="button"
+                    onClick={onOpenAccount}
+                    className="min-h-[34px] px-3.5 py-1.5 rounded-lg bg-[#F5B942] hover:bg-[#E5A932] text-slate-950 font-bold text-xs flex items-center gap-1.5 shrink-0 transition"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>Conectar Conta</span>
+                  </button>
+                )}
+              </div>
+            )}
+
+            {drawErrorMessage && (
+              <div
+                role="alert"
+                className="max-w-lg mx-auto p-3.5 rounded-xl bg-[#F05262]/10 border border-[#F05262]/35 text-left flex items-start gap-2.5 text-xs text-[#F05262]"
+              >
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{drawErrorMessage}</span>
+              </div>
+            )}
+
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
               <button
                 type="button"
                 disabled={eligibleTicketsCount === 0 || isDrawing}
                 onClick={() => {
+                  previousTopWinnerIdRef.current = winners[0]?.id ?? null;
+                  awaitingWizardDrawRef.current = true;
+                  onUpdateSettings({ drawMode: 'drum' });
                   onTriggerDraw('drum');
-                  setTimeout(() => setStep(6), 1200);
                 }}
                 className="min-h-[46px] px-6 py-3 rounded-xl bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-semibold text-sm flex items-center gap-2 transition disabled:opacity-40 disabled:cursor-not-allowed shadow-md"
               >
@@ -708,9 +770,10 @@ export const GuidedRaffleWizard: React.FC<GuidedRaffleWizardProps> = ({
                 type="button"
                 disabled={eligibleTicketsCount === 0 || isDrawing}
                 onClick={() => {
+                  previousTopWinnerIdRef.current = winners[0]?.id ?? null;
+                  awaitingWizardDrawRef.current = true;
                   onUpdateSettings({ drawMode: 'wheel' });
                   onTriggerDraw('wheel');
-                  setTimeout(() => setStep(6), 1200);
                 }}
                 className="min-h-[46px] px-5 py-3 rounded-xl bg-[#10141E] hover:bg-[#161C2C] text-[#FFFFFF] border border-[#161C2C] font-semibold text-xs sm:text-sm flex items-center gap-2 transition disabled:opacity-40 disabled:cursor-not-allowed"
               >

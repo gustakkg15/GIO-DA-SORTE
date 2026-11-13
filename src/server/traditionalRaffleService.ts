@@ -2035,6 +2035,124 @@ export class TraditionalRaffleService {
     });
   }
 
+  /**
+   * Handler 7: `removeSessionWinner`
+   * Removes a winner from the active session `winners` array (preserving immutable permanent audit
+   * records under `/draws/{drawId}` and `draw_ledger_public/*`), unclaims any matching prize tier,
+   * and atomically increments `rosterVersion` so excluded tickets become eligible again if `exclude: true`.
+   */
+  public async removeSessionWinner(params: {
+    authenticatedUid: string;
+    raffleId?: string;
+    winnerId: string;
+    nowMs?: number;
+  }): Promise<AuthoritativeTraditionalRaffleDocument> {
+    const ownerUid = this.assertAuthenticatedOwner(params.authenticatedUid);
+    const raffleId = (params.raffleId || 'default').trim();
+    const winnerId = String(params.winnerId || '').trim();
+    if (!winnerId) {
+      throw new TraditionalRaffleError(400, 'INVALID_WINNER_ID', 'Identificador do vencedor obrigatório.');
+    }
+    const nowIso = new Date(params.nowMs ?? Date.now()).toISOString();
+    const path = this.rafflePath(ownerUid, raffleId);
+
+    return this.store.runTransaction(async (tx) => {
+      const snap = await tx.get<AuthoritativeTraditionalRaffleDocument>(path);
+      if (!snap.exists) {
+        throw new TraditionalRaffleError(404, 'HTTP_404_RAFFLE_NOT_FOUND');
+      }
+      const raffle = snap.data()!;
+      if (raffle.userId !== ownerUid) {
+        throw new TraditionalRaffleError(403, 'HTTP_403_FORBIDDEN_CROSS_TENANT');
+      }
+
+      const targetWinner = (raffle.winners || []).find((w) => w.id === winnerId);
+      const nextWinners = (raffle.winners || []).filter((w) => w.id !== winnerId);
+      const nextPrizes = (raffle.settings.prizes || []).map((tier): typeof tier => {
+        if (
+          targetWinner &&
+          tier.winnerId === targetWinner.participantId &&
+          tier.ticketNumber === targetWinner.number
+        ) {
+          const { winnerId: _wid, winnerName: _wname, ticketNumber: _tnum, ...rest } = tier;
+          return rest;
+        }
+        return tier;
+      });
+      const nextUnclaimed = [...nextPrizes].sort((a, b) => a.rank - b.rank).find((p) => !p.winnerId);
+
+      const updated: AuthoritativeTraditionalRaffleDocument = {
+        ...raffle,
+        settings: {
+          ...raffle.settings,
+          prizes: nextPrizes,
+          currentPrize: nextUnclaimed ? nextUnclaimed.name : raffle.settings.currentPrize,
+        },
+        winners: nextWinners,
+        operationalState: raffle.operationalState === 'REVEALED' ? 'IDLE' : raffle.operationalState,
+        rosterVersion: raffle.rosterVersion + 1,
+        drawStateVersion: raffle.drawStateVersion + 1,
+        updatedAt: nowIso,
+      };
+      tx.set(path, updated);
+      return updated;
+    });
+  }
+
+  /**
+   * Handler 8: `clearSessionWinners`
+   * Clears the active session `winners` list and resets prize tier claims for a fresh round,
+   * while strictly preserving immutable permanent draw & ledger records. Increments `rosterVersion`.
+   */
+  public async clearSessionWinners(params: {
+    authenticatedUid: string;
+    raffleId?: string;
+    autoCreateIfMissing?: boolean;
+    nowMs?: number;
+  }): Promise<AuthoritativeTraditionalRaffleDocument> {
+    const ownerUid = this.assertAuthenticatedOwner(params.authenticatedUid);
+    const raffleId = (params.raffleId || 'default').trim();
+    const nowIso = new Date(params.nowMs ?? Date.now()).toISOString();
+    const path = this.rafflePath(ownerUid, raffleId);
+
+    return this.store.runTransaction(async (tx) => {
+      const snap = await tx.get<AuthoritativeTraditionalRaffleDocument>(path);
+      if (!snap.exists && !params.autoCreateIfMissing) {
+        throw new TraditionalRaffleError(404, 'HTTP_404_RAFFLE_NOT_FOUND');
+      }
+      const raffle = snap.exists
+        ? snap.data()!
+        : this.buildInitialRaffleIfMissing(ownerUid, raffleId, nowIso);
+      if (raffle.userId !== ownerUid) {
+        throw new TraditionalRaffleError(403, 'HTTP_403_FORBIDDEN_CROSS_TENANT');
+      }
+
+      const resetPrizes = (raffle.settings.prizes || []).map((tier) => {
+        const { winnerId: _wid, winnerName: _wname, ticketNumber: _tnum, ...rest } = tier;
+        return rest;
+      });
+      const firstPrize = [...resetPrizes].sort((a, b) => a.rank - b.rank)[0];
+
+      const updated: AuthoritativeTraditionalRaffleDocument = {
+        ...raffle,
+        settings: {
+          ...raffle.settings,
+          prizes: resetPrizes,
+          currentPrize: firstPrize ? firstPrize.name : raffle.settings.prizeName || '1º Prêmio',
+        },
+        winners: [],
+        operationalState: 'IDLE',
+        commitmentHash: null,
+        drawNonce: null,
+        rosterVersion: snap.exists ? raffle.rosterVersion + 1 : 1,
+        drawStateVersion: snap.exists ? raffle.drawStateVersion + 1 : 1,
+        updatedAt: nowIso,
+      };
+      tx.set(path, updated);
+      return updated;
+    });
+  }
+
   // ==========================================================================
   // PRE-COMMIT CREATION (NON-DETERMINISTIC INPUTS GENERATED OUTSIDE TRANSACTION)
   // ==========================================================================
@@ -3160,7 +3278,12 @@ export class TraditionalRaffleService {
         permanentDrawRecord,
         false,
         nextRosterVersion,
-        nextDrawSequence
+        nextDrawSequence,
+        nextWinners,
+        {
+          currentPrize: updatedRaffle.settings.currentPrize,
+          prizes: updatedRaffle.settings.prizes,
+        }
       );
 
       const completedIdemRecord: TraditionalDrawIdempotencyRecord = {
@@ -3190,7 +3313,9 @@ export class TraditionalRaffleService {
     permDraw: TraditionalPermanentDrawRecord,
     idempotentReplay: boolean,
     nextRosterVersion?: number,
-    nextDrawSequence?: number
+    nextDrawSequence?: number,
+    updatedWinners?: Winner[],
+    updatedSettings?: Pick<RaffleSettings, 'currentPrize' | 'prizes'>
   ): Record<string, unknown> {
     return {
       ok: true,
@@ -3202,6 +3327,8 @@ export class TraditionalRaffleService {
       winningTicket: permDraw.winningTicket,
       winner: permDraw.winnerRecord,
       proof: permDraw.proof,
+      ...(updatedWinners ? { updatedWinners } : {}),
+      ...(updatedSettings ? { updatedSettings } : {}),
       governance: {
         rosterVersionUsed: permDraw.rosterVersion,
         drawSequenceUsed: permDraw.drawSequence,
