@@ -772,9 +772,9 @@ export const AccountModal: React.FC<AccountModalProps> = ({
         <div className="flex items-center justify-between pb-3 border-b border-[var(--gio-border-subtle)]">
           <div className="flex items-center gap-2.5">
             <img
-              src="/icon.svg"
-              alt="GIO DA SORTE"
-              className="w-10 h-10 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(1,49,205,0.35)]"
+              src="/logo.png"
+              alt="Logotipo Oficial GIO DA SORTE"
+              className="w-10 h-10 rounded-xl object-cover border border-[#0131CD]/45 shrink-0 shadow-[0_4px_12px_rgba(1,49,205,0.3)]"
             />
             <div>
               <h2 id="account-modal-title" className="font-bold text-base sm:text-lg text-[#FFFFFF]">

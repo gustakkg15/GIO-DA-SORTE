@@ -139,9 +139,9 @@ export const CampaignCreateModal: React.FC<CampaignCreateModalProps> = ({
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--gio-border-subtle)] bg-[#080D18]/60">
           <div className="flex items-center gap-3">
             <img
-              src="/icon.svg"
-              alt="GIO DA SORTE"
-              className="w-8 h-8 object-contain shrink-0"
+              src="/logo.png"
+              alt="Logotipo Oficial GIO DA SORTE"
+              className="w-9 h-9 rounded-lg object-cover border border-[#0131CD]/45 shrink-0"
             />
             <div>
               <h2 id="campaign-create-modal-title" className="text-base font-bold text-[#FFFFFF] tracking-tight">Nova Campanha Multi-LIVE</h2>

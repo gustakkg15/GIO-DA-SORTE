@@ -160,9 +160,9 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
             <div className="p-5 bg-[#111B30] border-b border-[var(--gio-border-subtle)] flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <img
-                  src="/icon.svg"
-                  alt="GIO DA SORTE"
-                  className="w-9 h-9 object-contain shrink-0"
+                  src="/logo.png"
+                  alt="Logotipo Oficial GIO DA SORTE"
+                  className="w-9 h-9 rounded-lg object-cover border border-[#0131CD]/45 shrink-0"
                 />
                 <div>
                   <h2 className="text-base font-bold text-[#FFFFFF]">

@@ -12,7 +12,6 @@ import {
   ChevronRight,
   User,
   X,
-  Sparkles,
   Lock,
   CheckCircle2,
 } from 'lucide-react';
@@ -262,12 +261,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className="flex items-center gap-3 text-left group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957] rounded-xl min-w-0 btn-tactile"
             title="GIO DA SORTE — Ir para o Painel"
           >
-            {/* Clean Official Emblem with Royal Blue */}
-            <div className="w-9 h-9 shrink-0 flex items-center justify-center rounded-xl bg-[#0131CD] p-0.5 border border-[#0131CD]/50 shadow-xs">
-              <div className="w-full h-full rounded-[10px] bg-[#111B30] flex items-center justify-center relative">
-                <Ticket className="w-4 h-4 text-[#FFFFFF] transform -rotate-12 group-hover:rotate-0 transition-transform" />
-                <Sparkles className="w-2.5 h-2.5 text-[#A6C957] absolute top-1 right-1" />
-              </div>
+            {/* Official Brand Logo Emblem */}
+            <div className="w-10 h-10 shrink-0 flex items-center justify-center rounded-xl bg-[#080D18] border border-[#0131CD]/45 shadow-[0_4px_14px_rgba(1,49,205,0.28)] overflow-hidden">
+              <img
+                src="/logo.png"
+                alt="Logotipo Oficial GIO DA SORTE"
+                className="w-full h-full object-cover"
+              />
             </div>
 
             {!isCompact && (

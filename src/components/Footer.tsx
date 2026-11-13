@@ -38,11 +38,11 @@ export const Footer: React.FC<FooterProps> = ({
           {/* Coluna Marca & Logo Original */}
           <div className="lg:col-span-4 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex items-center justify-center p-1.5 shrink-0 shadow-[0_4px_14px_rgba(2,8,23,0.4)]">
+              <div className="w-11 h-11 rounded-xl bg-[#080D18] border border-[#0131CD]/45 flex items-center justify-center overflow-hidden shrink-0 shadow-[0_4px_14px_rgba(2,8,23,0.4)]">
                 <img
-                  src="/icon.svg"
-                  alt="GIO DA SORTE"
-                  className="w-full h-full object-contain"
+                  src="/logo.png"
+                  alt="Logotipo Oficial GIO DA SORTE"
+                  className="w-full h-full object-cover"
                 />
               </div>
               <div>

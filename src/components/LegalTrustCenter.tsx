@@ -452,9 +452,9 @@ export const LegalTrustCenter: React.FC<LegalTrustCenterProps> = ({
       <div className="p-6 sm:p-7 rounded-2xl bg-[#080D18] border border-[var(--gio-border-subtle)] shadow-lg flex flex-col lg:flex-row lg:items-center justify-between gap-5">
         <div className="flex items-center gap-4">
           <img
-            src="/icon.svg"
-            alt="GIO DA SORTE"
-            className="w-14 h-14 object-contain shrink-0"
+            src="/logo.png"
+            alt="Logotipo Oficial GIO DA SORTE"
+            className="w-14 h-14 rounded-xl object-cover border border-[#0131CD]/45 shadow-md shrink-0"
           />
           <div>
             <div className="flex flex-wrap items-center gap-2">

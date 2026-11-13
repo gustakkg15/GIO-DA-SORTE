@@ -167,11 +167,11 @@ export const OnboardingTourModal: React.FC<OnboardingTourModalProps> = ({
           {/* Header */}
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-12 h-12 rounded-xl bg-[#080D18] border border-[#0131CD]/40 flex items-center justify-center p-1 shadow-[0_6px_18px_rgba(1,49,205,0.28)] shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-[#080D18] border border-[#0131CD]/45 flex items-center justify-center overflow-hidden shadow-[0_6px_18px_rgba(1,49,205,0.28)] shrink-0">
                 <img
-                  src="/icon.svg"
-                  alt="GIO DA SORTE"
-                  className="w-full h-full object-contain"
+                  src="/logo.png"
+                  alt="Logotipo Oficial GIO DA SORTE"
+                  className="w-full h-full object-cover"
                 />
               </div>
               <div className="min-w-0">

@@ -62,9 +62,11 @@ export const PresentationModal: React.FC<PresentationModalProps> = ({
         {/* Presentation Top Bar */}
         <div className="flex items-center justify-between w-full gap-2 shrink-0">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#0131CD] to-[#0131CD] text-[#FFFFFF] font-bold flex items-center justify-center shadow-lg ring-1 ring-[#0131CD]/40 shrink-0">
-              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 fill-[#FFFFFF]" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Logotipo Oficial GIO DA SORTE"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-cover border border-[#0131CD]/45 shadow-lg shrink-0"
+            />
             <div className="min-w-0">
               <h1 className="font-bold text-xl sm:text-2xl md:text-3xl text-[#FFFFFF] tracking-tight truncate">
                 GIO DA SORTE

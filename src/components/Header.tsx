@@ -99,12 +99,12 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center justify-between gap-2 lg:gap-3 h-16">
             {/* Brand Wordmark & Official Logo */}
             <div className="flex items-center gap-2.5 whitespace-nowrap shrink-0">
-              <div className="relative w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center shrink-0">
+              <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[#080D18] border border-[#0131CD]/45 shadow-sm overflow-hidden flex items-center justify-center shrink-0">
                 <img
-                  src="/icon.svg"
+                  src="/logo.png"
                   alt="Logotipo Oficial GIO DA SORTE"
                   referrerPolicy="no-referrer"
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                   }}
