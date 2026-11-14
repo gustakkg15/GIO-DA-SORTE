@@ -2110,36 +2110,76 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
   const totalCoinsValue = activeSession?.totalCoins || connectionStatus.totalCoinsCollected || 0;
   const totalTicketsValue = activeSession?.currentTicketCounter || 0;
   const totalParticipantsValue = sessionParticipants.length;
+  const effectiveSessionRate = activeSession?.currentRate || settings.rate || 100;
 
   return (
     <div className="space-y-6 text-[#FFFFFF]">
       {(!planEntitlement.active || planEntitlement.tier !== 'PRO' || planEntitlement.statusState !== 'ACTIVE') &&
       (activeProTab !== 'audit' || platformMode === 'traditional_comments') ? (
         /* PRO PLAN EXCLUSIVE GATE (VALIDATED ON BACKEND) */
-        <div className="p-8 rounded-2xl bg-[#111B30] border border-[#A6C957]/35 text-center space-y-5">
-          <div className="w-14 h-14 rounded-2xl bg-[#A6C957]/15 border border-[#A6C957]/35 text-[#A6C957] mx-auto flex items-center justify-center">
-            <Lock className="w-7 h-7" />
+        <div className="p-6 sm:p-8 rounded-2xl bg-[#111B30] border border-[#0131CD]/40 text-center space-y-6 shadow-xl">
+          <div className="flex items-center justify-center gap-3">
+            <img
+              src="/logo.png"
+              alt="Gio da Sorte"
+              className="h-11 w-auto object-contain rounded-xl border border-[var(--gio-border-subtle)] bg-[#080D18] p-1"
+            />
+            <div className="w-11 h-11 rounded-xl bg-[#A6C957]/15 border border-[#A6C957]/35 text-[#A6C957] flex items-center justify-center">
+              <Lock className="w-5 h-5" />
+            </div>
           </div>
-          <div className="max-w-xl mx-auto space-y-2">
+
+          <div className="max-w-2xl mx-auto space-y-2.5">
             <span className="gio-badge-pro mx-auto">
               Exclusivo Plano PRO · Validação Backend Ativa
             </span>
             <h2 className="text-xl sm:text-2xl font-bold text-[#FFFFFF] tracking-tight">
               {platformMode === 'traditional_comments'
                 ? 'Sorteador de Comentários do TikTok — Exclusivo PRO'
-                : 'Módulos TikTok LIVE PRO Bloqueados no Plano FREE'}
+                : 'Central Operacional TikTok LIVE PRO'}
             </h2>
             <p className="text-xs sm:text-sm text-[#A5B1C5] leading-relaxed">
               As ferramentas da área TikTok LIVE — incluindo a conexão em tempo real para <strong className="text-[#FFFFFF]">Sorteio por Presentes LIVE</strong>, contabilização automática de moedas em bilhetes, campanhas acumuladas e o <strong className="text-[#FFFFFF]">Sorteio por Comentários TikTok</strong> com auditoria criptográfica — são exclusivas dos assinantes do plano <strong className="text-[#A6C957]">PRO</strong>.
             </p>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 max-w-3xl mx-auto text-left">
+            <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#FFFFFF]">1. Presentes LIVE</span>
+                <Gift className="w-4 h-4 text-[#A6C957]" />
+              </div>
+              <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
+                Captura presentes em tempo real, converte moedas em bilhetes automaticamente e preserva sobras na urna.
+              </p>
+            </div>
+            <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#FFFFFF]">2. Comentários TikTok</span>
+                <MessageSquare className="w-4 h-4 text-[#35B9F5]" />
+              </div>
+              <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
+                Extrai comentários oficiais, filtra palavras-chave ou @menções e gera certificado PDF SHA-256.
+              </p>
+            </div>
+            <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#FFFFFF]">3. Multi-LIVE & Workers</span>
+                <Layers className="w-4 h-4 text-[#A6C957]" />
+              </div>
+              <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
+                Acumule bilhetes de várias transmissões com deduplicação idempotente e fila durável WAL no servidor.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
             <button
               onClick={() => (onOpenSubscription ? onOpenSubscription() : handleSwitchPlanTier('PRO'))}
               disabled={isUpdatingPlan}
               className="gio-btn-pro px-5 py-2.5 text-xs"
             >
-              <Crown className="w-4 h-4 text-[#FFFFFF]" />
+              <Crown className="w-4 h-4 text-[#080D18]" />
               <span>Ver Planos e Começar 3 Dias Grátis</span>
             </button>
             <button
@@ -2149,7 +2189,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                 setIsAdvancedOpen(true);
                 setAdvancedTab('history');
               }}
-              className="px-4 py-2.5 rounded-xl font-medium text-xs text-[#FFFFFF] bg-[#111B30] hover:bg-[#080D18] border border-[var(--gio-border-subtle)] transition flex items-center gap-1.5"
+              className="px-4 py-2.5 rounded-xl font-medium text-xs text-[#FFFFFF] bg-[#080D18] hover:bg-[#111B30] border border-[var(--gio-border-subtle)] transition flex items-center gap-1.5"
             >
               <Users className="w-4 h-4 text-[#A5B1C5]" />
               <span>Consultar Histórico e Participantes Salvos</span>
@@ -2162,15 +2202,15 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
            ============================================================== */
         <div className="space-y-6">
           {/* Top Modality Navigation Bar */}
-          <div className="p-2 rounded-xl bg-[#111B30] border border-[var(--gio-border-subtle)] flex flex-wrap items-center justify-between gap-2">
+          <div className="p-2.5 rounded-xl bg-[#111B30] border border-[var(--gio-border-subtle)] flex flex-wrap items-center justify-between gap-2.5">
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => setPlatformMode('live_pro')}
                 className={`min-h-[38px] px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 ${
                   platformMode === 'live_pro'
-                    ? 'bg-[#0131CD] text-[#FFFFFF] shadow-sm shadow-[#0131CD]/20'
-                    : 'bg-[#111B30] text-[#A5B1C5] hover:text-[#FFFFFF] border border-[var(--gio-border-subtle)]'
+                    ? 'bg-[#0131CD] text-[#FFFFFF] shadow-sm shadow-[#0131CD]/25'
+                    : 'bg-[#080D18] text-[#A5B1C5] hover:text-[#FFFFFF] border border-[var(--gio-border-subtle)]'
                 }`}
               >
                 <Gift className="w-4 h-4" />
@@ -2223,11 +2263,39 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                 className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 ${
                   isAdvancedOpen && advancedTab === 'campaigns' && platformMode === 'live_pro'
                     ? 'bg-[#080D18] text-[#FFFFFF] border border-[#0131CD]/60'
-                    : 'bg-[#111B30] text-[#A5B1C5] hover:text-[#FFFFFF] border border-[var(--gio-border-subtle)]'
+                    : 'bg-[#080D18]/70 text-[#A5B1C5] hover:text-[#FFFFFF] border border-[var(--gio-border-subtle)]'
                 }`}
               >
                 <Layers className="w-3.5 h-3.5 text-[#A5B1C5]" />
                 <span>Multi-LIVE</span>
+                <span className="px-1.5 py-0.2 rounded bg-[#111B30] text-[10px] font-bold text-[#A6C957] tabular-nums">
+                  {campaigns.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setPlatformMode('live_pro');
+                  setIsAdvancedOpen(true);
+                  setAdvancedTab('monitor');
+                  requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                      const el = document.getElementById('advanced-resources-container');
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    });
+                  });
+                }}
+                className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 ${
+                  isAdvancedOpen && advancedTab === 'monitor' && platformMode === 'live_pro'
+                    ? 'bg-[#080D18] text-[#FFFFFF] border border-[#0131CD]/60'
+                    : 'bg-[#080D18]/70 text-[#A5B1C5] hover:text-[#FFFFFF] border border-[var(--gio-border-subtle)]'
+                }`}
+              >
+                <Activity className="w-3.5 h-3.5 text-[#A5B1C5]" />
+                <span>Monitor WAL</span>
               </button>
 
               <button
@@ -2249,34 +2317,46 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                 className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 ${
                   isAdvancedOpen && advancedTab === 'history' && platformMode === 'live_pro'
                     ? 'bg-[#080D18] text-[#FFFFFF] border border-[#0131CD]/60'
-                    : 'bg-[#111B30] text-[#A5B1C5] hover:text-[#FFFFFF] border border-[var(--gio-border-subtle)]'
+                    : 'bg-[#080D18]/70 text-[#A5B1C5] hover:text-[#FFFFFF] border border-[var(--gio-border-subtle)]'
                 }`}
               >
                 <History className="w-3.5 h-3.5 text-[#A5B1C5]" />
                 <span>Histórico</span>
+                {sessionDraws.length > 0 && (
+                  <span className="px-1.5 py-0.2 rounded bg-[#111B30] text-[10px] font-bold text-[#A6C957] tabular-nums">
+                    {sessionDraws.length}
+                  </span>
+                )}
               </button>
             </div>
           </div>
 
           {platformMode === 'traditional_comments' ? (
             <div className="space-y-5">
-              <div className="p-4 rounded-xl bg-[#111B30] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="gio-badge-pro">TIKTOK LIVE PRO</span>
-                    <span className="text-xs text-[#A5B1C5]">·</span>
-                    <span className="text-xs font-semibold text-[#A6C957]">Auditoria Criptográfica CSPRNG</span>
+              <div className="p-4 sm:p-5 rounded-xl bg-[#111B30] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <img
+                    src="/logo.png"
+                    alt="Gio da Sorte"
+                    className="h-9 w-auto object-contain rounded-lg border border-[var(--gio-border-subtle)] bg-[#080D18] p-0.5 shrink-0 mt-0.5"
+                  />
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="gio-badge-pro">TIKTOK LIVE PRO</span>
+                      <span className="text-xs text-[#A5B1C5]">·</span>
+                      <span className="text-xs font-semibold text-[#A6C957]">Auditoria Criptográfica CSPRNG</span>
+                    </div>
+                    <h2 className="text-base sm:text-lg font-bold text-[#FFFFFF] mt-1">
+                      Sorteio por Comentários TikTok
+                    </h2>
+                    <p className="text-xs text-[#A5B1C5]">
+                      Extração oficial via backend PRO, filtros avançados, contagem regressiva e laudo pericial em PDF com hash SHA-256.
+                    </p>
                   </div>
-                  <h2 className="text-base font-semibold text-[#FFFFFF] mt-1">
-                    Sorteio por Comentários TikTok
-                  </h2>
-                  <p className="text-xs text-[#A5B1C5]">
-                    Extração oficial via backend PRO, filtros avançados, contagem regressiva e laudo pericial em PDF com hash SHA-256.
-                  </p>
                 </div>
                 <button
                   onClick={() => setPlatformMode('live_pro')}
-                  className="min-h-[38px] px-4 py-2 rounded-lg bg-[#111B30] hover:bg-[#080D18] border border-[var(--gio-border-subtle)] text-[#FFFFFF] font-semibold text-xs transition flex items-center gap-2 self-start sm:self-auto"
+                  className="min-h-[38px] px-4 py-2 rounded-lg bg-[#080D18] hover:bg-[#111B30] border border-[var(--gio-border-subtle)] text-[#FFFFFF] font-semibold text-xs transition flex items-center gap-2 self-start sm:self-auto shrink-0"
                 >
                   <Gift className="w-4 h-4 text-[#A6C957]" />
                   <span>Ir para Presentes LIVE</span>
@@ -2296,23 +2376,35 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                   ========================================================== */}
               <section
                 id="tiktok-live-connection-section"
-                className="p-5 sm:p-6 rounded-xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-4"
+                className="p-5 sm:p-6 rounded-xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-5"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2.5">
-                      <h1 className="text-lg sm:text-xl font-bold text-[#FFFFFF] tracking-tight">
-                        TikTok LIVE
-                      </h1>
-                      <span className="gio-badge-pro">PRO</span>
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-4 border-b border-[var(--gio-border-subtle)]">
+                  <div className="flex items-start gap-3">
+                    <img
+                      src="/logo.png"
+                      alt="Gio da Sorte"
+                      className="h-9 w-auto object-contain rounded-lg border border-[var(--gio-border-subtle)] bg-[#080D18] p-0.5 shrink-0 mt-0.5"
+                    />
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h1 className="text-lg sm:text-xl font-bold text-[#FFFFFF] tracking-tight">
+                          Central Operacional TikTok LIVE
+                        </h1>
+                        <span className="gio-badge-pro">PRO</span>
+                        {activeSession?.sessionId && (
+                          <span className="px-2 py-0.5 rounded bg-[#080D18] border border-[var(--gio-border-subtle)] font-mono text-[11px] text-[#A5B1C5]">
+                            Sessão: {activeSession.sessionId}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs sm:text-sm text-[#A5B1C5] mt-0.5">
+                        Conecte o @ da transmissão ao vivo para capturar presentes em tempo real e converter moedas em bilhetes auditáveis.
+                      </p>
                     </div>
-                    <p className="text-xs sm:text-sm text-[#A5B1C5] mt-0.5">
-                      Informe o @ da transmissão ao vivo para acompanhar presentes e converter moedas em bilhetes automaticamente.
-                    </p>
                   </div>
 
                   {/* Indicadores Oficiais Separados: Conexão Webcast vs Estado Comercial da Sessão */}
-                  <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+                  <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-auto shrink-0">
                     <div
                       title={connMeta.titleHint}
                       className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border ${connMeta.badgeClass}`}
@@ -2358,7 +2450,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                     {connectionStatus.state === 'CONNECTED' || connectionStatus.state === 'RECONNECTING' ? (
                       <button
                         onClick={handleDisconnect}
-                        className="flex-1 min-h-[38px] py-2.5 px-4 rounded-lg font-semibold text-xs text-[#FFFFFF] bg-[#F05262]/20 hover:bg-[#F05262]/30 border border-[#F05262]/40 transition flex items-center justify-center gap-2"
+                        className="flex-1 min-h-[40px] py-2.5 px-4 rounded-lg font-semibold text-xs text-[#FFFFFF] bg-[#F05262]/20 hover:bg-[#F05262]/30 border border-[#F05262]/40 transition flex items-center justify-center gap-2"
                       >
                         <Square className="w-3.5 h-3.5 text-[#F05262]" />
                         <span>Desconectar da LIVE</span>
@@ -2367,7 +2459,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                       <button
                         onClick={handleConnect}
                         disabled={isConnecting}
-                        className="flex-1 min-h-[38px] py-2.5 px-4 rounded-lg font-semibold text-xs text-[#FFFFFF] bg-[#0131CD] hover:brightness-110 transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-[#0131CD]/20"
+                        className="flex-1 min-h-[40px] py-2.5 px-4 rounded-lg font-semibold text-xs text-[#FFFFFF] bg-[#0131CD] hover:brightness-110 transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-[#0131CD]/20"
                       >
                         {isConnecting ? (
                           <RotateCw className="w-3.5 h-3.5 animate-spin" />
@@ -2380,7 +2472,7 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
 
                     <button
                       onClick={handleProbeLive}
-                      className="min-h-[38px] py-2.5 px-3.5 rounded-lg font-medium text-xs text-[#FFFFFF] bg-[#111B30] hover:bg-[#080D18] border border-[var(--gio-border-subtle)] transition flex items-center justify-center gap-1.5 shrink-0"
+                      className="min-h-[40px] py-2.5 px-3.5 rounded-lg font-medium text-xs text-[#FFFFFF] bg-[#080D18] hover:bg-[#111B30] border border-[var(--gio-border-subtle)] transition flex items-center justify-center gap-1.5 shrink-0"
                     >
                       <Eye className="w-3.5 h-3.5 text-[#A5B1C5]" />
                       <span>Verificar Sala</span>
@@ -2389,8 +2481,8 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                 </div>
 
                 {/* Campaign Pre-selection & Organizer Defaults Control Row */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center pt-2 border-t border-[var(--gio-border-subtle)]">
-                  <div className="md:col-span-8 flex flex-col sm:flex-row sm:items-center gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center pt-3 border-t border-[var(--gio-border-subtle)]">
+                  <div className="md:col-span-7 flex flex-col sm:flex-row sm:items-center gap-2">
                     <label className="text-xs text-[#A5B1C5] shrink-0 font-medium">
                       Vincular à Campanha:
                     </label>
@@ -2426,15 +2518,80 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                     </select>
                   </div>
 
-                  <div className="md:col-span-4 flex items-center justify-end">
+                  <div className="md:col-span-5 flex flex-wrap items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingRate((v) => !v)}
+                      className="min-h-[36px] py-2 px-3 rounded-lg bg-[#080D18] hover:bg-[#111B30] text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-medium flex items-center justify-center gap-1.5 transition"
+                    >
+                      <Sliders className="w-3.5 h-3.5 text-[#A6C957]" />
+                      <span>{editingRate ? 'Fechar Regra da Sessão' : 'Regra desta Sessão'}</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => setIsOrganizerConfigModalOpen(true)}
-                      className="w-full sm:w-auto min-h-[36px] py-2 px-3 rounded-lg bg-[#111B30] hover:bg-[#080D18] text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-medium flex items-center justify-center gap-1.5 transition"
+                      className="min-h-[36px] py-2 px-3 rounded-lg bg-[#080D18] hover:bg-[#111B30] text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-medium flex items-center justify-center gap-1.5 transition"
                     >
                       <Settings className="w-3.5 h-3.5 text-[#A5B1C5]" />
                       <span>Configuração Permanente</span>
                     </button>
+                  </div>
+                </div>
+
+                {/* Live Session Telemetry Strip (4 Scannable Metrics with tabular-nums) */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+                  <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-1">
+                    <div className="flex items-center justify-between text-[11px] text-[#A5B1C5]">
+                      <span>Moedas Contabilizadas</span>
+                      <Gift className="w-3.5 h-3.5 text-[#A6C957]" />
+                    </div>
+                    <p className="text-lg sm:text-xl font-bold text-[#FFFFFF] tabular-nums">
+                      {totalCoinsValue.toLocaleString('pt-BR')}
+                    </p>
+                    <span className="block text-[11px] text-[#A5B1C5] truncate">
+                      {activeSession?.roomTitle || `Sala @${(connectionStatus.roomUsername || roomUsername).replace(/^@+/, '')}`}
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-[#080D18] border border-[#A6C957]/30 space-y-1">
+                    <div className="flex items-center justify-between text-[11px] text-[#A5B1C5]">
+                      <span>Bilhetes Emitidos</span>
+                      <Trophy className="w-3.5 h-3.5 text-[#A6C957]" />
+                    </div>
+                    <p className="text-lg sm:text-xl font-bold text-[#A6C957] tabular-nums">
+                      {totalTicketsValue.toLocaleString('pt-BR')}
+                    </p>
+                    <span className="block text-[11px] text-[#A5B1C5]">
+                      Prontos para snapshot SHA-256
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-1">
+                    <div className="flex items-center justify-between text-[11px] text-[#A5B1C5]">
+                      <span>Apoiadores na Sessão</span>
+                      <Users className="w-3.5 h-3.5 text-[#35B9F5]" />
+                    </div>
+                    <p className="text-lg sm:text-xl font-bold text-[#FFFFFF] tabular-nums">
+                      {totalParticipantsValue.toLocaleString('pt-BR')}
+                    </p>
+                    <span className="block text-[11px] text-[#A5B1C5] tabular-nums">
+                      {connectionStatus.viewerCount
+                        ? `${connectionStatus.viewerCount.toLocaleString('pt-BR')} espectadores ao vivo`
+                        : 'Identificados por TikTok ID único'}
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-1">
+                    <div className="flex items-center justify-between text-[11px] text-[#A5B1C5]">
+                      <span>Taxa de Conversão Ativa</span>
+                      <ShieldCheck className="w-3.5 h-3.5 text-[#A6C957]" />
+                    </div>
+                    <p className="text-base sm:text-lg font-bold text-[#FFFFFF] tabular-nums">
+                      {effectiveSessionRate.toLocaleString('pt-BR')} moedas = 1 bilhete
+                    </p>
+                    <span className="block text-[11px] text-[#A5B1C5]">
+                      Sobras acumulam automaticamente
+                    </span>
                   </div>
                 </div>
 
@@ -2737,29 +2894,54 @@ export const TikTokLiveManager: React.FC<TikTokLiveManagerProps> = ({
                   BLOCO 3 — FEED DE PRESENTES RECEBIDOS EM TEMPO REAL (COM ANIMAÇÕES E COMBOS)
                   ========================================================== */}
               <section className="p-5 sm:p-6 rounded-xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--gio-border-subtle)] pb-4">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <h2 className="text-base font-semibold text-[#FFFFFF] flex items-center gap-2">
-                      <Gift className="w-4 h-4 text-[#A6C957]" />
-                      <span>Presentes Recebidos em Tempo Real</span>
-                    </h2>
-                    <span className="px-2.5 py-0.5 rounded-md bg-[#080D18] border border-[var(--gio-border-subtle)] text-xs font-semibold text-[#A6C957] tabular-nums">
-                      {unifiedGiftRows.length} evento(s)
-                    </span>
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-[var(--gio-border-subtle)] pb-4">
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <h2 className="text-base font-semibold text-[#FFFFFF] flex items-center gap-2">
+                        <Gift className="w-4 h-4 text-[#A6C957]" />
+                        <span>Presentes Recebidos em Tempo Real</span>
+                      </h2>
+                      <span className="px-2.5 py-0.5 rounded-md bg-[#080D18] border border-[var(--gio-border-subtle)] text-xs font-semibold text-[#A6C957] tabular-nums">
+                        {unifiedGiftRows.length} evento(s)
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-md bg-[#080D18] border border-[var(--gio-border-subtle)] text-[11px] font-medium text-[#A5B1C5] tabular-nums">
+                        Deduplicação WAL: {dedupeStats.uniqueProcessed} únicos · {dedupeStats.duplicatesDropped} bloqueados
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#A5B1C5]">
+                      Stream unificado com deduplicação idempotente, combos e geração atômica de bilhetes
+                    </p>
                   </div>
-                  <p className="text-xs text-[#A5B1C5]">
-                    Stream unificado com deduplicação idempotente, combos e geração atômica de bilhetes
-                  </p>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAdvancedOpen(true);
+                        setAdvancedTab('monitor');
+                        requestAnimationFrame(() => {
+                          const el = document.getElementById('advanced-resources-container');
+                          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        });
+                      }}
+                      className="min-h-[34px] px-3 py-1.5 rounded-lg bg-[#080D18] hover:bg-[#111B30] border border-[var(--gio-border-subtle)] text-xs font-medium text-[#FFFFFF] flex items-center gap-1.5 transition"
+                    >
+                      <Activity className="w-3.5 h-3.5 text-[#A6C957]" />
+                      <span>Monitor WAL & SSE</span>
+                    </button>
+                  </div>
                 </div>
 
                 {unifiedGiftRows.length === 0 ? (
-                  <div className="py-12 px-4 text-center rounded-lg bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-2">
-                    <Gift className="w-7 h-7 mx-auto text-[#A5B1C5]" />
-                    <p className="text-sm font-medium text-[#FFFFFF]">
+                  <div className="py-10 px-4 text-center rounded-xl bg-[#080D18] border border-dashed border-[var(--gio-border-subtle)] space-y-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-[#111B30] border border-[var(--gio-border-subtle)] flex items-center justify-center mx-auto">
+                      <Gift className="w-5 h-5 text-[#A6C957]" />
+                    </div>
+                    <p className="text-sm font-semibold text-[#FFFFFF]">
                       Nenhum presente recebido nesta transmissão ainda
                     </p>
-                    <p className="text-xs text-[#A5B1C5] max-w-md mx-auto">
-                      Assim que espectadores enviarem presentes para @{roomUsername}, cada evento aparecerá aqui em tempo real com moedas e bilhetes gerados.
+                    <p className="text-xs text-[#A5B1C5] max-w-md mx-auto leading-relaxed">
+                      Assim que espectadores enviarem presentes para <span className="font-mono text-[#FFFFFF]">@{roomUsername.replace(/^@+/, '')}</span>, cada evento aparecerá aqui em tempo real com moedas e bilhetes gerados.
                     </p>
                   </div>
                 ) : (

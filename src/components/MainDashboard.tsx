@@ -251,129 +251,303 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   const raffleTitle = settings.raffleTitle || 'Sorteio Oficial GIO DA SORTE';
   const raffleCode = settings.raffleCode || 'GIO-7492';
 
+  const hasParticipants = totalParticipantsCount > 0;
+  const hasEligibleTickets = traditionalEligibleTickets > 0;
+  const hasWinners = traditionalWinnersCount > 0;
+
   return (
-    <div className="space-y-8 animate-fade-in min-w-0 pb-6">
-      {/* 1. Hero Operational Console — Identidade Oficial GIO DA SORTE */}
+    <div className="space-y-7 animate-fade-in min-w-0 pb-6 font-sans">
+      {/* 1. Hero Operational Console — Clareza Imediata e Resumo da Rifa Ativa */}
       <section
         aria-label="Console Operacional Principal"
         className="relative overflow-hidden rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-2xl animate-slide-up-fade"
       >
-        {/* Top Hairline Accent */}
+        {/* Top Royal Blue + Lime Green Brand Accent */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[#0131CD]"
+          className="pointer-events-none absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#0131CD] via-[#0131CD] to-[#A6C957]"
         />
 
-        <div className="relative p-6 sm:p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-3.5 max-w-2xl min-w-0">
-            {/* Context & Tag */}
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#0131CD]/25 border border-[#0131CD]/45 text-[11px] font-semibold text-[#FFFFFF]">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#A6C957]" />
-                Painel Operacional · CSPRNG Ativo
-              </span>
-              <span
-                data-testid="dashboard-data-source-badge"
-                data-source-kind={dataSourceKind}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold border ${
-                  dataSourceKind === 'PERSISTED'
-                    ? 'bg-[#A6C957]/15 border-[#A6C957]/35 text-[#A6C957]'
-                    : dataSourceKind === 'DEMO'
-                    ? 'bg-[#0131CD]/20 border-[#0131CD]/40 text-[#FFFFFF]'
-                    : 'bg-white/[0.06] border-white/15 text-[#A5B1C5]'
-                }`}
-              >
-                <span>{dataSourceLabel}</span>
-              </span>
-              <span className="font-mono text-xs text-[#A5B1C5] font-medium tabular-nums">
-                #{raffleCode}
-              </span>
+        <div className="relative p-6 sm:p-7 space-y-6">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="space-y-3 max-w-2xl min-w-0">
+              {/* Context & Status Row */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0131CD]/25 border border-[#0131CD]/55 text-xs font-semibold text-[#FFFFFF]">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#A6C957]" />
+                  <span>Painel Principal · Sorteio Auditável</span>
+                </span>
+                <span
+                  data-testid="dashboard-data-source-badge"
+                  data-source-kind={dataSourceKind}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border ${
+                    dataSourceKind === 'PERSISTED'
+                      ? 'bg-[#A6C957]/15 border-[#A6C957]/40 text-[#A6C957]'
+                      : dataSourceKind === 'DEMO'
+                      ? 'bg-[#0131CD]/20 border-[#0131CD]/45 text-[#FFFFFF]'
+                      : 'bg-[#080D18] border-[var(--gio-border-subtle)] text-[#A5B1C5]'
+                  }`}
+                >
+                  <span>{dataSourceLabel}</span>
+                </span>
+                <span className="font-mono text-xs text-[#A5B1C5] bg-[#080D18] px-2.5 py-1 rounded-lg border border-[var(--gio-border-subtle)] tabular-nums">
+                  Código: #{raffleCode}
+                </span>
+                <button
+                  type="button"
+                  onClick={onOpenOnboardingTour}
+                  className="min-h-[34px] px-3 py-1 rounded-lg bg-[#080D18] hover:bg-[#0131CD]/25 border border-[var(--gio-border-subtle)] hover:border-[#0131CD]/60 text-xs text-[#FFFFFF] font-semibold inline-flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Compass className="w-3.5 h-3.5 shrink-0 text-[#A6C957]" />
+                  <span>Como funciona (Tour)</span>
+                </button>
+              </div>
+
+              {/* Main Title & Clear Subtitle */}
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-[#FFFFFF] tracking-tight leading-tight">
+                  Central de Controle dos Seus Sorteios
+                </h1>
+                <p className="text-sm text-[#A5B1C5] mt-1 leading-relaxed">
+                  Acompanhe os números da sua rifa atual, adicione participantes ou inicie o sorteio ao vivo com apenas 1 clique.
+                </p>
+              </div>
+            </div>
+
+            {/* Primary Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
               <button
                 type="button"
-                onClick={onOpenOnboardingTour}
-                className="min-h-[36px] px-3 py-1.5 rounded-md bg-[#080D18] hover:bg-white/[0.06] border border-[var(--gio-border-subtle)] text-xs text-[#FFFFFF] font-medium inline-flex items-center gap-1.5 transition-all btn-tactile"
+                onClick={onOpenTraditionalDraw}
+                className="gio-btn-primary btn-tactile inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-bold text-[#FFFFFF] rounded-xl shadow-lg shadow-[#0131CD]/30 cursor-pointer"
               >
-                <Compass className="w-3.5 h-3.5 shrink-0 text-[#A5B1C5]" />
-                <span>Tutorial rápido</span>
+                <Play className="w-4 h-4 text-[#A6C957] fill-[#A6C957] shrink-0" />
+                <span>Realizar Sorteio Agora</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={onStartNewRaffleWizard}
+                className="btn-tactile inline-flex items-center justify-center gap-2 px-5 py-3.5 text-sm font-semibold text-[#FFFFFF] bg-[#080D18] hover:bg-[#0131CD]/20 rounded-xl border border-[var(--gio-border-subtle)] hover:border-[#0131CD]/55 cursor-pointer"
+              >
+                <Plus className="w-4 h-4 text-[#A6C957] shrink-0" />
+                <span>Configurar Novo Sorteio</span>
               </button>
             </div>
+          </div>
 
-            {/* Main Title */}
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[#FFFFFF] tracking-tight leading-tight">
-                Controle de Sorteios & Transmissões
-              </h1>
-              <p className="text-sm text-[#A5B1C5] mt-1 leading-relaxed">
-                Gerencie participantes, conecte lives do TikTok e realize sorteios auditáveis com integridade matemática.
-              </p>
+          {/* Resumo Visual do Sorteio Ativo (3 Colunas Fáceis de Ler) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4 border-t border-[var(--gio-border-subtle)]">
+            <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-[#0131CD]/25 border border-[#0131CD]/50 flex items-center justify-center shrink-0">
+                <Ticket className="w-4 h-4 text-[#FFFFFF]" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] font-medium text-[#A5B1C5] block">
+                  Sorteio Carregado no Painel
+                </span>
+                <strong className="text-sm font-bold text-[#FFFFFF] block truncate">
+                  {raffleTitle}
+                </strong>
+              </div>
             </div>
 
-            {/* Active Draw Metadata Strip */}
-            <div className="pt-2 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-[#A5B1C5]">
-              <div className="flex items-center gap-2">
-                <Ticket className="w-4 h-4 text-[#A5B1C5] shrink-0" />
-                <span>Sorteio ativo:</span>
-                <strong className="text-[#FFFFFF] font-semibold">{raffleTitle}</strong>
+            <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-[#A6C957]/15 border border-[#A6C957]/40 flex items-center justify-center shrink-0">
+                <Gift className="w-4 h-4 text-[#A6C957]" />
               </div>
-              <span className="hidden sm:inline text-[#A5B1C5]/40">•</span>
-              <div className="flex items-center gap-2">
-                <Gift className="w-4 h-4 text-[#A6C957] shrink-0" />
-                <span>Prêmio em disputa:</span>
-                <strong className="text-[#A6C957] font-semibold">{currentPrize}</strong>
+              <div className="min-w-0">
+                <span className="text-[11px] font-medium text-[#A5B1C5] block">
+                  Prêmio Atual em Disputa
+                </span>
+                <strong className="text-sm font-bold text-[#A6C957] block truncate">
+                  {currentPrize}
+                </strong>
               </div>
-              <span className="hidden sm:inline text-[#A5B1C5]/40">•</span>
-              <div className="flex items-center gap-2">
-                <Coins className="w-4 h-4 text-[#A5B1C5] shrink-0" />
-                <span>Taxa de conversão:</span>
-                <strong className="text-[#FFFFFF] tabular-nums font-medium">
-                  {settings.rate} moedas = 1 bilhete
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-[#0131CD]/25 border border-[#0131CD]/50 flex items-center justify-center shrink-0">
+                <Coins className="w-4 h-4 text-[#A6C957]" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] font-medium text-[#A5B1C5] block">
+                  Regra de Geração de Bilhetes
+                </span>
+                <strong className="text-sm font-bold text-[#FFFFFF] tabular-nums block truncate">
+                  Cada {settings.rate} {settings.rate === 1 ? 'moeda gera' : 'moedas geram'} 1 bilhete
                 </strong>
               </div>
             </div>
           </div>
 
-          {/* Primary Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+          {/* Aviso Amigável quando estiver em Modo de Demonstração */}
+          {dataSourceKind === 'DEMO' && (
+            <div className="p-3.5 rounded-xl bg-[#0131CD]/15 border border-[#0131CD]/45 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              <div className="flex items-start sm:items-center gap-2.5 text-[#FFFFFF]">
+                <Sparkles className="w-4 h-4 text-[#A6C957] shrink-0 mt-0.5 sm:mt-0" />
+                <span>
+                  <strong>Modo de Exemplo Ativo:</strong> Os participantes abaixo são apenas uma demonstração para você testar a roleta. Você pode limpar ou cadastrar sua própria lista quando quiser.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={onOpenParticipants}
+                className="px-3 py-1.5 rounded-lg bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-semibold whitespace-nowrap shrink-0 transition cursor-pointer"
+              >
+                Editar Lista de Participantes &rarr;
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* 1.5. Guia Rápido em 3 Passos — "Como Realizar seu Sorteio" */}
+      <section
+        aria-label="Passo a Passo do Sorteio"
+        className="p-5 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-4"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm sm:text-base font-bold text-[#FFFFFF]">
+              Roteiro Rápido: Como Realizar Seu Sorteio em 3 Passos
+            </h2>
+            <p className="text-xs text-[#A5B1C5]">
+              Siga a ordem abaixo para configurar, conferir os bilhetes e sortear o vencedor com segurança.
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#080D18] border border-[var(--gio-border-subtle)] text-xs font-semibold text-[#A6C957] tabular-nums self-start sm:self-auto">
+            <span>
+              Status: {hasEligibleTickets ? 'Pronto para sortear' : 'Aguardando participantes'}
+            </span>
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          {/* Passo 1 */}
+          <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex flex-col justify-between gap-3">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#FFFFFF]">
+                  <span className="w-5 h-5 rounded-md bg-[#0131CD] text-[#FFFFFF] text-[11px] font-bold inline-flex items-center justify-center tabular-nums">
+                    1
+                  </span>
+                  <span>Cadastrar Participantes</span>
+                </span>
+                <span
+                  className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${
+                    hasParticipants
+                      ? 'bg-[#A6C957]/15 text-[#A6C957]'
+                      : 'bg-[#111B30] text-[#A5B1C5]'
+                  }`}
+                >
+                  {hasParticipants ? `${totalParticipantsCount} inscritos` : 'Pendente'}
+                </span>
+              </div>
+              <p className="text-xs text-[#A5B1C5] leading-relaxed">
+                Adicione os nomes manualmente, cole uma lista ou importe uma planilha CSV com as moedas/cotas de cada participante.
+              </p>
+            </div>
             <button
               type="button"
-              onClick={onOpenTraditionalDraw}
-              className="gio-btn-primary btn-tactile inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-semibold text-[#FFFFFF] rounded-xl"
+              onClick={onOpenParticipants}
+              className="w-full py-2 px-3 rounded-lg bg-[#111B30] hover:bg-[#0131CD] text-xs font-semibold text-[#FFFFFF] border border-[var(--gio-border-subtle)] flex items-center justify-between transition cursor-pointer"
             >
-              <Play className="w-4 h-4 fill-current shrink-0" />
-              <span>Abrir Mesa de Sorteio</span>
+              <span>1. Ir para Participantes</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#A6C957]" />
             </button>
+          </div>
 
+          {/* Passo 2 */}
+          <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex flex-col justify-between gap-3">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#FFFFFF]">
+                  <span className="w-5 h-5 rounded-md bg-[#0131CD] text-[#FFFFFF] text-[11px] font-bold inline-flex items-center justify-center tabular-nums">
+                    2
+                  </span>
+                  <span>Conferir Bilhetes na Urna</span>
+                </span>
+                <span
+                  className={`text-[11px] font-semibold px-2 py-0.5 rounded-md tabular-nums ${
+                    hasEligibleTickets
+                      ? 'bg-[#A6C957]/15 text-[#A6C957]'
+                      : 'bg-[#111B30] text-[#A5B1C5]'
+                  }`}
+                >
+                  {traditionalEligibleTickets} elegíveis
+                </span>
+              </div>
+              <p className="text-xs text-[#A5B1C5] leading-relaxed">
+                O sistema calcula automaticamente os números da sorte de cada pessoa de acordo com a taxa ({settings.rate} moedas = 1 bilhete).
+              </p>
+            </div>
             <button
               type="button"
               onClick={onStartNewRaffleWizard}
-              className="btn-tactile inline-flex items-center justify-center gap-2 px-5 py-3.5 text-sm font-semibold text-[#FFFFFF] bg-[#080D18] hover:bg-white/[0.08] rounded-xl border border-[var(--gio-border-subtle)]"
+              className="w-full py-2 px-3 rounded-lg bg-[#111B30] hover:bg-[#0131CD] text-xs font-semibold text-[#FFFFFF] border border-[var(--gio-border-subtle)] flex items-center justify-between transition cursor-pointer"
             >
-              <Plus className="w-4 h-4 text-[#A5B1C5] shrink-0" />
-              <span>Criar Novo Sorteio</span>
+              <span>2. Ajustar Prêmio ou Regra</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#A6C957]" />
+            </button>
+          </div>
+
+          {/* Passo 3 */}
+          <div className="p-4 rounded-xl bg-[#080D18] border border-[#0131CD]/50 flex flex-col justify-between gap-3">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#FFFFFF]">
+                  <span className="w-5 h-5 rounded-md bg-[#A6C957] text-[#080D18] text-[11px] font-bold inline-flex items-center justify-center tabular-nums">
+                    3
+                  </span>
+                  <span>Sortear e Emitir Certificado</span>
+                </span>
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[#0131CD]/25 text-[#FFFFFF] tabular-nums">
+                  {hasWinners ? `${traditionalWinnersCount} sorteado(s)` : 'Pronto'}
+                </span>
+              </div>
+              <p className="text-xs text-[#A5B1C5] leading-relaxed">
+                Abra a Mesa de Sorteio Oficial para girar a Roleta, o Globo ou o Battle Royale e gerar o Cartão VIP do vencedor.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenTraditionalDraw}
+              className="w-full py-2 px-3 rounded-lg bg-[#0131CD] hover:brightness-110 text-xs font-bold text-[#FFFFFF] flex items-center justify-between transition cursor-pointer shadow-sm"
+            >
+              <span>3. Abrir Mesa de Sorteio</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#A6C957]" />
             </button>
           </div>
         </div>
       </section>
 
-      {/* 2. Structured Operational KPIs — Hierarquia e Clareza Visual */}
+      {/* 2. Indicadores Principais Explicados — Leitura Rápida */}
       <section aria-label="Indicadores Operacionais Chave" className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-xs font-semibold text-[#A5B1C5]">
-            Métricas do Sorteio Tradicional Ativo ({dataSourceLabel})
-          </h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm sm:text-base font-bold text-[#FFFFFF]">
+              Resumo dos Números em Tempo Real
+            </h2>
+            <p className="text-xs text-[#A5B1C5]">
+              Visão direta dos bilhetes, participantes, conexão com TikTok LIVE e status do seu plano ({dataSourceLabel}).
+            </p>
+          </div>
           <span className="text-xs text-[#A5B1C5] tabular-nums">
-            {formatDateTime(Date.now())}
+            Atualizado em {formatDateTime(Date.now())}
           </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* KPI 1: Bilhetes Emitidos do Sorteio Tradicional Ativo */}
           <div className="gio-card p-5 flex flex-col justify-between gap-3 animate-slide-up-fade stagger-1">
-            <div className="flex items-center justify-between text-[#A5B1C5]">
-              <span className="text-xs font-medium text-[#A5B1C5]">
-                Bilhetes Emitidos
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[#FFFFFF]">
+                Bilhetes Gerados
               </span>
-              <Ticket className="w-4 h-4 text-[#A6C957]" />
+              <div className="w-8 h-8 rounded-lg bg-[#0131CD]/20 border border-[#0131CD]/45 flex items-center justify-center">
+                <Ticket className="w-4 h-4 text-[#A6C957]" />
+              </div>
             </div>
             <div>
               <div
@@ -383,18 +557,29 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                 {totalTicketsIssued.toLocaleString('pt-BR')}
               </div>
               <p className="text-xs text-[#A5B1C5] mt-1 tabular-nums">
-                {traditionalEligibleTickets} elegíveis · {traditionalWinnersCount} sorteados
+                <strong className="text-[#A6C957]">{traditionalEligibleTickets}</strong> concorrendo agora ·{' '}
+                <strong className="text-[#FFFFFF]">{traditionalWinnersCount}</strong> já sorteados
               </p>
+              <button
+                type="button"
+                onClick={onOpenTraditionalDraw}
+                className="mt-2.5 text-xs font-semibold text-[#A6C957] hover:text-[#B5D477] inline-flex items-center gap-1 transition cursor-pointer"
+              >
+                <span>Ir para a urna de sorteio</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
 
           {/* KPI 2: Total de Participantes do Sorteio Tradicional Ativo */}
           <div className="gio-card p-5 flex flex-col justify-between gap-3 animate-slide-up-fade stagger-2">
-            <div className="flex items-center justify-between text-[#A5B1C5]">
-              <span className="text-xs font-medium text-[#A5B1C5]">
-                Participantes
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[#FFFFFF]">
+                Participantes na Lista
               </span>
-              <Users className="w-4 h-4 text-[#FFFFFF]" />
+              <div className="w-8 h-8 rounded-lg bg-[#0131CD]/20 border border-[#0131CD]/45 flex items-center justify-center">
+                <Users className="w-4 h-4 text-[#FFFFFF]" />
+              </div>
             </div>
             <div>
               <div
@@ -404,22 +589,32 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                 {totalParticipantsCount.toLocaleString('pt-BR')}
               </div>
               <p className="text-xs text-[#A5B1C5] mt-1 tabular-nums">
-                {traditionalParticipantsWithTicketsCount} com bilhetes · {dataSourceLabel}
+                <strong className="text-[#FFFFFF]">{traditionalParticipantsWithTicketsCount}</strong> participantes com bilhetes ativos
               </p>
+              <button
+                type="button"
+                onClick={onOpenParticipants}
+                className="mt-2.5 text-xs font-semibold text-[#A6C957] hover:text-[#B5D477] inline-flex items-center gap-1 transition cursor-pointer"
+              >
+                <span>Adicionar ou editar nomes</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
 
           {/* KPI 3: Status TikTok LIVE */}
           <div className="gio-card p-5 flex flex-col justify-between gap-3 animate-slide-up-fade stagger-3">
-            <div className="flex items-center justify-between text-[#A5B1C5]">
-              <span className="text-xs font-medium text-[#A5B1C5]">
-                TikTok LIVE
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[#FFFFFF]">
+                Transmissão TikTok LIVE
               </span>
-              <Radio
-                className={`w-4 h-4 ${
-                  liveConnectionState === 'CONNECTED' ? 'text-[#A6C957]' : 'text-[#A5B1C5]'
-                }`}
-              />
+              <div className="w-8 h-8 rounded-lg bg-[#A6C957]/15 border border-[#A6C957]/35 flex items-center justify-center">
+                <Radio
+                  className={`w-4 h-4 ${
+                    liveConnectionState === 'CONNECTED' ? 'text-[#A6C957]' : 'text-[#A5B1C5]'
+                  }`}
+                />
+              </div>
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -439,10 +634,13 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                   {liveDashboardStatusText}
                 </span>
               </div>
+              <p className="text-xs text-[#A5B1C5] mt-1">
+                Captura presentes da LIVE e cria bilhetes ao vivo.
+              </p>
               <button
                 type="button"
                 onClick={() => onOpenLivePro('feed')}
-                className="btn-tactile min-h-[36px] px-2.5 py-1.5 -ml-2.5 rounded-lg text-xs font-semibold text-[#A6C957] hover:text-[#B5D477] hover:bg-[#080D18]/60 inline-flex items-center gap-1 mt-1 transition-colors"
+                className="mt-2.5 text-xs font-semibold text-[#A6C957] hover:text-[#B5D477] inline-flex items-center gap-1 transition cursor-pointer"
               >
                 <span>{liveDashboardActionText}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -452,11 +650,13 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
           {/* KPI 4: Plano e Assinatura */}
           <div className="gio-card p-5 flex flex-col justify-between gap-3 animate-slide-up-fade stagger-4">
-            <div className="flex items-center justify-between text-[#A5B1C5]">
-              <span className="text-xs font-medium text-[#A5B1C5]">
-                Seu Plano
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[#FFFFFF]">
+                Sua Assinatura
               </span>
-              <Crown className={`w-4 h-4 ${isPro ? 'text-[#A6C957]' : 'text-[#FFFFFF]'}`} />
+              <div className="w-8 h-8 rounded-lg bg-[#A6C957]/15 border border-[#A6C957]/35 flex items-center justify-center">
+                <Crown className={`w-4 h-4 ${isPro ? 'text-[#A6C957]' : 'text-[#FFFFFF]'}`} />
+              </div>
             </div>
             <div>
               <div className="text-base font-bold text-[#FFFFFF] flex items-center gap-2">
@@ -466,12 +666,17 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                   <span className="text-[#FFFFFF]">Plano Gratuito (FREE)</span>
                 )}
               </div>
+              <p className="text-xs text-[#A5B1C5] mt-1">
+                {isPro
+                  ? 'Automação TikTok LIVE e Comentários liberados.'
+                  : 'Sorteios manuais e rifas tradicionais ilimitadas.'}
+              </p>
               <button
                 type="button"
                 onClick={onOpenSubscription}
-                className="btn-tactile min-h-[36px] px-2.5 py-1.5 -ml-2.5 rounded-lg text-xs font-semibold text-[#FFFFFF] hover:text-[#A6C957] hover:bg-[#080D18]/60 inline-flex items-center gap-1 mt-1 transition-colors"
+                className="mt-2.5 text-xs font-semibold text-[#A6C957] hover:text-[#B5D477] inline-flex items-center gap-1 transition cursor-pointer"
               >
-                <span>{isPro ? 'Gerenciar assinatura' : 'Testar PRO por 3 dias grátis'}</span>
+                <span>{isPro ? 'Gerenciar assinatura' : 'Conhecer recursos do PRO'}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -479,15 +684,17 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         </div>
       </section>
 
-      {/* 3. Módulos e Ferramentas Principais — 4 Modos Operacionais Bem Resolvidos */}
+      {/* 3. Módulos e Ferramentas Principais — "Qual modalidade você quer abrir?" */}
       <section aria-label="Ferramentas Operacionais" className="space-y-4">
-        <div>
-          <h2 className="text-base font-bold text-[#FFFFFF] tracking-tight">
-            Modalidades de Sorteio & Ferramentas
-          </h2>
-          <p className="text-xs text-[#A5B1C5] mt-0.5">
-            Selecione o motor de sorteio mais apropriado para sua transmissão ou evento.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 className="text-base font-bold text-[#FFFFFF] tracking-tight">
+              Escolha a Modalidade de Sorteio ou Ferramenta
+            </h2>
+            <p className="text-xs text-[#A5B1C5] mt-0.5">
+              Cada card abaixo explica exatamente quando usar cada ferramenta da plataforma.
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -501,29 +708,32 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               if (e.key === 'Enter' || e.key === ' ') onOpenTraditionalDraw();
             }}
           >
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               <div className="flex items-center justify-between">
                 <div className="w-11 h-11 rounded-xl bg-[#0131CD]/20 border border-[#0131CD]/40 flex items-center justify-center text-[#FFFFFF]">
-                  <Sparkles className="w-5 h-5" />
+                  <Sparkles className="w-5 h-5 text-[#A6C957]" />
                 </div>
                 <span className="gio-badge-free">Gratuito</span>
               </div>
               <div>
-                <h3 className="text-base font-bold text-[#FFFFFF] group-hover:text-[#A6C957] transition-colors">
+                <span className="text-[11px] font-semibold text-[#A6C957] block">
+                  Rifas e Listas Manuais / CSV
+                </span>
+                <h3 className="text-base font-bold text-[#FFFFFF] group-hover:text-[#A6C957] transition-colors mt-0.5">
                   Mesa de Sorteio Oficial
                 </h3>
                 <p className="text-xs text-[#A5B1C5] mt-1.5 leading-relaxed">
-                  Globo Digital, Roleta Proporcional e Battle Royale com validação criptográfica SHA-256.
+                  Use para sortear entre os participantes cadastrados usando Roleta, Globo Digital ou Battle Royale.
                 </p>
               </div>
             </div>
-            <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between">
+            <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between">
               <span className="text-xs font-semibold text-[#FFFFFF] group-hover:text-[#A6C957] inline-flex items-center gap-1 transition-colors">
                 <span>Abrir mesa</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </span>
               <span className="text-[11px] text-[#A5B1C5] tabular-nums">
-                {computed.eligibleTickets.length} elegíveis
+                {computed.eligibleTickets.length} bilhetes
               </span>
             </div>
           </div>
@@ -538,7 +748,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               if (e.key === 'Enter' || e.key === ' ') onOpenLivePro('feed');
             }}
           >
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               <div className="flex items-center justify-between">
                 <div className="w-11 h-11 rounded-xl bg-[#A6C957]/15 border border-[#A6C957]/35 flex items-center justify-center text-[#A6C957]">
                   <Radio className="w-5 h-5" />
@@ -549,17 +759,20 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                 </span>
               </div>
               <div>
-                <h3 className="text-base font-bold text-[#FFFFFF] group-hover:text-[#A6C957] transition-colors">
+                <span className="text-[11px] font-semibold text-[#A6C957] block">
+                  Automação em Tempo Real na LIVE
+                </span>
+                <h3 className="text-base font-bold text-[#FFFFFF] group-hover:text-[#A6C957] transition-colors mt-0.5">
                   Sorteio por Presentes LIVE
                 </h3>
                 <p className="text-xs text-[#A5B1C5] mt-1.5 leading-relaxed">
-                  Conecte sua transmissão, capture presentes ao vivo e converta moedas em bilhetes imediatos.
+                  Use durante sua transmissão no TikTok para transformar presentes e moedas em bilhetes automaticamente.
                 </p>
               </div>
             </div>
-            <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between">
+            <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between">
               <span className="text-xs font-semibold text-[#A6C957] inline-flex items-center gap-1">
-                <span>Painel da LIVE</span>
+                <span>Abrir TikTok LIVE</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </span>
               <span className="text-[11px] text-[#A5B1C5] tabular-nums">
@@ -581,7 +794,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               if (e.key === 'Enter' || e.key === ' ') handleCommentsSorterAccess();
             }}
           >
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               <div className="flex items-center justify-between">
                 <div className="w-11 h-11 rounded-xl bg-[#0131CD]/20 border border-[#0131CD]/40 flex items-center justify-center text-[#FFFFFF]">
                   <MessageSquare className="w-5 h-5" />
@@ -589,15 +802,18 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                 <ProFeatureBadge isPro={isPro} />
               </div>
               <div>
-                <h3 className="text-base font-bold text-[#FFFFFF] group-hover:text-[#A6C957] transition-colors">
+                <span className="text-[11px] font-semibold text-[#A6C957] block">
+                  Interação pelo Chat da Transmissão
+                </span>
+                <h3 className="text-base font-bold text-[#FFFFFF] group-hover:text-[#A6C957] transition-colors mt-0.5">
                   Sorteador de Comentários
                 </h3>
                 <p className="text-xs text-[#A5B1C5] mt-1.5 leading-relaxed">
-                  Filtre por palavras-chave, @arrobas e selecione vencedores com transparência total.
+                  Use para sortear espectadores que digitarem uma palavra-chave ou comentarem no chat ao vivo.
                 </p>
               </div>
             </div>
-            <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between">
+            <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between">
               <span className="text-xs font-semibold text-[#A6C957] inline-flex items-center gap-1">
                 <span>{isPro ? 'Abrir sorteador' : 'Desbloquear no PRO'}</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
@@ -618,7 +834,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               if (e.key === 'Enter' || e.key === ' ') onOpenParticipants();
             }}
           >
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               <div className="flex items-center justify-between">
                 <div className="w-11 h-11 rounded-xl bg-[#0131CD]/20 border border-[#0131CD]/40 flex items-center justify-center text-[#FFFFFF]">
                   <Search className="w-5 h-5" />
@@ -628,17 +844,20 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                 </span>
               </div>
               <div>
-                <h3 className="text-base font-bold text-[#FFFFFF] group-hover:text-[#A6C957] transition-colors">
+                <span className="text-[11px] font-semibold text-[#A6C957] block">
+                  Cadastro de Nomes e Busca de Bilhetes
+                </span>
+                <h3 className="text-base font-bold text-[#FFFFFF] group-hover:text-[#A6C957] transition-colors mt-0.5">
                   Participantes & Cotas
                 </h3>
                 <p className="text-xs text-[#A5B1C5] mt-1.5 leading-relaxed">
-                  Cadastre participantes, importe arquivos CSV e consulte bilhetes em segundos.
+                  Use para adicionar pessoas, ajustar a quantidade de moedas e consultar quais bilhetes cada um recebeu.
                 </p>
               </div>
             </div>
-            <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between">
+            <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between">
               <span className="text-xs font-semibold text-[#FFFFFF] group-hover:text-[#A6C957] inline-flex items-center gap-1 transition-colors">
-                <span>Gerenciar cotas</span>
+                <span>Gerenciar lista</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </span>
               <span className="text-[11px] text-[#A5B1C5]">
@@ -661,27 +880,40 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               <div className="w-8 h-8 rounded-lg bg-[#A6C957]/15 border border-[#A6C957]/35 flex items-center justify-center text-[#A6C957]">
                 <Trophy className="w-4 h-4" />
               </div>
-              <h3 className="text-base font-bold text-[#FFFFFF]">
-                Últimos Ganhadores Registrados
-              </h3>
+              <div>
+                <h3 className="text-base font-bold text-[#FFFFFF]">
+                  Últimos Ganhadores Sorteados
+                </h3>
+                <p className="text-[11px] text-[#A5B1C5]">
+                  Histórico de premiados da sessão atual com acesso ao Cartão VIP
+                </p>
+              </div>
             </div>
             <button
               type="button"
               onClick={onOpenReports}
-              className="btn-tactile min-h-[36px] px-2.5 py-1.5 rounded-lg inline-flex items-center text-xs font-semibold text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]/60 transition-colors"
+              className="btn-tactile min-h-[36px] px-2.5 py-1.5 rounded-lg inline-flex items-center text-xs font-semibold text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]/60 transition-colors cursor-pointer"
             >
               Ver relatórios completos &rarr;
             </button>
           </div>
 
           {winners.length === 0 ? (
-            <div className="py-8 px-6 rounded-xl bg-[#080D18] border border-white/5 text-center space-y-2">
+            <div className="py-8 px-6 rounded-xl bg-[#080D18] border border-white/5 text-center space-y-3">
               <p className="text-sm font-semibold text-[#FFFFFF]">
-                Nenhum ganhador registrado na sessão atual
+                Ainda não há ganhadores sorteados nesta sessão
               </p>
               <p className="text-xs text-[#A5B1C5] max-w-md mx-auto">
-                Abra a Mesa de Sorteio acima para realizar o primeiro sorteio auditado e emitir o certificado.
+                Assim que você realizar um sorteio na Mesa Oficial, o nome do vencedor, o bilhete premiado e o Cartão VIP aparecerão aqui.
               </p>
+              <button
+                type="button"
+                onClick={onOpenTraditionalDraw}
+                className="px-4 py-2 rounded-xl bg-[#0131CD] hover:brightness-110 text-xs font-semibold text-[#FFFFFF] inline-flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <Play className="w-3.5 h-3.5 text-[#A6C957] fill-[#A6C957]" />
+                <span>Ir para a Mesa de Sorteio</span>
+              </button>
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -704,7 +936,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                   <button
                     type="button"
                     onClick={() => onOpenVictoryCard(w)}
-                    className="min-h-[36px] px-3 py-1.5 rounded-lg bg-[#111B30] hover:bg-[#0131CD] text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[#0131CD] text-xs font-semibold inline-flex items-center justify-center shrink-0 transition-all"
+                    className="min-h-[36px] px-3 py-1.5 rounded-lg bg-[#111B30] hover:bg-[#0131CD] text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[#0131CD] text-xs font-semibold inline-flex items-center justify-center shrink-0 transition-all cursor-pointer"
                   >
                     Cartão VIP
                   </button>
@@ -722,11 +954,11 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           <div className="flex items-center justify-between gap-2 pb-3.5 border-b border-white/[0.08]">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-[#0131CD]/20 border border-[#0131CD]/40 flex items-center justify-center text-[#FFFFFF]">
-                <Radio className="w-4 h-4" />
+                <Radio className="w-4 h-4 text-[#A6C957]" />
               </div>
               <div>
                 <h3 className="text-base font-bold text-[#FFFFFF]">
-                  Transmissões TikTok LIVE
+                  Suas Transmissões TikTok LIVE
                 </h3>
                 <p className="text-[11px] text-[#A5B1C5] tabular-nums">
                   {authorizedLiveSessions.length} sessões · {liveTicketsTotal} bilhetes LIVE · {liveSupportersTotal} apoiadores
@@ -736,20 +968,28 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             <button
               type="button"
               onClick={() => onOpenLivePro('motor1')}
-              className="btn-tactile min-h-[36px] px-2.5 py-1.5 rounded-lg inline-flex items-center text-xs font-semibold text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]/60 transition-colors"
+              className="btn-tactile min-h-[36px] px-2.5 py-1.5 rounded-lg inline-flex items-center text-xs font-semibold text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]/60 transition-colors cursor-pointer"
             >
               Gerenciar &rarr;
             </button>
           </div>
 
           {authorizedLiveSessions.length === 0 ? (
-            <div className="py-8 px-6 rounded-xl bg-[#080D18] border border-white/5 text-center space-y-2">
+            <div className="py-8 px-6 rounded-xl bg-[#080D18] border border-white/5 text-center space-y-3">
               <p className="text-sm font-semibold text-[#FFFFFF]">
                 Nenhuma transmissão registrada na sua conta
               </p>
               <p className="text-xs text-[#A5B1C5] max-w-sm mx-auto">
-                Conecte uma LIVE no módulo TikTok LIVE PRO para visualizar as coletas de moedas e presentes da sua conta aqui.
+                Ao conectar uma transmissão no módulo TikTok LIVE, as moedas e os bilhetes gerados pelos apoiadores aparecerão aqui.
               </p>
+              <button
+                type="button"
+                onClick={() => onOpenLivePro('feed')}
+                className="px-4 py-2 rounded-xl bg-[#111B30] hover:bg-[#0131CD] text-xs font-semibold text-[#FFFFFF] border border-[var(--gio-border-subtle)] inline-flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <Radio className="w-3.5 h-3.5 text-[#A6C957]" />
+                <span>Abrir Módulo TikTok LIVE</span>
+              </button>
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -759,7 +999,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                   className="p-3.5 rounded-xl bg-[#080D18] border border-white/5 hover:border-white/10 flex items-center justify-between gap-3 transition-colors"
                 >
                   <div className="min-w-0">
-                    <div className="font-bold text-[#FFFFFF] text-sm truncate">
+                    <div className="font-mono font-bold text-[#FFFFFF] text-sm truncate">
                       @{sess.username}
                     </div>
                     <div className="text-xs text-[#A5B1C5] tabular-nums mt-0.5">

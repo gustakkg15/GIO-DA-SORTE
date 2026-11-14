@@ -20,8 +20,13 @@ import {
   Check,
   Link2,
   Unlink,
+  Crown,
+  CreditCard,
+  Copy,
+  Database,
+  FileText,
+  ChevronRight,
 } from 'lucide-react';
-import { UserProfile } from './UserProfile';
 import {
   auth,
   googleProvider,
@@ -39,7 +44,14 @@ import {
   EmailAuthProvider,
   User as FirebaseUser,
 } from '../firebase';
-import { RaffleSettings, Participant, Winner, LegalDocumentSlug } from '../types';
+import {
+  RaffleSettings,
+  Participant,
+  Winner,
+  LegalDocumentSlug,
+  ProPlanEntitlement,
+} from '../types';
+import type { ProfileWorkspaceSectionId } from '../utils/userProfileWorkspaceUtils';
 import {
   evaluatePassphrase,
   getGenericAuthErrorMessage,
@@ -62,11 +74,26 @@ interface AccountModalProps {
   settings: RaffleSettings;
   participants: Participant[];
   winners: Winner[];
+  proEntitlement?: ProPlanEntitlement;
   onOpenLegalDocument?: (slug: LegalDocumentSlug) => void;
   onOpenProfileWorkspace?: () => void;
+  onOpenProfileSection?: (section: ProfileWorkspaceSectionId) => void;
 }
 
 type AuthViewMode = 'login' | 'register' | 'forgot_password';
+type AccountLogicalSubsection = 'all' | 'dados_pessoais' | 'privacidade_dados' | 'seguranca' | 'assinatura';
+
+const ACCOUNT_LOGICAL_SUBSECTIONS: {
+  id: AccountLogicalSubsection;
+  label: string;
+  shortLabel: string;
+}[] = [
+  { id: 'all', label: 'Todas as Seções', shortLabel: 'Todas' },
+  { id: 'dados_pessoais', label: 'Dados Pessoais', shortLabel: 'Dados Pessoais' },
+  { id: 'privacidade_dados', label: 'Privacidade & Dados', shortLabel: 'Privacidade & Dados' },
+  { id: 'seguranca', label: 'Segurança', shortLabel: 'Segurança' },
+  { id: 'assinatura', label: 'Assinatura', shortLabel: 'Assinatura' },
+];
 
 export const AccountModal: React.FC<AccountModalProps> = ({
   isOpen,
@@ -75,17 +102,28 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   syncStatus,
   onSaveToCloud,
   onLoadFromCloud,
+  settings,
+  participants,
+  winners,
+  proEntitlement,
   onOpenLegalDocument,
   onOpenProfileWorkspace,
+  onOpenProfileSection,
 }) => {
   const [viewMode, setViewMode] = useState<AuthViewMode>('login');
+  const [activeSubsection, setActiveSubsection] = useState<AccountLogicalSubsection>('all');
   const [acceptedTermsOnRegister, setAcceptedTermsOnRegister] = useState(false);
+  const [copiedAccountUid, setCopiedAccountUid] = useState(false);
 
   // Form Fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Quick Inline Personal Data Editing (Dados Pessoais)
+  const [isEditingPersonalName, setIsEditingPersonalName] = useState(false);
+  const [personalNameDraft, setPersonalNameDraft] = useState('');
 
   // Sensitive Step-Up Action State (Password Change)
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -755,39 +793,94 @@ export const AccountModal: React.FC<AccountModalProps> = ({
     }
   };
 
+  // 9. Quick Inline Display Name Update inside "Dados Pessoais"
+  const handleSavePersonalName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    const cleanName = personalNameDraft.trim();
+    if (!cleanName) {
+      setErrorMsg('Informe um nome de exibição válido para o seu perfil.');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      await updateProfile(currentUser, { displayName: cleanName });
+      setIsEditingPersonalName(false);
+      setSuccessMsg('Nome de exibição atualizado com sucesso nos seus Dados Pessoais!');
+      setTimeout(() => setSuccessMsg(null), 3500);
+    } catch (err) {
+      const genericMsg = getGenericAuthErrorMessage(err, 'sensitive');
+      setErrorMsg(genericMsg || 'Não foi possível atualizar o nome de exibição.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const registrationPassEvaluation = evaluatePassphrase(password);
+  const isProTier = Boolean(proEntitlement?.active && proEntitlement?.tier === 'PRO');
+
+  const showPersonalSection =
+    activeSubsection === 'all' || activeSubsection === 'dados_pessoais';
+  const showPrivacyDataSection =
+    activeSubsection === 'all' || activeSubsection === 'privacidade_dados';
+  const showSecuritySection =
+    activeSubsection === 'all' || activeSubsection === 'seguranca';
+  const showSubscriptionSection =
+    activeSubsection === 'all' || activeSubsection === 'assinatura';
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="account-modal-title"
-      className="fixed inset-0 z-[60] bg-[#080D18]/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+      className="fixed inset-0 z-[60] bg-[#080D18]/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in font-sans"
     >
       <div
         ref={modalContainerRef}
-        className="bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-slide-up my-8"
+        className={`relative overflow-hidden bg-[#111B30] border border-[#0131CD]/50 rounded-2xl w-full p-5 sm:p-6 shadow-2xl space-y-5 animate-slide-up my-8 text-[#FFFFFF] ${
+          currentUser ? 'max-w-2xl' : 'max-w-lg'
+        }`}
       >
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#0131CD] via-[#0131CD] to-[#A6C957]" />
+
         {/* Header with Official Logo */}
-        <div className="flex items-center justify-between pb-3 border-b border-[var(--gio-border-subtle)]">
-          <div className="flex items-center gap-2.5">
+        <div className="flex items-center justify-between pb-3.5 border-b border-[var(--gio-border-subtle)]">
+          <div className="flex items-center gap-3 min-w-0">
             <img
               src="/logo.png"
               alt="Logotipo Oficial GIO DA SORTE"
-              className="w-10 h-10 rounded-xl object-cover border border-[#0131CD]/45 shrink-0 shadow-[0_4px_12px_rgba(1,49,205,0.3)]"
+              className="w-10 h-10 rounded-xl object-cover border border-[#0131CD]/55 shrink-0 shadow-[0_4px_14px_rgba(1,49,205,0.35)]"
             />
-            <div>
-              <h2 id="account-modal-title" className="font-bold text-base sm:text-lg text-[#FFFFFF]">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 id="account-modal-title" className="font-bold text-base sm:text-lg text-[#FFFFFF] tracking-tight truncate">
+                  {currentUser
+                    ? 'Minha Conta — GIO DA SORTE PRO'
+                    : viewMode === 'login'
+                    ? 'Entrar no GIO DA SORTE'
+                    : viewMode === 'register'
+                    ? 'Criar Conta — GIO DA SORTE'
+                    : 'Recuperação de Acesso'}
+                </h2>
+                {currentUser && (
+                  <span
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold border whitespace-nowrap shrink-0 ${
+                      isProTier
+                        ? 'bg-[#A6C957]/15 text-[#A6C957] border-[#A6C957]/40'
+                        : 'bg-[#0131CD]/25 text-[#FFFFFF] border-[#0131CD]/55'
+                    }`}
+                  >
+                    {isProTier ? 'PRO ATIVO' : 'PLANO FREE'}
+                  </span>
+                )}
+              </div>
+              <span className="text-[11px] text-[#A5B1C5] block mt-0.5 truncate">
                 {currentUser
-                  ? 'Minha Conta — GIO DA SORTE'
-                  : viewMode === 'login'
-                  ? 'Entrar no GIO DA SORTE'
-                  : viewMode === 'register'
-                  ? 'Criar Conta — GIO DA SORTE'
-                  : 'Recuperação de Acesso'}
-              </h2>
-              <span className="text-[11px] text-[#A5B1C5] block">
-                {currentUser ? 'Perfil Seguro & Sincronização em Nuvem' : 'Acesso autenticado e protegido'}
+                  ? 'Dados Pessoais · Privacidade & Dados · Segurança · Assinatura'
+                  : 'Autenticação segura com proteção criptográfica'}
               </span>
             </div>
           </div>
@@ -795,7 +888,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Fechar modal"
-            className="p-1.5 text-[#A5B1C5] hover:text-[#FFFFFF] rounded-lg transition hover:bg-[#080D18] focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40"
+            className="p-1.5 text-[#A5B1C5] hover:text-[#FFFFFF] rounded-lg transition hover:bg-[#080D18] focus:outline-none focus:border-[#0131CD] focus:ring-2 focus:ring-[#0131CD]/40 shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -824,321 +917,666 @@ export const AccountModal: React.FC<AccountModalProps> = ({
           </div>
         )}
 
-        {/* LOGGED IN USER VIEW */}
+        {/* LOGGED IN USER VIEW — DIVIDED INTO 4 LOGICAL SUBSECTIONS */}
         {currentUser ? (
           <div className="space-y-4">
-            {/* User Profile Card */}
-            <div className="bg-[#080D18] border border-[var(--gio-border-subtle)] p-4 rounded-xl flex items-center gap-3.5">
-              {currentUser.photoURL ? (
-                <img
-                  src={currentUser.photoURL}
-                  alt={currentUser.displayName || 'Avatar do usuário'}
-                  referrerPolicy="no-referrer"
-                  className="w-12 h-12 rounded-full border-2 border-[#0131CD]/50 shadow-md object-cover"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0131CD] to-[#0131CD] text-[#FFFFFF] font-bold flex items-center justify-center text-lg border border-[#0131CD]/40">
-                  {currentUser.displayName ? currentUser.displayName[0].toUpperCase() : 'S'}
-                </div>
-              )}
+            {/* Segmented Filter Navigation Bar for the 4 Logical Subsections */}
+            <div
+              role="tablist"
+              aria-label="Subseções da Conta"
+              className="flex items-center gap-1 p-1.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] overflow-x-auto"
+            >
+              {ACCOUNT_LOGICAL_SUBSECTIONS.map((sub) => {
+                const isActive = activeSubsection === sub.id;
+                return (
+                  <button
+                    key={sub.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => {
+                      setActiveSubsection(sub.id);
+                      setErrorMsg(null);
+                    }}
+                    className={`min-h-[34px] px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition cursor-pointer ${
+                      isActive
+                        ? 'bg-[#0131CD] text-[#FFFFFF] border border-[#A6C957]/40 shadow-sm'
+                        : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#111B30] border border-transparent'
+                    }`}
+                  >
+                    {sub.shortLabel}
+                  </button>
+                );
+              })}
+            </div>
 
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-[#FFFFFF] text-base truncate">
-                    {currentUser.displayName || 'Sorteador Autenticado'}
-                  </span>
-                </div>
-                <div className="text-xs text-[#A5B1C5] truncate">{currentUser.email}</div>
-                <div className="flex items-center gap-2 mt-1">
-                  {currentUser.emailVerified ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] text-[#A6C957] font-semibold bg-[#A6C957]/15 border border-[#A6C957]/40 px-2 py-0.5 rounded-full">
-                      <Check className="w-3 h-3" /> E-mail Verificado
-                    </span>
-                  ) : (
+            {/* ===============================================================
+                SUBSEÇÃO 1: DADOS PESSOAIS
+            =============================================================== */}
+            {showPersonalSection && (
+              <section
+                aria-label="Dados Pessoais"
+                className="bg-[#080D18] border border-[#0131CD]/40 p-4 rounded-xl space-y-3.5"
+              >
+                <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-[var(--gio-border-subtle)]">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-[#0131CD]/25 border border-[#0131CD]/55 flex items-center justify-center shrink-0">
+                      <User className="w-3.5 h-3.5 text-[#A6C957]" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-xs sm:text-sm font-bold text-[#FFFFFF] truncate">
+                        Dados Pessoais
+                      </h3>
+                      <p className="text-[11px] text-[#A5B1C5] truncate">
+                        Identidade do organizador, e-mail autenticado e UID exclusivo
+                      </p>
+                    </div>
+                  </div>
+                  {(onOpenProfileSection || onOpenProfileWorkspace) && (
                     <button
                       type="button"
-                      onClick={handleSendVerificationEmail}
-                      disabled={loading}
-                      className="inline-flex items-center gap-1 text-[11px] text-[#A6C957] hover:brightness-110 font-semibold bg-[#A6C957]/15 border border-[#A6C957]/40 px-2 py-0.5 rounded-full transition"
+                      onClick={() =>
+                        onOpenProfileSection
+                          ? onOpenProfileSection('profile')
+                          : onOpenProfileWorkspace?.()
+                      }
+                      className="px-2.5 py-1 rounded-lg bg-[#111B30] hover:bg-[#0131CD] text-[11px] font-semibold text-[#FFFFFF] border border-[var(--gio-border-subtle)] flex items-center gap-1 transition shrink-0 whitespace-nowrap cursor-pointer"
                     >
-                      <ShieldAlert className="w-3 h-3" /> Verificar E-mail
+                      <span>Editar Perfil</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-[#A6C957]" />
                     </button>
                   )}
                 </div>
-              </div>
 
-              <button
-                type="button"
-                onClick={handleSignOut}
-                disabled={loading}
-                title="Desconectar da conta"
-                aria-label="Desconectar da conta"
-                className="p-2 text-[#A5B1C5] hover:text-[#F05262] hover:bg-[#111B30] rounded-lg transition"
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Cloud Sync Status */}
-            <div className="bg-[#080D18] border border-[#0131CD]/40 rounded-xl p-3.5 text-xs text-[#FFFFFF] flex items-start gap-2.5">
-              <Cloud className="w-4 h-4 text-[#A6C957] shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold text-[#FFFFFF] block">Sincronização Segura em Nuvem</span>
-                <span className="text-[#A5B1C5]">
-                  Seus participantes e configurações são salvos com controle de acesso exclusivo para a sua conta.
-                </span>
-              </div>
-            </div>
-
-            {/* Cloud Actions */}
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                disabled={loading}
-                onClick={handleManualSave}
-                className="py-2.5 px-3 rounded-xl bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-[#0131CD]/30 active:scale-95 disabled:opacity-50"
-              >
-                <Cloud className="w-4 h-4" />
-                <span>Salvar na Nuvem</span>
-              </button>
-
-              <button
-                type="button"
-                disabled={loading}
-                onClick={handleManualLoad}
-                className="py-2.5 px-3 rounded-xl bg-[#080D18] hover:bg-[#111B30] text-[#FFFFFF] font-bold text-xs flex items-center justify-center gap-1.5 transition border border-[var(--gio-border-subtle)] active:scale-95 disabled:opacity-50"
-              >
-                <RefreshCw className="w-4 h-4 text-[#A6C957]" />
-                <span>Recarregar da Nuvem</span>
-              </button>
-            </div>
-
-            {/* Phase 11: Linked TikTok Identity Management (Flow 2 Link & Unlink) */}
-            <div className="bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl p-3.5 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Link2 className="w-4 h-4 text-[#A6C957]" />
-                  <span className="text-xs font-bold text-[#FFFFFF]">
-                    Identidade TikTok OAuth 2.0
-                  </span>
-                </div>
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
-                    linkedTikTokProfile.linked
-                      ? 'bg-[#A6C957]/15 text-[#A6C957] border-[#A6C957]/40'
-                      : 'bg-[#111B30] text-[#A5B1C5] border-[var(--gio-border-subtle)]'
-                  }`}
-                >
-                  {linkedTikTokProfile.linked ? 'VINCULADA' : 'NÃO VINCULADA'}
-                </span>
-              </div>
-
-              {linkedTikTokProfile.linked ? (
-                <div className="space-y-2.5">
-                  <div className="bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-lg p-2.5 flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-[#FFFFFF] truncate">
-                        {linkedTikTokProfile.displayName || 'Criador TikTok'}
-                        {linkedTikTokProfile.username
-                          ? ` (@${linkedTikTokProfile.username.replace(/^@/, '')})`
-                          : ''}
-                      </div>
-                      <div className="text-[11px] text-[#A5B1C5] truncate">
-                        open_id verificado • Escopo: {linkedTikTokProfile.scope || 'user.info.basic'}
-                      </div>
+                <div className="flex items-start sm:items-center gap-3.5">
+                  {currentUser.photoURL ? (
+                    <img
+                      src={currentUser.photoURL}
+                      alt={currentUser.displayName || 'Avatar do usuário'}
+                      referrerPolicy="no-referrer"
+                      className="w-14 h-14 rounded-2xl border-2 border-[#0131CD] shadow-md object-cover shrink-0 bg-[#111B30]"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-2xl bg-[#0131CD] text-[#FFFFFF] font-bold flex items-center justify-center text-lg border border-[#A6C957]/45 shrink-0">
+                      {currentUser.displayName ? currentUser.displayName[0].toUpperCase() : 'G'}
                     </div>
+                  )}
+
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-bold text-[#FFFFFF] text-sm sm:text-base truncate">
+                        {currentUser.displayName || settings.organizerName || 'Sorteador Autenticado'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPersonalNameDraft(
+                            currentUser.displayName || settings.organizerName || ''
+                          );
+                          setIsEditingPersonalName((prev) => !prev);
+                        }}
+                        className="text-[11px] font-semibold text-[#A6C957] hover:text-[#FFFFFF] transition whitespace-nowrap shrink-0 cursor-pointer"
+                      >
+                        {isEditingPersonalName ? 'Cancelar edição' : 'Alterar nome'}
+                      </button>
+                    </div>
+
+                    <div className="text-xs text-[#A5B1C5] truncate">
+                      {currentUser.email || 'Autenticado via OAuth'}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      {currentUser.emailVerified ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-[#A6C957] font-semibold bg-[#A6C957]/15 border border-[#A6C957]/40 px-2 py-0.5 rounded-md">
+                          <Check className="w-3 h-3" /> E-mail Verificado
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleSendVerificationEmail}
+                          disabled={loading}
+                          className="inline-flex items-center gap-1 text-[11px] text-[#A6C957] hover:brightness-110 font-semibold bg-[#A6C957]/15 border border-[#A6C957]/40 px-2 py-0.5 rounded-md transition cursor-pointer"
+                        >
+                          <ShieldAlert className="w-3 h-3" /> Verificar E-mail
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard?.writeText(currentUser.uid);
+                          setCopiedAccountUid(true);
+                          setTimeout(() => setCopiedAccountUid(false), 2000);
+                        }}
+                        className="inline-flex items-center gap-1 text-[11px] font-mono text-[#A5B1C5] hover:text-[#FFFFFF] bg-[#111B30] border border-[var(--gio-border-subtle)] px-2 py-0.5 rounded-md transition cursor-pointer"
+                        title="Copiar identificador único Firebase UID"
+                      >
+                        <Copy className="w-3 h-3 text-[#A6C957]" />
+                        <span>
+                          {copiedAccountUid
+                            ? 'UID Copiado!'
+                            : `UID: ${currentUser.uid.slice(0, 10)}...`}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Inline Name Editor inside Dados Pessoais */}
+                {isEditingPersonalName && (
+                  <form
+                    onSubmit={handleSavePersonalName}
+                    className="pt-2.5 border-t border-[var(--gio-border-subtle)] flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
+                  >
+                    <input
+                      type="text"
+                      value={personalNameDraft}
+                      onChange={(e) => setPersonalNameDraft(e.target.value)}
+                      placeholder="Nome de exibição do canal ou organizador"
+                      className="flex-1 px-3 py-2 text-xs bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-lg text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#0131CD] focus:ring-2 focus:ring-[#0131CD]/40"
+                    />
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="px-3.5 py-2 rounded-lg bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] text-xs font-semibold transition whitespace-nowrap shrink-0 disabled:opacity-50 cursor-pointer"
+                    >
+                      Salvar Nome
+                    </button>
+                  </form>
+                )}
+              </section>
+            )}
+
+            {/* ===============================================================
+                SUBSEÇÃO 2: PRIVACIDADE & DADOS
+            =============================================================== */}
+            {showPrivacyDataSection && (
+              <section
+                aria-label="Privacidade & Dados"
+                className="bg-[#080D18] border border-[var(--gio-border-subtle)] p-4 rounded-xl space-y-3.5"
+              >
+                <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-[var(--gio-border-subtle)]">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-[#0131CD]/25 border border-[#0131CD]/55 flex items-center justify-center shrink-0">
+                      <Database className="w-3.5 h-3.5 text-[#A6C957]" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-xs sm:text-sm font-bold text-[#FFFFFF] truncate">
+                        Privacidade & Dados
+                      </h3>
+                      <p className="text-[11px] text-[#A5B1C5] truncate">
+                        Sincronização Firestore por UID, backup de sorteios e direitos LGPD
+                      </p>
+                    </div>
+                  </div>
+                  {(onOpenProfileSection || onOpenProfileWorkspace) && (
                     <button
                       type="button"
-                      disabled={tiktokLoading || loading}
-                      onClick={handleUnlinkTikTok}
-                      className="px-2.5 py-1.5 rounded-lg bg-[#F05262]/15 hover:bg-[#F05262]/25 border border-[#F05262]/40 text-[#F05262] text-[11px] font-bold flex items-center gap-1 transition shrink-0 disabled:opacity-50"
+                      onClick={() =>
+                        onOpenProfileSection
+                          ? onOpenProfileSection('privacy')
+                          : onOpenProfileWorkspace?.()
+                      }
+                      className="px-2.5 py-1 rounded-lg bg-[#111B30] hover:bg-[#0131CD] text-[11px] font-semibold text-[#FFFFFF] border border-[var(--gio-border-subtle)] flex items-center gap-1 transition shrink-0 whitespace-nowrap cursor-pointer"
                     >
-                      <Unlink className="w-3.5 h-3.5" />
-                      <span>Desconectar TikTok</span>
+                      <span>Central LGPD</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-[#A6C957]" />
                     </button>
-                  </div>
-                  <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
-                    Desconectar o TikTok revoga os tokens OAuth sem excluir sua conta GIO nem interromper sorteios ou workers de LIVE ativos.
-                  </p>
+                  )}
                 </div>
-              ) : !showLinkStepUpModal ? (
-                <div className="space-y-2">
-                  <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
-                    Vincule sua conta oficial do TikTok a esta conta GIO para entrar com 1 clique mantendo seus sorteios e plano.
-                  </p>
+
+                {/* 3-Card Account & Raffle Data Telemetry Strip */}
+                <div className="grid grid-cols-3 gap-2 text-center tabular-nums">
+                  <div className="p-2.5 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)]">
+                    <span className="text-[10px] font-medium text-[#A5B1C5] block">Participantes</span>
+                    <span className="text-sm font-bold text-[#FFFFFF]">
+                      {participants.length.toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)]">
+                    <span className="text-[10px] font-medium text-[#A5B1C5] block">Ganhadores</span>
+                    <span className="text-sm font-bold text-[#A6C957]">
+                      {winners.length.toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)]">
+                    <span className="text-[10px] font-medium text-[#A5B1C5] block">Estado Nuvem</span>
+                    <span className="text-xs font-bold text-[#A6C957]">
+                      {syncStatus === 'saving'
+                        ? 'Salvando...'
+                        : syncStatus === 'error'
+                        ? 'Atenção'
+                        : 'Sincronizado'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Cloud Sync Actions */}
+                <div className="grid grid-cols-2 gap-2.5">
                   <button
                     type="button"
-                    disabled={tiktokLoading || loading}
-                    onClick={() => {
-                      setShowLinkStepUpModal(true);
-                      setErrorMsg(null);
-                    }}
-                    className="w-full py-2 px-3 rounded-lg bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                    disabled={loading}
+                    onClick={handleManualSave}
+                    className="py-2.5 px-3 rounded-xl bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-semibold text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-[#0131CD]/25 active:scale-95 disabled:opacity-50 cursor-pointer"
                   >
-                    <Link2 className="w-3.5 h-3.5" />
-                    <span>Vincular Conta TikTok (Exige Confirmação)</span>
+                    <Cloud className="w-4 h-4 text-[#A6C957]" />
+                    <span>Salvar na Nuvem</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={handleManualLoad}
+                    className="py-2.5 px-3 rounded-xl bg-[#111B30] hover:bg-[#0131CD]/20 text-[#FFFFFF] font-semibold text-xs flex items-center justify-center gap-1.5 transition border border-[var(--gio-border-subtle)] hover:border-[#0131CD]/50 active:scale-95 disabled:opacity-50 cursor-pointer"
+                  >
+                    <RefreshCw className="w-4 h-4 text-[#A6C957]" />
+                    <span>Recarregar da Nuvem</span>
                   </button>
                 </div>
-              ) : (
-                <div className="bg-[#111B30] border border-[#0131CD]/40 rounded-lg p-3 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#FFFFFF] flex items-center gap-1.5">
+
+                {/* Legal & Portability Links */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--gio-border-subtle)] text-[11px] text-[#A5B1C5]">
+                  <span className="flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-[#A6C957]" />
+                    <span>Isolamento criptográfico por UID (LGPD Art. 18)</span>
+                  </span>
+                  <div className="flex items-center gap-3">
+                    {onOpenLegalDocument && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose();
+                            onOpenLegalDocument('politica-de-privacidade');
+                          }}
+                          className="text-[#A6C957] hover:text-[#FFFFFF] font-semibold underline cursor-pointer"
+                        >
+                          Política de Privacidade
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose();
+                            onOpenLegalDocument('termos-de-uso');
+                          }}
+                          className="text-[#A5B1C5] hover:text-[#FFFFFF] font-semibold underline cursor-pointer"
+                        >
+                          Termos
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* ===============================================================
+                SUBSEÇÃO 3: SEGURANÇA
+            =============================================================== */}
+            {showSecuritySection && (
+              <section
+                aria-label="Segurança"
+                className="bg-[#080D18] border border-[var(--gio-border-subtle)] p-4 rounded-xl space-y-3.5"
+              >
+                <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-[var(--gio-border-subtle)]">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-[#0131CD]/25 border border-[#0131CD]/55 flex items-center justify-center shrink-0">
                       <ShieldCheck className="w-3.5 h-3.5 text-[#A6C957]" />
-                      Confirmação de Segurança Obrigatória
-                    </span>
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-xs sm:text-sm font-bold text-[#FFFFFF] truncate">
+                        Segurança
+                      </h3>
+                      <p className="text-[11px] text-[#A5B1C5] truncate">
+                        Credenciais, vinculação TikTok OAuth 2.0 e controle de sessão
+                      </p>
+                    </div>
+                  </div>
+                  {(onOpenProfileSection || onOpenProfileWorkspace) && (
                     <button
                       type="button"
-                      onClick={() => {
-                        setShowLinkStepUpModal(false);
-                        setLinkReauthPassword('');
-                      }}
-                      className="text-[11px] text-[#A5B1C5] hover:text-[#FFFFFF]"
+                      onClick={() =>
+                        onOpenProfileSection
+                          ? onOpenProfileSection('security')
+                          : onOpenProfileWorkspace?.()
+                      }
+                      className="px-2.5 py-1 rounded-lg bg-[#111B30] hover:bg-[#0131CD] text-[11px] font-semibold text-[#FFFFFF] border border-[var(--gio-border-subtle)] flex items-center gap-1 transition shrink-0 whitespace-nowrap cursor-pointer"
                     >
-                      Cancelar
+                      <span>Tokens & Sessão</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-[#A6C957]" />
                     </button>
+                  )}
+                </div>
+
+                {/* Phase 11: Linked TikTok Identity Management (Flow 2 Link & Unlink) */}
+                <div className="bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-xl p-3 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Link2 className="w-3.5 h-3.5 text-[#A6C957]" />
+                      <span className="text-xs font-bold text-[#FFFFFF]">
+                        Identidade TikTok OAuth 2.0
+                      </span>
+                    </div>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                        linkedTikTokProfile.linked
+                          ? 'bg-[#A6C957]/15 text-[#A6C957] border-[#A6C957]/40'
+                          : 'bg-[#080D18] text-[#A5B1C5] border-[var(--gio-border-subtle)]'
+                      }`}
+                    >
+                      {linkedTikTokProfile.linked ? 'Vinculada' : 'Não Vinculada'}
+                    </span>
                   </div>
-                  <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
-                    Por segurança, confirme sua identidade atual (Senha ou Google Auth) antes de vincular um perfil do TikTok. Contas TikTok já vinculadas a outro usuário são bloqueadas.
-                  </p>
-                  {currentUser.email && (
-                    <form onSubmit={handleLinkWithPasswordReauth} className="space-y-2">
-                      <input
-                        type="password"
-                        value={linkReauthPassword}
-                        onChange={(e) => setLinkReauthPassword(e.target.value)}
-                        placeholder="Digite sua senha atual para confirmar"
-                        className="w-full px-3 py-2 text-xs bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-lg text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40"
-                      />
+
+                  {linkedTikTokProfile.linked ? (
+                    <div className="space-y-2">
+                      <div className="bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-lg p-2.5 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-[#FFFFFF] truncate">
+                            {linkedTikTokProfile.displayName || 'Criador TikTok'}
+                            {linkedTikTokProfile.username
+                              ? ` (@${linkedTikTokProfile.username.replace(/^@/, '')})`
+                              : ''}
+                          </div>
+                          <div className="text-[11px] font-mono text-[#A5B1C5] truncate">
+                            open_id verificado · Escopo: {linkedTikTokProfile.scope || 'user.info.basic'}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={tiktokLoading || loading}
+                          onClick={handleUnlinkTikTok}
+                          className="px-2.5 py-1.5 rounded-lg bg-[#F05262]/15 hover:bg-[#F05262]/25 border border-[#F05262]/40 text-[#F05262] text-[11px] font-bold flex items-center gap-1 transition shrink-0 disabled:opacity-50 cursor-pointer"
+                        >
+                          <Unlink className="w-3.5 h-3.5" />
+                          <span>Desconectar</span>
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
+                        Desconectar o TikTok revoga os tokens OAuth sem excluir sua conta GIO nem interromper sorteios ou workers de LIVE ativos.
+                      </p>
+                    </div>
+                  ) : !showLinkStepUpModal ? (
+                    <div className="space-y-2">
+                      <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
+                        Vincule sua conta oficial do TikTok a esta conta GIO para entrar com 1 clique mantendo seus sorteios e plano.
+                      </p>
+                      <button
+                        type="button"
+                        disabled={tiktokLoading || loading}
+                        onClick={() => {
+                          setShowLinkStepUpModal(true);
+                          setErrorMsg(null);
+                        }}
+                        className="w-full py-2 px-3 rounded-lg bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                      >
+                        <Link2 className="w-3.5 h-3.5 text-[#A6C957]" />
+                        <span>Vincular Conta TikTok (Exige Confirmação)</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="bg-[#080D18] border border-[#0131CD]/40 rounded-lg p-3 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[#FFFFFF] flex items-center gap-1.5">
+                          <ShieldCheck className="w-3.5 h-3.5 text-[#A6C957]" />
+                          Confirmação de Segurança Obrigatória
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowLinkStepUpModal(false);
+                            setLinkReauthPassword('');
+                          }}
+                          className="text-[11px] text-[#A5B1C5] hover:text-[#FFFFFF]"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
+                        Por segurança, confirme sua identidade atual (Senha ou Google Auth) antes de vincular um perfil do TikTok.
+                      </p>
+                      {currentUser.email && (
+                        <form onSubmit={handleLinkWithPasswordReauth} className="space-y-2">
+                          <input
+                            type="password"
+                            value={linkReauthPassword}
+                            onChange={(e) => setLinkReauthPassword(e.target.value)}
+                            placeholder="Digite sua senha atual para confirmar"
+                            className="w-full px-3 py-2 text-xs bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-lg text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#0131CD] focus:ring-2 focus:ring-[#0131CD]/40"
+                          />
+                          <button
+                            type="submit"
+                            disabled={tiktokLoading}
+                            className="w-full py-2 px-3 rounded-lg bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-semibold text-xs transition disabled:opacity-50"
+                          >
+                            {tiktokLoading ? 'Verificando...' : 'Confirmar Senha e Abrir TikTok OAuth'}
+                          </button>
+                        </form>
+                      )}
+                      <button
+                        type="button"
+                        disabled={tiktokLoading}
+                        onClick={handleLinkWithGoogleReauth}
+                        className="w-full py-2 px-3 rounded-lg bg-[#111B30] hover:bg-[#0131CD]/20 border border-[var(--gio-border-subtle)] text-[#FFFFFF] font-semibold text-xs transition disabled:opacity-50"
+                      >
+                        Confirmar com Google Auth e Vincular TikTok
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Sensitive Action: Change Password (Step-up Verification) & Safe Sign Out */}
+                <div className="space-y-2">
+                  {!showChangePassword ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowChangePassword(true)}
+                        className="py-2.5 px-3 text-xs font-semibold text-[#FFFFFF] bg-[#111B30] hover:bg-[#0131CD]/20 border border-[var(--gio-border-subtle)] hover:border-[#0131CD]/55 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer"
+                      >
+                        <KeyRound className="w-3.5 h-3.5 text-[#A6C957]" />
+                        <span>Alterar Senha (2 Etapas)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleSignOut}
+                        disabled={loading}
+                        aria-label="Desconectar da conta"
+                        className="py-2.5 px-3 text-xs font-semibold text-[#F05262] bg-[#F05262]/10 hover:bg-[#F05262]/20 border border-[#F05262]/35 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        <span>Encerrar Sessão</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleChangePassword} className="bg-[#111B30] border border-[var(--gio-border-subtle)] p-3.5 rounded-xl space-y-3">
+                      <div className="flex items-center justify-between pb-1">
+                        <span className="text-xs font-bold text-[#FFFFFF] flex items-center gap-1.5">
+                          <KeyRound className="w-3.5 h-3.5 text-[#A6C957]" />
+                          Alterar Senha (Requer Senha Atual)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowChangePassword(false);
+                            setCurrentPassword('');
+                            setNewPassword('');
+                            setConfirmNewPassword('');
+                          }}
+                          className="text-[11px] text-[#A5B1C5] hover:text-[#FFFFFF]"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+
+                      <div>
+                        <label htmlFor="current-password-input" className="block text-[11px] font-medium text-[#A5B1C5] mb-1">
+                          Senha Atual (Verificação de Segurança)
+                        </label>
+                        <input
+                          id="current-password-input"
+                          type="password"
+                          autoComplete="current-password"
+                          required
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                          placeholder="Sua senha atual"
+                          className="w-full px-3 py-2 text-xs bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-lg text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#0131CD] focus:ring-2 focus:ring-[#0131CD]/40"
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="new-password-input" className="block text-[11px] font-medium text-[#A5B1C5] mb-1">
+                          Nova Senha ou Frase-Senha (Mín. 8 caracteres)
+                        </label>
+                        <div className="relative">
+                          <input
+                            id="new-password-input"
+                            type={showNewPassword ? 'text' : 'password'}
+                            autoComplete="new-password"
+                            required
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="Nova senha ou frase longa"
+                            className="w-full px-3 py-2 pr-9 text-xs bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-lg text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#0131CD] focus:ring-2 focus:ring-[#0131CD]/40"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                            aria-label={showNewPassword ? 'Ocultar nova senha' : 'Exibir nova senha'}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#A5B1C5] hover:text-[#FFFFFF]"
+                          >
+                            {showNewPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label htmlFor="confirm-new-password-input" className="block text-[11px] font-medium text-[#A5B1C5] mb-1">
+                          Confirmar Nova Senha
+                        </label>
+                        <input
+                          id="confirm-new-password-input"
+                          type="password"
+                          autoComplete="new-password"
+                          required
+                          value={confirmNewPassword}
+                          onChange={(e) => setConfirmNewPassword(e.target.value)}
+                          placeholder="Repita a nova senha"
+                          className="w-full px-3 py-2 text-xs bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-lg text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#0131CD] focus:ring-2 focus:ring-[#0131CD]/40"
+                        />
+                      </div>
+
                       <button
                         type="submit"
-                        disabled={tiktokLoading}
-                        className="w-full py-2 px-3 rounded-lg bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs transition disabled:opacity-50"
+                        disabled={loading}
+                        className="w-full py-2 px-3 bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-semibold text-xs rounded-lg transition disabled:opacity-50"
                       >
-                        {tiktokLoading ? 'Verificando...' : 'Confirmar Senha e Abrir TikTok OAuth'}
+                        Confirmar e Atualizar Senha
                       </button>
                     </form>
                   )}
-                  <button
-                    type="button"
-                    disabled={tiktokLoading}
-                    onClick={handleLinkWithGoogleReauth}
-                    className="w-full py-2 px-3 rounded-lg bg-[#080D18] hover:bg-[#111B30] border border-[var(--gio-border-subtle)] text-[#FFFFFF] font-semibold text-xs transition disabled:opacity-50"
-                  >
-                    Confirmar com Google Auth e Vincular TikTok
-                  </button>
                 </div>
-              )}
-            </div>
+              </section>
+            )}
 
-            {/* Sensitive Action: Change Password (Step-up Verification) */}
-            <div className="pt-2 border-t border-[var(--gio-border-subtle)]">
-              {!showChangePassword ? (
-                <button
-                  type="button"
-                  onClick={() => setShowChangePassword(true)}
-                  className="w-full py-2 px-3 text-xs font-semibold text-[#A5B1C5] hover:text-[#FFFFFF] bg-[#080D18] hover:bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-xl flex items-center justify-center gap-2 transition"
-                >
-                  <KeyRound className="w-4 h-4 text-[#A6C957]" />
-                  <span>Alterar Senha de Acesso (Verificação em 2 Etapas)</span>
-                </button>
-              ) : (
-                <form onSubmit={handleChangePassword} className="bg-[#080D18] border border-[var(--gio-border-subtle)] p-4 rounded-xl space-y-3">
-                  <div className="flex items-center justify-between pb-1">
-                    <span className="text-xs font-bold text-[#FFFFFF] flex items-center gap-1.5">
-                      <KeyRound className="w-3.5 h-3.5 text-[#A6C957]" />
-                      Alterar Senha (Requer Senha Atual)
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowChangePassword(false);
-                        setCurrentPassword('');
-                        setNewPassword('');
-                        setConfirmNewPassword('');
-                      }}
-                      className="text-[11px] text-[#A5B1C5] hover:text-[#FFFFFF]"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-
-                  <div>
-                    <label htmlFor="current-password-input" className="block text-[11px] font-medium text-[#A5B1C5] mb-1">
-                      Senha Atual (Verificação de Segurança)
-                    </label>
-                    <input
-                      id="current-password-input"
-                      type="password"
-                      autoComplete="current-password"
-                      required
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="Sua senha atual"
-                      className="w-full px-3 py-2 text-xs bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-lg text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="new-password-input" className="block text-[11px] font-medium text-[#A5B1C5] mb-1">
-                      Nova Senha ou Frase-Senha (Mín. 8 caracteres)
-                    </label>
-                    <div className="relative">
-                      <input
-                        id="new-password-input"
-                        type={showNewPassword ? 'text' : 'password'}
-                        autoComplete="new-password"
-                        required
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Nova senha ou frase longa"
-                        className="w-full px-3 py-2 pr-9 text-xs bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-lg text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                        aria-label={showNewPassword ? 'Ocultar nova senha' : 'Exibir nova senha'}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#A5B1C5] hover:text-[#FFFFFF]"
-                      >
-                        {showNewPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
+            {/* ===============================================================
+                SUBSEÇÃO 4: ASSINATURA
+            =============================================================== */}
+            {showSubscriptionSection && (
+              <section
+                aria-label="Assinatura"
+                className="bg-[#080D18] border border-[#A6C957]/35 p-4 rounded-xl space-y-3.5"
+              >
+                <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-[var(--gio-border-subtle)]">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-[#A6C957]/15 border border-[#A6C957]/40 flex items-center justify-center shrink-0">
+                      <Crown className="w-3.5 h-3.5 text-[#A6C957]" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-xs sm:text-sm font-bold text-[#FFFFFF] truncate">
+                        Assinatura
+                      </h3>
+                      <p className="text-[11px] text-[#A5B1C5] truncate">
+                        Status do plano comercial GIO DA SORTE PRO e recibos
+                      </p>
                     </div>
                   </div>
-
-                  <div>
-                    <label htmlFor="confirm-new-password-input" className="block text-[11px] font-medium text-[#A5B1C5] mb-1">
-                      Confirmar Nova Senha
-                    </label>
-                    <input
-                      id="confirm-new-password-input"
-                      type="password"
-                      autoComplete="new-password"
-                      required
-                      value={confirmNewPassword}
-                      onChange={(e) => setConfirmNewPassword(e.target.value)}
-                      placeholder="Repita a nova senha"
-                      className="w-full px-3 py-2 text-xs bg-[#111B30] border border-[var(--gio-border-subtle)] rounded-lg text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-2 px-3 bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs rounded-lg transition disabled:opacity-50"
+                  <span
+                    className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold border whitespace-nowrap shrink-0 ${
+                      isProTier
+                        ? 'bg-[#A6C957] text-[#080D18] border-[#A6C957]'
+                        : 'bg-[#0131CD]/25 text-[#FFFFFF] border-[#0131CD]/55'
+                    }`}
                   >
-                    Confirmar e Atualizar Senha
-                  </button>
-                </form>
-              )}
-            </div>
+                    {isProTier ? 'TIKTOK LIVE PRO ATIVO' : 'PLANO FREE ATIVO'}
+                  </span>
+                </div>
 
+                <div className="p-3 rounded-xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <span className="font-semibold text-[#FFFFFF]">
+                      {isProTier
+                        ? 'Automação TikTok LIVE 24/7 + Sorteios Ilimitados Liberados'
+                        : 'Sorteios Tradicionais e Rifas Ilimitadas (Modo Gratuito)'}
+                    </span>
+                    <span className="font-mono text-[11px] text-[#A6C957] tabular-nums">
+                      {isProTier
+                        ? proEntitlement?.updatedAt
+                          ? `Ativo • Atualizado em ${new Date(proEntitlement.updatedAt).toLocaleDateString('pt-BR')}`
+                          : 'Ciclo Ativo Verificado'
+                        : 'Upgrade PRO disponível'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
+                    {isProTier
+                      ? 'Sua assinatura PRO está validada no servidor. Gerencie renovação, ciclos ou emita comprovantes fiscais em HTML/PDF.'
+                      : 'Ative o plano TikTok LIVE PRO via PayPal ou Mercado Pago para desbloquear captura automática de presentes e bilhetes em tempo real.'}
+                  </p>
+                </div>
+
+                {(onOpenProfileSection || onOpenProfileWorkspace) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onOpenProfileSection
+                          ? onOpenProfileSection('subscription')
+                          : onOpenProfileWorkspace?.()
+                      }
+                      className="py-2.5 px-3 rounded-xl bg-[#A6C957] hover:bg-[#B5D477] text-[#080D18] font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm"
+                    >
+                      <Crown className="w-3.5 h-3.5 text-[#080D18]" />
+                      <span>{isProTier ? 'Gerenciar Assinatura PRO' : 'Fazer Upgrade para PRO'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onOpenProfileSection
+                          ? onOpenProfileSection('payments')
+                          : onOpenProfileWorkspace?.()
+                      }
+                      className="py-2.5 px-3 rounded-xl bg-[#111B30] hover:bg-[#0131CD]/20 text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[#0131CD]/55 font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                      <CreditCard className="w-3.5 h-3.5 text-[#A6C957]" />
+                      <span>Pagamentos & Recibos</span>
+                    </button>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* Footer Action to Open Complete Profile & Settings Workspace */}
             {onOpenProfileWorkspace && (
               <button
                 type="button"
                 onClick={onOpenProfileWorkspace}
-                className="w-full py-2.5 px-4 rounded-xl bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] border border-[#A6C957]/40 font-bold text-xs flex items-center justify-center gap-2 transition"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#0131CD] hover:bg-[#0A3FE0] text-[#FFFFFF] border border-[#A6C957]/35 text-xs font-bold flex items-center justify-center gap-2 shadow-md transition cursor-pointer"
               >
                 <User className="w-4 h-4 text-[#A6C957]" />
-                <span>Abrir Central Completa de Perfil e Configurações</span>
+                <span>Abrir Central Completa de Perfil e Ajustes (7 Seções)</span>
               </button>
             )}
           </div>
@@ -1147,7 +1585,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
           <div className="space-y-4">
             {/* View Selector Tabs (Login vs Register) */}
             {viewMode !== 'forgot_password' && (
-              <div className="grid grid-cols-2 p-1 bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-xs font-bold">
+              <div className="grid grid-cols-2 p-1 bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-xs font-semibold">
                 <button
                   type="button"
                   onClick={() => {
@@ -1155,13 +1593,13 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                     setErrorMsg(null);
                     setSuccessMsg(null);
                   }}
-                  className={`py-2 rounded-lg transition ${
+                  className={`py-2 rounded-lg transition cursor-pointer ${
                     viewMode === 'login'
                       ? 'bg-[#0131CD] text-[#FFFFFF] shadow-sm'
                       : 'text-[#A5B1C5] hover:text-[#FFFFFF]'
                   }`}
                 >
-                  Entrar
+                  Entrar na Conta
                 </button>
                 <button
                   type="button"
@@ -1170,13 +1608,13 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                     setErrorMsg(null);
                     setSuccessMsg(null);
                   }}
-                  className={`py-2 rounded-lg transition ${
+                  className={`py-2 rounded-lg transition cursor-pointer ${
                     viewMode === 'register'
                       ? 'bg-[#0131CD] text-[#FFFFFF] shadow-sm'
                       : 'text-[#A5B1C5] hover:text-[#FFFFFF]'
                   }`}
                 >
-                  Criar Conta
+                  Criar Nova Conta
                 </button>
               </div>
             )}
@@ -1198,7 +1636,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="seu.email@exemplo.com"
-                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40 transition"
+                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#0131CD] focus:ring-2 focus:ring-[#0131CD]/40 transition"
                     />
                     <Mail className="w-4 h-4 text-[#A5B1C5] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
@@ -1230,7 +1668,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-9 pr-10 py-2.5 text-sm bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40 transition"
+                      className="w-full pl-9 pr-10 py-2.5 text-sm bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#0131CD] focus:ring-2 focus:ring-[#0131CD]/40 transition"
                     />
                     <Lock className="w-4 h-4 text-[#A5B1C5] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <button
@@ -1246,7 +1684,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
                 {/* Rate limit lock alert */}
                 {throttleRemaining > 0 && (
-                  <div className="p-2.5 bg-[#A6C957]/15 border border-[#A6C957]/40 rounded-xl text-xs text-[#A6C957] flex items-center gap-2">
+                  <div className="p-2.5 bg-[#A6C957]/15 border border-[#A6C957]/40 rounded-xl text-xs text-[#A6C957] flex items-center gap-2 tabular-nums">
                     <Clock className="w-4 h-4 text-[#A6C957] shrink-0" />
                     <span>Aguarde {throttleRemaining}s antes de tentar novamente.</span>
                   </div>
@@ -1255,7 +1693,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 <button
                   type="submit"
                   disabled={loading || throttleRemaining > 0}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-[#0131CD] to-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-sm rounded-xl transition shadow-lg shadow-[#0131CD]/30 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                  className="w-full py-3 px-4 bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-semibold text-sm rounded-xl transition shadow-lg shadow-[#0131CD]/30 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
                   <Lock className="w-4 h-4" />
                   <span>{loading ? 'Entrando...' : 'Entrar com E-mail'}</span>
@@ -1279,7 +1717,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                       placeholder="Ex: Gusta Games"
-                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40 transition"
+                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#0131CD] focus:ring-2 focus:ring-[#0131CD]/40 transition"
                     />
                     <User className="w-4 h-4 text-[#A5B1C5] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
@@ -1298,7 +1736,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="seu.email@exemplo.com"
-                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40 transition"
+                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#0131CD] focus:ring-2 focus:ring-[#0131CD]/40 transition"
                     />
                     <Mail className="w-4 h-4 text-[#A5B1C5] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
@@ -1317,7 +1755,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Ex: chuva de moedas no gio 2026"
-                      className="w-full pl-9 pr-10 py-2.5 text-sm bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40 transition"
+                      className="w-full pl-9 pr-10 py-2.5 text-sm bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#0131CD] focus:ring-2 focus:ring-[#0131CD]/40 transition"
                     />
                     <Lock className="w-4 h-4 text-[#A5B1C5] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <button
@@ -1407,7 +1845,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 <button
                   type="submit"
                   disabled={loading || (password.length > 0 && !registrationPassEvaluation.isValid)}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-[#0131CD] to-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-sm rounded-xl transition shadow-lg shadow-[#0131CD]/25 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                  className="w-full py-3 px-4 bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-semibold text-sm rounded-xl transition shadow-lg shadow-[#0131CD]/25 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>{loading ? 'Cadastrando...' : 'Criar Conta Segura'}</span>
@@ -1436,7 +1874,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="seu.email@exemplo.com"
-                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/40 transition"
+                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-[#080D18] border border-[var(--gio-border-subtle)] rounded-xl text-[#FFFFFF] placeholder-[#A5B1C5]/70 focus:outline-none focus:border-[#0131CD] focus:ring-2 focus:ring-[#0131CD]/40 transition"
                     />
                     <Mail className="w-4 h-4 text-[#A5B1C5] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
@@ -1445,7 +1883,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 px-4 bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-sm rounded-xl transition shadow-md shadow-[#0131CD]/30 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                  className="w-full py-3 px-4 bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-semibold text-sm rounded-xl transition shadow-md shadow-[#0131CD]/30 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
                   <KeyRound className="w-4 h-4" />
                   <span>{loading ? 'Enviando...' : 'Enviar Link de Recuperação'}</span>
@@ -1473,9 +1911,9 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-[var(--gio-border-subtle)]" />
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-[#111B30] px-2 text-[#A5B1C5] text-[10px] font-bold tracking-wider">
-                      ou conecte com
+                  <div className="relative flex justify-center text-xs">
+                    <span className="bg-[#111B30] px-2.5 text-[#A5B1C5] text-[11px] font-semibold">
+                      Ou conecte com 1 clique
                     </span>
                   </div>
                 </div>
@@ -1486,7 +1924,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                     type="button"
                     disabled={loading || tiktokLoading}
                     onClick={handleTikTokLoginOAuth}
-                    className="w-full py-2.5 px-4 bg-gradient-to-r from-[#0131CD] to-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-md shadow-[#0131CD]/25 active:scale-95 disabled:opacity-50 cursor-pointer"
+                    className="w-full py-2.5 px-4 bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] font-semibold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-md shadow-[#0131CD]/25 active:scale-95 disabled:opacity-50 cursor-pointer"
                   >
                     <Sparkles className="w-4 h-4 text-[#A6C957]" />
                     <span>

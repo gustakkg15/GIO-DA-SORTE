@@ -756,30 +756,30 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
     !homologationReport || homologationReport.status !== 'VERIFIED';
 
   const userHasUsedTrial = Boolean(userSubscription?.hasUsedFreeTrial);
+  const selectedCyclePlan = billingCycle === 'annual' ? annualPlan : monthlyPlan;
 
   return (
-    <div className="space-y-6 animate-fade-in min-w-0">
+    <div className="space-y-6 animate-fade-in min-w-0 font-sans text-[#FFFFFF]">
       {/* Top Hero Banner — Official GIO DA SORTE SaaS Billing Identity */}
-      <div className="relative overflow-hidden p-6 sm:p-8 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div className="absolute inset-x-0 top-0 h-1 bg-[#0131CD]" />
+      <div className="relative overflow-hidden p-6 sm:p-8 rounded-2xl bg-[#111B30] border border-[#0131CD]/40 shadow-xl flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#0131CD] via-[#0131CD] to-[#A6C957]" />
 
-        <div className="flex items-start sm:items-center gap-4">
-          {/* Official Clean Brand Emblem */}
-          <div className="w-14 h-14 rounded-2xl bg-[#080D18] p-0.5 border border-[var(--gio-border-subtle)] shadow-md flex items-center justify-center shrink-0">
-            <div className="w-full h-full rounded-[14px] bg-[#080D18] flex items-center justify-center relative">
-              <Ticket className="w-7 h-7 text-[#A6C957] transform -rotate-12" />
-              <Sparkles className="w-3.5 h-3.5 text-[#A6C957] absolute top-2 right-2" />
-            </div>
-          </div>
+        <div className="flex items-start gap-4 sm:gap-5 min-w-0">
+          {/* Official Brand Logo */}
+          <img
+            src="/logo.png"
+            alt="Logotipo Oficial GIO DA SORTE"
+            className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-cover border border-[#0131CD]/50 shadow-[0_6px_20px_rgba(1,49,205,0.35)] shrink-0"
+          />
 
-          <div className="space-y-2 max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="gio-badge-pro">
+          <div className="space-y-2.5 max-w-3xl min-w-0">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md font-semibold bg-[#0131CD]/25 text-[#FFFFFF] border border-[#0131CD]/50">
                 <Crown className="w-3.5 h-3.5 text-[#A6C957]" />
-                <span>Planos Oficiais & Assinatura PRO</span>
+                <span>Planos & Assinatura Oficial</span>
               </span>
               <span
-                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold border ${
+                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md font-semibold border ${
                   isPro
                     ? 'bg-[#A6C957]/15 text-[#A6C957] border-[#A6C957]/35'
                     : 'bg-[#080D18] text-[#FFFFFF] border-[var(--gio-border-subtle)]'
@@ -790,27 +790,55 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                     isPro ? 'bg-[#A6C957] animate-pulse' : 'bg-[#0131CD]'
                   }`}
                 />
-                <span>ACESSO DA CONTA: {activeStateInfo.label}</span>
+                <span>Conta: {activeStateInfo.label}</span>
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#FFFFFF] tracking-tight">
-              GIO DA SORTE — Planos Comerciais & 3 Dias de Teste Grátis
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#FFFFFF] tracking-tight">
+              Automatize suas Lives no TikTok com 3 Dias de Teste Grátis
             </h1>
             <p className="text-xs sm:text-sm text-[#A5B1C5] leading-relaxed">
-              Utilize o Plano FREE gratuito ou ative o <strong className="text-[#A6C957]">Plano PRO</strong> com 3 dias de avaliação sem custo, captura em tempo real do TikTok LIVE, sorteador de comentários e campanhas Multi-LIVE.
+              Utilize a Mesa Oficial de Sorteio gratuitamente no <strong className="text-[#FFFFFF] font-semibold">Plano FREE</strong> ou ative a captura em tempo real de presentes, moedas, comentários e campanhas Multi-LIVE no <strong className="text-[#A6C957] font-semibold">Plano PRO</strong> sem pagar nada hoje.
             </p>
+
+            {/* Quick Trust & Guarantee Highlights */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-1 text-xs text-[#A5B1C5] tabular-nums">
+              <span className="inline-flex items-center gap-1.5 text-[#FFFFFF] font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#A6C957] shrink-0" />
+                <span>R$ 0,00 nos primeiros 3 dias</span>
+              </span>
+              <span aria-hidden="true" className="text-[#A5B1C5]/40 hidden sm:inline">·</span>
+              <span className="inline-flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#0131CD] shrink-0" />
+                <span>Cancelamento livre com 1 clique</span>
+              </span>
+              <span aria-hidden="true" className="text-[#A5B1C5]/40 hidden sm:inline">·</span>
+              <span className="inline-flex items-center gap-1.5">
+                <Database className="w-3.5 h-3.5 text-[#A5B1C5] shrink-0" />
+                <span>Histórico e dados 100% preservados</span>
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* View Switcher Tabs (Planos do Usuário vs Painel Admin Comercial) */}
-        <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0 bg-[#080D18] p-2 rounded-xl border border-[var(--gio-border-subtle)]">
+        {/* Right Controls: Quick CTA or View Switcher Tabs */}
+        <div className="flex flex-col sm:flex-row xl:flex-col gap-2 shrink-0 bg-[#080D18] p-2 rounded-xl border border-[var(--gio-border-subtle)]">
+          {isPro && (
+            <button
+              type="button"
+              onClick={onNavigateToLivePro}
+              className="px-4 py-2.5 rounded-lg text-xs font-semibold bg-[#A6C957] hover:bg-[#B5D477] text-[#080D18] transition flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+            >
+              <Radio className="w-4 h-4 text-[#080D18]" />
+              <span>Abrir Painel TikTok LIVE PRO</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setActiveViewTab('plans')}
-            className={`px-4 py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 ${
+            className={`px-4 py-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${
               activeViewTab === 'plans'
-                ? 'gio-btn-primary shadow-xs'
+                ? 'bg-[#0131CD] text-[#FFFFFF] shadow-xs'
                 : 'text-[#A5B1C5] hover:text-[#FFFFFF] bg-transparent'
             }`}
           >
@@ -821,9 +849,9 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
             <button
               type="button"
               onClick={() => setActiveViewTab('admin')}
-              className={`px-4 py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 ${
+              className={`px-4 py-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${
                 activeViewTab === 'admin'
-                  ? 'gio-btn-pro shadow-xs'
+                  ? 'bg-[#A6C957] text-[#080D18] font-bold shadow-xs'
                   : 'text-[#A6C957] hover:bg-[#111B30] border border-[#A6C957]/30'
               }`}
             >
@@ -852,14 +880,14 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
           <button
             type="button"
             onClick={() => setNotice(null)}
-            className="text-[#A5B1C5] hover:text-[#FFFFFF] px-2 font-bold"
+            className="text-[#A5B1C5] hover:text-[#FFFFFF] px-2 font-semibold"
           >
             ✕
           </button>
         </div>
       )}
 
-      {/* Harmonized Gateway & Entitlement Status Banner (Non-Contradictory) */}
+      {/* Harmonized Gateway & Entitlement Status Banner */}
       {isContractingBlocked && (
         <div
           className={`p-4 sm:p-5 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
@@ -872,18 +900,18 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
             {isPro ? (
               <CheckCircle2 className="w-5 h-5 text-[#A6C957] shrink-0 mt-0.5" />
             ) : (
-              <ShieldCheck className="w-5 h-5 text-[#A5B1C5] shrink-0 mt-0.5" />
+              <ShieldCheck className="w-5 h-5 text-[#0131CD] shrink-0 mt-0.5" />
             )}
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wide text-[#FFFFFF]">
+                <span className="text-xs font-semibold text-[#FFFFFF]">
                   {isAdminAuthorized
-                    ? (isPro
-                        ? 'Recursos PRO Liberados nesta Sessão · Checkout Externo em Homologação'
-                        : 'Proteção de Pagamento Ativa · Checkout Mercado Pago em Homologação')
-                    : (isPro
-                        ? 'Recursos PRO Ativos · Acesso Liberado'
-                        : 'Plano Gratuito Ativo · Teste de 3 Dias Disponível')}
+                    ? isPro
+                      ? 'Recursos PRO Liberados nesta Sessão · Checkout Externo em Homologação'
+                      : 'Proteção de Pagamento Ativa · Checkout Mercado Pago em Homologação'
+                    : isPro
+                    ? 'Recursos PRO Ativos · Acesso Liberado'
+                    : 'Plano Gratuito Ativo · Teste de 3 Dias Disponível'}
                 </span>
                 {isAdminAuthorized && (
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#080D18] text-[#A5B1C5] border border-[var(--gio-border-subtle)]">
@@ -893,13 +921,13 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
               </div>
               <p className="text-xs text-[#A5B1C5] leading-relaxed">
                 {isAdminAuthorized
-                  ? (isPro
-                      ? 'Seu acesso aos módulos TikTok LIVE PRO e Sorteador de Comentários já está ativo. Novas contratações externas via Mercado Pago permanecem em modo seguro de homologação (nenhuma cobrança externa é gerada).'
-                      : homologationReport?.blockReason ||
-                        'A contratação financeira automática aguarda a conclusão das etapas de homologação da API do Mercado Pago. Nenhuma cobrança é realizada ou simulada.')
-                  : (isPro
-                      ? 'Você tem acesso completo aos recursos da plataforma GIO DA SORTE PRO nesta conta.'
-                      : 'Experimente os recursos exclusivos do Plano PRO com 3 dias de avaliação gratuita sem compromisso.')}
+                  ? isPro
+                    ? 'Seu acesso aos módulos TikTok LIVE PRO e Sorteador de Comentários já está ativo. Novas contratações externas via Mercado Pago permanecem em modo seguro de homologação (nenhuma cobrança externa é gerada).'
+                    : homologationReport?.blockReason ||
+                      'A contratação financeira automática aguarda a conclusão das etapas de homologação da API do Mercado Pago. Nenhuma cobrança é realizada ou simulada.'
+                  : isPro
+                  ? 'Você tem acesso completo aos recursos da plataforma GIO DA SORTE PRO nesta conta.'
+                  : 'Escolha abaixo o provedor de pagamento (Mercado Pago ou PayPal) e o ciclo (Mensal ou Anual) para iniciar seus 3 dias de avaliação gratuita.'}
               </p>
             </div>
           </div>
@@ -917,31 +945,31 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
 
       {activeViewTab === 'plans' || !isAdminAuthorized ? (
         <>
-          {/* Payment Provider & Billing Frequency Controls — 7 Laws of Usability */}
-          <div className="space-y-4">
-            {/* Step 1: Payment Provider Choice (Hick's & Jakob's Law) */}
-            <div className="p-5 sm:p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-lg space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--gio-border-subtle)] pb-3">
+          {/* Interactive Checkout Configuration Bar: Step 1 (Gateway) + Step 2 (Cycle) */}
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-stretch">
+            {/* Step 1: Official Payment Provider Choice */}
+            <div className="xl:col-span-7 p-5 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-lg flex flex-col justify-between space-y-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wide text-[#A6C957] flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>Passo 1 · Escolha o Método de Pagamento Oficial</span>
+                  <span className="text-[11px] font-semibold text-[#A5B1C5] flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#0131CD]" />
+                    <span>Passo 1 · Provedor Oficial de Pagamento</span>
                   </span>
-                  <h3 className="text-base font-bold text-[#FFFFFF]">
-                    Provedor de Pagamento Seguro
-                  </h3>
+                  <h2 className="text-sm sm:text-base font-bold text-[#FFFFFF] mt-0.5">
+                    Escolha por onde autorizar seu teste de 3 dias
+                  </h2>
                 </div>
-                <span className="text-xs text-[#A5B1C5]">
-                  Ambos suportam <strong>3 dias de teste gratuito</strong> sem cobrança imediata
+                <span className="text-[11px] text-[#A5B1C5]">
+                  Ambiente externo criptografado
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
-                {/* Provider Card: Mercado Pago (Approved External Provider Brand Color #0866F5) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Provider Card: Mercado Pago (Official Brand Color #0866F5) */}
                 <button
                   type="button"
                   onClick={() => setSelectedPaymentProvider('MERCADO_PAGO')}
-                  className={`p-4 rounded-xl border text-left transition-all cursor-pointer relative flex flex-col justify-between gap-3 ${
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer relative flex flex-col justify-between gap-2.5 ${
                     selectedPaymentProvider === 'MERCADO_PAGO'
                       ? 'bg-[#0866F5]/10 border-[#0866F5] ring-2 ring-[#0866F5]/30 shadow-md'
                       : 'bg-[#080D18] border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)]'
@@ -950,16 +978,18 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5">
                       <div className="w-9 h-9 rounded-lg bg-[#0866F5]/15 border border-[#0866F5]/40 flex items-center justify-center shrink-0">
-                        <CreditCard className="w-5 h-5 text-[#0866F5]" />
+                        <CreditCard className="w-4 h-4 text-[#0866F5]" />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-sm text-[#FFFFFF]">Mercado Pago</span>
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#0866F5]/20 text-[#0866F5] border border-[#0866F5]/40 uppercase">
-                            Brasil
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-sm text-[#FFFFFF]">Mercado Pago</span>
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#0866F5]/20 text-[#0866F5] border border-[#0866F5]/40">
+                            BR
                           </span>
                         </div>
-                        <span className="text-[11px] text-[#A5B1C5]">Pix • Cartões Nacionais • Boleto Bancário</span>
+                        <span className="text-[11px] text-[#A5B1C5] block">
+                          Pix · Cartões Nacionais · Boleto
+                        </span>
                       </div>
                     </div>
                     <div
@@ -969,19 +999,18 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                           : 'border-[var(--gio-border-subtle)] bg-transparent'
                       }`}
                     >
-                      {selectedPaymentProvider === 'MERCADO_PAGO' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                      {selectedPaymentProvider === 'MERCADO_PAGO' && (
+                        <Check className="w-3 h-3 stroke-[3]" />
+                      )}
                     </div>
                   </div>
-                  <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
-                    Pagamento 100% em Reais (BRL), integrado à infraestrutura financeira nacional com autenticação direta.
-                  </p>
                 </button>
 
-                {/* Provider Card: PayPal (Approved External Provider Brand Color #0079C1) */}
+                {/* Provider Card: PayPal (Official Brand Color #0079C1) */}
                 <button
                   type="button"
                   onClick={() => setSelectedPaymentProvider('PAYPAL')}
-                  className={`p-4 rounded-xl border text-left transition-all cursor-pointer relative flex flex-col justify-between gap-3 ${
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer relative flex flex-col justify-between gap-2.5 ${
                     selectedPaymentProvider === 'PAYPAL'
                       ? 'bg-[#0079C1]/10 border-[#0079C1] ring-2 ring-[#0079C1]/30 shadow-md'
                       : 'bg-[#080D18] border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)]'
@@ -990,16 +1019,18 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5">
                       <div className="w-9 h-9 rounded-lg bg-[#0079C1]/15 border border-[#0079C1]/40 flex items-center justify-center shrink-0">
-                        <Sparkles className="w-5 h-5 text-[#0079C1]" />
+                        <Sparkles className="w-4 h-4 text-[#0079C1]" />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-sm text-[#FFFFFF]">PayPal</span>
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#0079C1]/20 text-[#0079C1] border border-[#0079C1]/40 uppercase">
-                            Global & Brasil
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-sm text-[#FFFFFF]">PayPal</span>
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#0079C1]/20 text-[#0079C1] border border-[#0079C1]/40">
+                            Global
                           </span>
                         </div>
-                        <span className="text-[11px] text-[#A5B1C5]">Cartões Internacionais • Saldo PayPal</span>
+                        <span className="text-[11px] text-[#A5B1C5] block">
+                          Cartões · Saldo PayPal
+                        </span>
                       </div>
                     </div>
                     <div
@@ -1009,188 +1040,225 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                           : 'border-[var(--gio-border-subtle)] bg-transparent'
                       }`}
                     >
-                      {selectedPaymentProvider === 'PAYPAL' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                      {selectedPaymentProvider === 'PAYPAL' && (
+                        <Check className="w-3 h-3 stroke-[3]" />
+                      )}
                     </div>
                   </div>
-                  <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
-                    Proteção ao Comprador 24/7, aceita cartões de crédito internacionais e saldo em conta em ambiente criptografado.
-                  </p>
                 </button>
               </div>
             </div>
 
-            {/* Step 2: Billing Cycle Switcher (Fitts's Law >= 44px touch target) */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)]">
-              <div className="flex items-center gap-2.5">
-                <Crown className="w-4 h-4 text-[#A6C957]" />
-                <span className="text-xs font-bold text-[#FFFFFF]">
-                  Passo 2 · Escolha a Frequência de Faturamento:
+            {/* Step 2: Interactive Billing Cycle Selector + Instant Summary CTA */}
+            <div className="xl:col-span-5 p-5 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-lg flex flex-col justify-between space-y-3.5">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <span className="text-[11px] font-semibold text-[#A5B1C5] flex items-center gap-1.5">
+                    <Crown className="w-3.5 h-3.5 text-[#A6C957]" />
+                    <span>Passo 2 · Ciclo de Faturamento PRO</span>
+                  </span>
+                  <h2 className="text-sm sm:text-base font-bold text-[#FFFFFF] mt-0.5 tabular-nums">
+                    Economize {annualPlan.annualDiscountPercent}% no ciclo anual
+                  </h2>
+                </div>
+                <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-[#A6C957]/15 text-[#A6C957] border border-[#A6C957]/35 tabular-nums">
+                  -{formatBrl(annualPlan.annualSavingsAmount)}/ano
                 </span>
               </div>
-              <div className="inline-flex items-center p-1 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
+
+              <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
                 <button
                   type="button"
                   onClick={() => setBillingCycle('monthly')}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer min-h-[38px] tabular-nums ${
+                  className={`px-3 py-2.5 rounded-lg text-xs font-semibold transition flex flex-col items-center justify-center cursor-pointer tabular-nums ${
                     billingCycle === 'monthly'
                       ? 'bg-[#0131CD] text-[#FFFFFF] shadow-sm'
                       : 'text-[#A5B1C5] hover:text-[#FFFFFF]'
                   }`}
                 >
-                  <span>Mensal (R$ 29,90)</span>
+                  <span>PRO Mensal</span>
+                  <span className="text-[11px] opacity-90">{formatBrl(monthlyPlan.price)}/mês</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setBillingCycle('annual')}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer min-h-[38px] tabular-nums ${
+                  className={`px-3 py-2.5 rounded-lg text-xs font-semibold transition flex flex-col items-center justify-center cursor-pointer tabular-nums ${
                     billingCycle === 'annual'
-                      ? 'bg-[#A6C957] hover:bg-[#B5D477] text-[#080D18] font-bold shadow-sm'
+                      ? 'bg-[#A6C957] text-[#080D18] font-bold shadow-sm'
                       : 'text-[#A5B1C5] hover:text-[#FFFFFF]'
                   }`}
                 >
-                  <span>Anual (~R$ 16,66/mês)</span>
-                  <span className="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-[#080D18]/15 text-[#080D18] tabular-nums">
-                    44% OFF
+                  <span className="inline-flex items-center gap-1">
+                    <span>PRO Anual</span>
+                    <span
+                      className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                        billingCycle === 'annual'
+                          ? 'bg-[#080D18]/15 text-[#080D18]'
+                          : 'bg-[#A6C957]/15 text-[#A6C957]'
+                      }`}
+                    >
+                      44% OFF
+                    </span>
                   </span>
+                  <span className="text-[11px] opacity-90">~{formatBrl(annualPlan.monthlyEquivalent)}/mês</span>
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 pt-1">
+                <div className="text-[11px] text-[#A5B1C5] tabular-nums min-w-0">
+                  <span className="block text-[#FFFFFF] font-semibold truncate">
+                    {selectedCyclePlan.name} via {selectedPaymentProvider === 'PAYPAL' ? 'PayPal' : 'Mercado Pago'}
+                  </span>
+                  <span>
+                    {userHasUsedTrial
+                      ? `${formatBrl(selectedCyclePlan.price)}/${selectedCyclePlan.frequency === 12 ? 'ano' : 'mês'}`
+                      : `R$ 0,00 hoje · após 3 dias ${formatBrl(selectedCyclePlan.price)}/${selectedCyclePlan.frequency === 12 ? 'ano' : 'mês'}`}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleOpenCheckoutModal(selectedCyclePlan)}
+                  className="px-3.5 py-2 rounded-xl bg-[#0131CD] hover:brightness-110 text-[#FFFFFF] text-xs font-semibold transition inline-flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm"
+                >
+                  <span>Contratar</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
           </div>
 
-          {/* 3-Column Commercial Plans Grid: FREE | PRO MENSAL | PRO ANUAL */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-            {/* 1. PLANO FREE */}
-            <div className="p-6 sm:p-7 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] flex flex-col justify-between space-y-6 shadow-md transition-all hover:border-[var(--gio-border-active)]">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between gap-2">
+          {/* 3-Column Commercial Plans Grid: FREE | PRO MENSAL (Azul #0131CD) | PRO ANUAL (Azul #0131CD + Verde-Limão #A6C957) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch font-sans">
+            {/* ==============================================================
+                1. PLANO FREE — MESA OFICIAL & GESTÃO MANUAL
+               ============================================================== */}
+            <article className="relative overflow-hidden p-6 sm:p-7 rounded-2xl bg-[#111B30] border border-[#0131CD]/30 flex flex-col justify-between space-y-6 shadow-md transition-all hover:border-[#0131CD]/65">
+              <div className="absolute inset-x-0 top-0 h-1.5 bg-[#0131CD]/55" />
+
+              <div className="space-y-5">
+                {/* Card Header */}
+                <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wide text-[#A5B1C5]">
-                      Mesa Oficial & Gestão Local
+                    <span className="text-xs font-medium text-[#A5B1C5]">
+                      Mesa Oficial & Gestão Manual
                     </span>
-                    <h2 className="text-xl font-bold text-[#FFFFFF] mt-0.5">
+                    <h2 className="text-xl font-bold text-[#FFFFFF] tracking-tight mt-0.5">
                       Plano FREE
                     </h2>
                   </div>
-                  <span className="gio-badge-free">Gratuito</span>
-                </div>
-
-                <div className="pt-3 border-t border-[var(--gio-border-subtle)]">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-bold text-[#FFFFFF] tabular-nums">
-                      R$ 0,00
-                    </span>
-                    <span className="text-xs text-[#A5B1C5]">/ sempre</span>
-                  </div>
-                  <p className="text-xs text-[#A5B1C5] mt-1.5">
-                    Sem cartão de crédito • Uso livre da Mesa Oficial de Sorteio
-                  </p>
-                </div>
-
-                <div className="space-y-2.5 pt-3 border-t border-[var(--gio-border-subtle)] text-xs">
-                  <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <Check className="w-4 h-4 text-[#A6C957] shrink-0" />
-                    <span>Sorteio Proporcional por Moedas e Bilhetes</span>
-                  </div>
-                  <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <Check className="w-4 h-4 text-[#A6C957] shrink-0" />
-                    <span>Globo Digital, Roleta Proporcional e Battle Royale</span>
-                  </div>
-                  <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <Database className="w-4 h-4 text-[#A6C957] shrink-0" />
-                    <span>
-                      <strong>Histórico e Certificados SHA-256:</strong> Laudos PDF e consulta
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2.5 text-[#A5B1C5]/80">
-                    <Lock className="w-4 h-4 text-[#A5B1C5] shrink-0" />
-                    <span>Conexão TikTok LIVE em Tempo Real (Exclusivo PRO)</span>
-                  </div>
-                  <div className="flex items-center gap-2.5 text-[#A5B1C5]/80">
-                    <Lock className="w-4 h-4 text-[#A5B1C5] shrink-0" />
-                    <span>Sorteador de Comentários do TikTok (Exclusivo PRO)</span>
-                  </div>
-                  <div className="flex items-center gap-2.5 text-[#A5B1C5]/80">
-                    <Lock className="w-4 h-4 text-[#A5B1C5] shrink-0" />
-                    <span>Campanhas Acumuladas Multi-LIVE (Exclusivo PRO)</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-[var(--gio-border-subtle)]">
-                <button
-                  type="button"
-                  onClick={onNavigateToParticipants}
-                  className="gio-btn-secondary w-full py-3.5 px-4 text-xs font-semibold justify-center"
-                >
-                  <span>Consultar Participantes e Histórico</span>
-                  <ArrowRight className="w-4 h-4 text-[#A5B1C5]" />
-                </button>
-              </div>
-            </div>
-
-            {/* 2. PLANO PRO MENSAL */}
-            <div className="p-6 sm:p-7 rounded-2xl bg-[#111B30] border border-[#0131CD]/60 shadow-xl flex flex-col justify-between space-y-6 relative transition-all hover:border-[#0131CD]">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wide text-[#A6C957]">
-                      Flexibilidade Mensal
-                    </span>
-                    <h2 className="text-xl font-bold text-[#FFFFFF] mt-0.5">
-                      {monthlyPlan.name}
-                    </h2>
-                  </div>
-                  <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase bg-[#A6C957]/15 text-[#A6C957] border border-[#A6C957]/35 shadow-xs">
-                    3 Dias Grátis
+                  <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-[#080D18] text-[#A5B1C5] border border-[#0131CD]/35">
+                    Sempre Gratuito
                   </span>
                 </div>
 
-                <div className="pt-3 border-t border-[var(--gio-border-subtle)] space-y-2">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-bold text-[#FFFFFF] tabular-nums">
-                      {formatBrl(monthlyPlan.price)}
+                {/* Price Block */}
+                <div className="p-4 rounded-xl bg-[#080D18] border border-[#0131CD]/25 space-y-2">
+                  <div className="flex items-baseline gap-1.5 tabular-nums">
+                    <span className="text-3xl sm:text-4xl font-bold text-[#FFFFFF] tracking-tight tabular-nums">
+                      R$ 0,00
                     </span>
-                    <span className="text-xs text-[#A5B1C5]">/ mês</span>
+                    <span className="text-xs font-medium text-[#A5B1C5]">/ vitalício</span>
                   </div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#A6C957]/12 border border-[#A6C957]/30 text-xs font-semibold text-[#A6C957] tabular-nums">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>R$ 0,00 hoje • 3 dias de teste grátis</span>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#0131CD]/15 border border-[#0131CD]/35 text-xs font-medium text-[#FFFFFF]">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#0131CD] shrink-0" />
+                    <span>Acesso imediato · Sem cartão de crédito</span>
                   </div>
-                  <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
-                    Cobrança recorrente mensal somente após o término dos 3 dias de teste gratuito. Cancele quando quiser.
+                  <p className="text-xs text-[#A5B1C5] leading-relaxed">
+                    Ideal para sorteios tradicionais, rifas e conferência pública de bilhetes com auditoria.
                   </p>
                 </div>
 
-                <div className="space-y-2.5 pt-3 border-t border-[var(--gio-border-subtle)] text-xs">
-                  <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <Radio className="w-4 h-4 text-[#A5B1C5] shrink-0" />
-                    <span>
-                      <strong>Conexão TikTok LIVE em Tempo Real:</strong> Webcast + OAuth 2.0
-                    </span>
+                {/* Categorized Benefits Hierarchy */}
+                <div className="space-y-4 text-xs">
+                  {/* Tier 1: Core Raffle & Broadcast Engine */}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-[#A5B1C5] border-b border-[var(--gio-border-subtle)] pb-1.5">
+                      <span>1. Sorteios & Apresentação Ao Vivo</span>
+                      <span className="px-1.5 py-0.5 rounded bg-[#0131CD]/20 text-[#FFFFFF] border border-[#0131CD]/40 tabular-nums">
+                        Ilimitado
+                      </span>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-5 h-5 rounded-md bg-[#0131CD]/20 border border-[#0131CD]/45 flex items-center justify-center shrink-0 mt-0.5">
+                        <Check className="w-3.5 h-3.5 text-[#A6C957]" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-[#FFFFFF] block">
+                          Sorteio Proporcional por Moedas e Bilhetes
+                        </span>
+                        <span className="text-[11px] text-[#A5B1C5] leading-snug block">
+                          Cálculo automático de chances proporcionais e gestão manual de participantes.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-5 h-5 rounded-md bg-[#0131CD]/20 border border-[#0131CD]/45 flex items-center justify-center shrink-0 mt-0.5">
+                        <Check className="w-3.5 h-3.5 text-[#A6C957]" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-[#FFFFFF] block">
+                          Globo Digital 3D, Roleta Visual e Battle Royale
+                        </span>
+                        <span className="text-[11px] text-[#A5B1C5] leading-snug block">
+                          Modos visuais de alta performance com suporte a Overlay OBS Chroma Key.
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <Gift className="w-4 h-4 text-[#A5B1C5] shrink-0" />
-                    <span>
-                      <strong>Captura Automática de Presentes:</strong> Controle de combos sem duplicidade
-                    </span>
+
+                  {/* Tier 2: Cryptographic Security & Cloud Isolation */}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-[#A5B1C5] border-b border-[var(--gio-border-subtle)] pb-1.5">
+                      <span>2. Segurança & Auditoria</span>
+                      <span className="px-1.5 py-0.5 rounded bg-[#0131CD]/20 text-[#FFFFFF] border border-[#0131CD]/40">
+                        Provably Fair V2
+                      </span>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-5 h-5 rounded-md bg-[#0131CD]/20 border border-[#0131CD]/45 flex items-center justify-center shrink-0 mt-0.5">
+                        <Check className="w-3.5 h-3.5 text-[#A6C957]" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-[#FFFFFF] block">
+                          Certificados SHA-256, QR Code e Laudos PDF
+                        </span>
+                        <span className="text-[11px] text-[#A5B1C5] leading-snug block">
+                          Comprovação matemática pública de integridade para cada sorteio realizado.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-5 h-5 rounded-md bg-[#0131CD]/20 border border-[#0131CD]/45 flex items-center justify-center shrink-0 mt-0.5">
+                        <Check className="w-3.5 h-3.5 text-[#A6C957]" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-[#FFFFFF] block">
+                          Isolamento na Nuvem por Conta (UID)
+                        </span>
+                        <span className="text-[11px] text-[#A5B1C5] leading-snug block">
+                          Seus sorteios e históricos ficam salvos exclusivamente na sua conta.
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <Ticket className="w-4 h-4 text-[#A5B1C5] shrink-0" />
-                    <span>
-                      <strong>Sorteador de Comentários PRO:</strong> Extração automática e filtros
+
+                  {/* Locked PRO Capabilities Summary */}
+                  <div className="p-3 rounded-xl bg-[#080D18]/80 border border-[var(--gio-border-subtle)] space-y-2 text-[#A5B1C5]">
+                    <span className="text-[11px] font-semibold text-[#A5B1C5] block">
+                      Disponível apenas nos planos PRO:
                     </span>
-                  </div>
-                  <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <Layers className="w-4 h-4 text-[#A5B1C5] shrink-0" />
-                    <span>
-                      <strong>Campanhas Acumuladas Multi-LIVE:</strong> Ranking unificado
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <ShieldCheck className="w-4 h-4 text-[#A5B1C5] shrink-0" />
-                    <span>
-                      <strong>Cancelamento Livre:</strong> Cancele no teste sem cobrança
-                    </span>
+                    <div className="flex items-center gap-2 text-[11px]">
+                      <Lock className="w-3.5 h-3.5 text-[#A5B1C5] shrink-0" />
+                      <span>Conexão TikTok LIVE e Presentes em Tempo Real</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px]">
+                      <Lock className="w-3.5 h-3.5 text-[#A5B1C5] shrink-0" />
+                      <span>Sorteador Oficial de Comentários e Multi-LIVE</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1198,117 +1266,466 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
               <div className="pt-4 border-t border-[var(--gio-border-subtle)] space-y-2">
                 <button
                   type="button"
-                  onClick={() => handleOpenCheckoutModal(monthlyPlan)}
-                  className="gio-btn-primary w-full py-3.5 px-5 text-xs font-bold justify-center shadow-md"
+                  onClick={onNavigateToParticipants}
+                  className="gio-btn-secondary w-full py-3.5 px-4 text-xs font-semibold justify-center"
+                >
+                  <span>Usar Sorteador Manual e Participantes</span>
+                  <ArrowRight className="w-4 h-4 text-[#A5B1C5]" />
+                </button>
+                <p className="text-[11px] text-center text-[#A5B1C5]">
+                  {!isPro ? 'Plano atualmente ativo na sua conta' : 'Disponível permanentemente sem custo'}
+                </p>
+              </div>
+            </article>
+
+            {/* ==============================================================
+                2. PLANO PRO MENSAL — IDENTIDADE AZUL PRINCIPAL (#0131CD)
+               ============================================================== */}
+            <article
+              onClick={() => setBillingCycle('monthly')}
+              className={`relative overflow-hidden p-6 sm:p-7 rounded-2xl bg-[#111B30] flex flex-col justify-between space-y-6 transition-all cursor-pointer ${
+                billingCycle === 'monthly'
+                  ? 'border-2 border-[#0131CD] ring-4 ring-[#0131CD]/25 shadow-2xl'
+                  : 'border border-[#0131CD]/60 shadow-xl hover:border-[#0131CD]'
+              }`}
+            >
+              <div className="absolute inset-x-0 top-0 h-1.5 bg-[#0131CD]" />
+
+              <div className="space-y-5">
+                {/* Card Header */}
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#A5B1C5]">
+                      <Radio className="w-3.5 h-3.5 text-[#0131CD]" />
+                      <span>Automação Mês a Mês</span>
+                    </span>
+                    <h2 className="text-xl font-bold text-[#FFFFFF] tracking-tight mt-0.5">
+                      {monthlyPlan.name}
+                    </h2>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-[#0131CD] text-[#FFFFFF] shadow-xs tabular-nums">
+                    {billingCycle === 'monthly' ? 'Ciclo Selecionado' : '3 Dias Grátis'}
+                  </span>
+                </div>
+
+                {/* Price Block with Blue #0131CD & Lime #A6C957 Trial Accent */}
+                <div className="p-4 rounded-xl bg-[#080D18] border border-[#0131CD]/45 space-y-2.5">
+                  <div className="flex items-baseline gap-1.5 tabular-nums">
+                    <span className="text-3xl sm:text-4xl font-bold text-[#FFFFFF] tracking-tight tabular-nums">
+                      {formatBrl(monthlyPlan.price)}
+                    </span>
+                    <span className="text-xs font-medium text-[#A5B1C5]">/ mês</span>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#A6C957]/12 border border-[#A6C957]/35 text-xs font-semibold text-[#A6C957] tabular-nums">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#A6C957] shrink-0" />
+                    <span>R$ 0,00 hoje · 1ª cobrança somente no 4º dia</span>
+                  </div>
+                  <p className="text-xs text-[#A5B1C5] leading-relaxed">
+                    Liberdade mensal sem fidelidade. Cancele com 1 clique durante os 3 dias de avaliação sem pagar nada.
+                  </p>
+                </div>
+
+                {/* Categorized Benefits Hierarchy */}
+                <div className="space-y-4 text-xs">
+                  {/* Tier 1: Real-time TikTok LIVE Automation */}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-[#A5B1C5] border-b border-[var(--gio-border-subtle)] pb-1.5">
+                      <span>1. Automação TikTok LIVE em Tempo Real</span>
+                      <span className="px-1.5 py-0.5 rounded bg-[#A6C957]/15 text-[#A6C957] border border-[#A6C957]/35 font-semibold">
+                        Exclusivo PRO
+                      </span>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-5 h-5 rounded-md bg-[#0131CD]/25 border border-[#0131CD]/55 flex items-center justify-center shrink-0 mt-0.5">
+                        <Radio className="w-3.5 h-3.5 text-[#FFFFFF]" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-[#FFFFFF] block">
+                          Conexão TikTok LIVE (Webcast + OAuth 2.0)
+                        </span>
+                        <span className="text-[11px] text-[#A5B1C5] leading-snug block">
+                          Sincronização imediata pelo @ da transmissão com diagnóstico de sala ao vivo.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-5 h-5 rounded-md bg-[#0131CD]/25 border border-[#0131CD]/55 flex items-center justify-center shrink-0 mt-0.5">
+                        <Gift className="w-3.5 h-3.5 text-[#A6C957]" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-[#FFFFFF] block">
+                          Captura Automática de Presentes e Moedas
+                        </span>
+                        <span className="text-[11px] text-[#A5B1C5] leading-snug block">
+                          Emissão atômica de bilhetes na urna e preservação automática de sobras de moedas.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-5 h-5 rounded-md bg-[#0131CD]/25 border border-[#0131CD]/55 flex items-center justify-center shrink-0 mt-0.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-[#FFFFFF]" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-[#FFFFFF] block">
+                          Workers Persistentes em 2º Plano (Fila WAL)
+                        </span>
+                        <span className="text-[11px] text-[#A5B1C5] leading-snug block">
+                          Continua contabilizando presentes mesmo se você fechar a aba ou reiniciar o navegador.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tier 2: Comments & Multi-LIVE Campaigns */}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-[#A5B1C5] border-b border-[var(--gio-border-subtle)] pb-1.5">
+                      <span>2. Comentários & Campanhas Multi-LIVE</span>
+                      <span className="px-1.5 py-0.5 rounded bg-[#0131CD]/25 text-[#FFFFFF] border border-[#0131CD]/50">
+                        Incluso
+                      </span>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-5 h-5 rounded-md bg-[#0131CD]/25 border border-[#0131CD]/55 flex items-center justify-center shrink-0 mt-0.5">
+                        <Ticket className="w-3.5 h-3.5 text-[#A6C957]" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-[#FFFFFF] block">
+                          Sorteador Oficial de Comentários PRO
+                        </span>
+                        <span className="text-[11px] text-[#A5B1C5] leading-snug block">
+                          Filtros por palavra-chave, hashtag e proteção contra comentários duplicados.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-5 h-5 rounded-md bg-[#0131CD]/25 border border-[#0131CD]/55 flex items-center justify-center shrink-0 mt-0.5">
+                        <Layers className="w-3.5 h-3.5 text-[#FFFFFF]" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-[#FFFFFF] block">
+                          Campanhas Acumuladas Multi-LIVE
+                        </span>
+                        <span className="text-[11px] text-[#A5B1C5] leading-snug block">
+                          Reúna bilhetes de várias lives em uma única urna com snapshot SHA-256.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-[var(--gio-border-subtle)] space-y-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setBillingCycle('monthly');
+                    handleOpenCheckoutModal(monthlyPlan);
+                  }}
+                  className="gio-btn-primary w-full py-3.5 px-5 text-xs font-semibold justify-center shadow-md"
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>
                     {userHasUsedTrial
                       ? `Assinar PRO Mensal (${formatBrl(monthlyPlan.price)}/mês)`
-                      : `Começar 3 dias grátis (${selectedPaymentProvider === 'PAYPAL' ? 'PayPal' : 'Mercado Pago'})`}
+                      : `Começar 3 Dias Grátis (${selectedPaymentProvider === 'PAYPAL' ? 'PayPal' : 'Mercado Pago'})`}
                   </span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <p className="text-[11px] text-center text-[#A5B1C5] tabular-nums">
-                  Após 3 dias: {formatBrl(monthlyPlan.price)}/mês • Cancele quando quiser
+                  Após 3 dias: {formatBrl(monthlyPlan.price)}/mês · Cancele quando quiser
                 </p>
               </div>
-            </div>
+            </article>
 
-            {/* 3. PLANO PRO ANUAL */}
-            <div className="p-6 sm:p-7 rounded-2xl gio-card-pro border-2 border-[#A6C957]/60 flex flex-col justify-between space-y-6 relative shadow-2xl transition-all hover:border-[#A6C957]">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between gap-2">
+            {/* ==============================================================
+                3. PLANO PRO ANUAL — IDENTIDADE AZUL (#0131CD) + ACENTO VERDE-LIMÃO (#A6C957)
+               ============================================================== */}
+            <article
+              onClick={() => setBillingCycle('annual')}
+              className={`relative overflow-hidden p-6 sm:p-7 rounded-2xl bg-[#111B30] flex flex-col justify-between space-y-6 transition-all cursor-pointer ${
+                billingCycle === 'annual'
+                  ? 'border-2 border-[#A6C957] ring-4 ring-[#A6C957]/15 shadow-2xl'
+                  : 'border border-[#0131CD]/60 shadow-xl hover:border-[#A6C957]'
+              }`}
+            >
+              <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#0131CD] via-[#0131CD] to-[#A6C957]" />
+
+              <div className="space-y-5">
+                {/* Card Header */}
+                <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[#A6C957]">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#A6C957]">
                       <Crown className="w-3.5 h-3.5 text-[#A6C957]" />
-                      <span>Mais Econômico • Melhor Valor</span>
+                      <span>Melhor Custo-Benefício Anual</span>
                     </span>
-                    <h2 className="text-xl font-bold text-[#FFFFFF] mt-0.5">
+                    <h2 className="text-xl font-bold text-[#FFFFFF] tracking-tight mt-0.5">
                       {annualPlan.name}
                     </h2>
                   </div>
-                  <span className="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase bg-[#A6C957] text-[#080D18] shadow-sm tabular-nums">
+                  <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-[#A6C957] text-[#080D18] shadow-xs tabular-nums">
                     ~{annualPlan.annualDiscountPercent}% OFF
                   </span>
                 </div>
 
-                <div className="pt-3 border-t border-[#A6C957]/30 space-y-2">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-bold text-[#A6C957] tabular-nums">
-                      {formatBrl(annualPlan.price)}
+                {/* Price Block with Monthly Equivalent + Annual Savings Highlight */}
+                <div className="p-4 rounded-xl bg-[#080D18] border border-[#0131CD]/45 space-y-2.5">
+                  <div className="flex items-baseline gap-2 tabular-nums">
+                    <span className="text-3xl sm:text-4xl font-bold text-[#FFFFFF] tracking-tight tabular-nums">
+                      ~{formatBrl(annualPlan.monthlyEquivalent)}
                     </span>
-                    <span className="text-xs text-[#A5B1C5]">/ 12 meses</span>
+                    <span className="text-xs font-medium text-[#A5B1C5]">/ mês no ciclo anual</span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="px-2 py-0.5 rounded bg-[#A6C957]/15 border border-[#A6C957]/35 text-[11px] font-semibold text-[#A6C957] tabular-nums">
-                      Equivale a ~{formatBrl(annualPlan.monthlyEquivalent)}/mês
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs tabular-nums pt-0.5">
+                    <span className="text-[#A5B1C5]">
+                      Total anual: <strong className="text-[#FFFFFF] font-semibold">{formatBrl(annualPlan.price)}</strong>
                     </span>
-                    <span className="px-2 py-0.5 rounded bg-[#A6C957]/12 border border-[#A6C957]/30 text-[11px] font-semibold text-[#A6C957] tabular-nums">
-                      Economia de {formatBrl(annualPlan.annualSavingsAmount)}/ano
+                    <span className="px-2 py-0.5 rounded bg-[#A6C957]/15 border border-[#A6C957]/35 text-[11px] font-semibold text-[#A6C957]">
+                      Economia de {formatBrl(annualPlan.annualSavingsAmount)}
                     </span>
                   </div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#A6C957]/12 border border-[#A6C957]/30 text-xs font-semibold text-[#A6C957] tabular-nums">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>R$ 0,00 hoje • 3 dias de teste grátis</span>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#0131CD]/20 border border-[#0131CD]/45 text-xs font-medium text-[#FFFFFF] tabular-nums">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#A6C957] shrink-0" />
+                    <span>R$ 0,00 hoje · 3 dias de teste grátis inclusos</span>
                   </div>
-                  <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
-                    Ciclo anual de {formatBrl(annualPlan.price)} cobrado somente após os 3 dias de teste gratuito.
-                  </p>
                 </div>
 
-                <div className="space-y-2.5 pt-3 border-t border-[#A6C957]/30 text-xs">
-                  <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <CheckCircle2 className="w-4 h-4 text-[#A6C957] shrink-0" />
-                    <span>
-                      <strong>Tudo do PRO Mensal Incluso:</strong> TikTok LIVE e Comentários PRO
-                    </span>
+                {/* Categorized Benefits Hierarchy */}
+                <div className="space-y-4 text-xs">
+                  {/* Tier 1: Full PRO Automation Suite */}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-[#A5B1C5] border-b border-[var(--gio-border-subtle)] pb-1.5">
+                      <span>1. Suíte Completa de Automação PRO</span>
+                      <span className="px-1.5 py-0.5 rounded bg-[#0131CD]/25 text-[#FFFFFF] border border-[#0131CD]/50 font-semibold">
+                        100% Liberado
+                      </span>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-5 h-5 rounded-md bg-[#0131CD]/25 border border-[#0131CD]/55 flex items-center justify-center shrink-0 mt-0.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#A6C957]" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-[#FFFFFF] block">
+                          Todos os Recursos do PRO Mensal Inclusos
+                        </span>
+                        <span className="text-[11px] text-[#A5B1C5] leading-snug block">
+                          Presentes TikTok LIVE em tempo real, Sorteador de Comentários PRO e Workers 24/7.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-5 h-5 rounded-md bg-[#0131CD]/25 border border-[#0131CD]/55 flex items-center justify-center shrink-0 mt-0.5">
+                        <Layers className="w-3.5 h-3.5 text-[#FFFFFF]" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-[#FFFFFF] block">
+                          Campanhas Multi-LIVE & Ciclos Recorrentes
+                        </span>
+                        <span className="text-[11px] text-[#A5B1C5] leading-snug block">
+                          Operação contínua para temporadas semanais ou mensais com trilha imutável de entrega.
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <CheckCircle2 className="w-4 h-4 text-[#A6C957] shrink-0" />
-                    <span>
-                      <strong>Economia Real de {formatBrl(annualPlan.annualSavingsAmount)}:</strong> vs. 12 meses ({formatBrl(monthlyPlan.price * 12)})
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <CheckCircle2 className="w-4 h-4 text-[#A6C957] shrink-0" />
-                    <span>
-                      <strong>Proteção de Preço por 12 Meses:</strong> Garantia anual contra reajustes
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <CheckCircle2 className="w-4 h-4 text-[#A6C957] shrink-0" />
-                    <span>
-                      <strong>Auditoria Criptográfica SHA-256 & CSPRNG:</strong> Certificados oficiais
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2.5 text-[#FFFFFF]">
-                    <ShieldCheck className="w-4 h-4 text-[#A6C957] shrink-0" />
-                    <span>
-                      <strong>3 Dias de Teste Grátis:</strong> Cancele antes do fim sem cobrança
-                    </span>
+
+                  {/* Tier 2: Exclusive Annual Commercial Advantages */}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-[#A5B1C5] border-b border-[var(--gio-border-subtle)] pb-1.5">
+                      <span>2. Vantagens Financeiras do Ciclo Anual</span>
+                      <span className="px-1.5 py-0.5 rounded bg-[#A6C957]/15 text-[#A6C957] border border-[#A6C957]/35 font-semibold tabular-nums">
+                        -{annualPlan.annualDiscountPercent}%
+                      </span>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-5 h-5 rounded-md bg-[#A6C957]/15 border border-[#A6C957]/35 flex items-center justify-center shrink-0 mt-0.5">
+                        <Crown className="w-3.5 h-3.5 text-[#A6C957]" />
+                      </div>
+                      <div className="tabular-nums">
+                        <span className="font-semibold text-[#FFFFFF] block">
+                          Desconto Real de {formatBrl(annualPlan.annualSavingsAmount)} no Ano
+                        </span>
+                        <span className="text-[11px] text-[#A5B1C5] leading-snug block">
+                          Pague {formatBrl(annualPlan.price)}/ano em vez de {formatBrl(monthlyPlan.price * 12)} em 12 mensalidades avulsas.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-5 h-5 rounded-md bg-[#A6C957]/15 border border-[#A6C957]/35 flex items-center justify-center shrink-0 mt-0.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-[#A6C957]" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-[#FFFFFF] block">
+                          Trava de Preço Garantida por 12 Meses
+                        </span>
+                        <span className="text-[11px] text-[#A5B1C5] leading-snug block">
+                          Proteção integral contra reajustes de tabela durante todo o ciclo anual contratado.
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-[#A6C957]/30 space-y-2">
+              <div className="pt-4 border-t border-[var(--gio-border-subtle)] space-y-2">
                 <button
                   type="button"
-                  onClick={() => handleOpenCheckoutModal(annualPlan)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setBillingCycle('annual');
+                    handleOpenCheckoutModal(annualPlan);
+                  }}
                   className="gio-btn-pro w-full py-3.5 px-5 text-xs font-bold justify-center shadow-lg"
                 >
-                  <Crown className="w-4 h-4" />
+                  <Crown className="w-4 h-4 text-[#080D18]" />
                   <span>
                     {userHasUsedTrial
                       ? `Assinar PRO Anual (${formatBrl(annualPlan.price)}/ano)`
-                      : `Começar 3 dias grátis (${selectedPaymentProvider === 'PAYPAL' ? 'PayPal' : 'Mercado Pago'})`}
+                      : `Começar 3 Dias Grátis (${selectedPaymentProvider === 'PAYPAL' ? 'PayPal' : 'Mercado Pago'})`}
                   </span>
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-4 h-4 text-[#080D18]" />
                 </button>
                 <p className="text-[11px] text-center text-[#A5B1C5] tabular-nums">
-                  Após 3 dias: {formatBrl(annualPlan.price)}/ano • Cancele quando quiser
+                  Após 3 dias: {formatBrl(annualPlan.price)}/ano · Cancele quando quiser
                 </p>
               </div>
+            </article>
+          </div>
+
+          {/* 3-Step Free Trial Timeline ("Como funcionam os 3 dias de teste grátis") */}
+          <div className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-lg space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <span className="text-xs font-semibold text-[#A6C957]">
+                  Transparência Total · Sem Surpresas na Fatura
+                </span>
+                <h3 className="text-base sm:text-lg font-bold text-[#FFFFFF]">
+                  Como funcionam seus 3 dias de avaliação gratuita no Plano PRO
+                </h3>
+              </div>
+              <span className="text-xs text-[#A5B1C5]">
+                Vinculado com segurança ao seu UID no Firebase
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+              <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#FFFFFF]">1. Hoje — Ativação Imediata</span>
+                  <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-[#A6C957]/15 text-[#A6C957] tabular-nums">
+                    R$ 0,00
+                  </span>
+                </div>
+                <p className="text-xs text-[#A5B1C5] leading-relaxed">
+                  Você autoriza a assinatura via Mercado Pago ou PayPal sem cobrança no ato e libera imediatamente o TikTok LIVE PRO e o Sorteador de Comentários.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#FFFFFF]">2. Dias 1 a 3 — Uso Ilimitado</span>
+                  <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-[#0131CD]/25 text-[#FFFFFF] border border-[#0131CD]/45 tabular-nums">
+                    100% Liberado
+                  </span>
+                </div>
+                <p className="text-xs text-[#A5B1C5] leading-relaxed">
+                  Realize quantas transmissões e sorteios quiser, contabilize presentes ao vivo com workers em segundo plano e emita certificados criptográficos.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#FFFFFF]">3. A partir do 4º Dia — Você Decide</span>
+                  <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-[#111B30] text-[#A5B1C5] border border-[var(--gio-border-subtle)]">
+                    1 Clique
+                  </span>
+                </div>
+                <p className="text-xs text-[#A5B1C5] leading-relaxed">
+                  Continue utilizando normalmente ou cancele a renovação aqui mesmo no painel antes do fim do 3º dia sem nenhuma cobrança e sem perder seu histórico.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Detailed Feature Comparison Table: FREE vs PRO */}
+          <div className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-lg space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <span className="text-xs font-semibold text-[#A5B1C5]">
+                  Comparativo Completo de Recursos
+                </span>
+                <h3 className="text-base sm:text-lg font-bold text-[#FFFFFF]">
+                  O que está incluído em cada plano
+                </h3>
+              </div>
+              <span className="text-xs text-[#A5B1C5]">
+                Todos os planos contam com auditoria Provably Fair V2 (SHA-256 + CSPRNG)
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs tabular-nums">
+                <thead>
+                  <tr className="border-b border-[var(--gio-border-subtle)] bg-[#080D18] text-[#A5B1C5]">
+                    <th className="p-3.5 font-semibold">Recurso / Funcionalidade</th>
+                    <th className="p-3.5 font-semibold text-center">Plano FREE</th>
+                    <th className="p-3.5 font-semibold text-center text-[#FFFFFF]">PRO Mensal</th>
+                    <th className="p-3.5 font-bold text-center text-[#A6C957]">PRO Anual</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--gio-border-subtle)] text-[#FFFFFF]">
+                  <tr>
+                    <td className="p-3.5 font-medium">Mesa Oficial de Sorteio, Globo Digital 3D e Roleta Visual</td>
+                    <td className="p-3.5 text-center text-[#FFFFFF] font-semibold">Ilimitado</td>
+                    <td className="p-3.5 text-center text-[#FFFFFF] font-semibold">Ilimitado</td>
+                    <td className="p-3.5 text-center text-[#A6C957] font-semibold">Ilimitado</td>
+                  </tr>
+                  <tr>
+                    <td className="p-3.5 font-medium">Certificados SHA-256, Laudos PDF, QR Code e Overlay OBS Chroma Key</td>
+                    <td className="p-3.5 text-center text-[#FFFFFF] font-semibold">Incluso</td>
+                    <td className="p-3.5 text-center text-[#FFFFFF] font-semibold">Incluso</td>
+                    <td className="p-3.5 text-center text-[#A6C957] font-semibold">Incluso</td>
+                  </tr>
+                  <tr>
+                    <td className="p-3.5 font-medium">Conexão TikTok LIVE em Tempo Real (Webcast + OAuth 2.0 Oficial)</td>
+                    <td className="p-3.5 text-center text-[#A5B1C5]">—</td>
+                    <td className="p-3.5 text-center text-[#FFFFFF] font-semibold">Incluso</td>
+                    <td className="p-3.5 text-center text-[#A6C957] font-semibold">Incluso</td>
+                  </tr>
+                  <tr>
+                    <td className="p-3.5 font-medium">Captura Automática de Presentes e Moedas com Workers em 2º Plano</td>
+                    <td className="p-3.5 text-center text-[#A5B1C5]">—</td>
+                    <td className="p-3.5 text-center text-[#FFFFFF] font-semibold">Incluso</td>
+                    <td className="p-3.5 text-center text-[#A6C957] font-semibold">Incluso</td>
+                  </tr>
+                  <tr>
+                    <td className="p-3.5 font-medium">Sorteador Oficial de Comentários da LIVE (Filtro por Hashtag/Palavra)</td>
+                    <td className="p-3.5 text-center text-[#A5B1C5]">—</td>
+                    <td className="p-3.5 text-center text-[#FFFFFF] font-semibold">Incluso</td>
+                    <td className="p-3.5 text-center text-[#A6C957] font-semibold">Incluso</td>
+                  </tr>
+                  <tr>
+                    <td className="p-3.5 font-medium">Campanhas Acumuladas Multi-LIVE com Ranking Unificado</td>
+                    <td className="p-3.5 text-center text-[#A5B1C5]">—</td>
+                    <td className="p-3.5 text-center text-[#FFFFFF] font-semibold">Incluso</td>
+                    <td className="p-3.5 text-center text-[#A6C957] font-semibold">Incluso</td>
+                  </tr>
+                  <tr>
+                    <td className="p-3.5 font-medium">Proteção de Preço por 12 Meses + Economia de {formatBrl(annualPlan.annualSavingsAmount)}</td>
+                    <td className="p-3.5 text-center text-[#A5B1C5]">—</td>
+                    <td className="p-3.5 text-center text-[#A5B1C5]">Ciclo Mensal</td>
+                    <td className="p-3.5 text-center text-[#A6C957] font-bold">Exclusivo Anual (~44% OFF)</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -1316,7 +1733,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
           <div className="gio-card p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--gio-border-subtle)] pb-4">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wide text-[#A6C957]">
+                <span className="text-xs font-semibold text-[#A6C957]">
                   Gestão da Sua Assinatura & Vínculo Firebase UID
                 </span>
                 <h3 className="text-lg font-bold text-[#FFFFFF]">
@@ -1339,7 +1756,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                     onClick={onNavigateToLivePro}
                     className="gio-btn-pro px-3.5 py-1.5 text-xs"
                   >
-                    <Radio className="w-3.5 h-3.5" />
+                    <Radio className="w-3.5 h-3.5 text-[#080D18]" />
                     <span>Abrir Painel TikTok LIVE PRO</span>
                   </button>
                 )}
@@ -1348,7 +1765,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
               <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
-                <span className="text-[10px] font-bold uppercase text-[#A5B1C5] block">
+                <span className="text-[11px] font-medium text-[#A5B1C5] block">
                   Plano / Modalidade
                 </span>
                 <span className="font-bold text-[#FFFFFF] text-sm block mt-0.5">
@@ -1364,7 +1781,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
               </div>
 
               <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
-                <span className="text-[10px] font-bold uppercase text-[#A5B1C5] block">
+                <span className="text-[11px] font-medium text-[#A5B1C5] block">
                   {isAdminAuthorized ? 'Status Interno & Provedor' : 'Situação da Assinatura'}
                 </span>
                 <span className={`font-bold text-sm block mt-0.5 ${isPro ? 'text-[#A6C957]' : 'text-[#FFFFFF]'}`}>
@@ -1379,18 +1796,18 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                     <span className="inline-flex items-center gap-1 font-semibold text-[#FFFFFF]">
                       Provedor: {userSubscription.provider === 'PAYPAL' ? 'PayPal' : 'Mercado Pago'}
                     </span>
+                  ) : isAdminAuthorized ? (
+                    `Remoto MP: ${userSubscription?.remoteMpStatus || 'nenhum'}`
+                  ) : isPro ? (
+                    'Recursos exclusivos liberados'
                   ) : (
-                    isAdminAuthorized
-                    ? `Remoto MP: ${userSubscription?.remoteMpStatus || 'nenhum'}`
-                    : isPro
-                    ? 'Recursos exclusivos liberados'
-                    : 'Sem cobrança recorrente ativa'
+                    'Sem cobrança recorrente ativa'
                   )}
                 </span>
               </div>
 
               <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
-                <span className="text-[10px] font-bold uppercase text-[#A5B1C5] block">
+                <span className="text-[11px] font-medium text-[#A5B1C5] block">
                   Fim do Teste (3 Dias) / Ciclo Vigente
                 </span>
                 <span className="font-bold text-[#FFFFFF] text-xs block mt-0.5 tabular-nums">
@@ -1400,8 +1817,8 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                     ? formatDatePtBr(userSubscription.currentPeriodEnd)
                     : 'N/A'}
                 </span>
-                <span className="text-[10px] text-[#A5B1C5] block mt-0.5">
-                  Elegibilidade 3 dias grátis (UID):{' '}
+                <span className="text-[11px] text-[#A5B1C5] block mt-0.5">
+                  Elegibilidade 3 dias grátis:{' '}
                   <strong className="text-[#FFFFFF]">
                     {userHasUsedTrial ? 'Já utilizado nesta conta' : 'Disponível (1x por UID)'}
                   </strong>
@@ -1409,8 +1826,8 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
               </div>
 
               <div className="p-3.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)]">
-                <span className="text-[10px] font-bold uppercase text-[#A5B1C5] block">
-                  Próxima Cobrança (next_payment_date)
+                <span className="text-[11px] font-medium text-[#A5B1C5] block">
+                  Próxima Cobrança Programada
                 </span>
                 <span className="font-bold text-[#FFFFFF] text-xs block mt-0.5 tabular-nums">
                   {userSubscription?.cancelAtPeriodEnd
@@ -1476,6 +1893,60 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
               )}
             </div>
           </div>
+
+          {/* Frequently Asked Questions (FAQ) */}
+          <div className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-lg space-y-4">
+            <div>
+              <span className="text-xs font-semibold text-[#A5B1C5]">
+                Perguntas Frequentes
+              </span>
+              <h3 className="text-base sm:text-lg font-bold text-[#FFFFFF]">
+                Dúvidas sobre Planos, Pagamentos e Segurança dos Dados
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <details className="group p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] open:border-[#0131CD]/60 transition-all">
+                <summary className="font-bold text-[#FFFFFF] cursor-pointer list-none flex items-center justify-between gap-2">
+                  <span>1. Serei cobrado ao iniciar os 3 dias de teste grátis?</span>
+                  <span className="text-[#A6C957] group-open:rotate-45 transition-transform text-base leading-none">+</span>
+                </summary>
+                <p className="text-[#A5B1C5] mt-2 leading-relaxed">
+                  Não. Ao ativar o período de teste gratuito via Mercado Pago ou PayPal, o valor hoje é R$ 0,00. A primeira cobrança recorrente ocorre somente após o término das 72 horas (3 dias), e você pode cancelar antes com 1 clique sem custo.
+                </p>
+              </details>
+
+              <details className="group p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] open:border-[#0131CD]/60 transition-all">
+                <summary className="font-bold text-[#FFFFFF] cursor-pointer list-none flex items-center justify-between gap-2">
+                  <span>2. O que acontece com meus sorteios se eu voltar para o FREE?</span>
+                  <span className="text-[#A6C957] group-open:rotate-45 transition-transform text-base leading-none">+</span>
+                </summary>
+                <p className="text-[#A5B1C5] mt-2 leading-relaxed">
+                  Nada é apagado. Todos os participantes, bilhetes, vencedores, snapshots e certificados SHA-256 permanecem 100% salvos e isolados no seu Firebase UID para consulta, auditoria e exportação PDF/CSV.
+                </p>
+              </details>
+
+              <details className="group p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] open:border-[#0131CD]/60 transition-all">
+                <summary className="font-bold text-[#FFFFFF] cursor-pointer list-none flex items-center justify-between gap-2">
+                  <span>3. Qual a diferença entre assinar via Mercado Pago ou PayPal?</span>
+                  <span className="text-[#A6C957] group-open:rotate-45 transition-transform text-base leading-none">+</span>
+                </summary>
+                <p className="text-[#A5B1C5] mt-2 leading-relaxed">
+                  Ambos liberam exatamente os mesmos recursos PRO e 3 dias grátis. O Mercado Pago é ideal para pagamentos nacionais em Reais (BRL), enquanto o PayPal permite usar saldo PayPal ou cartões de crédito internacionais.
+                </p>
+              </details>
+
+              <details className="group p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] open:border-[#0131CD]/60 transition-all">
+                <summary className="font-bold text-[#FFFFFF] cursor-pointer list-none flex items-center justify-between gap-2">
+                  <span>4. Se eu fechar o navegador durante a LIVE, perco os presentes?</span>
+                  <span className="text-[#A6C957] group-open:rotate-45 transition-transform text-base leading-none">+</span>
+                </summary>
+                <p className="text-[#A5B1C5] mt-2 leading-relaxed">
+                  Não. No Plano PRO, os workers do servidor continuam conectados à sua transmissão TikTok LIVE processando presentes, moedas e bilhetes em segundo plano mesmo se você fechar a aba ou fizer logout.
+                </p>
+              </details>
+            </div>
+          </div>
         </>
       ) : (
         /* ADMIN COMMERCIAL & MERCADO PAGO HOMOLOGATION PANEL */
@@ -1483,7 +1954,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
           {/* KPI Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="p-4 rounded-2xl bg-[#111B30] border border-[#0131CD]/40 shadow-md">
-              <span className="text-[10px] font-semibold uppercase text-[#A5B1C5] block">
+              <span className="text-[11px] font-semibold text-[#A5B1C5] block">
                 Em Teste Gratuito (3 Dias)
               </span>
               <span className="text-2xl font-bold text-[#FFFFFF] tabular-nums mt-1 block">
@@ -1493,7 +1964,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
             </div>
 
             <div className="p-4 rounded-2xl bg-[#111B30] border border-[#A6C957]/40 shadow-md">
-              <span className="text-[10px] font-semibold uppercase text-[#A5B1C5] block">
+              <span className="text-[11px] font-semibold text-[#A5B1C5] block">
                 Assinaturas Ativas (PRO)
               </span>
               <span className="text-2xl font-bold text-[#A6C957] tabular-nums mt-1 block">
@@ -1505,7 +1976,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
             </div>
 
             <div className="p-4 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-md">
-              <span className="text-[10px] font-semibold uppercase text-[#A5B1C5] block">
+              <span className="text-[11px] font-semibold text-[#A5B1C5] block">
                 Receita Plano Mensal
               </span>
               <span className="text-2xl font-bold text-[#FFFFFF] tabular-nums mt-1 block">
@@ -1517,7 +1988,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
             </div>
 
             <div className="p-4 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-md">
-              <span className="text-[10px] font-semibold uppercase text-[#A5B1C5] block">
+              <span className="text-[11px] font-semibold text-[#A5B1C5] block">
                 Receita Plano Anual Integral
               </span>
               <span className="text-2xl font-bold text-[#FFFFFF] tabular-nums mt-1 block">
@@ -1529,7 +2000,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
             </div>
 
             <div className="p-4 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-md">
-              <span className="text-[10px] font-semibold uppercase text-[#A5B1C5] block">
+              <span className="text-[11px] font-semibold text-[#A5B1C5] block">
                 Canceladas / Pendentes
               </span>
               <span className="text-2xl font-bold text-[#FFFFFF] tabular-nums mt-1 block">
@@ -1544,7 +2015,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
           <div className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-4 shadow-lg">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wide text-[#A6C957]">
+                <span className="text-xs font-semibold text-[#A6C957]">
                   Arquitetura Oficial Mercado Pago & Vinculação ao Firebase UID
                 </span>
                 <h3 className="text-lg font-bold text-[#FFFFFF]">
@@ -1559,7 +2030,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-[var(--gio-border-subtle)] text-[11px] font-semibold uppercase text-[#A5B1C5] bg-[#080D18]">
+                  <tr className="border-b border-[var(--gio-border-subtle)] text-xs font-semibold text-[#A5B1C5] bg-[#080D18]">
                     <th className="p-3">Critério Técnico / UX</th>
                     <th className="p-3">
                       Opção 1 (Primária): Checkout Hospedado Individual (POST /preapproval sem plano)
@@ -1571,7 +2042,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                 </thead>
                 <tbody className="divide-y divide-[var(--gio-border-subtle)] text-[#FFFFFF]">
                   <tr>
-                    <td className="p-3 font-bold text-[#FFFFFF]">Endpoint & Vínculo UID</td>
+                    <td className="p-3 font-semibold text-[#FFFFFF]">Endpoint & Vínculo UID</td>
                     <td className="p-3 font-mono text-[11px] text-[#A5B1C5]">
                       POST /preapproval sem preapproval_plan_id • external_reference = Firebase UID
                     </td>
@@ -1580,7 +2051,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                     </td>
                   </tr>
                   <tr>
-                    <td className="p-3 font-bold text-[#FFFFFF]">Tipo de Checkout</td>
+                    <td className="p-3 font-semibold text-[#FFFFFF]">Tipo de Checkout</td>
                     <td className="p-3 text-[#A6C957]">
                       <strong>Checkout Hospedado:</strong> Redireciona o usuário pelo init_point individual exclusivo da assinatura.
                     </td>
@@ -1589,7 +2060,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                     </td>
                   </tr>
                   <tr>
-                    <td className="p-3 font-bold text-[#FFFFFF]">Exigência de Homologação (3 Dias Grátis)</td>
+                    <td className="p-3 font-semibold text-[#FFFFFF]">Exigência de Homologação (3 Dias Grátis)</td>
                     <td className="p-3 text-[#A5B1C5]">
                       Exige comprovação real via GET /preapproval/&#123;id&#125; de que free_trial (3 days) é aplicado e next_payment_date &gt;= +3 dias.
                     </td>
@@ -1606,7 +2077,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
           <div className="p-6 rounded-2xl bg-[#111B30] border border-[#A6C957]/35 space-y-4 shadow-lg">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--gio-border-subtle)] pb-4">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wide text-[#A6C957]">
+                <span className="text-xs font-semibold text-[#A6C957]">
                   Protocolo Obrigatório de 10 Etapas — API de Homologação Mercado Pago
                 </span>
                 <h3 className="text-lg font-bold text-[#FFFFFF]">
@@ -1619,7 +2090,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                 disabled={isRunningHomologation}
                 className="px-4 py-2.5 rounded-xl bg-[#A6C957] hover:bg-[#B5D477] text-[#080D18] font-bold text-xs transition flex items-center gap-2 shrink-0 cursor-pointer"
               >
-                <RefreshCw className={`w-4 h-4 ${isRunningHomologation ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 text-[#080D18] ${isRunningHomologation ? 'animate-spin' : ''}`} />
                 <span>
                   {isRunningHomologation
                     ? 'Executando 10 Etapas na API...'
@@ -1678,7 +2149,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
-                  <label className="block text-[11px] font-semibold uppercase text-[#A5B1C5] mb-1">
+                  <label className="block text-[11px] font-semibold text-[#A5B1C5] mb-1">
                     Preço PRO Mensal (BRL)
                   </label>
                   <input
@@ -1690,7 +2161,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold uppercase text-[#A5B1C5] mb-1">
+                  <label className="block text-[11px] font-semibold text-[#A5B1C5] mb-1">
                     Preço PRO Anual Integral (BRL)
                   </label>
                   <input
@@ -1880,7 +2351,7 @@ export const SubscriptionPlanView: React.FC<SubscriptionPlanViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold uppercase text-[#A5B1C5] mb-1">
+                <label className="block text-[11px] font-semibold text-[#A5B1C5] mb-1">
                   E-mail do Comprador ({selectedPaymentProvider === 'PAYPAL' ? 'conta PayPal' : 'payer_email no Mercado Pago'})
                 </label>
                 <input

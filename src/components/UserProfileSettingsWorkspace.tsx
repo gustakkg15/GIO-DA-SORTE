@@ -1145,136 +1145,307 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
     .toUpperCase();
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in font-sans">
       {/* =====================================================================
-          TOP WORKSPACE IDENTITY HEADER
+          TOP WORKSPACE IDENTITY & TELEMETRY HEADER
       ===================================================================== */}
-      <div className="p-5 sm:p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
-          <div className="flex items-start sm:items-center gap-4 min-w-0">
-            {/* Avatar */}
-            <div className="relative shrink-0">
-              {profilePhotoUrl ? (
-                <img
-                  src={profilePhotoUrl}
-                  alt={profileDisplayName || 'Foto do perfil'}
-                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-[#0131CD] bg-[#080D18]"
-                  onError={() => setProfilePhotoUrl('')}
-                />
-              ) : (
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#0131CD] border-2 border-[#A6C957]/40 flex items-center justify-center text-2xl sm:text-3xl font-bold text-white">
-                  {userInitial}
-                </div>
-              )}
-              <span
-                className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-[#111B30] ${
-                  currentUser ? 'bg-[#A6C957]' : 'bg-[#A5B1C5]'
-                }`}
-                title={currentUser ? 'Conta conectada' : 'Modo local (sem login)'}
-              />
-            </div>
+      <div className="relative rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-sm overflow-hidden">
+        {/* Top Royal Blue + Lime Green Brand Accent Bar */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-[#0131CD] via-[#0131CD] to-[#A6C957]" />
 
-            {/* Identity Details */}
-            <div className="min-w-0 flex-1 space-y-1.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-lg sm:text-xl font-bold text-[#FFFFFF] truncate">
-                  {profileDisplayName || currentUser?.displayName || settings.organizerName || 'Organizador GIO'}
-                </h1>
-                <span className="font-mono text-xs text-[#A5B1C5] bg-[#080D18] px-2.5 py-0.5 rounded-md border border-[var(--gio-border-subtle)]">
-                  {effectiveHandle}
-                </span>
-                {isProActive ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-[#A6C957]/15 text-[#A6C957] border border-[#A6C957]/35">
-                    <Crown className="w-3 h-3" />
-                    TIKTOK LIVE PRO
-                  </span>
+        <div className="p-5 sm:p-6 space-y-5">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+            <div className="flex items-start sm:items-center gap-4 min-w-0">
+              {/* Avatar + Official Brand Badge */}
+              <div className="relative shrink-0">
+                {profilePhotoUrl ? (
+                  <img
+                    src={profilePhotoUrl}
+                    alt={profileDisplayName || 'Foto do perfil'}
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-[#0131CD] bg-[#080D18] shadow-md"
+                    onError={() => setProfilePhotoUrl('')}
+                  />
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-[#0131CD]/25 text-[#FFFFFF] border border-[#0131CD]/50">
-                    PLANO FREE
-                  </span>
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#0131CD] border-2 border-[#A6C957]/45 flex items-center justify-center text-2xl sm:text-3xl font-bold text-white shadow-md">
+                    {userInitial}
+                  </div>
                 )}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#A5B1C5]">
-                <span className="inline-flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-[#A5B1C5]" />
-                  {currentUser?.email || 'Modo Local (Conecte sua conta para sincronizar na nuvem)'}
-                </span>
-                {currentUser && (
-                  <span
-                    className={`inline-flex items-center gap-1 font-medium ${
-                      currentUser.emailVerified ? 'text-[#A6C957]' : 'text-[#A5B1C5]'
-                    }`}
-                  >
-                    {currentUser.emailVerified ? (
-                      <>
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        E-mail verificado
-                      </>
-                    ) : (
-                      <>
-                        <AlertTriangle className="w-3.5 h-3.5" />
-                        Verificação pendente
-                      </>
-                    )}
-                  </span>
-                )}
-                {tiktokIdentity?.connected && (
-                  <span className="inline-flex items-center gap-1 text-[#A6C957] font-medium">
-                    <Radio className="w-3.5 h-3.5" />
-                    TikTok: @{tiktokIdentity.username || tiktokIdentity.displayName}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right Quick Actions */}
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-            {currentUser ? (
-              <>
-                <button
-                  type="button"
-                  onClick={onSaveToCloud}
-                  disabled={syncStatus === 'syncing' || syncStatus === 'saving'}
-                  className="min-h-[40px] px-4 py-2 rounded-xl bg-[#080D18] hover:bg-[#111B30] text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[var(--gio-border-active)] text-xs font-semibold flex items-center gap-2 transition disabled:opacity-50"
+                <div
+                  className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex items-center justify-center shadow"
+                  title={currentUser ? 'Conta conectada ao GIO DA SORTE' : 'Modo local (sem login)'}
                 >
-                  <Cloud
-                    className={`w-4 h-4 ${
-                      syncStatus === 'syncing' || syncStatus === 'saving'
-                        ? 'text-[#A6C957] animate-pulse'
-                        : syncStatus === 'saved' || syncStatus === 'synced'
-                        ? 'text-[#A6C957]'
-                        : 'text-[#A5B1C5]'
+                  <img
+                    src="/logo.png"
+                    alt="GIO"
+                    className="w-4 h-4 object-contain"
+                  />
+                  <span
+                    className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-[#080D18] ${
+                      currentUser ? 'bg-[#A6C957]' : 'bg-[#A5B1C5]'
                     }`}
                   />
-                  <span>
-                    {syncStatus === 'syncing' || syncStatus === 'saving'
-                      ? 'Sincronizando...'
-                      : syncStatus === 'saved' || syncStatus === 'synced'
-                      ? 'Nuvem Sincronizada'
-                      : 'Salvar na Nuvem'}
+                </div>
+              </div>
+
+              {/* Identity Details */}
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-lg sm:text-xl font-bold text-[#FFFFFF] tracking-tight truncate">
+                    {profileDisplayName || currentUser?.displayName || settings.organizerName || 'Organizador GIO'}
+                  </h1>
+                  <span className="font-mono text-xs text-[#A5B1C5] bg-[#080D18] px-2.5 py-0.5 rounded-lg border border-[var(--gio-border-subtle)]">
+                    {effectiveHandle}
                   </span>
-                </button>
+                  {isProActive ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-[#A6C957]/15 text-[#A6C957] border border-[#A6C957]/40">
+                      <Crown className="w-3.5 h-3.5" />
+                      <span>TikTok LIVE PRO</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-semibold bg-[#0131CD]/25 text-[#FFFFFF] border border-[#0131CD]/55">
+                      <span>Plano FREE</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-[#A5B1C5]">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 text-[#A5B1C5]" />
+                    <span className="text-[#FFFFFF] font-medium">
+                      {currentUser?.email || 'Modo Local (Conecte sua conta para sincronizar na nuvem)'}
+                    </span>
+                  </span>
+                  {currentUser && (
+                    <span
+                      className={`inline-flex items-center gap-1 font-semibold ${
+                        currentUser.emailVerified ? 'text-[#A6C957]' : 'text-[#A5B1C5]'
+                      }`}
+                    >
+                      {currentUser.emailVerified ? (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>E-mail verificado</span>
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          <span>Verificação pendente</span>
+                        </>
+                      )}
+                    </span>
+                  )}
+                  {currentUser && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard?.writeText(currentUser.uid);
+                        setCopiedUid(true);
+                        setTimeout(() => setCopiedUid(false), 2000);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#080D18] hover:bg-[#0131CD]/20 border border-[var(--gio-border-subtle)] font-mono text-[11px] text-[#A5B1C5] hover:text-[#FFFFFF] transition"
+                      title="Copiar UID da conta"
+                    >
+                      <Copy className="w-3 h-3 text-[#A6C957]" />
+                      <span>{copiedUid ? 'UID copiado!' : `UID: ${currentUser.uid.slice(0, 8)}...`}</span>
+                    </button>
+                  )}
+                  {tiktokIdentity?.connected && (
+                    <span className="inline-flex items-center gap-1.5 text-[#A6C957] font-semibold">
+                      <Radio className="w-3.5 h-3.5" />
+                      <span className="font-mono">@{tiktokIdentity.username || tiktokIdentity.displayName}</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Quick Actions (Cloud Sync + Minha Conta Modal) */}
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              {currentUser ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={onSaveToCloud}
+                    disabled={syncStatus === 'syncing' || syncStatus === 'saving'}
+                    className="min-h-[42px] px-4 py-2 rounded-xl bg-[#080D18] hover:bg-[#0131CD]/20 text-[#FFFFFF] border border-[var(--gio-border-subtle)] hover:border-[#0131CD]/60 text-xs font-semibold flex items-center gap-2 transition disabled:opacity-50"
+                  >
+                    <Cloud
+                      className={`w-4 h-4 ${
+                        syncStatus === 'syncing' || syncStatus === 'saving'
+                          ? 'text-[#A6C957] animate-pulse'
+                          : syncStatus === 'saved' || syncStatus === 'synced'
+                          ? 'text-[#A6C957]'
+                          : 'text-[#A5B1C5]'
+                      }`}
+                    />
+                    <span>
+                      {syncStatus === 'syncing' || syncStatus === 'saving'
+                        ? 'Sincronizando...'
+                        : syncStatus === 'saved' || syncStatus === 'synced'
+                        ? 'Nuvem Sincronizada'
+                        : 'Salvar na Nuvem'}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onOpenAccountModal}
+                    className="min-h-[42px] px-4 py-2 rounded-xl bg-[#0131CD] hover:bg-[#0A3FE0] text-[#FFFFFF] border border-[#A6C957]/35 text-xs font-semibold flex items-center gap-2 transition shadow-sm"
+                  >
+                    <User className="w-4 h-4 text-[#A6C957]" />
+                    <span>Minha Conta</span>
+                  </button>
+                </>
+              ) : (
                 <button
                   type="button"
                   onClick={onOpenAccountModal}
-                  className="min-h-[40px] px-4 py-2 rounded-xl bg-[#080D18] hover:bg-[#0131CD]/20 text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-xs font-semibold flex items-center gap-2 transition"
+                  className="gio-btn-primary min-h-[42px] px-5 py-2.5 rounded-xl text-white font-semibold text-xs flex items-center gap-2 transition"
                 >
-                  <KeyRound className="w-4 h-4 text-[#A5B1C5]" />
-                  <span>Acesso Rápido</span>
+                  <User className="w-4 h-4 text-[#A6C957]" />
+                  <span>Entrar em Minha Conta</span>
                 </button>
-              </>
-            ) : (
+              )}
+            </div>
+          </div>
+
+          {/* Live Account & Raffle Telemetry Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-[var(--gio-border-subtle)]">
+            <div className="p-3 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[11px] font-medium text-[#A5B1C5] truncate">Participantes & Bilhetes</div>
+                <div className="text-sm font-bold text-[#FFFFFF] tabular-nums mt-0.5">
+                  {participants.length.toLocaleString('pt-BR')} part. &bull; {computed.allTickets.length.toLocaleString('pt-BR')} bilhetes
+                </div>
+              </div>
+              <div className="w-8 h-8 rounded-lg bg-[#0131CD]/20 border border-[#0131CD]/40 flex items-center justify-center shrink-0">
+                <User className="w-4 h-4 text-[#FFFFFF]" />
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[11px] font-medium text-[#A5B1C5] truncate">Ganhadores & Código</div>
+                <div className="text-sm font-bold text-[#A6C957] tabular-nums mt-0.5 flex items-center gap-1.5">
+                  <span>{winners.length.toLocaleString('pt-BR')} sorteados</span>
+                  <span className="text-[#A5B1C5]">&bull;</span>
+                  <span className="font-mono text-xs text-[#FFFFFF]">{settings.raffleCode || 'SEM-COD'}</span>
+                </div>
+              </div>
+              <div className="w-8 h-8 rounded-lg bg-[#A6C957]/15 border border-[#A6C957]/35 flex items-center justify-center shrink-0">
+                <Sparkles className="w-4 h-4 text-[#A6C957]" />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onChangeSection('security')}
+              className="p-3 rounded-xl bg-[#080D18] hover:bg-[#0131CD]/15 border border-[var(--gio-border-subtle)] hover:border-[#0131CD]/50 flex items-center justify-between gap-3 text-left transition"
+            >
+              <div className="min-w-0">
+                <div className="text-[11px] font-medium text-[#A5B1C5] truncate">Segurança & Nuvem</div>
+                <div className="text-sm font-bold text-[#FFFFFF] mt-0.5 truncate">
+                  {currentUser
+                    ? currentUser.emailVerified
+                      ? 'Verificada + Firestore'
+                      : 'Login Ativo (Verificar)'
+                    : 'Modo Local (Offline)'}
+                </div>
+              </div>
+              <div className="w-8 h-8 rounded-lg bg-[#0131CD]/20 border border-[#0131CD]/40 flex items-center justify-center shrink-0">
+                <Shield className="w-4 h-4 text-[#A6C957]" />
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onChangeSection(isProActive ? 'connections' : 'subscription')}
+              className="p-3 rounded-xl bg-[#080D18] hover:bg-[#0131CD]/15 border border-[var(--gio-border-subtle)] hover:border-[#0131CD]/50 flex items-center justify-between gap-3 text-left transition"
+            >
+              <div className="min-w-0">
+                <div className="text-[11px] font-medium text-[#A5B1C5] truncate">Integrações & Plano</div>
+                <div className="text-sm font-bold text-[#FFFFFF] mt-0.5 truncate">
+                  {tiktokIdentity?.connected
+                    ? `TikTok @${tiktokIdentity.username || 'Ativo'}`
+                    : isProActive
+                    ? 'PRO Ativo • Conectar TikTok'
+                    : 'Plano FREE • Ver PRO'}
+                </div>
+              </div>
+              <div className="w-8 h-8 rounded-lg bg-[#A6C957]/15 border border-[#A6C957]/35 flex items-center justify-center shrink-0">
+                <Crown className="w-4 h-4 text-[#A6C957]" />
+              </div>
+            </button>
+          </div>
+
+          {/* Account Readiness & Security Checklist Bar */}
+          <div className="p-3.5 rounded-xl bg-[#080D18]/90 border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-[#0131CD]/25 border border-[#0131CD]/50 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-4 h-4 text-[#A6C957]" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-[#FFFFFF]">
+                  Checklist de Integridade da Conta
+                </span>
+                <span className="hidden md:inline text-xs text-[#A5B1C5] ml-2">
+                  Configure os 4 pilares para máxima segurança e auditoria nos sorteios:
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={onOpenAccountModal}
-                className="gio-btn-primary min-h-[42px] px-5 py-2.5 rounded-xl text-white font-semibold text-xs flex items-center gap-2 transition"
+                onClick={() => (currentUser ? onChangeSection('profile') : onOpenAccountModal())}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border flex items-center gap-1.5 transition ${
+                  currentUser
+                    ? 'bg-[#A6C957]/12 text-[#A6C957] border-[#A6C957]/35'
+                    : 'bg-[#111B30] text-[#A5B1C5] border-[var(--gio-border-subtle)] hover:text-white'
+                }`}
               >
-                <User className="w-4 h-4" />
-                <span>Entrar ou Criar Conta</span>
+                <Check className="w-3 h-3" />
+                <span>1. Conta Autenticada</span>
               </button>
-            )}
+
+              <button
+                type="button"
+                onClick={() => onChangeSection('security')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border flex items-center gap-1.5 transition ${
+                  currentUser?.emailVerified
+                    ? 'bg-[#A6C957]/12 text-[#A6C957] border-[#A6C957]/35'
+                    : 'bg-[#111B30] text-[#A5B1C5] border-[var(--gio-border-subtle)] hover:text-white'
+                }`}
+              >
+                <Check className="w-3 h-3" />
+                <span>2. E-mail Verificado</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onChangeSection('profile')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border flex items-center gap-1.5 transition ${
+                  Boolean(profileDisplayName.trim())
+                    ? 'bg-[#A6C957]/12 text-[#A6C957] border-[#A6C957]/35'
+                    : 'bg-[#111B30] text-[#A5B1C5] border-[var(--gio-border-subtle)] hover:text-white'
+                }`}
+              >
+                <Check className="w-3 h-3" />
+                <span>3. Identidade do Canal</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onChangeSection('connections')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border flex items-center gap-1.5 transition ${
+                  tiktokIdentity?.connected
+                    ? 'bg-[#A6C957]/12 text-[#A6C957] border-[#A6C957]/35'
+                    : 'bg-[#111B30] text-[#A5B1C5] border-[var(--gio-border-subtle)] hover:text-white'
+                }`}
+              >
+                <Check className="w-3 h-3" />
+                <span>4. TikTok OAuth</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1347,7 +1518,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* LEFT SECONDARY SIDEBAR MENU (DESKTOP) */}
         <aside className="hidden lg:block lg:col-span-3 space-y-4 sticky top-20">
-          <div className="p-3 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-sm space-y-4">
+          <div className="p-3.5 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-sm space-y-4">
             {(['CONTA', 'FINANCEIRO', 'SISTEMA'] as const).map((groupKey) => {
               const groupLabel =
                 groupKey === 'CONTA'
@@ -1358,12 +1529,27 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
               const items = PROFILE_WORKSPACE_SECTIONS.filter((s) => s.group === groupKey);
               return (
                 <div key={groupKey} className="space-y-1">
-                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[#A5B1C5]">
+                  <div className="px-3 py-1 text-[11px] font-bold text-[#A5B1C5]">
                     {groupLabel}
                   </div>
                   {items.map((sec) => {
                     const Icon = SECTION_ICONS[sec.id];
                     const isActive = activeSection === sec.id;
+                    const badgeText =
+                      sec.id === 'subscription'
+                        ? isProActive
+                          ? 'PRO'
+                          : 'FREE'
+                        : sec.id === 'connections'
+                        ? tiktokIdentity?.connected
+                          ? 'OK'
+                          : null
+                        : sec.id === 'payments' && paymentHistoryItems.length > 0
+                        ? String(paymentHistoryItems.length)
+                        : sec.id === 'privacy' && lgpdRequests.length > 0
+                        ? String(lgpdRequests.length)
+                        : null;
+
                     return (
                       <button
                         key={sec.id}
@@ -1372,9 +1558,9 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                           onChangeSection(sec.id);
                           setWorkspaceNotice(null);
                         }}
-                        className={`w-full text-left px-3 py-2.5 rounded-xl transition flex items-center justify-between gap-2.5 group ${
+                        className={`w-full text-left px-3 py-2.5 rounded-xl transition flex items-center justify-between gap-2 group ${
                           isActive
-                            ? 'bg-[#0131CD] text-white border border-[#A6C957]/35'
+                            ? 'bg-[#0131CD] text-white border border-[#A6C957]/40 shadow-sm'
                             : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18] border border-transparent'
                         }`}
                       >
@@ -1397,11 +1583,26 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                             </div>
                           </div>
                         </div>
-                        <ChevronRight
-                          className={`w-3.5 h-3.5 shrink-0 transition-transform ${
-                            isActive ? 'text-[#A6C957] translate-x-0.5' : 'opacity-0 group-hover:opacity-60'
-                          }`}
-                        />
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {badgeText && (
+                            <span
+                              className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums ${
+                                isActive
+                                  ? 'bg-[#080D18]/60 text-[#A6C957] border border-[#A6C957]/40'
+                                  : badgeText === 'PRO' || badgeText === 'OK'
+                                  ? 'bg-[#A6C957]/15 text-[#A6C957]'
+                                  : 'bg-[#080D18] text-[#A5B1C5]'
+                              }`}
+                            >
+                              {badgeText}
+                            </span>
+                          )}
+                          <ChevronRight
+                            className={`w-3.5 h-3.5 shrink-0 transition-transform ${
+                              isActive ? 'text-[#A6C957] translate-x-0.5' : 'opacity-0 group-hover:opacity-60'
+                            }`}
+                          />
+                        </div>
                       </button>
                     );
                   })}
@@ -1412,7 +1613,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
             {/* Support & Documentation Quick Links */}
             {onOpenQuickSubTab && (
               <div className="pt-3 border-t border-[var(--gio-border-subtle)] space-y-1">
-                <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[#A5B1C5]">
+                <div className="px-3 py-1 text-[11px] font-bold text-[#A5B1C5]">
                   Ajuda e Conformidade
                 </div>
                 <button
@@ -1441,23 +1642,90 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                 </button>
               </div>
             )}
+
+            {/* Minha Conta & Sessão Quick Card */}
+            <div className="pt-3 border-t border-[var(--gio-border-subtle)]">
+              <div className="p-3 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-bold text-[#FFFFFF]">Minha Conta & Sessão</span>
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      currentUser ? 'bg-[#A6C957]' : 'bg-[#A5B1C5]'
+                    }`}
+                  />
+                </div>
+                <p className="text-[11px] text-[#A5B1C5] leading-relaxed">
+                  {currentUser
+                    ? `Autenticado como ${currentUser.email}`
+                    : 'Você está operando no modo local. Entre na conta para sincronizar.'}
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={onOpenAccountModal}
+                    className="flex-1 min-h-[34px] px-2.5 py-1.5 rounded-lg bg-[#111B30] hover:bg-[#0131CD] text-[#FFFFFF] border border-[var(--gio-border-subtle)] text-[11px] font-semibold transition flex items-center justify-center gap-1.5"
+                  >
+                    <User className="w-3.5 h-3.5 text-[#A6C957]" />
+                    <span>{currentUser ? 'Abrir Minha Conta' : 'Fazer Login'}</span>
+                  </button>
+                  {currentUser && (
+                    <button
+                      type="button"
+                      onClick={handleSafeLogout}
+                      className="min-h-[34px] px-2.5 py-1.5 rounded-lg bg-[#F05262]/10 hover:bg-[#F05262]/20 text-[#F05262] border border-[#F05262]/30 text-[11px] font-semibold transition flex items-center justify-center"
+                      title="Encerrar sessão atual"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </aside>
 
         {/* RIGHT INDEPENDENT SECTION WORKSPACE */}
         <section className="lg:col-span-9 space-y-6">
           {/* Section Title Header Card */}
-          <div className="p-5 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <div className="text-[11px] font-bold uppercase tracking-wide text-[#A6C957]">
-                Ambiente de Perfil &bull; {currentSectionMeta.label}
+          <div className="p-5 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-[#0131CD]/20 border border-[#0131CD]/45 flex items-center justify-center shrink-0 mt-0.5">
+                {React.createElement(SECTION_ICONS[currentSectionMeta.id], {
+                  className: 'w-5 h-5 text-[#A6C957]',
+                })}
               </div>
-              <h2 className="text-lg sm:text-xl font-bold text-[#FFFFFF] mt-0.5">
-                {currentSectionMeta.label}
-              </h2>
-              <p className="text-xs sm:text-sm text-[#A5B1C5] mt-1">
-                {currentSectionMeta.description}
-              </p>
+              <div>
+                <div className="text-xs font-semibold text-[#A6C957]">
+                  Perfil e Ajustes &bull; {currentSectionMeta.subtitle}
+                </div>
+                <h2 className="text-lg sm:text-xl font-bold text-[#FFFFFF] tracking-tight mt-0.5">
+                  {currentSectionMeta.label}
+                </h2>
+                <p className="text-xs sm:text-sm text-[#A5B1C5] mt-1">
+                  {currentSectionMeta.description}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {activeSection !== 'subscription' && (
+                <button
+                  type="button"
+                  onClick={() => onChangeSection('subscription')}
+                  className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-[#080D18] hover:bg-[#0131CD]/20 text-xs font-semibold text-[#FFFFFF] border border-[var(--gio-border-subtle)] flex items-center gap-1.5 transition"
+                >
+                  <Crown className="w-3.5 h-3.5 text-[#A6C957]" />
+                  <span>{isProActive ? 'Plano PRO Ativo' : 'Ver Plano PRO'}</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onOpenAccountModal}
+                className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-[#080D18] hover:bg-[#0131CD]/20 text-xs font-semibold text-[#A5B1C5] hover:text-[#FFFFFF] border border-[var(--gio-border-subtle)] flex items-center gap-1.5 transition"
+              >
+                <KeyRound className="w-3.5 h-3.5 text-[#A6C957]" />
+                <span>Resumo da Conta</span>
+              </button>
             </div>
           </div>
 
@@ -1466,6 +1734,63 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
           ================================================================= */}
           {activeSection === 'profile' && (
             <div className="space-y-6">
+              {/* Live Public Organizer Badge Preview */}
+              <div className="p-5 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-sm font-bold text-[#FFFFFF]">
+                      Pré-visualização nos Sorteios Públicos e Certificados PDF
+                    </h3>
+                    <p className="text-xs text-[#A5B1C5]">
+                      Assim sua assinatura de organizador aparece para os participantes nas rifas, lives e relatórios auditáveis.
+                    </p>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#080D18] border border-[var(--gio-border-subtle)] text-[11px] font-semibold text-[#A6C957]">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Assinatura Oficial do Canal</span>
+                  </span>
+                </div>
+
+                <div className="p-4 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    {profilePhotoUrl ? (
+                      <img
+                        src={profilePhotoUrl}
+                        alt={profileDisplayName || 'Avatar'}
+                        className="w-12 h-12 rounded-xl object-cover border border-[#0131CD] bg-[#111B30] shrink-0"
+                        onError={() => setProfilePhotoUrl('')}
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-[#0131CD] border border-[#A6C957]/40 flex items-center justify-center text-lg font-bold text-white shrink-0">
+                        {userInitial}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-bold text-[#FFFFFF] truncate">
+                          {profileDisplayName || currentUser?.displayName || settings.organizerName || 'Organizador GIO'}
+                        </span>
+                        <span className="font-mono text-[11px] text-[#A6C957] bg-[#111B30] px-2 py-0.5 rounded border border-[var(--gio-border-subtle)]">
+                          {effectiveHandle}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#A5B1C5] truncate mt-0.5">
+                        {profileBio || 'Sorteios auditáveis com verificação criptográfica SHA-256 no GIO DA SORTE.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 text-right">
+                    <div className="px-3 py-1.5 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)]">
+                      <div className="text-[10px] font-medium text-[#A5B1C5]">Código da Rifa Atual</div>
+                      <div className="font-mono text-xs font-bold text-[#FFFFFF]">
+                        {settings.raffleCode || 'GIO-OFICIAL'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <form
                 onSubmit={handleSaveProfile}
                 className="p-6 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] space-y-6"
@@ -1473,7 +1798,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                 <div className="flex items-center justify-between border-b border-[var(--gio-border-subtle)] pb-4">
                   <div>
                     <h3 className="text-base font-bold text-[#FFFFFF]">
-                      Identidade Pública do Organizador
+                      Editar Identidade Pública do Organizador
                     </h3>
                     <p className="text-xs text-[#A5B1C5] mt-0.5">
                       Estes dados identificam seu canal nos sorteios públicos, comprovantes e relatórios em PDF.
@@ -1492,7 +1817,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                       value={profileDisplayName}
                       onChange={(e) => setProfileDisplayName(e.target.value)}
                       placeholder="Ex: Gusta Sorteios Oficial"
-                      className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:border-[#0131CD] text-sm text-[#FFFFFF] outline-none transition"
+                      className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:border-[#0131CD] focus:ring-2 focus:ring-[#0131CD]/30 text-sm text-[#FFFFFF] outline-none transition"
                     />
                     <p className="text-[11px] text-[#A5B1C5]">
                       Exibido no topo dos sorteios e nos certificados SHA-256.
@@ -1509,7 +1834,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                       value={profileUsernameHandle}
                       onChange={(e) => setProfileUsernameHandle(e.target.value)}
                       placeholder={effectiveHandle}
-                      className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:border-[#0131CD] font-mono text-sm text-[#FFFFFF] outline-none transition"
+                      className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:border-[#0131CD] focus:ring-2 focus:ring-[#0131CD]/30 font-mono text-sm text-[#FFFFFF] outline-none transition"
                     />
                     <p className="text-[11px] text-[#A5B1C5]">
                       Identificador único formatado: <span className="font-mono text-[#FFFFFF]">{effectiveHandle}</span>
@@ -1524,7 +1849,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                     <div className="flex items-center gap-2">
                       <input
                         type="email"
-                         readOnly
+                        readOnly
                         value={currentUser?.email || 'Não autenticado (Modo Local)'}
                         className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080D18]/60 border border-[var(--gio-border-subtle)] text-sm text-[#A5B1C5] cursor-not-allowed"
                       />
@@ -1540,9 +1865,13 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                       )}
                     </div>
                     <p className="text-[11px] text-[#A5B1C5]">
-                      {currentUser
-                        ? `UID da conta: ${currentUser.uid}`
-                        : 'Entre na sua conta para vincular um e-mail verificado.'}
+                      {currentUser ? (
+                        <>
+                          UID da conta: <span className="font-mono text-[#FFFFFF]">{currentUser.uid}</span>
+                        </>
+                      ) : (
+                        'Entre na sua conta para vincular um e-mail verificado.'
+                      )}
                     </p>
                   </div>
 
@@ -1556,7 +1885,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                       value={profilePhotoUrl}
                       onChange={(e) => setProfilePhotoUrl(e.target.value)}
                       placeholder="https://exemplo.com/minha-foto.jpg"
-                      className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:border-[#0131CD] text-sm text-[#FFFFFF] outline-none transition"
+                      className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:border-[#0131CD] focus:ring-2 focus:ring-[#0131CD]/30 text-sm text-[#FFFFFF] outline-none transition"
                     />
                     <div className="flex flex-wrap items-center gap-1.5 pt-1">
                       {AVATAR_PRESETS.map((preset) => (
@@ -1587,7 +1916,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                     value={profileBio}
                     onChange={(e) => setProfileBio(e.target.value)}
                     placeholder="Breve descrição sobre seus sorteios e transmissões..."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:border-[#0131CD] text-sm text-[#FFFFFF] outline-none transition resize-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#080D18] border border-[var(--gio-border-subtle)] focus:border-[#0131CD] focus:ring-2 focus:ring-[#0131CD]/30 text-sm text-[#FFFFFF] outline-none transition resize-none"
                   />
                 </div>
 
@@ -1603,7 +1932,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                         }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#080D18] hover:bg-[#111B30] border border-[var(--gio-border-subtle)] font-mono text-[11px] text-[#A5B1C5] hover:text-white transition"
                       >
-                        <Copy className="w-3.5 h-3.5" />
+                        <Copy className="w-3.5 h-3.5 text-[#A6C957]" />
                         <span>{copiedUid ? 'UID Copiado!' : `Copiar UID (${currentUser.uid.slice(0, 10)}...)`}</span>
                       </button>
                     )}
@@ -1614,7 +1943,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                     disabled={isSavingProfile}
                     className="gio-btn-primary min-h-[42px] px-6 py-2.5 rounded-xl text-white font-semibold text-xs flex items-center gap-2 transition disabled:opacity-50"
                   >
-                    <Check className="w-4 h-4" />
+                    <Check className="w-4 h-4 text-[#A6C957]" />
                     <span>{isSavingProfile ? 'Salvando alterações...' : 'Salvar Meu Perfil'}</span>
                   </button>
                 </div>
@@ -1625,7 +1954,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div>
                     <h3 className="text-base font-bold text-[#FFFFFF] flex items-center gap-2">
-                      <Cloud className="w-4 h-4 text-[#A5B1C5]" />
+                      <Cloud className="w-4 h-4 text-[#A6C957]" />
                       <span>Sincronização e Backup na Nuvem</span>
                     </h3>
                     <p className="text-xs text-[#A5B1C5] mt-0.5">
@@ -1652,7 +1981,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                         disabled={syncStatus === 'syncing'}
                         className="gio-btn-primary min-h-[40px] px-4 py-2 rounded-xl text-white text-xs font-semibold flex items-center gap-2 transition disabled:opacity-50"
                       >
-                        <Upload className="w-4 h-4" />
+                        <Upload className="w-4 h-4 text-[#A6C957]" />
                         <span>Salvar Estado Atual na Nuvem</span>
                       </button>
                       <button
@@ -1671,7 +2000,7 @@ export const UserProfileSettingsWorkspace: React.FC<UserProfileSettingsWorkspace
                       onClick={onOpenAccountModal}
                       className="gio-btn-primary min-h-[40px] px-5 py-2 rounded-xl text-white text-xs font-semibold flex items-center gap-2 transition"
                     >
-                      <User className="w-4 h-4" />
+                      <User className="w-4 h-4 text-[#A6C957]" />
                       <span>Conectar Conta para Ativar Backup</span>
                     </button>
                   )}

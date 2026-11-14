@@ -127,6 +127,40 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
   const [isAdvancingCycle, setIsAdvancingCycle] = useState(false);
   const [modalFeedback, setModalFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Arena participant filter & sort controls (pure view layer over real persisted data)
+  const [participantFilter, setParticipantFilter] = useState<'ALL' | 'WITH_TICKETS' | 'CARRYOVER_ONLY'>('ALL');
+  const [participantSort, setParticipantSort] = useState<'TICKETS_DESC' | 'COINS_DESC' | 'NAME_ASC'>('TICKETS_DESC');
+
+  const activeArenaRate =
+    liveDrawTargetMode === 'CAMPAIGN'
+      ? activeLiveCampaign?.defaultRate || settings.rate || 100
+      : activeLiveSession?.currentRate || settings.rate || 100;
+
+  const participantsWithTicketsCount = selectedLiveParticipants.filter(
+    (p) => (p.ticketsInSession || 0) > 0
+  ).length;
+  const participantsCarryoverOnlyCount = selectedLiveParticipants.filter(
+    (p) => (p.ticketsInSession || 0) === 0 && (p.coinsInSession || 0) > 0
+  ).length;
+
+  const displayedArenaParticipants = React.useMemo(() => {
+    const filtered = selectedLiveParticipants.filter((p) => {
+      if (participantFilter === 'WITH_TICKETS') return (p.ticketsInSession || 0) > 0;
+      if (participantFilter === 'CARRYOVER_ONLY')
+        return (p.ticketsInSession || 0) === 0 && (p.coinsInSession || 0) > 0;
+      return true;
+    });
+    return [...filtered].sort((a, b) => {
+      if (participantSort === 'COINS_DESC') {
+        return (b.coinsInSession || 0) - (a.coinsInSession || 0) || (b.ticketsInSession || 0) - (a.ticketsInSession || 0);
+      }
+      if (participantSort === 'NAME_ASC') {
+        return (a.username || a.nickname || '').localeCompare(b.username || b.nickname || '');
+      }
+      return (b.ticketsInSession || 0) - (a.ticketsInSession || 0) || (b.coinsInSession || 0) - (a.coinsInSession || 0);
+    });
+  }, [selectedLiveParticipants, participantFilter, participantSort]);
+
   const connMeta = mapTikTokConnectionState(
     liveConnectionState,
     false,
@@ -753,62 +787,145 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
               </div>
             </div>
 
-            {/* Busca Oficial de Participantes e Bilhetes (Exclusiva na Arena Oficial) */}
-            {setParticipantSearchQuery && (
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-[#A5B1C5] absolute left-3.5 top-2.5" />
-                <input
-                  type="text"
-                  value={participantSearchQuery}
-                  onChange={(e) => setParticipantSearchQuery(e.target.value)}
-                  placeholder="Buscar participante por @usuário, nome ou #bilhete..."
-                  aria-label="Buscar participante na Arena Oficial"
-                  className="w-full pl-9 pr-3.5 py-2 rounded-lg bg-[#080D18] border border-[var(--gio-border-subtle)] text-xs text-[#FFFFFF] placeholder-[#A5B1C5]/60 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/35"
-                />
-              </div>
-            )}
+            {/* Busca Oficial e Filtros Operacionais de Participantes e Bilhetes */}
+            <div className="space-y-2.5">
+              {setParticipantSearchQuery && (
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-[#A5B1C5] absolute left-3.5 top-2.5" />
+                  <input
+                    type="text"
+                    value={participantSearchQuery}
+                    onChange={(e) => setParticipantSearchQuery(e.target.value)}
+                    placeholder="Buscar participante por @usuário, nome ou #bilhete..."
+                    aria-label="Buscar participante na Arena Oficial"
+                    className="w-full pl-9 pr-3.5 py-2 rounded-lg bg-[#080D18] border border-[var(--gio-border-subtle)] text-xs text-[#FFFFFF] placeholder-[#A5B1C5]/60 focus:outline-none focus:border-[#A6C957] focus:ring-2 focus:ring-[#A6C957]/35"
+                  />
+                </div>
+              )}
 
-            {selectedLiveParticipants.length === 0 ? (
-              <div className="py-10 text-center space-y-2 border border-dashed border-[var(--gio-border-subtle)] rounded-xl">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setParticipantFilter('ALL')}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition tabular-nums border ${
+                      participantFilter === 'ALL'
+                        ? 'bg-[#0131CD] text-[#FFFFFF] border-[#0131CD]'
+                        : 'bg-[#080D18] text-[#A5B1C5] hover:text-[#FFFFFF] border-[var(--gio-border-subtle)]'
+                    }`}
+                  >
+                    Todos ({selectedLiveParticipants.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setParticipantFilter('WITH_TICKETS')}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition tabular-nums border ${
+                      participantFilter === 'WITH_TICKETS'
+                        ? 'bg-[#A6C957] text-[#080D18] font-bold border-[#A6C957]'
+                        : 'bg-[#080D18] text-[#A5B1C5] hover:text-[#FFFFFF] border-[var(--gio-border-subtle)]'
+                    }`}
+                  >
+                    Elegíveis com Bilhete ({participantsWithTicketsCount})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setParticipantFilter('CARRYOVER_ONLY')}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition tabular-nums border ${
+                      participantFilter === 'CARRYOVER_ONLY'
+                        ? 'bg-[#0131CD] text-[#FFFFFF] border-[#0131CD]'
+                        : 'bg-[#080D18] text-[#A5B1C5] hover:text-[#FFFFFF] border-[var(--gio-border-subtle)]'
+                    }`}
+                  >
+                    Acumulando Saldo ({participantsCarryoverOnlyCount})
+                  </button>
+                </div>
+
+                <select
+                  value={participantSort}
+                  onChange={(e) =>
+                    setParticipantSort(e.target.value as 'TICKETS_DESC' | 'COINS_DESC' | 'NAME_ASC')
+                  }
+                  aria-label="Ordenar participantes da Arena"
+                  className="px-2.5 py-1 rounded-lg bg-[#080D18] border border-[var(--gio-border-subtle)] text-[11px] text-[#FFFFFF] focus:outline-none focus:border-[#0131CD]"
+                >
+                  <option value="TICKETS_DESC">Ordenar: Mais Bilhetes</option>
+                  <option value="COINS_DESC">Ordenar: Mais Moedas</option>
+                  <option value="NAME_ASC">Ordenar: Nome (@A-Z)</option>
+                </select>
+              </div>
+            </div>
+
+            {displayedArenaParticipants.length === 0 ? (
+              <div className="py-10 text-center space-y-2 border border-dashed border-[var(--gio-border-subtle)] rounded-xl bg-[#080D18]/60">
                 <Gift className="w-7 h-7 text-[#A5B1C5] mx-auto" />
                 <p className="text-sm font-semibold text-[#FFFFFF]">
                   {participantSearchQuery
                     ? `Nenhum participante ou bilhete encontrado para "${participantSearchQuery}"`
+                    : participantFilter !== 'ALL'
+                    ? 'Nenhum participante neste filtro selecionado'
                     : 'Nenhum participante com presentes nesta sessão'}
                 </p>
                 <p className="text-xs text-[#A5B1C5] max-w-md mx-auto">
                   {participantSearchQuery
                     ? 'Tente buscar outro @usuário, apelido ou número de bilhete.'
+                    : participantFilter !== 'ALL'
+                    ? 'Altere o filtro acima para visualizar todos os apoiadores contabilizados.'
                     : 'Assim que sua transmissão receber presentes no TikTok LIVE, os participantes e seus bilhetes aparecerão aqui automaticamente.'}
                 </p>
               </div>
             ) : (
-              <div className="max-h-[420px] overflow-y-auto divide-y divide-[var(--gio-border-subtle)] rounded-xl border border-[var(--gio-border-subtle)] bg-[#080D18]">
-                {selectedLiveParticipants.map((part) => {
+              <div className="max-h-[430px] overflow-y-auto divide-y divide-[var(--gio-border-subtle)] rounded-xl border border-[var(--gio-border-subtle)] bg-[#080D18]">
+                {displayedArenaParticipants.map((part, idx) => {
                   const pTickets = ticketsByParticipantMap?.get(part.tiktokUserId) || [];
                   const hasHandle =
                     part.handleAvailable !== false &&
                     part.username &&
                     part.username !== 'arroba_indisponivel';
                   const displayUser = hasHandle ? `@${part.username.replace(/^@+/, '')}` : 'Arroba indisponível';
+                  const carryover = part.carryoverCoins || 0;
+                  const coinsNeededForNextTicket = Math.max(0, activeArenaRate - carryover);
+                  const progressPct = Math.min(100, Math.round((carryover / Math.max(1, activeArenaRate)) * 100));
 
                   return (
                     <div
                       key={part.tiktokUserId}
                       onClick={() => onInspectParticipant && onInspectParticipant(part.tiktokUserId)}
-                      className={`p-3.5 flex items-center justify-between gap-3 text-xs ${
+                      className={`p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${
                         onInspectParticipant ? 'hover:bg-[#111B30]/80 cursor-pointer transition' : ''
                       }`}
                     >
-                      <div className="min-w-0 space-y-0.5">
-                        <div className="font-semibold text-[#FFFFFF] truncate">
-                          {displayUser}
-                          {part.nickname && part.nickname !== part.username ? (
-                            <span className="text-[#A5B1C5] font-normal ml-1.5">({part.nickname})</span>
-                          ) : null}
+                      <div className="min-w-0 space-y-1 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`w-6 h-5 rounded text-[10px] font-bold tabular-nums inline-flex items-center justify-center shrink-0 border ${
+                              idx === 0
+                                ? 'bg-[#A6C957]/20 text-[#A6C957] border-[#A6C957]/40'
+                                : idx === 1
+                                ? 'bg-[#0131CD]/25 text-[#FFFFFF] border-[#0131CD]/50'
+                                : idx === 2
+                                ? 'bg-[#111B30] text-[#FFFFFF] border-[var(--gio-border-subtle)]'
+                                : 'bg-[#111B30]/60 text-[#A5B1C5] border-[var(--gio-border-subtle)]'
+                            }`}
+                          >
+                            #{idx + 1}
+                          </span>
+                          <div className="font-semibold text-[#FFFFFF] truncate">
+                            <span className={hasHandle ? 'font-mono' : ''}>{displayUser}</span>
+                            {part.nickname && part.nickname !== part.username ? (
+                              <span className="text-[#A5B1C5] font-normal ml-1.5">({part.nickname})</span>
+                            ) : null}
+                          </div>
                         </div>
-                        <div className="text-[11px] text-[#A5B1C5] tabular-nums flex flex-wrap items-center gap-2">
-                          <span>Sobras acumuladas: {part.carryoverCoins || 0} moedas</span>
+
+                        <div className="text-[11px] text-[#A5B1C5] tabular-nums flex flex-wrap items-center gap-x-2 gap-y-1 pl-8">
+                          <span>
+                            Saldo acumulado: <strong className="text-[#FFFFFF]">{carryover}</strong>/{activeArenaRate} moedas
+                            {carryover > 0 && (
+                              <span className="text-[#A5B1C5] ml-1">
+                                (faltam {coinsNeededForNextTicket} p/ +1 bilhete)
+                              </span>
+                            )}
+                          </span>
                           {pTickets.length > 0 && (
                             <span className="font-medium text-[#A6C957] truncate max-w-xs tabular-nums">
                               · #{pTickets.slice(0, 6).join(', #')}
@@ -816,13 +933,30 @@ export const TikTokLiveGiftsArenaView: React.FC<TikTokLiveGiftsArenaViewProps> =
                             </span>
                           )}
                         </div>
+
+                        {carryover > 0 && (
+                          <div className="pl-8 pt-0.5 max-w-xs">
+                            <div className="h-1 w-full rounded-full bg-[#111B30] overflow-hidden">
+                              <div
+                                className="h-full bg-[#A6C957] transition-all"
+                                style={{ width: `${progressPct}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
 
-                      <div className="flex items-center gap-3 shrink-0 tabular-nums">
-                        <span className="px-2 py-1 rounded bg-[#111B30] border border-[var(--gio-border-subtle)] text-[#FFFFFF] font-medium">
+                      <div className="flex items-center gap-2.5 shrink-0 tabular-nums self-end sm:self-center">
+                        <span className="px-2.5 py-1 rounded-lg bg-[#111B30] border border-[var(--gio-border-subtle)] text-[#FFFFFF] font-medium">
                           {part.coinsInSession.toLocaleString('pt-BR')} moedas
                         </span>
-                        <span className="px-2.5 py-1 rounded bg-[#A6C957]/15 border border-[#A6C957]/35 text-[#A6C957] font-bold">
+                        <span
+                          className={`px-2.5 py-1 rounded-lg font-bold border ${
+                            part.ticketsInSession > 0
+                              ? 'bg-[#A6C957]/15 border-[#A6C957]/35 text-[#A6C957]'
+                              : 'bg-[#111B30] border-[var(--gio-border-subtle)] text-[#A5B1C5]'
+                          }`}
+                        >
                           {part.ticketsInSession} bilhete(s)
                         </span>
                       </div>

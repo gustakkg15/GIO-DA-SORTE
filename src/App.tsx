@@ -2220,71 +2220,86 @@ export default function App() {
 
         {/* 7. CONFIGURAÇÕES (AMBIENTE DE PERFIL, REGRAS, AJUDA, SUPORTE & CENTRAL LEGAL) */}
         {(activeTab === 'settings' || activeTab === 'help' || activeTab === 'support') && (
-          <div className="space-y-6 animate-fade-in">
-            <div className="p-2.5 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(0,0,0,0.45)] flex flex-wrap items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setSettingsSubTab('profile')}
-                className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
-                  settingsSubTab === 'profile'
-                    ? 'bg-[#0131CD] text-white border border-[#0131CD] shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
-                    : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]'
-                }`}
-              >
-                <User className="w-4 h-4" />
-                <span>Meu Perfil e Configurações</span>
-              </button>
+          <div className="space-y-6 animate-fade-in font-sans">
+            <div className="p-2.5 rounded-2xl bg-[#111B30] border border-[var(--gio-border-subtle)] shadow-[0_10px_30px_rgba(0,0,0,0.45)] flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubTab('profile')}
+                  className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+                    settingsSubTab === 'profile'
+                      ? 'bg-[#0131CD] text-white border border-[#0131CD] shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
+                      : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]'
+                  }`}
+                >
+                  <User className={`w-4 h-4 ${settingsSubTab === 'profile' ? 'text-[#A6C957]' : ''}`} />
+                  <span>Meu Perfil e Ajustes</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubTab('preferences')}
+                  className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+                    settingsSubTab === 'preferences'
+                      ? 'bg-[#0131CD] text-white border border-[#0131CD] shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
+                      : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]'
+                  }`}
+                >
+                  <Settings className={`w-4 h-4 ${settingsSubTab === 'preferences' ? 'text-[#A6C957]' : ''}`} />
+                  <span>Regras e Backup da Rifa</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubTab('help')}
+                  className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+                    settingsSubTab === 'help'
+                      ? 'bg-[#0131CD] text-white border border-[#0131CD] shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
+                      : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]'
+                  }`}
+                >
+                  <HelpCircle className={`w-4 h-4 ${settingsSubTab === 'help' ? 'text-[#A6C957]' : ''}`} />
+                  <span>Como Funciona</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubTab('support')}
+                  className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+                    settingsSubTab === 'support'
+                      ? 'bg-[#0131CD] text-white border border-[#0131CD] shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
+                      : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]'
+                  }`}
+                >
+                  <Heart className={`w-4 h-4 ${settingsSubTab === 'support' ? 'text-[#A6C957]' : ''}`} />
+                  <span>Suporte</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubTab('legal')}
+                  className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+                    settingsSubTab === 'legal'
+                      ? 'bg-[#0131CD] text-white border border-[#0131CD] shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
+                      : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]'
+                  }`}
+                >
+                  <Scale className={`w-4 h-4 ${settingsSubTab === 'legal' ? 'text-[#A6C957]' : ''}`} />
+                  <span>Central Legal e LGPD</span>
+                </button>
+              </div>
 
               <button
                 type="button"
-                onClick={() => setSettingsSubTab('preferences')}
-                className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
-                  settingsSubTab === 'preferences'
-                    ? 'bg-[#0131CD] text-white border border-[#0131CD] shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
-                    : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]'
-                }`}
+                onClick={() => setIsAccountOpen(true)}
+                className="min-h-[40px] px-3.5 py-2 rounded-xl bg-[#080D18] hover:bg-[#0131CD]/20 text-[#FFFFFF] border border-[#0131CD]/45 hover:border-[#0131CD] text-xs font-semibold flex items-center gap-2 transition cursor-pointer"
               >
-                <Settings className="w-4 h-4" />
-                <span>Regras e Backup da Rifa</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSettingsSubTab('help')}
-                className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
-                  settingsSubTab === 'help'
-                    ? 'bg-[#0131CD] text-white border border-[#0131CD] shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
-                    : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]'
-                }`}
-              >
-                <HelpCircle className="w-4 h-4" />
-                <span>Como Funciona</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSettingsSubTab('support')}
-                className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
-                  settingsSubTab === 'support'
-                    ? 'bg-[#0131CD] text-white border border-[#0131CD] shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
-                    : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]'
-                }`}
-              >
-                <Heart className="w-4 h-4" />
-                <span>Suporte</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSettingsSubTab('legal')}
-                className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
-                  settingsSubTab === 'legal'
-                    ? 'bg-[#0131CD] text-white border border-[#0131CD] shadow-[0_4px_14px_rgba(1,49,205,0.4)]'
-                    : 'text-[#A5B1C5] hover:text-[#FFFFFF] hover:bg-[#080D18]'
-                }`}
-              >
-                <Scale className="w-4 h-4" />
-                <span>Central Legal e LGPD</span>
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    currentUser ? 'bg-[#A6C957]' : 'bg-[#A5B1C5]'
+                  }`}
+                />
+                <span>{currentUser ? 'Minha Conta (Conectada)' : 'Minha Conta (Entrar)'}</span>
               </button>
             </div>
 
@@ -2386,6 +2401,7 @@ export default function App() {
         settings={settings}
         participants={participants}
         winners={winners}
+        proEntitlement={planEntitlement}
         onOpenLegalDocument={(slug) => {
           setIsAccountOpen(false);
           handleOpenLegalDocument(slug);
@@ -2394,6 +2410,13 @@ export default function App() {
           setIsAccountOpen(false);
           setActiveTab('settings');
           setSettingsSubTab('profile');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onOpenProfileSection={(section) => {
+          setIsAccountOpen(false);
+          setActiveTab('settings');
+          setSettingsSubTab('profile');
+          setProfileWorkspaceSection(section);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
       />
