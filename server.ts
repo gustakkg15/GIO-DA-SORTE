@@ -6565,6 +6565,10 @@ async function startServer() {
       if (
         req.path === '/' ||
         req.path === '/index.html' ||
+        req.path === '/logo.png' ||
+        req.path === '/icon.svg' ||
+        req.path === '/favicon.ico' ||
+        req.path === '/apple-touch-icon.png' ||
         req.path.startsWith('/src/')
       ) {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');

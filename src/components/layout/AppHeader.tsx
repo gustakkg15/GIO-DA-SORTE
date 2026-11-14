@@ -166,19 +166,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           <Menu className="w-5 h-5" />
         </button>
 
-        <button
-          type="button"
+        <img
+          src="/logo.png"
+          alt="GIO DA SORTE"
           onClick={() => onSelectTab('dashboard')}
-          className="inline-flex items-center rounded-lg shrink-0 transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A6C957]"
           title="GIO DA SORTE — Ir para o Painel"
-          aria-label="GIO DA SORTE — Ir para o Painel"
-        >
-          <img
-            src="/logo.png"
-            alt="Logotipo Oficial GIO DA SORTE"
-            className="h-8 w-auto object-contain rounded-lg border border-[#0131CD]/45 shadow-[0_2px_12px_rgba(1,49,205,0.35)] shrink-0"
-          />
-        </button>
+          className="h-8 w-auto object-contain rounded-lg border border-[#0131CD]/45 shadow-[0_2px_12px_rgba(1,49,205,0.35)] shrink-0 cursor-pointer transition-transform hover:scale-[1.02]"
+        />
 
         <div className="min-w-0 flex-1">
           <span className="hidden sm:block text-[11px] font-semibold text-[#A5B1C5] leading-none mb-1 truncate">

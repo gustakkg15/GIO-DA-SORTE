@@ -21,7 +21,8 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
           if (
             key.includes('workbox') ||
             key.includes('precache') ||
-            key.includes('vite-pwa')
+            key.includes('vite-pwa') ||
+            key.includes('gio-')
           ) {
             caches.delete(key);
           }
